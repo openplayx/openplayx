@@ -19,7 +19,8 @@ android {
         applicationId = "com.openplayx.openplayx"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
-        minSdk = flutter.minSdkVersion
+        // vlc_player 2.1.2 要求 Android API 29（Android 10）及以上，高于 Flutter 默认的 24。
+        minSdk = 29
         targetSdk = flutter.targetSdkVersion
         // Uses the version code from pubspec.yaml. When using split APKs, 1000 * ABI_VERSION
         // is added automatically by Flutter. (https://developer.android.com/studio/build/configure-apk-splits#configure-APK-versions)
