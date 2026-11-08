@@ -92,7 +92,24 @@ class LibVlcBackend extends PlayerBackend {
     _hasStarted = false;
     _ended = false;
     _source = uri;
-    return _controller.setMedia(VlcMediaSource(uri: uri), autoPlay: true);
+    return _controller.setMedia(
+      VlcMediaSource(
+        uri: uri,
+        mediaOptions:
+            // VLCKit's native MP4 demuxer can stop reporting network playback time at
+            // 250ms. avformat keeps progress and seek events working for these files.
+            defaultTargetPlatform == TargetPlatform.macOS &&
+                (uri.scheme == 'http' || uri.scheme == 'https') &&
+                [
+                  '.mp4',
+                  '.m4v',
+                  '.mov',
+                ].any((ext) => uri.path.toLowerCase().endsWith(ext))
+            ? [':demux=avformat']
+            : [],
+      ),
+      autoPlay: true,
+    );
   }
 
   @override
