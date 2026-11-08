@@ -37,6 +37,9 @@ dependencies:
   openplayx_playback:
     path: packages/playback
   file_selector: ^1.1.0
+  smb_connect: ^0.0.9
+  shared_preferences: ^2.5.6
+  flutter_secure_storage: ^11.2.0
 
 dev_dependencies:
   integration_test:

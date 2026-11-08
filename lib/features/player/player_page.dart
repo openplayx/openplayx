@@ -4,10 +4,19 @@ import 'package:flutter/material.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../../data/files/local_media_picker.dart';
+import '../../core/plugins/source_capability.dart';
+import '../../data/sources/source_manager.dart';
+import '../sources/source_page.dart';
 
 class PlayerPage extends StatefulWidget {
-  const PlayerPage({super.key, this.backend, this.pickMedia = pickLocalMedia});
+  const PlayerPage({
+    super.key,
+    this.backend,
+    this.pickMedia = pickLocalMedia,
+    this.sourceManager,
+  });
   final PlayerBackend? backend;
+  final SourceManager? sourceManager;
   final Future<LocalMedia?> Function() pickMedia;
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -15,6 +24,8 @@ class PlayerPage extends StatefulWidget {
 
 class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   late final PlayerBackend _backend;
+  late final SourceManager _sources;
+  PlayableStream? _stream;
   String? _name;
   String? _error;
   bool _busy = false;
@@ -25,6 +36,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     _backend = widget.backend ?? LibVlcBackend();
+    _sources = widget.sourceManager ?? SourceManager();
     _backend.addListener(_onPlayback);
     WidgetsBinding.instance.addObserver(this);
   }
@@ -63,11 +75,41 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _error = null;
         _drag = null;
       });
-      await _command(() => _backend.open(media.uri));
+      await _command(() async {
+        await _backend.open(media.uri);
+        await _stream?.release();
+        _stream = null;
+      });
       if (_background && mounted) await _command(_backend.pause);
     } catch (error, stack) {
       debugPrint('File selection failed: $error\n$stack');
       if (mounted) setState(() => _error = '无法打开文件，请重新选择。');
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _openSource() async {
+    setState(() => _busy = true);
+    try {
+      final selection = await Navigator.of(context).push<SourceSelection>(
+        MaterialPageRoute(builder: (_) => SourcePage(manager: _sources)),
+      );
+      if (selection == null) return;
+      if (!mounted) {
+        await selection.stream.release();
+        return;
+      }
+      final previous = _stream;
+      _stream = selection.stream;
+      setState(() {
+        _name = selection.name;
+        _error = null;
+        _drag = null;
+      });
+      await _command(() => _backend.open(selection.stream.uri));
+      await previous?.release();
+      if (_background && mounted) await _command(_backend.pause);
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -78,7 +120,13 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _backend.removeListener(_onPlayback);
     _backend.dispose();
+    unawaited(_releaseSources());
     super.dispose();
+  }
+
+  Future<void> _releaseSources() async {
+    await _stream?.release();
+    if (widget.sourceManager == null) await _sources.dispose();
   }
 
   @override
@@ -86,6 +134,11 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     appBar: AppBar(
       title: const Text('OpenPlayX'),
       actions: [
+        TextButton.icon(
+          onPressed: _busy ? null : _openSource,
+          icon: const Icon(Icons.video_library_outlined),
+          label: const Text('媒体源'),
+        ),
         TextButton.icon(
           onPressed: _busy ? null : _open,
           icon: const Icon(Icons.folder_open),

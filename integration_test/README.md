@@ -45,3 +45,13 @@ flutter test integration_test/playback_test.dart -d macos
 - 不依赖真实原生实现的单元测试和 Widget 测试，放在 [`test/`](../test/README.md)，优先快速验证局部逻辑。
 - 本目录中的测试与主项目代码、插件注册及平台构建环境紧密关联，因此保留在主项目中。
 - 从应用外部操作完整产品的端到端测试、验收场景、跨平台矩阵及可追溯报告，放在独立的 `openplayx-test` 仓库；本目录的执行结果可以作为其验收证据的一部分。
+
+## 媒体源集成测试
+
+`sources_test.dart` 验证本地文件夹、SMB、Plex、Jellyfin 的真实浏览、资源解析、完整文件/Range 读取和原生 libVLC 播放、暂停、Seek。临时服务启动、初始化及清理步骤见 [source_services/README.md](../tool/source_services/README.md)。未设置 `SOURCE_SERVICES` 时只运行本地文件夹测试，其他源明确跳过。
+
+`source_storage_test.dart` 在真实应用中验证配置持久化、系统安全存储读写和本地目录书签恢复，不依赖 Docker：
+
+```sh
+flutter test integration_test/source_storage_test.dart -d macos
+```

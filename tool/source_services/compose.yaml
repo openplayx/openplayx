@@ -1,0 +1,36 @@
+name: openplayx-source-test
+services:
+  smb:
+    image: dockurr/samba@sha256:2a0452a12b7a244a22f18d0f233101bb8d4952b5500ae263905e3b9dad3bf2ae
+    ports:
+      - "127.0.0.1:445:445"
+    environment:
+      NAME: media
+      USER: openplayx
+      PASS: test-only-password
+      RW: "false"
+    volumes:
+      - ../../test/fixtures:/storage:ro
+  jellyfin:
+    image: jellyfin/jellyfin@sha256:fea863d0cd9ec445985d9c75fc6ed64e38a1d2766cf0c250a33d553f4fc1b771
+    ports:
+      - "127.0.0.1:18096:8096"
+    volumes:
+      - ../../test/fixtures:/media:ro
+    tmpfs:
+      - /config
+      - /cache
+  plex:
+    image: plexinc/pms-docker@sha256:6d778d41daae68f89115aa87a44ae14a96b23e71a2093da173b5a9aac4091336
+    ports:
+      - "127.0.0.1:13240:32400"
+    environment:
+      ADVERTISE_IP: http://127.0.0.1:13240/
+      ALLOWED_NETWORKS: 0.0.0.0/0
+      PLEX_UID: "1000"
+      PLEX_GID: "1000"
+    volumes:
+      - ../../test/fixtures:/media:ro
+    tmpfs:
+      - /config
+      - /transcode
