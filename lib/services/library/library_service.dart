@@ -277,7 +277,7 @@ class LibraryService {
     return media;
   });
   List<Row> query(
-    String library, {
+    String? library, {
     String search = '',
     bool favorites = false,
     String? source,
@@ -289,9 +289,9 @@ class LibraryService {
   }) {
     if (offset < 0 || limit < 1 || limit > 200) throw ArgumentError('无效分页');
     return db.select(
-      '''SELECT m.*, lm.added_at FROM media m JOIN memberships lm ON lm.media_id=m.id
-      WHERE lm.library_id=? AND instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND pm.library_id=lm.library_id WHERE child.media_id=m.id))
+      '''SELECT m.*, lm.added_at FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
+      WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
+      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
       AND (? IS NULL OR COALESCE((SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.year=?))
@@ -299,9 +299,12 @@ class LibraryService {
       ORDER BY lm.added_at DESC,m.id LIMIT ? OFFSET ?''',
       [
         library,
+        library,
         search,
         search,
         contentType,
+        library,
+        library,
         source,
         source,
         source,
@@ -514,7 +517,7 @@ class LibraryService {
   String beginSession(String resource) {
     final session = _id();
     db.execute(
-      "INSERT INTO progress(resource_id,session,updated_at) VALUES (?,?,?) ON CONFLICT(resource_id) DO UPDATE SET session=excluded.session",
+      "INSERT INTO progress(resource_id,session,updated_at) VALUES (?,?,?) ON CONFLICT(resource_id) DO UPDATE SET session=excluded.session,updated_at=excluded.updated_at",
       [resource, session, DateTime.now().millisecondsSinceEpoch],
     );
     return session;
@@ -548,6 +551,14 @@ class LibraryService {
     SELECT * FROM ranked WHERE rank=1 AND position>0 AND completed=0 ORDER BY updated_at DESC,id LIMIT ?""",
     [limit],
   );
+  List<Row> recentlyPlayed({int limit = 20}) => db.select(
+    """WITH ranked AS (SELECT m.*,r.id AS resource_id,p.position,p.duration,p.completed,p.updated_at,
+    ROW_NUMBER() OVER(PARTITION BY m.id ORDER BY p.updated_at DESC,r.id) AS rank
+    FROM progress p JOIN resources r ON r.id=p.resource_id JOIN media m ON m.id=r.media_id)
+    SELECT * FROM ranked WHERE rank=1 ORDER BY updated_at DESC,id LIMIT ?""",
+    [limit],
+  );
+
   bool observedMissing(String resource) {
     final rows = db.select(
       'SELECT available FROM evidence WHERE resource_id=?',

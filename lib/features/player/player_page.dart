@@ -8,8 +8,6 @@ import 'package:openplayx_playback/playback.dart';
 import '../../data/files/local_media_picker.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
-import '../sources/source_page.dart';
-import '../library/library_page.dart';
 import '../../services/library/library_service.dart';
 import '../../data/sources/source_config.dart';
 
@@ -17,19 +15,21 @@ class PlayerPage extends StatefulWidget {
   const PlayerPage({
     super.key,
     this.backend,
+    this.onExit,
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
     this.libraryService,
   });
+  final VoidCallback? onExit;
   final PlayerBackend? backend;
   final SourceManager? sourceManager;
   final LibraryService? libraryService;
   final Future<LocalMedia?> Function() pickMedia;
   @override
-  State<PlayerPage> createState() => _PlayerPageState();
+  State<PlayerPage> createState() => PlayerPageState();
 }
 
-class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
+class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   late final PlayerBackend _backend;
   late final SourceManager _sources;
   LibraryService? _library;
@@ -206,8 +206,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _scheduleHide();
         return KeyEventResult.handled;
       }
-      _showControls();
-      return KeyEventResult.ignored;
+      unawaited(_exitPlayback());
+      return KeyEventResult.handled;
     }
     final toggle =
         key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyK;
@@ -267,6 +267,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   bool get _enabled =>
       _name != null &&
       !_busy &&
+      !_closing &&
       !_background &&
       !_locked &&
       _error == null &&
@@ -488,31 +489,75 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openSource({bool library = false}) async {
+  Future<void>? _openingMedia;
+  bool _closing = false;
+
+  Future<void> openFile() {
+    if (_closing || _busy) return Future.value();
+    return _openingMedia = _open();
+  }
+
+  Future<void> _exitPlayback() async {
+    if (widget.onExit != null) {
+      widget.onExit!();
+    } else if (await stopPlayback() && mounted) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  Future<bool> stopPlayback() async {
+    if (_closing) return false;
+    _closing = true;
+    _endBoost();
+    try {
+      await _openingMedia;
+      await _speedCommands;
+      if (!mounted) return false;
+      _checkpoint(force: true);
+      await _backend.stop();
+      _finishTracking();
+      final stream = _stream;
+      _stream = null;
+      await stream?.release();
+      if (!mounted) return false;
+      _hideTimer?.cancel();
+      setState(() {
+        _name = null;
+        _error = null;
+        _drag = null;
+        _locked = false;
+        _controlsVisible = true;
+      });
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('停止播放失败，请重试返回')));
+      }
+      return false;
+    } finally {
+      _closing = false;
+    }
+  }
+
+  Future<void> playSelection(SourceSelection selection) {
+    if (_closing || _busy) return selection.stream.release();
+    return _openingMedia = _playSelection(selection);
+  }
+
+  Future<void> _playSelection(SourceSelection selection) async {
+    if (!mounted) {
+      await selection.stream.release();
+      return;
+    }
     _endBoost();
     await _speedCommands;
-    if (!mounted) return;
-    _hideTimer?.cancel();
-    setState(() {
-      _busy = true;
-      _controlsVisible = true;
-    });
+    if (!mounted) {
+      await selection.stream.release();
+      return;
+    }
+    setState(() => _busy = true);
     try {
-      _checkpoint(force: true);
-      final service = library ? await _ensureLibrary() : _library;
-      if (!mounted) return;
-      final selection = await Navigator.of(context).push<SourceSelection>(
-        MaterialPageRoute(
-          builder: (_) => library
-              ? LibraryPage(sources: _sources, service: service)
-              : SourcePage(manager: _sources),
-        ),
-      );
-      if (selection == null) return;
-      if (!mounted) {
-        await selection.stream.release();
-        return;
-      }
       _finishTracking();
       final previous = _stream;
       _stream = selection.stream;
@@ -546,8 +591,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         );
       }
       if (_background && mounted) await _command(_backend.pause);
-    } catch (_) {
-      if (mounted) setState(() => _error = '无法打开媒体库或来源，请重试');
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -1055,6 +1098,11 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         ),
                         child: Row(
                           children: [
+                            _icon(
+                              '返回',
+                              Icons.arrow_back,
+                              _closing ? null : _exitPlayback,
+                            ),
                             Expanded(
                               child: Text(
                                 _name ?? 'OpenPlayX',
@@ -1065,21 +1113,6 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                                   fontSize: 13,
                                 ),
                               ),
-                            ),
-                            _icon(
-                              '媒体源',
-                              Icons.video_library_outlined,
-                              _busy ? null : () => _openSource(),
-                            ),
-                            _icon(
-                              '媒体库',
-                              Icons.video_library_outlined,
-                              _busy ? null : () => _openSource(library: true),
-                            ),
-                            _icon(
-                              '打开文件',
-                              Icons.folder_open_outlined,
-                              _busy ? null : _open,
                             ),
                           ],
                         ),

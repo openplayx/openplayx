@@ -53,7 +53,7 @@ void main() {
           ),
         ),
       );
-      await tester.tap(find.byTooltip('打开文件'));
+      await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
       await tester.pump();
       for (var i = 0; i < 20 && !backend.resumed.isCompleted; i++) {
         await tester.runAsync(

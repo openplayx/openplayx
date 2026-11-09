@@ -9,13 +9,15 @@ import 'source_instance_form.dart';
 import 'source_defaults_page.dart';
 
 class SourcePage extends StatefulWidget {
-  const SourcePage({super.key, required this.manager});
+  const SourcePage({super.key, required this.manager, this.onPlay});
   final SourceManager manager;
+  final ValueChanged<SourceSelection>? onPlay;
   @override
   State<SourcePage> createState() => _SourcePageState();
 }
 
 class _SourcePageState extends State<SourcePage> {
+  bool _files = true;
   SourceConfig? _source;
   final _nodes = <SourceEntry>[];
   final _entries = <SourceEntry>[];
@@ -81,9 +83,18 @@ class _SourcePageState extends State<SourcePage> {
         await stream.release();
         return;
       }
-      Navigator.of(
-        context,
-      ).pop(SourceSelection(entry.name, stream, ref: entry.ref, entry: entry));
+      final selection = SourceSelection(
+        entry.name,
+        stream,
+        ref: entry.ref,
+        entry: entry,
+      );
+      if (widget.onPlay != null) {
+        widget.onPlay!(selection);
+        setState(() => _busy = false);
+      } else {
+        Navigator.of(context).pop(selection);
+      }
     } catch (error) {
       if (mounted) {
         setState(() {
@@ -163,360 +174,403 @@ class _SourcePageState extends State<SourcePage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: Text(
-        _nodes.isNotEmpty ? _nodes.last.name : _source?.name ?? '媒体源',
-      ),
-      actions: [
-        if (_source == null)
-          IconButton(
-            tooltip: '重新加载配置',
-            icon: const Icon(Icons.refresh),
-            onPressed: _busy ? null : () => _load(),
-          ),
-        if (_source == null &&
-            widget.manager.bindings.defaults['source.browse'] != null)
-          TextButton(
-            onPressed: _busy
-                ? null
-                : () {
-                    final id =
-                        widget.manager.bindings.defaults['source.browse'];
-                    final config = widget.manager.configs
-                        .where((c) => c.id == id && c.enabled)
-                        .firstOrNull;
-                    if (config == null) {
-                      setState(() => _error = '默认实例不可用，请重新选择，未自动切换其他账号。');
-                      return;
-                    }
-                    _source = config;
-                    _load();
-                  },
-            child: const Text('默认浏览'),
-          ),
-        if (_source == null)
-          IconButton(
-            tooltip: '能力默认实例',
-            icon: const Icon(Icons.tune),
-            onPressed: _busy
-                ? null
-                : () async {
-                    await Navigator.of(context).push(
-                      MaterialPageRoute<void>(
-                        builder: (_) =>
-                            SourceDefaultsPage(manager: widget.manager),
-                      ),
-                    );
-                    if (mounted) await _load();
-                  },
-          ),
-        if (_source == null)
-          TextButton.icon(
-            onPressed: _busy
-                ? null
-                : () async {
-                    await showDialog<bool>(
-                      context: context,
-                      barrierDismissible: false,
-                      builder: (_) =>
-                          SourceInstanceForm(manager: widget.manager),
-                    );
-                    if (mounted) await _load();
-                  },
-            icon: const Icon(Icons.add),
-            label: const Text('添加源'),
-          ),
-      ],
-    ),
-    body: Column(
-      children: [
-        if (_source != null)
-          ListTile(
-            leading: const Icon(Icons.arrow_upward),
-            title: const Text('返回上一级'),
-            onTap: _busy ? null : _back,
-          ),
-        if (_busy) const LinearProgressIndicator(),
-        for (final issue in widget.manager.configurationIssues)
-          ListTile(
-            leading: const Icon(Icons.warning_amber),
-            title: Text(issue.message),
-            subtitle: Text(issue.instanceId),
-          ),
-        if (_error != null)
-          Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              children: [
-                Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-                TextButton(
-                  onPressed: _busy ? null : _load,
-                  child: const Text('重试'),
-                ),
-              ],
+  Widget build(BuildContext context) => PopScope(
+    canPop: _source == null,
+    onPopInvokedWithResult: (didPop, _) {
+      if (!didPop && _source != null && !_busy) _back();
+    },
+    child: Scaffold(
+      appBar: AppBar(
+        title: Text(
+          _nodes.isNotEmpty ? _nodes.last.name : _source?.name ?? '来源',
+        ),
+        actions: [
+          if (_source == null)
+            IconButton(
+              tooltip: '重新加载配置',
+              icon: const Icon(Icons.refresh),
+              onPressed: _busy ? null : () => _load(),
             ),
-          ),
-        Expanded(
-          child: _source == null
-              ? ListView(
-                  children: [
-                    if (!_busy && widget.manager.configs.isEmpty)
-                      const Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text('添加本地文件夹、SMB、Plex 或 Jellyfin 媒体源。'),
-                      ),
-                    for (final source in widget.manager.configs)
-                      Card(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            ListTile(
-                              leading: Icon(
-                                source.kind == SourceKind.local
-                                    ? Icons.folder
-                                    : Icons.dns,
+          if (_source == null &&
+              widget.manager.bindings.defaults['source.browse'] != null)
+            TextButton(
+              onPressed: _busy
+                  ? null
+                  : () {
+                      final id =
+                          widget.manager.bindings.defaults['source.browse'];
+                      final config = widget.manager.configs
+                          .where((c) => c.id == id && c.enabled)
+                          .firstOrNull;
+                      if (config == null) {
+                        setState(() => _error = '默认实例不可用，请重新选择，未自动切换其他账号。');
+                        return;
+                      }
+                      _source = config;
+                      _load();
+                    },
+              child: const Text('默认浏览'),
+            ),
+          if (_source == null)
+            IconButton(
+              tooltip: '能力默认实例',
+              icon: const Icon(Icons.tune),
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      await Navigator.of(context).push(
+                        MaterialPageRoute<void>(
+                          builder: (_) =>
+                              SourceDefaultsPage(manager: widget.manager),
+                        ),
+                      );
+                      if (mounted) await _load();
+                    },
+            ),
+          if (_source == null)
+            TextButton.icon(
+              onPressed: _busy
+                  ? null
+                  : () async {
+                      await showDialog<bool>(
+                        context: context,
+                        barrierDismissible: false,
+                        builder: (_) => SourceInstanceForm(
+                          manager: widget.manager,
+                          fileSources: _files,
+                        ),
+                      );
+                      if (mounted) await _load();
+                    },
+              icon: const Icon(Icons.add),
+              label: const Text('添加源'),
+            ),
+        ],
+      ),
+      body: Column(
+        children: [
+          if (_source == null)
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: SegmentedButton<bool>(
+                segments: const [
+                  ButtonSegment(
+                    value: true,
+                    icon: Icon(Icons.folder_outlined),
+                    label: Text('文件'),
+                  ),
+                  ButtonSegment(
+                    value: false,
+                    icon: Icon(Icons.dns_outlined),
+                    label: Text('媒体服务'),
+                  ),
+                ],
+                selected: {_files},
+                onSelectionChanged: (value) =>
+                    setState(() => _files = value.single),
+              ),
+            ),
+          if (_source != null)
+            ListTile(
+              leading: const Icon(Icons.arrow_upward),
+              title: const Text('返回上一级'),
+              onTap: _busy ? null : _back,
+            ),
+          if (_busy) const LinearProgressIndicator(),
+          for (final issue in widget.manager.configurationIssues)
+            ListTile(
+              leading: const Icon(Icons.warning_amber),
+              title: Text(issue.message),
+              subtitle: Text(issue.instanceId),
+            ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.all(16),
+              child: Column(
+                children: [
+                  Text(
+                    _error!,
+                    style: TextStyle(
+                      color: Theme.of(context).colorScheme.error,
+                    ),
+                  ),
+                  TextButton(
+                    onPressed: _busy ? null : _load,
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            ),
+          Expanded(
+            child: _source == null
+                ? ListView(
+                    children: [
+                      if (!_busy &&
+                          widget.manager.configs
+                              .where((s) => s.isFileSource == _files)
+                              .isEmpty)
+                        Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Text(
+                            _files
+                                ? '添加本地文件夹或 SMB 文件来源。WebDAV 与网盘尚未接入。'
+                                : '添加 Jellyfin 或 Plex 媒体服务。Emby 尚未接入。',
+                          ),
+                        ),
+                      for (final source in widget.manager.configs.where(
+                        (s) => s.isFileSource == _files,
+                      ))
+                        Card(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              ListTile(
+                                leading: Icon(
+                                  source.kind == SourceKind.local
+                                      ? Icons.folder
+                                      : Icons.dns,
+                                ),
+                                title: Text(source.name),
+                                subtitle: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Text(
+                                      '${source.kind.label} · 插件 ${source.pluginVersion} · 配置 v${source.configVersion} · r${source.revision}',
+                                    ),
+                                    Text(
+                                      widget.manager.applicationLabel(
+                                        source.id,
+                                      ),
+                                    ),
+                                    Text(
+                                      widget.manager
+                                          .credentialStatus(source.id)
+                                          .label,
+                                    ),
+                                  ],
+                                ),
+                                onTap: _busy || !source.enabled
+                                    ? null
+                                    : () {
+                                        _source = source;
+                                        _load();
+                                      },
                               ),
-                              title: Text(source.name),
-                              subtitle: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
+                              Wrap(
+                                alignment: WrapAlignment.end,
                                 children: [
-                                  Text(
-                                    '${source.kind.label} · 插件 ${source.pluginVersion} · 配置 v${source.configVersion} · r${source.revision}',
+                                  Switch(
+                                    value: source.enabled,
+                                    onChanged: _busy
+                                        ? null
+                                        : (enabled) async {
+                                            final impact = widget.manager
+                                                .impact(source.id);
+                                            if (!enabled &&
+                                                (impact.playing > 0 ||
+                                                    impact.running > 0 ||
+                                                    impact
+                                                        .defaultCapabilities
+                                                        .isNotEmpty)) {
+                                              final accepted = await showDialog<bool>(
+                                                context: context,
+                                                builder: (context) => AlertDialog(
+                                                  title: const Text('禁用媒体源？'),
+                                                  content: Text(
+                                                    '当前播放 ${impact.playing} 个，进行中请求 ${impact.running} 个，默认能力绑定 ${impact.defaultCapabilities.length} 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。',
+                                                  ),
+                                                  actions: [
+                                                    TextButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            false,
+                                                          ),
+                                                      child: const Text('取消'),
+                                                    ),
+                                                    FilledButton(
+                                                      onPressed: () =>
+                                                          Navigator.pop(
+                                                            context,
+                                                            true,
+                                                          ),
+                                                      child: const Text('禁用'),
+                                                    ),
+                                                  ],
+                                                ),
+                                              );
+                                              if (accepted != true ||
+                                                  !mounted) {
+                                                return;
+                                              }
+                                            }
+                                            setState(() => _busy = true);
+                                            try {
+                                              await widget.manager.setEnabled(
+                                                source.id,
+                                                enabled,
+                                              );
+                                              await _load();
+                                            } catch (error) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _busy = false;
+                                                  _error =
+                                                      error is PluginException
+                                                      ? error.message
+                                                      : '启停失败，请重试。';
+                                                });
+                                              }
+                                            }
+                                          },
                                   ),
-                                  Text(
-                                    widget.manager.applicationLabel(source.id),
+                                  IconButton(
+                                    tooltip: '验证连接',
+                                    icon: const Icon(Icons.wifi_find),
+                                    onPressed: _busy || !source.enabled
+                                        ? null
+                                        : () async {
+                                            setState(() => _busy = true);
+                                            try {
+                                              await widget.manager
+                                                  .testConnection(source.id);
+                                              await _load();
+                                            } catch (error) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _busy = false;
+                                                  _error =
+                                                      error is PluginException
+                                                      ? error.message
+                                                      : '连接失败。';
+                                                });
+                                              }
+                                            }
+                                          },
                                   ),
-                                  Text(
-                                    widget.manager
-                                        .credentialStatus(source.id)
-                                        .label,
+                                  if (source.isFileSource)
+                                    IconButton(
+                                      tooltip: '预览扫描',
+                                      icon: const Icon(Icons.manage_search),
+                                      onPressed:
+                                          _busy ||
+                                              !source.enabled ||
+                                              source.scanMode ==
+                                                  ScanMode.disabled
+                                          ? null
+                                          : () => _scan(source),
+                                    ),
+                                  IconButton(
+                                    tooltip: '编辑媒体源',
+                                    icon: const Icon(Icons.edit_outlined),
+                                    onPressed: _busy
+                                        ? null
+                                        : () async {
+                                            await showDialog<bool>(
+                                              context: context,
+                                              barrierDismissible: false,
+                                              builder: (_) =>
+                                                  SourceInstanceForm(
+                                                    manager: widget.manager,
+                                                    initial: source,
+                                                  ),
+                                            );
+                                            if (mounted) await _load();
+                                          },
+                                  ),
+                                  IconButton(
+                                    tooltip: '删除媒体源',
+                                    icon: const Icon(Icons.delete_outline),
+                                    onPressed: _busy
+                                        ? null
+                                        : () async {
+                                            final confirmed =
+                                                await showDialog<bool>(
+                                                  context: context,
+                                                  builder: (context) =>
+                                                      AlertDialog(
+                                                        title: Text(
+                                                          '删除 ${source.name}？',
+                                                        ),
+                                                        content: Text(
+                                                          _deletionMessage(
+                                                            source.id,
+                                                          ),
+                                                        ),
+                                                        actions: [
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.pop(
+                                                                  context,
+                                                                  false,
+                                                                ),
+                                                            child: const Text(
+                                                              '取消',
+                                                            ),
+                                                          ),
+                                                          TextButton(
+                                                            onPressed: () =>
+                                                                Navigator.pop(
+                                                                  context,
+                                                                  true,
+                                                                ),
+                                                            child: const Text(
+                                                              '删除',
+                                                            ),
+                                                          ),
+                                                        ],
+                                                      ),
+                                                );
+                                            if (confirmed != true || !mounted) {
+                                              return;
+                                            }
+                                            setState(() => _busy = true);
+                                            try {
+                                              await widget.manager.remove(
+                                                source.id,
+                                              );
+                                              await _load();
+                                            } catch (_) {
+                                              if (mounted) {
+                                                setState(() {
+                                                  _error = '删除源失败，请重试。';
+                                                  _busy = false;
+                                                });
+                                              }
+                                            }
+                                          },
                                   ),
                                 ],
                               ),
-                              onTap: _busy || !source.enabled
-                                  ? null
-                                  : () {
-                                      _source = source;
-                                      _load();
-                                    },
-                            ),
-                            Wrap(
-                              alignment: WrapAlignment.end,
-                              children: [
-                                Switch(
-                                  value: source.enabled,
-                                  onChanged: _busy
-                                      ? null
-                                      : (enabled) async {
-                                          final impact = widget.manager.impact(
-                                            source.id,
-                                          );
-                                          if (!enabled &&
-                                              (impact.playing > 0 ||
-                                                  impact.running > 0 ||
-                                                  impact
-                                                      .defaultCapabilities
-                                                      .isNotEmpty)) {
-                                            final accepted = await showDialog<bool>(
-                                              context: context,
-                                              builder: (context) => AlertDialog(
-                                                title: const Text('禁用媒体源？'),
-                                                content: Text(
-                                                  '当前播放 ${impact.playing} 个，进行中请求 ${impact.running} 个，默认能力绑定 ${impact.defaultCapabilities.length} 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。',
-                                                ),
-                                                actions: [
-                                                  TextButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          false,
-                                                        ),
-                                                    child: const Text('取消'),
-                                                  ),
-                                                  FilledButton(
-                                                    onPressed: () =>
-                                                        Navigator.pop(
-                                                          context,
-                                                          true,
-                                                        ),
-                                                    child: const Text('禁用'),
-                                                  ),
-                                                ],
-                                              ),
-                                            );
-                                            if (accepted != true || !mounted) {
-                                              return;
-                                            }
-                                          }
-                                          setState(() => _busy = true);
-                                          try {
-                                            await widget.manager.setEnabled(
-                                              source.id,
-                                              enabled,
-                                            );
-                                            await _load();
-                                          } catch (error) {
-                                            if (mounted) {
-                                              setState(() {
-                                                _busy = false;
-                                                _error =
-                                                    error is PluginException
-                                                    ? error.message
-                                                    : '启停失败，请重试。';
-                                              });
-                                            }
-                                          }
-                                        },
-                                ),
-                                IconButton(
-                                  tooltip: '验证连接',
-                                  icon: const Icon(Icons.wifi_find),
-                                  onPressed: _busy || !source.enabled
-                                      ? null
-                                      : () async {
-                                          setState(() => _busy = true);
-                                          try {
-                                            await widget.manager.testConnection(
-                                              source.id,
-                                            );
-                                            await _load();
-                                          } catch (error) {
-                                            if (mounted) {
-                                              setState(() {
-                                                _busy = false;
-                                                _error =
-                                                    error is PluginException
-                                                    ? error.message
-                                                    : '连接失败。';
-                                              });
-                                            }
-                                          }
-                                        },
-                                ),
-                                if (source.isFileSource)
-                                  IconButton(
-                                    tooltip: '预览扫描',
-                                    icon: const Icon(Icons.manage_search),
-                                    onPressed:
-                                        _busy ||
-                                            !source.enabled ||
-                                            source.scanMode == ScanMode.disabled
-                                        ? null
-                                        : () => _scan(source),
-                                  ),
-                                IconButton(
-                                  tooltip: '编辑媒体源',
-                                  icon: const Icon(Icons.edit_outlined),
-                                  onPressed: _busy
-                                      ? null
-                                      : () async {
-                                          await showDialog<bool>(
-                                            context: context,
-                                            barrierDismissible: false,
-                                            builder: (_) => SourceInstanceForm(
-                                              manager: widget.manager,
-                                              initial: source,
-                                            ),
-                                          );
-                                          if (mounted) await _load();
-                                        },
-                                ),
-                                IconButton(
-                                  tooltip: '删除媒体源',
-                                  icon: const Icon(Icons.delete_outline),
-                                  onPressed: _busy
-                                      ? null
-                                      : () async {
-                                          final confirmed =
-                                              await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) =>
-                                                    AlertDialog(
-                                                      title: Text(
-                                                        '删除 ${source.name}？',
-                                                      ),
-                                                      content: Text(
-                                                        _deletionMessage(
-                                                          source.id,
-                                                        ),
-                                                      ),
-                                                      actions: [
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                context,
-                                                                false,
-                                                              ),
-                                                          child: const Text(
-                                                            '取消',
-                                                          ),
-                                                        ),
-                                                        TextButton(
-                                                          onPressed: () =>
-                                                              Navigator.pop(
-                                                                context,
-                                                                true,
-                                                              ),
-                                                          child: const Text(
-                                                            '删除',
-                                                          ),
-                                                        ),
-                                                      ],
-                                                    ),
-                                              );
-                                          if (confirmed != true || !mounted) {
-                                            return;
-                                          }
-                                          setState(() => _busy = true);
-                                          try {
-                                            await widget.manager.remove(
-                                              source.id,
-                                            );
-                                            await _load();
-                                          } catch (_) {
-                                            if (mounted) {
-                                              setState(() {
-                                                _error = '删除源失败，请重试。';
-                                                _busy = false;
-                                              });
-                                            }
-                                          }
-                                        },
-                                ),
-                              ],
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                  ],
-                )
-              : ListView(
-                  children: [
-                    if (!_busy && _error == null && _entries.isEmpty)
-                      const ListTile(title: Text('此目录没有可浏览的媒体。')),
-                    for (final entry in _entries)
-                      ListTile(
-                        leading: Icon(
-                          entry.isFolder
-                              ? Icons.folder_outlined
-                              : Icons.play_circle_outline,
+                    ],
+                  )
+                : ListView(
+                    children: [
+                      if (!_busy && _error == null && _entries.isEmpty)
+                        const ListTile(title: Text('此目录没有可浏览的媒体。')),
+                      for (final entry in _entries)
+                        ListTile(
+                          leading: Icon(
+                            entry.isFolder
+                                ? Icons.folder_outlined
+                                : Icons.play_circle_outline,
+                          ),
+                          title: Text(entry.name),
+                          onTap: _busy ? null : () => _select(entry),
                         ),
-                        title: Text(entry.name),
-                        onTap: _busy ? null : () => _select(entry),
-                      ),
-                    if (_next != null)
-                      TextButton(
-                        onPressed: _busy ? null : () => _load(more: true),
-                        child: const Text('加载更多'),
-                      ),
-                  ],
-                ),
-        ),
-      ],
+                      if (_next != null)
+                        TextButton(
+                          onPressed: _busy ? null : () => _load(more: true),
+                          child: const Text('加载更多'),
+                        ),
+                    ],
+                  ),
+          ),
+        ],
+      ),
     ),
   );
 }

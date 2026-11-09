@@ -41,6 +41,8 @@ void main() {
       });
       await tester.pumpWidget(MaterialApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
+      await tester.tap(find.text('媒体服务'));
+      await tester.pumpAndSettle();
       expect(find.textContaining('配置 v2'), findsOneWidget);
       expect(find.textContaining('尚未验证'), findsOneWidget);
       expect(tester.takeException(), isNull);

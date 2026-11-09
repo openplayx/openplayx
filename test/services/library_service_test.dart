@@ -43,6 +43,44 @@ void main() {
     sources = FakeSources();
   });
   tearDown(() => service.close());
+  test(
+    'all libraries deduplicate shared media and exclude unfiled playback',
+    () {
+      final first = service.create('First');
+      final second = service.create('Second');
+      final shared = service.register(sources.entries.first);
+      service.addManual(first, shared);
+      service.addManual(second, shared);
+      service.register(
+        const SourceEntry(
+          ResourceRef('s', '/unfiled.mp4'),
+          'Unfiled',
+          isFolder: false,
+        ),
+      );
+      expect(service.query(null).map((r) => r['id']), [shared]);
+      expect(service.query(first).map((r) => r['id']), [shared]);
+    },
+  );
+
+  test(
+    'recent playback includes completed media and keeps the latest resource',
+    () {
+      final media = service.register(sources.entries.first);
+      final resource = service.resources(media).single['id'] as String;
+      service.saveProgress(
+        resource,
+        service.beginSession(resource),
+        const Duration(minutes: 10),
+        const Duration(minutes: 10),
+        completed: true,
+      );
+      expect(service.continueWatching(), isEmpty);
+      expect(service.recentlyPlayed().single['id'], media);
+      service.beginSession(resource);
+      expect(service.recentlyPlayed(), hasLength(1));
+    },
+  );
   test('direct identity is reused, repeated scans and multiple libraries share media', () async {
     final media = service.register(sources.entries.first);
     final a = service.create('A');
@@ -305,7 +343,11 @@ void main() {
           year: 2020,
         ),
       ),
-      SourceEntry(ResourceRef('s', '/two.mp4'), 'Same title.mp4', isFolder: false),
+      SourceEntry(
+        ResourceRef('s', '/two.mp4'),
+        'Same title.mp4',
+        isFolder: false,
+      ),
     ];
     await service.scan(service.bind(a, 's'), sources);
     expect(service.query(a), hasLength(2));

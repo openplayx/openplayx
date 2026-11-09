@@ -8,9 +8,15 @@ import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
 
 class LibraryPage extends StatefulWidget {
-  const LibraryPage({super.key, required this.sources, this.service});
+  const LibraryPage({
+    super.key,
+    required this.sources,
+    this.service,
+    this.onPlay,
+  });
   final SourceManager sources;
   final LibraryService? service;
+  final ValueChanged<SourceSelection>? onPlay;
   @override
   State<LibraryPage> createState() => _LibraryPageState();
 }
@@ -44,7 +50,6 @@ class _LibraryPageState extends State<LibraryPage> {
       }
       setState(() {
         _service = service;
-        _library = service.libraries.firstOrNull?['id'] as String?;
       });
     } catch (_) {
       if (mounted) setState(() => _error = '媒体库打开失败，请返回后重试');
@@ -286,17 +291,19 @@ class _LibraryPageState extends State<LibraryPage> {
                         return;
                       }
                       Navigator.pop(sheet);
-                      Navigator.pop(
-                        context,
-                        SourceSelection(
-                          resource['name'] as String,
-                          stream,
-                          ref: ResourceRef(
-                            resource['source'] as String,
-                            resource['item'] as String,
-                          ),
+                      final selection = SourceSelection(
+                        resource['name'] as String,
+                        stream,
+                        ref: ResourceRef(
+                          resource['source'] as String,
+                          resource['item'] as String,
                         ),
                       );
+                      if (widget.onPlay != null) {
+                        widget.onPlay!(selection);
+                      } else {
+                        Navigator.pop(context, selection);
+                      }
                     } catch (_) {
                       if (sheet.mounted) {
                         ScaffoldMessenger.of(sheet).showSnackBar(
@@ -368,10 +375,10 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   Widget build(BuildContext context) {
     final service = _service;
-    final rows = service == null || _library == null
+    final rows = service == null
         ? []
         : service.query(
-            _library!,
+            _library,
             search: _search,
             favorites: _favorites,
             source: _sourceFilter,
@@ -407,7 +414,8 @@ class _LibraryPageState extends State<LibraryPage> {
                     child: SingleChildScrollView(
                       child: Column(
                         children: [
-                          if (service.continueWatching().isNotEmpty) ...[
+                          if (widget.onPlay == null &&
+                              service.continueWatching().isNotEmpty) ...[
                             const Align(
                               alignment: Alignment.centerLeft,
                               child: Padding(
@@ -453,8 +461,12 @@ class _LibraryPageState extends State<LibraryPage> {
                                   Expanded(
                                     child: DropdownButton<String>(
                                       isExpanded: true,
-                                      value: _library,
+                                      value: _library ?? '*',
                                       items: [
+                                        const DropdownMenuItem(
+                                          value: '*',
+                                          child: Text('全部媒体库'),
+                                        ),
                                         for (final library in service.libraries)
                                           DropdownMenuItem(
                                             value: library['id'] as String,
@@ -466,13 +478,15 @@ class _LibraryPageState extends State<LibraryPage> {
                                       onChanged: _scanning
                                           ? null
                                           : (value) => setState(() {
-                                              _library = value;
+                                              _library = value == '*'
+                                                  ? null
+                                                  : value;
                                               _offset = 0;
                                             }),
                                     ),
                                   ),
                                   IconButton(
-                                    onPressed: _scanning
+                                    onPressed: _scanning || _library == null
                                         ? null
                                         : () async {
                                             final name = await _text(
@@ -499,14 +513,16 @@ class _LibraryPageState extends State<LibraryPage> {
                                     tooltip: '重命名媒体库',
                                   ),
                                   IconButton(
-                                    onPressed: _scanning ? null : _bind,
+                                    onPressed: _scanning || _library == null
+                                        ? null
+                                        : _bind,
                                     icon: const Icon(
                                       Icons.create_new_folder_outlined,
                                     ),
                                     tooltip: '添加来源范围',
                                   ),
                                   IconButton(
-                                    onPressed: _scanning
+                                    onPressed: _scanning || _library == null
                                         ? null
                                         : () async {
                                             final confirmed =
@@ -754,7 +770,7 @@ class _LibraryPageState extends State<LibraryPage> {
                   ),
                   Expanded(
                     flex: 3,
-                    child: _library == null
+                    child: service.libraries.isEmpty
                         ? Center(
                             child: FilledButton(
                               onPressed: _create,

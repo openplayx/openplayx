@@ -48,6 +48,7 @@ abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   Future<void> open(Uri uri);
   Future<void> play();
   Future<void> pause();
+  Future<void> stop();
   Future<void> seek(Duration position);
   Future<void> setSpeed(double speed);
   Future<void> setVolume(int volume);
@@ -210,6 +211,18 @@ class LibVlcBackend extends PlayerBackend {
   @override
   Future<void> pause() async {
     if (_controller.isAttached) await _controller.pause();
+  }
+
+  @override
+  Future<void> stop() async {
+    _session++;
+    if (_controller.isAttached) await _controller.stop();
+    _source = null;
+    _hasStarted = false;
+    _ended = false;
+    _readSpeedMeter.reset();
+    _readSpeedMBps = null;
+    value = const PlayerSnapshot();
   }
 
   @override

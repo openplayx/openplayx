@@ -41,10 +41,10 @@ void main() {
             id: kind.name,
             kind: kind,
             name: kind.label,
-          address: kind == SourceKind.smb
-              ? 'smb://127.0.0.1/share'
-              : 'http://127.0.0.1:32400',
-          userId: kind == SourceKind.jellyfin ? 'test-user' : '',
+            address: kind == SourceKind.smb
+                ? 'smb://127.0.0.1/share'
+                : 'http://127.0.0.1:32400',
+            userId: kind == SourceKind.jellyfin ? 'test-user' : '',
             credentialRef: 'source.${kind.name}.saved',
           ),
           expectedRevision: 0,
@@ -62,7 +62,10 @@ void main() {
 
       await tester.pumpWidget(MaterialApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
-      expect(find.textContaining('尚未验证'), findsNWidgets(3));
+      expect(find.textContaining('尚未验证'), findsOneWidget);
+      await tester.tap(find.text('媒体服务'));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('尚未验证'), findsNWidgets(2));
       expect(keychain.reads, 0);
 
       await tester.tap(find.byTooltip('重新加载配置'));

@@ -16,11 +16,13 @@ class SourceInstanceForm extends StatefulWidget {
     super.key,
     required this.manager,
     this.initial,
+    this.fileSources,
     this.signIn,
     this.openBrowser,
     this.chooseDirectory,
   });
   final SourceConfig? initial;
+  final bool? fileSources;
   final SourceManager manager;
   final SourceSignIn? signIn;
   final Future<bool> Function(Uri)? openBrowser;
@@ -59,7 +61,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     super.initState();
     final initial = widget.initial;
     _id = initial?.id ?? '${DateTime.now().microsecondsSinceEpoch}';
-    _kind = initial?.kind ?? SourceKind.local;
+    _kind =
+        initial?.kind ??
+        (widget.fileSources == false ? SourceKind.jellyfin : SourceKind.local);
     _signIn = widget.signIn ?? SourceSignIn();
     _name.text = initial?.name ?? '';
     if (initial != null) _fillConnection(initial);
@@ -502,6 +506,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               initialValue: _kind,
               decoration: const InputDecoration(labelText: '类型'),
               items: SourceKind.values
+                  .where(
+                    (kind) =>
+                        widget.fileSources == null ||
+                        (kind == SourceKind.local || kind == SourceKind.smb) ==
+                            widget.fileSources,
+                  )
                   .map(
                     (kind) =>
                         DropdownMenuItem(value: kind, child: Text(kind.label)),

@@ -18,7 +18,7 @@ Future<FakeBackend> openPlayer(WidgetTester tester) async {
       ),
     ),
   );
-  await tester.tap(find.byTooltip('打开文件'));
+  await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
   await tester.pumpAndSettle();
   return backend;
 }

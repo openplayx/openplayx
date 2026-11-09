@@ -50,6 +50,13 @@ class FakeBackend extends PlayerBackend {
     value = const PlayerSnapshot(status: PlaybackStatus.paused);
   }
 
+  int stops = 0;
+  @override
+  Future<void> stop() async {
+    stops++;
+    value = const PlayerSnapshot();
+  }
+
   @override
   Future<void> play() async {
     value = const PlayerSnapshot(status: PlaybackStatus.playing);
@@ -93,11 +100,11 @@ void main() {
             .onPressed,
         isNull,
       );
-      await tester.tap(find.byTooltip('打开文件'));
+      await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
       await tester.pumpAndSettle();
       expect(backend.opened, [Uri.file('/demo.mp4')]);
       expect(find.text('demo.mp4'), findsOneWidget);
-      await tester.tap(find.byTooltip('打开文件'));
+      await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
       await tester.pumpAndSettle();
       expect(backend.opened.length, 1);
       expect(backend.value.status, PlaybackStatus.playing);
@@ -121,11 +128,11 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byTooltip('打开文件'));
+    await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
     expect(find.text('播放操作失败，请重新打开媒体文件。'), findsOneWidget);
     backend.fail = false;
-    await tester.tap(find.byTooltip('打开文件'));
+    await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
     expect(backend.value.status, PlaybackStatus.playing);
   });
@@ -140,7 +147,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byTooltip('打开文件'));
+    await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
     final gesture = await tester.startGesture(
       tester.getCenter(find.byKey(const Key('playback-progress'))),
@@ -162,7 +169,7 @@ void main() {
         ),
       ),
     );
-    await tester.tap(find.byTooltip('打开文件'));
+    await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
   }
 
