@@ -17,6 +17,10 @@ class MemorySources extends SourceManager {
   @override
   Future<void> load() async {}
   @override
+  Future<void> reload() async {}
+  @override
+  Future<void> testDraft(SourceConfig config, String secret) async {}
+  @override
   Future<void> save(SourceConfig config, String secret) async {
     config.validate();
     saved.removeWhere((c) => c.id == config.id);
@@ -73,10 +77,10 @@ void main() {
       await tester.enterText(fields.at(0), 'NAS');
       await tester.enterText(fields.at(1), 'smb://localhost/media');
       await tester.enterText(fields.at(2), 'viewer');
-      await tester.enterText(fields.at(4), 'password');
-      expect(tester.widget<TextField>(fields.at(4)).obscureText, isTrue);
-      await tester.ensureVisible(find.text('保存'));
-      await tester.tap(find.text('保存'));
+      await tester.enterText(fields.at(3), 'password');
+      expect(tester.widget<TextField>(fields.at(3)).obscureText, isTrue);
+      await tester.ensureVisible(find.text('添加'));
+      await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(sources.saved.single.kind, SourceKind.smb);
       expect(sources.secrets.single, 'password');

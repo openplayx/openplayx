@@ -5,6 +5,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/data/configuration/source_configuration_service.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import 'support/test_video.dart';
 
@@ -14,15 +16,26 @@ void main() {
     'host restores saved instances, credentials and local directory bookmarks',
     (tester) async {
       final dir = await Directory.systemTemp.createTemp('source-storage-');
-      await createTestVideo(dir);
+      final mediaDirectory = await Directory('${dir.path}/media').create();
+      await createTestVideo(mediaDirectory);
       final prefix = 'integration-${DateTime.now().microsecondsSinceEpoch}';
-      final manager = SourceManager();
-      final restored = SourceManager();
+      final databasePath = '${dir.path}/configuration.sqlite3';
+      final firstConfiguration = SourceConfigurationService(
+        sqlite3.open(databasePath),
+      );
+      final restoredConfiguration = SourceConfigurationService(
+        sqlite3.open(databasePath),
+      );
+      final manager = SourceManager(configuration: firstConfiguration);
+      final restored = SourceManager(configuration: restoredConfiguration);
       addTearDown(() async {
+        await manager.reload();
         await manager.remove('$prefix-local');
         await manager.remove('$prefix-plex');
         await manager.dispose();
         await restored.dispose();
+        firstConfiguration.close();
+        restoredConfiguration.close();
         await dir.delete(recursive: true);
       });
       await manager.save(
@@ -30,7 +43,7 @@ void main() {
           id: '$prefix-local',
           kind: SourceKind.local,
           name: 'Integration Local',
-          address: dir.path,
+          address: mediaDirectory.path,
         ),
         '',
       );

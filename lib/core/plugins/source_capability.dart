@@ -1,3 +1,5 @@
+import 'config_schema.dart';
+
 /// The first implemented slice of the plugin SDK. Only supported capabilities
 /// are registered; no string-based invocation or optional stub methods.
 abstract interface class Plugin {
@@ -6,7 +8,15 @@ abstract interface class Plugin {
 }
 
 class PluginManifest {
-  const PluginManifest(this.id, this.name, {required this.browseExperience});
+  const PluginManifest(
+    this.id,
+    this.name, {
+    required this.browseExperience,
+    this.version = '1.0.0',
+    this.configSchema,
+  });
+  final String version;
+  final PluginConfigSchema? configSchema;
   final String id;
   final String name;
   final String browseExperience;
