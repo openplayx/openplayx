@@ -55,3 +55,5 @@ flutter test integration_test/playback_test.dart -d macos
 ```sh
 flutter test integration_test/source_storage_test.dart -d macos
 ```
+
+媒体源测试现在通过 `SourceManager` 创建配置和安全凭据，验证默认实例路由，并在播放中禁用实例，确认新请求被拒绝、已有播放句柄可继续暂停和 Seek。存储测试覆盖 SQLite 的源实例恢复与 Keychain、目录书签协作。

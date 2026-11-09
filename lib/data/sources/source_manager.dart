@@ -1,15 +1,16 @@
 import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../configuration/source_configuration_service.dart';
+import '../configuration/source_credential_broker.dart';
 import 'file_sources.dart';
 import 'media_server_sources.dart';
 import 'source_config.dart';
+import 'source_schema.dart';
 
 class SourceSelection {
   const SourceSelection(this.name, this.stream);
@@ -17,22 +18,42 @@ class SourceSelection {
   final PlayableStream stream;
 }
 
-/// Host owns persistence, credentials, instance routing and standardized errors.
-/// UI never receives provider objects. Disposing the manager follows playback.
+class SourceInstanceImpact {
+  const SourceInstanceImpact({
+    this.playing = 0,
+    this.running = 0,
+    this.defaultCapabilities = const [],
+    this.inSearch = false,
+  });
+  final int playing;
+  final int running;
+  final List<String> defaultCapabilities;
+  final bool inSearch;
+}
+
+/// Plugin Manager is the sole UI entry point. Configuration/credentials are host
+/// services; providers receive only their own immutable snapshot and clients.
 class SourceManager {
-  SourceManager({FlutterSecureStorage? credentials})
-    : _credentials =
-          credentials ??
-          const FlutterSecureStorage(
-            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
-          );
-  final FlutterSecureStorage _credentials;
+  SourceManager({
+    FlutterSecureStorage? credentials,
+    SourceConfigurationService? configuration,
+  }) : _configuration = configuration,
+       _ownsConfiguration = configuration == null,
+       _credentials = SourceCredentialBroker(credentials);
+  SourceConfigurationService? _configuration;
+  final bool _ownsConfiguration;
+  final SourceCredentialBroker _credentials;
   bool _hasBookmarks = false;
-  final _retired = <Plugin>[];
+  bool _disposed = false;
   final _configs = <SourceConfig>[];
-  final _providers = <String, SourceCapability>{};
+  final _runtimes = <String, _SourceRuntime>{};
+  final _retired = <_SourceRuntime>{};
+  final _creating = <String, Future<_SourceRuntime>>{};
   List<SourceConfig> get configs => List.unmodifiable(_configs);
-  static const _key = 'source.instances.v1';
+  List<ConfigurationIssue> get configurationIssues =>
+      List.unmodifiable(_configuration?.issues ?? []);
+  SourceBindings get bindings =>
+      _configuration?.bindings() ?? const SourceBindings();
   static const _bookmarks = MethodChannel('openplayx/source_access');
   Future<void>? _loading;
   Future<void> load() => _loading ??= _load().catchError((Object error) {
@@ -40,199 +61,532 @@ class SourceManager {
     throw error;
   });
   Future<void> _load() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString(_key);
-    if (raw == null) return;
-    final configs = (jsonDecode(raw) as List)
-        .map((j) => SourceConfig.fromJson(j as Map<String, dynamic>))
-        .toList();
-    for (final config in configs) {
-      config.validate();
-    }
-    _configs.addAll(configs);
+    _configuration ??= await SourceConfigurationService.open();
+    _configs
+      ..clear()
+      ..addAll(_configuration!.load());
   }
 
-  Future<void> _persist() async {
-    final ok = await (await SharedPreferences.getInstance()).setString(
-      _key,
-      jsonEncode(_configs.map((c) => c.toJson()).toList()),
-    );
-    if (!ok) throw const PluginException('internalError', '媒体源保存失败。');
-  }
-
-  Future<void> save(SourceConfig config, String secret) async {
-    config.validate();
+  Future<void> reload() async {
     await load();
-    final index = _configs.indexWhere((c) => c.id == config.id);
-    final previous = index < 0 ? null : _configs[index];
+    final next = _configuration!.load();
+    for (final runtime in _runtimes.values.toList()) {
+      if (!next.any(
+        (c) =>
+            c.id == runtime.config.id &&
+            c.revision == runtime.config.revision &&
+            c.enabled,
+      )) {
+        await _retire(runtime.config.id);
+      }
+    }
+    _configs
+      ..clear()
+      ..addAll(next);
+  }
+
+  SourceConfig _config(String id) =>
+      configs.where((c) => c.id == id).firstOrNull ??
+      (throw const PluginException('notFound', '媒体源不存在或配置不兼容。'));
+  Future<void> save(SourceConfig config, String secret) async {
+    SourceSchemas.validate(config);
+    await load();
+    final previous = _configs.where((c) => c.id == config.id).firstOrNull;
     if (previous != null && previous.kind != config.kind) {
       throw const PluginException('invalidInput', '编辑时不能更改源类型。');
     }
-    final oldSecret = previous == null || config.kind == SourceKind.local
-        ? null
-        : await _credentials.read(key: 'source.${config.id}');
-    final effectiveSecret = previous != null && secret.isEmpty
-        ? oldSecret ?? ''
-        : secret;
-    if (config.kind != SourceKind.local &&
-        config.kind != SourceKind.smb &&
-        effectiveSecret.isEmpty) {
-      throw const PluginException('authRequired', '请填写访问令牌。');
+    // Caller cannot substitute another instance's credential reference.
+    if (config.credentialRef != null &&
+        config.credentialRef != previous?.credentialRef) {
+      throw const PluginException('permissionDenied', '不能指定其他凭据引用。');
     }
-    var saved = config;
+    var saved = config.copyWith(
+      pluginVersion: SourceSchemas.forKind(config.kind).version,
+      credentialRef: previous?.credentialRef,
+    );
     if (Platform.isMacOS && config.kind == SourceKind.local) {
       final bookmark =
-          previous?.address == config.address && config.bookmark != null
-          ? config.bookmark
+          previous?.address == config.address && previous?.bookmark != null
+          ? previous!.bookmark
           : await _bookmarks.invokeMethod<String>('create', config.address);
-      saved = SourceConfig(
-        id: config.id,
-        kind: config.kind,
-        name: config.name,
-        address: config.address,
-        bookmark: bookmark,
-      );
+      saved = saved.copyWith(bookmark: bookmark);
     }
-    if (config.kind != SourceKind.local) {
-      await _credentials.write(
-        key: 'source.${config.id}',
-        value: effectiveSecret,
-      );
+    String? staged;
+    if (config.kind != SourceKind.local &&
+        (secret.isNotEmpty ||
+            previous == null &&
+                config.kind == SourceKind.smb &&
+                config.username.isNotEmpty)) {
+      staged = await _credentials.stage(config.id, secret);
+      saved = saved.copyWith(credentialRef: staged);
     }
+    try {
+      if (config.kind == SourceKind.plex ||
+          config.kind == SourceKind.jellyfin) {
+        if ((await _credentials.readForHost(saved))?.isNotEmpty != true) {
+          throw const PluginException('authRequired', '请填写访问令牌。');
+        }
+      }
+      saved = _configuration!.save(saved, expectedRevision: config.revision);
+    } catch (_) {
+      await _credentials.delete(config.id, staged);
+      rethrow;
+    }
+    final index = _configs.indexWhere((c) => c.id == saved.id);
     if (index < 0) {
       _configs.add(saved);
     } else {
       _configs[index] = saved;
     }
-    try {
-      await _persist();
-    } catch (_) {
-      _configs.remove(saved);
-      if (previous != null) _configs.insert(index, previous);
-      if (oldSecret == null) {
-        await _credentials.delete(key: 'source.${config.id}');
-      } else {
-        await _credentials.write(key: 'source.${config.id}', value: oldSecret);
-      }
-      rethrow;
+    await _retire(saved.id);
+    if (staged != null && previous?.credentialRef != null) {
+      // A committed configuration stays committed if old-key cleanup fails.
+      try {
+        await _credentials.delete(saved.id, previous!.credentialRef);
+      } catch (_) {}
     }
-    final provider = _providers.remove(config.id);
-    if (provider is Plugin) _retired.add(provider as Plugin);
+  }
+
+  Future<void> setEnabled(String id, bool enabled) =>
+      save(_config(id).copyWith(enabled: enabled), '');
+  SourceInstanceImpact impact(String id) {
+    final runtimes = [
+      if (_runtimes[id] != null) _runtimes[id]!,
+      ..._retired.where((r) => r.config.id == id),
+    ];
+    return SourceInstanceImpact(
+      playing: runtimes.fold(0, (sum, r) => sum + r.streams),
+      running: runtimes.fold(0, (sum, r) => sum + r.active),
+      defaultCapabilities: bindings.defaults.entries
+          .where((e) => e.value == id)
+          .map((e) => e.key)
+          .toList(),
+      inSearch: bindings.searchInstances.contains(id),
+    );
   }
 
   Future<void> remove(String id) async {
-    final index = _configs.indexWhere((c) => c.id == id);
-    if (index < 0) return;
-    final config = _configs.removeAt(index);
+    await load();
+    final config = _config(id);
+    _configuration!.remove(id, config.revision);
+    _configs.removeWhere((c) => c.id == id);
+    await _retire(id);
     try {
-      await _persist();
-    } catch (_) {
-      _configs.insert(index, config);
-      rethrow;
-    }
-    final provider = _providers.remove(id);
-    if (provider is Plugin) _retired.add(provider as Plugin);
-    await _credentials.delete(key: 'source.$id');
+      await _credentials.delete(id, config.credentialRef);
+    } catch (_) {}
   }
 
-  Future<SourceCapability> _provider(String id) async {
-    final existing = _providers[id];
+  Future<void> _retire(String id) async {
+    final runtime = _runtimes.remove(id);
+    if (runtime == null) return;
+    _retired.add(runtime);
+    await runtime.retire();
+  }
+
+  Future<SourceCredentialStatus> credentialStatus(String id) async {
+    final config = _config(id);
+    final state = _configuration?.application(id);
+    final sameRevision = state?['desired_revision'] == config.revision;
+    return _credentials.status(
+      config,
+      verified: sameRevision && state?['status'] == 'ready',
+      rejected: sameRevision && state?['error_code'] == 'authRequired',
+    );
+  }
+
+  String applicationLabel(String id) {
+    final config = _config(id);
+    if (!config.enabled) return '已禁用';
+    final state = _configuration?.application(id);
+    return switch (state?['status']) {
+      'ready' => '已就绪',
+      'failed' => '连接失败',
+      'initialized' => '已初始化 · 待连接验证',
+      _ => '已保存 · 下次访问生效',
+    };
+  }
+
+  Future<void> setDefault(String capability, String? id) async {
+    await load();
+    if (id != null) {
+      final config = _config(id);
+      if (!config.enabled ||
+          !SourceSchemas.forKind(config.kind).capabilities
+              .contains(capability)) {
+        throw const PluginException('unsupported', '此实例未启用或不支持该能力。');
+      }
+    } else if (!['source.browse', 'source.resolve'].contains(capability)) {
+      throw const PluginException('unsupported', '该能力尚未注册。');
+    }
+    final current = bindings;
+    final defaults = Map.of(current.defaults);
+    if (id == null) {
+      defaults.remove(capability);
+    } else {
+      defaults[capability] = id;
+    }
+    _configuration!.saveBindings(
+      SourceBindings(
+        defaults: defaults,
+        searchInstances: current.searchInstances,
+      ),
+      expectedRevision: current.revision,
+    );
+  }
+
+  Future<void> setSearchInstances(List<String> ids) async {
+    await load();
+    for (final id in ids.toSet()) {
+      final config = _config(id);
+      if (!config.enabled ||
+          !SourceSchemas.forKind(config.kind).capabilities
+              .contains('search.media')) {
+        throw const PluginException('unsupported', '此实例没有搜索能力，不能纳入聚合。');
+      }
+    }
+    final current = bindings;
+    _configuration!.saveBindings(
+      SourceBindings(
+        defaults: current.defaults,
+        searchInstances: ids.toSet().toList(),
+      ),
+      expectedRevision: current.revision,
+    );
+  }
+
+  /// Caller may use an explicit instance or a configured default. Never silently
+  /// falls back to a different account when a default is unavailable.
+  Future<BrowseResult> browseDefault(BrowseRequest request) async {
+    await load();
+    final id = bindings.defaults['source.browse'];
+    if (id == null) throw const PluginException('invalidInput', '请先选择默认浏览实例。');
+    return browse(id, request);
+  }
+
+  Future<_SourceRuntime> _runtime(String id) async {
+    await load();
+    final config = _config(id);
+    if (!config.enabled) {
+      throw const PluginException('disabled', '媒体源已禁用，配置仍保留。');
+    }
+    if (config.credentialExpiresAt != null &&
+        !config.credentialExpiresAt!.isAfter(DateTime.now())) {
+      throw const PluginException('authRequired', '令牌已到期，请更新凭据。');
+    }
+    final existing = _runtimes[id];
     if (existing != null) return existing;
-    final matches = _configs.where((c) => c.id == id);
-    if (matches.isEmpty) throw const PluginException('notFound', '媒体源已删除。');
-    var config = matches.single;
+    return _creating[id] ??= _create(config).whenComplete(() {
+      _creating.remove(id);
+    });
+  }
+
+  Future<_SourceRuntime> _create(SourceConfig config) async {
+    final status = await _credentials.status(config);
+    if ([
+      SourceAuthorization.expired,
+      SourceAuthorization.missing,
+    ].contains(status.authorization)) {
+      throw PluginException('authRequired', status.label);
+    }
+    var pluginConfig = SourceConfig.fromJson({
+      ...config.toJson(),
+      'bookmark': null,
+    });
     if (Platform.isMacOS &&
         config.kind == SourceKind.local &&
         config.bookmark != null) {
-      final path = await _bookmarks.invokeMethod<String>(
-        'restore',
-        config.bookmark,
-      );
+      final String? path;
+      try {
+        path = await _bookmarks.invokeMethod<String>(
+          'restore',
+          config.bookmark,
+        );
+      } on PlatformException catch (error) {
+        if (error.code != 'permissionDenied') rethrow;
+        throw const PluginException('permissionDenied', '请重新选择本地文件夹以恢复授权。');
+      }
       if (path == null) {
         throw const PluginException('permissionDenied', '请重新选择本地文件夹以恢复授权。');
       }
       _hasBookmarks = true;
-      config = SourceConfig(
-        id: config.id,
-        kind: config.kind,
-        name: config.name,
-        address: path,
-      );
+      pluginConfig = pluginConfig.copyWith(address: path);
     }
-    final secret = config.kind == SourceKind.local
-        ? ''
-        : await _credentials.read(key: 'source.$id') ?? '';
-    final provider = switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(config),
-      SourceKind.smb => SmbPlugin(config, secret),
-      SourceKind.plex => PlexPlugin(config, SourceHttp(config, secret)),
-      SourceKind.jellyfin => JellyfinPlugin(config, SourceHttp(config, secret)),
+    final secret = await _credentials.readForHost(config) ?? '';
+    final SourceCapability provider = switch (config.kind) {
+      SourceKind.local => LocalFolderPlugin(pluginConfig),
+      SourceKind.smb => SmbPlugin.withAccess(
+        pluginConfig,
+        SmbAccess(pluginConfig, secret),
+      ),
+      SourceKind.plex => PlexPlugin(
+        pluginConfig,
+        SourceHttp(pluginConfig, secret),
+      ),
+      SourceKind.jellyfin => JellyfinPlugin(
+        pluginConfig,
+        SourceHttp(pluginConfig, secret),
+      ),
     };
-    _providers[id] = provider as SourceCapability;
-    return provider;
+    if (_disposed ||
+        !_configs.any(
+          (c) =>
+              c.id == config.id && c.revision == config.revision && c.enabled,
+        )) {
+      await (provider as Plugin).dispose();
+      throw const PluginException('cancelled', '实例配置已改变，请重试。');
+    }
+    final runtime = _SourceRuntime(config, provider);
+    _runtimes[config.id] = runtime;
+    _configuration!.markApplication(config, 'initialized');
+    return runtime;
   }
 
   Future<T> _call<T>(
-    Future<T> Function() call, {
+    String id,
+    Future<T> Function(_SourceRuntime) action, {
     Future<void> Function(T)? releaseLate,
   }) async {
+    await load();
+    final config = _config(id);
+    var expired = false;
     try {
-      var expired = false;
-      final pending = call().then((value) async {
+      final pending = (() async {
+        final runtime = await _runtime(id);
+        final value = await runtime.run(() {
+          if (expired) throw const PluginException('cancelled', '请求已超时。');
+          return action(runtime);
+        });
         if (expired) await releaseLate?.call(value);
+        if (!_disposed &&
+            !expired &&
+            _configs.any((c) => c.id == id && c.revision == config.revision)) {
+          _configuration!.markApplication(config, 'ready');
+        }
         return value;
-      });
+      })();
       return await pending.timeout(
-        const Duration(seconds: 30),
+        Duration(seconds: config.requestTimeoutSeconds),
         onTimeout: () {
           expired = true;
-          throw TimeoutException('Source call timed out');
+          throw TimeoutException('source');
         },
       );
-    } on PluginException {
-      rethrow;
-    } on TimeoutException {
-      throw const PluginException(
-        'timeout',
-        '连接超时，请检查媒体源后重试。',
-        retryable: true,
-      );
-    } catch (_) {
-      throw const PluginException(
-        'networkUnavailable',
-        '无法访问媒体源，请检查地址、权限和凭据。',
-        retryable: true,
-      );
+    } catch (error) {
+      final failure = error is PluginException
+          ? error
+          : error is TimeoutException
+          ? const PluginException('timeout', '连接超时，请重试。', retryable: true)
+          : const PluginException(
+              'networkUnavailable',
+              '无法访问媒体源，请检查地址、权限和凭据。',
+              retryable: true,
+            );
+      if (!_disposed &&
+          config.enabled &&
+          ![
+            'invalidInput',
+            'cancelled',
+            'disabled',
+            'quotaExceeded',
+          ].contains(failure.code) &&
+          _configs.any((c) => c.id == id && c.revision == config.revision)) {
+        _configuration!.markApplication(
+          config,
+          'failed',
+          errorCode: failure.code,
+        );
+      }
+      throw failure;
     }
   }
 
   Future<BrowseResult> browse(String id, BrowseRequest request) =>
-      _call(() async {
+      _call(id, (runtime) async {
         if (request.offset < 0 || request.limit < 1 || request.limit > 200) {
           throw const PluginException('invalidInput', '无效的分页参数。');
         }
-        return (await _provider(id))
-            .browse(request, CallContext.forInstance(id));
+        return runtime.provider.browse(request, CallContext.forInstance(id));
       });
-  Future<PlayableStream> resolve(ResourceRef resource) => _call(
-    () async => (await _provider(resource.instanceId)).resolve(
-      ResolveRequest(resource),
-      CallContext.forInstance(resource.instanceId),
-    ),
-    releaseLate: (stream) => stream.release(),
-  );
+  Future<PlayableStream> resolve(ResourceRef resource) =>
+      _call(resource.instanceId, (runtime) async {
+        final stream = await runtime.provider.resolve(
+          ResolveRequest(resource),
+          CallContext.forInstance(resource.instanceId),
+        );
+        runtime.streams++;
+        return PlayableStream(
+          stream.uri,
+          release: () async {
+            try {
+              await stream.release();
+            } finally {
+              runtime.streams--;
+              await runtime.cleanup();
+            }
+          },
+        );
+      }, releaseLate: (stream) => stream.release());
+  Future<void> testConnection(String id) async {
+    await browse(id, const BrowseRequest(limit: 1));
+  }
+
+  Future<void> testDraft(SourceConfig draft, String secret) async {
+    SourceSchemas.validate(draft);
+    final existing = configs.where((c) => c.id == draft.id).firstOrNull;
+    if (existing != null && draft.revision != existing.revision) {
+      throw const PluginException('conflict', '请重新加载配置后测试。');
+    }
+    var config = SourceConfig.fromJson({...draft.toJson(), 'bookmark': null});
+    final value = secret.isNotEmpty
+        ? secret
+        : existing == null
+        ? ''
+        : await _credentials.readForHost(existing) ?? '';
+    if ([SourceKind.plex, SourceKind.jellyfin].contains(config.kind) &&
+        value.isEmpty) {
+      throw const PluginException('authRequired', '请填写访问令牌。');
+    }
+    final SourceCapability provider = switch (config.kind) {
+      SourceKind.local => LocalFolderPlugin(config),
+      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, value)),
+      SourceKind.plex => PlexPlugin(config, SourceHttp(config, value)),
+      SourceKind.jellyfin => JellyfinPlugin(config, SourceHttp(config, value)),
+    };
+    final operation = provider.browse(
+      const BrowseRequest(limit: 1),
+      CallContext.forInstance(config.id),
+    );
+    // Timeout does not prematurely tear down an operation still using a handle.
+    final completed = operation.whenComplete(
+      () => (provider as Plugin).dispose(),
+    );
+    try {
+      await completed.timeout(Duration(seconds: draft.requestTimeoutSeconds));
+    } on TimeoutException {
+      throw const PluginException('timeout', '连接测试超时。');
+    } on PluginException {
+      rethrow;
+    } catch (_) {
+      throw const PluginException('networkUnavailable', '连接测试失败，请检查地址、权限和凭据。');
+    }
+  }
+
+  Stream<SourceEntry> scan(String id, {int limit = 500}) async* {
+    final config = _config(id);
+    if (!config.isFileSource || config.scanMode == ScanMode.disabled) {
+      throw const PluginException('unsupported', '此实例未启用手动文件扫描。');
+    }
+    if (limit < 1 || limit > 5000) {
+      throw const PluginException('invalidInput', '扫描上限须为 1–5000。');
+    }
+    final runtime = await _runtime(id);
+    final fileRoot = config.kind == SourceKind.local
+        ? await Directory(
+            (runtime.provider as LocalFolderPlugin).config.address,
+          ).resolveSymbolicLinks()
+        : null;
+    var emitted = 0;
+    var requests = 0;
+    final visited = <String>{};
+    final queue = <ResourceRef?>[null];
+    while (queue.isNotEmpty && emitted < limit) {
+      final node = queue.removeAt(0);
+      int? offset = 0;
+      do {
+        if (++requests > 1000) {
+          throw const PluginException(
+            'quotaExceeded',
+            '扫描达到 1000 次目录分页上限，请缩小访问范围。',
+          );
+        }
+        final page = await browse(
+          id,
+          BrowseRequest(node: node, offset: offset!),
+        );
+        if (_config(id).revision != config.revision) {
+          throw const PluginException('cancelled', '扫描期间实例配置已改变，请重新扫描。');
+        }
+        for (final entry in page.entries) {
+          final relative = config.kind == SourceKind.local
+              ? entry.ref.id
+                    .substring(fileRoot!.length)
+                    .replaceAll('\\', '/')
+                    .replaceFirst(RegExp(r'^/+'), '')
+              : entry.ref.id
+                    .substring(
+                      Uri.parse(config.address).path
+                          .replaceFirst(RegExp(r'/+$'), '')
+                          .length,
+                    )
+                    .replaceFirst(RegExp(r'^/+'), '');
+          if (config.excludedFromScan(relative)) continue;
+          if (entry.isFolder) {
+            if (visited.add(entry.ref.id)) queue.add(entry.ref);
+          } else {
+            yield entry;
+            if (++emitted >= limit) return;
+          }
+        }
+        offset = page.nextOffset;
+      } while (offset != null);
+    }
+  }
+
   Future<void> dispose() async {
-    for (final provider in _providers.values) {
+    _disposed = true;
+    for (final id in _runtimes.keys.toList()) {
+      await _retire(id);
+    }
+    for (final runtime in _retired) {
+      await runtime.cleanup();
+    }
+    if (_hasBookmarks) await _bookmarks.invokeMethod<void>('releaseAll');
+    if (_ownsConfiguration) _configuration?.close();
+  }
+}
+
+class _SourceRuntime {
+  _SourceRuntime(this.config, this.provider);
+  final SourceConfig config;
+  final SourceCapability provider;
+  int active = 0;
+  int streams = 0;
+  bool retired = false;
+  bool _closed = false;
+  final _waiting = <Completer<void>>[];
+  Future<T> run<T>(Future<T> Function() action) async {
+    while (active >= config.maxConcurrentRequests && !retired) {
+      if (_waiting.length >= 64) {
+        throw const PluginException('quotaExceeded', '此实例排队请求过多，请稍后重试。');
+      }
+      final waiter = Completer<void>();
+      _waiting.add(waiter);
+      await waiter.future;
+    }
+    if (retired) throw const PluginException('cancelled', '实例配置已改变，请重试。');
+    active++;
+    try {
+      return await action();
+    } finally {
+      active--;
+      if (_waiting.isNotEmpty) _waiting.removeAt(0).complete();
+      await cleanup();
+    }
+  }
+
+  Future<void> retire() async {
+    retired = true;
+    for (final waiter in _waiting) {
+      waiter.complete();
+    }
+    _waiting.clear();
+    await cleanup();
+  }
+
+  Future<void> cleanup() async {
+    if (retired && active == 0 && streams == 0 && !_closed) {
+      _closed = true;
       await (provider as Plugin).dispose();
-    }
-    _providers.clear();
-    for (final provider in _retired) {
-      await provider.dispose();
-    }
-    _retired.clear();
-    if (_hasBookmarks) {
-      await _bookmarks.invokeMethod<void>('releaseAll');
-      _hasBookmarks = false;
     }
   }
 }

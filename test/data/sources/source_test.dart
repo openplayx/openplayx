@@ -256,7 +256,6 @@ void main() {
       for (final address in [
         'smb://user:pass@host/share',
         'smb://host:1445/share',
-        'smb://host',
         'smb://host/share/../secret',
       ]) {
         expect(

@@ -4,6 +4,7 @@ import 'package:smb_connect/smb_connect.dart';
 
 import '../../core/plugins/source_capability.dart';
 import 'source_config.dart';
+import 'source_schema.dart';
 import 'stream_gateway.dart';
 
 void checkOwnership(String id, ResourceRef? ref, CallContext context) {
@@ -31,8 +32,7 @@ class LocalFolderPlugin implements Plugin, SourceCapability {
   LocalFolderPlugin(this.config);
   final SourceConfig config;
   @override
-  PluginManifest get manifest =>
-      const PluginManifest('source.local', '本地文件夹', browseExperience: 'files');
+  PluginManifest get manifest => SourceSchemas.forKind(SourceKind.local);
 
   Future<String> _path(String? id) async {
     final root = await Directory(config.address).resolveSymbolicLinks();
@@ -49,6 +49,15 @@ class LocalFolderPlugin implements Plugin, SourceCapability {
     if (resolved != root && !resolved.startsWith(prefix)) {
       throw const PluginException('permissionDenied', '文件超出已授权文件夹。');
     }
+    final relative = resolved == root
+        ? ''
+        : resolved.substring(prefix.length).replaceAll('\\', '/');
+    if (!config.allows(
+      relative,
+      directory: type == FileSystemEntityType.directory,
+    )) {
+      throw const PluginException('permissionDenied', '目录不在此实例配置的访问范围内。');
+    }
     return resolved;
   }
 
@@ -59,10 +68,19 @@ class LocalFolderPlugin implements Plugin, SourceCapability {
   ) async {
     checkOwnership(config.id, request.node, context);
     final directory = Directory(await _path(request.node?.id));
+    final root = await Directory(config.address).resolveSymbolicLinks();
     final entries = <SourceEntry>[];
     await for (final file in directory.list(followLinks: false)) {
       // Symlinks cannot escape the selected directory, and aren't navigated.
       if (file is! File && file is! Directory) continue;
+      final relative = file.path
+          .substring(
+            root.endsWith(Platform.pathSeparator)
+                ? root.length
+                : root.length + 1,
+          )
+          .replaceAll('\\', '/');
+      if (!config.allows(relative, directory: file is Directory)) continue;
       entries.add(
         SourceEntry(
           ResourceRef(config.id, file.path),
@@ -92,50 +110,88 @@ class LocalFolderPlugin implements Plugin, SourceCapability {
 }
 
 class SmbPlugin implements Plugin, SourceCapability {
-  SmbPlugin(this.config, this.password);
+  SmbPlugin(this.config, String password)
+    : _access = SmbAccess(config, password);
+  SmbPlugin.withAccess(this.config, this._access);
   final SourceConfig config;
-  final String password;
-  Future<SmbConnect>? _connection;
-  Future<SmbConnect> _connect() => _connection ??=
-      SmbConnect.connectAuth(
-        host: Uri.parse(config.address).host,
-        username: config.username,
-        password: password,
-        domain: config.domain,
-      ).catchError((Object error) {
-        _connection = null;
-        throw error;
-      });
+  final SmbAccess _access;
   String get _root =>
       '/${Uri.parse(config.address).pathSegments.where((s) => s.isNotEmpty).join('/')}';
-  String _path(String? path) {
+  String _path(String? path, {bool directory = false}) {
     path ??= _root;
     if (path.contains('\\') ||
         path.split('/').any((s) => s == '..' || s == '.') ||
-        (path != _root && !path.startsWith('$_root/'))) {
+        (path != _root && !path.startsWith(_root == '/' ? '/' : '$_root/'))) {
       throw const PluginException('permissionDenied', '路径超出配置的 SMB 共享。');
+    }
+    final relative = path == _root
+        ? ''
+        : path.substring(_root.length + (_root == '/' ? 0 : 1));
+    if (!config.allows(relative, directory: directory)) {
+      throw const PluginException('permissionDenied', '目录不在此实例配置的访问范围内。');
     }
     return path;
   }
 
   @override
-  PluginManifest get manifest =>
-      const PluginManifest('source.smb', 'SMB', browseExperience: 'files');
+  PluginManifest get manifest => SourceSchemas.forKind(SourceKind.smb);
   @override
   Future<BrowseResult> browse(
     BrowseRequest request,
     CallContext context,
   ) async {
     checkOwnership(config.id, request.node, context);
-    final connection = await _connect();
-    final folder = await connection.file(_path(request.node?.id));
+    final connection = await _access._connect();
+    final path = _path(request.node?.id, directory: true);
+    if (path == '/') {
+      final List<SmbFile> shares;
+      try {
+        shares = await connection.listShares();
+      } catch (_) {
+        throw const PluginException(
+          'permissionDenied',
+          '无法读取共享列表，请在“高级”中填写共享文件夹路径后重试。',
+        );
+      }
+      return pageEntries(
+        shares
+            .where(
+              (s) =>
+                  !s.name.endsWith(r'$') &&
+                  config.allows(
+                    s.path.replaceFirst(RegExp(r'^/+'), ''),
+                    directory: true,
+                  ),
+            )
+            .map(
+              (s) => SourceEntry(
+                ResourceRef(config.id, s.path),
+                s.name,
+                isFolder: true,
+              ),
+            )
+            .toList(),
+        request,
+      );
+    }
+    final folder = await connection.file(path);
     if (!folder.isDirectory()) {
       throw const PluginException('invalidInput', '请选择文件夹。');
     }
     final files = await connection.listFiles(folder);
     return pageEntries(
       files
-          .where((f) => f.name != '.' && f.name != '..')
+          .where(
+            (f) =>
+                f.name != '.' &&
+                f.name != '..' &&
+                config.allows(
+                  f.path
+                      .substring(_root.length)
+                      .replaceFirst(RegExp(r'^/+'), ''),
+                  directory: f.isDirectory(),
+                ),
+          )
           .map(
             (file) => SourceEntry(
               ResourceRef(config.id, file.path),
@@ -154,7 +210,7 @@ class SmbPlugin implements Plugin, SourceCapability {
     CallContext context,
   ) async {
     checkOwnership(config.id, request.resource, context);
-    final connection = await _connect();
+    final connection = await _access._connect();
     final file = await connection.file(_path(request.resource.id));
     if (!file.isExists || file.isDirectory()) {
       throw const PluginException('notFound', '无法播放该 SMB 文件。');
@@ -168,6 +224,27 @@ class SmbPlugin implements Plugin, SourceCapability {
 
   @override
   Future<void> dispose() async {
+    await _access.close();
+  }
+}
+
+/// Host transport owns credentials; the plugin receives this scoped client.
+class SmbAccess {
+  SmbAccess(this.config, this._password);
+  final SourceConfig config;
+  final String _password;
+  Future<SmbConnect>? _connection;
+  Future<SmbConnect> _connect() => _connection ??=
+      SmbConnect.connectAuth(
+        host: Uri.parse(config.address).host,
+        username: config.username,
+        password: _password,
+        domain: config.domain,
+      ).catchError((Object error) {
+        _connection = null;
+        throw error;
+      });
+  Future<void> close() async {
     final connection = _connection;
     _connection = null;
     if (connection != null) {

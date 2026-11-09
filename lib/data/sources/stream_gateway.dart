@@ -102,9 +102,11 @@ class StreamGateway {
     Uri uri,
     Map<String, String> headers, {
     String? filename,
+    HttpClient? sharedClient,
   }) async {
-    final client = HttpClient()
-      ..connectionTimeout = const Duration(seconds: 15);
+    final client =
+        sharedClient ??
+        (HttpClient()..connectionTimeout = const Duration(seconds: 15));
     final stream = await serve((request) async {
       final upstream = await client.openUrl(request.method, uri);
       // Do not forward credentials to redirects, even to a LAN host.
@@ -133,7 +135,7 @@ class StreamGateway {
       stream.uri,
       release: () async {
         await stream.release();
-        client.close(force: true);
+        if (sharedClient == null) client.close(force: true);
       },
     );
   }

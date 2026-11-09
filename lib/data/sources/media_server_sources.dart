@@ -1,16 +1,18 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import '../../core/plugins/source_capability.dart';
 import 'file_sources.dart';
 import 'source_config.dart';
+import 'source_schema.dart';
 import 'stream_gateway.dart';
 
 /// Host-owned authenticated network boundary. URLs from a server response must
 /// stay on the configured origin and inside its base path before adding secrets.
 class SourceHttp {
   SourceHttp(this.config, String token)
-    : headers = config.kind == SourceKind.plex
+    : _headers = config.kind == SourceKind.plex
           ? {
               'X-Plex-Token': token,
               'X-Plex-Client-Identifier': 'openplayx-${config.id}',
@@ -22,9 +24,10 @@ class SourceHttp {
               'Accept': 'application/json',
             };
   final SourceConfig config;
-  final Map<String, String> headers;
-  final HttpClient _client = HttpClient()
-    ..connectionTimeout = const Duration(seconds: 15);
+  final Map<String, String> _headers;
+  late final HttpClient _client = HttpClient()
+    ..connectionTimeout = Duration(seconds: config.requestTimeoutSeconds)
+    ..maxConnectionsPerHost = config.maxConcurrentRequests;
   Uri uri(String path, [Map<String, String> query = const {}]) {
     final base = Uri.parse(config.address);
     if (path
@@ -58,8 +61,14 @@ class SourceHttp {
   ]) async {
     final request = await _client.getUrl(uri(path, query));
     request.followRedirects = false;
-    headers.forEach(request.headers.set);
-    final response = await request.close();
+    _headers.forEach(request.headers.set);
+    final response = await request.close().timeout(
+      Duration(seconds: config.requestTimeoutSeconds),
+      onTimeout: () {
+        request.abort();
+        throw TimeoutException('Media server request timed out');
+      },
+    );
     if (response.statusCode < 200 || response.statusCode >= 300) {
       await response.drain<void>();
       throw PluginException(
@@ -70,15 +79,24 @@ class SourceHttp {
         retryable: true,
       );
     }
-    return jsonDecode(await utf8.decoder.bind(response).join())
-        as Map<String, dynamic>;
+    return jsonDecode(
+      await utf8.decoder
+          .bind(response)
+          .timeout(Duration(seconds: config.requestTimeoutSeconds))
+          .join(),
+    ) as Map<String, dynamic>;
   }
 
   Future<PlayableStream> stream(
     String path, {
     Map<String, String> query = const {},
     String? filename,
-  }) => StreamGateway.http(uri(path, query), headers, filename: filename);
+  }) => StreamGateway.http(
+    uri(path, query),
+    _headers,
+    filename: filename,
+    sharedClient: _client,
+  );
   void close() => _client.close(force: true);
 }
 
@@ -87,11 +105,7 @@ class JellyfinPlugin implements Plugin, SourceCapability {
   final SourceConfig config;
   final SourceHttp http;
   @override
-  PluginManifest get manifest => const PluginManifest(
-    'source.jellyfin',
-    'Jellyfin',
-    browseExperience: 'library',
-  );
+  PluginManifest get manifest => SourceSchemas.forKind(SourceKind.jellyfin);
   @override
   Future<BrowseResult> browse(
     BrowseRequest request,
@@ -206,8 +220,7 @@ class PlexPlugin implements Plugin, SourceCapability {
   final SourceConfig config;
   final SourceHttp http;
   @override
-  PluginManifest get manifest =>
-      const PluginManifest('source.plex', 'Plex', browseExperience: 'library');
+  PluginManifest get manifest => SourceSchemas.forKind(SourceKind.plex);
   @override
   Future<BrowseResult> browse(
     BrowseRequest request,

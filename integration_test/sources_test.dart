@@ -4,8 +4,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/data/sources/file_sources.dart';
-import 'package:openplayx/data/sources/media_server_sources.dart';
+import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/data/sources/source_sign_in.dart';
+import 'package:openplayx/data/configuration/source_configuration_service.dart';
+import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx_playback/playback.dart';
 
@@ -19,47 +21,66 @@ void main() {
       tester,
     ) async {
       final dir = await Directory.systemTemp.createTemp('openplayx-source-');
-      final fixture = await createTestVideo(dir);
-      final config = SourceConfig(
-        id: 'integration-${kind.name}',
+      final mediaDirectory = await Directory('${dir.path}/media').create();
+      final fixture = await createTestVideo(mediaDirectory);
+      var config = SourceConfig(
+        id: 'integration-${kind.name}-${DateTime.now().microsecondsSinceEpoch}',
         kind: kind,
         name: kind.label,
         address: switch (kind) {
-          SourceKind.local => dir.path,
-          SourceKind.smb => 'smb://127.0.0.1/media',
+          SourceKind.local => mediaDirectory.path,
+          SourceKind.smb => 'smb://127.0.0.1',
           SourceKind.plex => 'http://127.0.0.1:13240',
           SourceKind.jellyfin => 'http://127.0.0.1:18096',
         },
         username: 'openplayx',
         userId: const String.fromEnvironment('JELLYFIN_USER_ID'),
       );
-      final SourceCapability source = switch (kind) {
-        SourceKind.local => LocalFolderPlugin(config),
-        SourceKind.smb => SmbPlugin(config, 'test-only-password'),
-        SourceKind.plex => PlexPlugin(config, SourceHttp(config, 'test-token')),
-        SourceKind.jellyfin => JellyfinPlugin(
-          config,
-          SourceHttp(config, const String.fromEnvironment('JELLYFIN_TOKEN')),
-        ),
-      };
+      final configuration = SourceConfigurationService(
+        sqlite3.open('${dir.path}/configuration.sqlite3'),
+      );
+      final manager = SourceManager(configuration: configuration);
       final backend = LibVlcBackend();
       PlayableStream? stream;
       addTearDown(() async {
         backend.dispose();
         await stream?.release();
-        await (source as Plugin).dispose();
+        if (manager.configs.any((c) => c.id == config.id)) {
+          await manager.remove(config.id);
+        }
+        await manager.dispose();
+        configuration.close();
         await dir.delete(recursive: true);
       });
-      final context = CallContext.forInstance(config.id);
+      String? jellyfinToken;
+      if (kind == SourceKind.jellyfin) {
+        final signIn = SourceSignIn();
+        try {
+          final session = await signIn.jellyfin(config, 'test-only-password');
+          config = config.copyWith(userId: session.userId);
+          jellyfinToken = session.token;
+        } finally {
+          signIn.close();
+        }
+      }
+      debugPrint('Source integration: ${kind.name} saving');
+      await manager.save(config, switch (kind) {
+        SourceKind.local => '',
+        SourceKind.smb => 'test-only-password',
+        SourceKind.plex => 'test-token',
+        SourceKind.jellyfin => jellyfinToken!,
+      });
+      debugPrint('Source integration: ${kind.name} saved');
+      await manager.setDefault('source.browse', config.id);
       // Test bounded pages and traverse the actual media library to a playable leaf.
       Future<SourceEntry?> findVideo(ResourceRef? node, int depth) async {
         if (depth > 5) return null;
         int? offset = 0;
         while (offset != null) {
-          final page = await source.browse(
-            BrowseRequest(node: node, offset: offset, limit: 10),
-            context,
-          );
+          final request = BrowseRequest(node: node, offset: offset, limit: 10);
+          final page = node == null
+              ? await manager.browseDefault(request)
+              : await manager.browse(config.id, request);
           for (final entry in page.entries) {
             if (!entry.isFolder) return entry;
             final child = await findVideo(entry.ref, depth + 1);
@@ -70,13 +91,16 @@ void main() {
         return null;
       }
 
+      debugPrint('Source integration: ${kind.name} browsing');
       final entry = await findVideo(null, 0);
+      debugPrint('Source integration: ${kind.name} browsed');
       expect(
         entry,
         isNotNull,
         reason: 'Fixture must be discoverable from source root',
       );
-      stream = await source.resolve(ResolveRequest(entry!.ref), context);
+      stream = await manager.resolve(entry!.ref);
+      debugPrint('Source integration: ${kind.name} resolved');
       expect(stream.uri.userInfo, isEmpty);
       if (kind != SourceKind.local) {
         final client = HttpClient();
@@ -137,6 +161,17 @@ void main() {
             backend.value.position.inMilliseconds > 1200,
       );
       expect(backend.value.videoSize, const Size(160, 90));
+      expect(manager.impact(config.id).playing, 1);
+      debugPrint('Source integration: ${kind.name} disabling');
+      await manager.setEnabled(config.id, false);
+      debugPrint('Source integration: ${kind.name} disabled');
+      await expectLater(
+        manager.browse(config.id, const BrowseRequest()),
+        throwsA(
+          isA<PluginException>().having((e) => e.code, 'code', 'disabled'),
+        ),
+      );
+      // Already-issued playback keeps its lease while future calls are blocked.
       expect(backend.value.canSeek, isTrue);
       await backend.pause();
       await waitFor(() => backend.value.status == PlaybackStatus.paused);
