@@ -183,7 +183,7 @@ class SourceManager {
     await runtime.retire();
   }
 
-  Future<SourceCredentialStatus> credentialStatus(String id) async {
+  SourceCredentialStatus credentialStatus(String id) {
     final config = _config(id);
     final state = _configuration?.application(id);
     final sameRevision = state?['desired_revision'] == config.revision;
@@ -281,7 +281,7 @@ class SourceManager {
   }
 
   Future<_SourceRuntime> _create(SourceConfig config) async {
-    final status = await _credentials.status(config);
+    final status = _credentials.status(config);
     if ([
       SourceAuthorization.expired,
       SourceAuthorization.missing,
@@ -311,7 +311,14 @@ class SourceManager {
       _hasBookmarks = true;
       pluginConfig = pluginConfig.copyWith(address: path);
     }
-    final secret = await _credentials.readForHost(config) ?? '';
+    final storedSecret = await _credentials.readForHost(config);
+    final secret = storedSecret ?? '';
+    if ((config.credentialRef != null && storedSecret == null) ||
+        (config.kind != SourceKind.local &&
+            config.kind != SourceKind.smb &&
+            secret.isEmpty)) {
+      throw const PluginException('authRequired', '凭据不可用，请重新登录或更新凭据。');
+    }
     final SourceCapability provider = switch (config.kind) {
       SourceKind.local => LocalFolderPlugin(pluginConfig),
       SourceKind.smb => SmbPlugin.withAccess(

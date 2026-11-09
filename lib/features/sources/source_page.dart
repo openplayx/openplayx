@@ -288,16 +288,10 @@ class _SourcePageState extends State<SourcePage> {
                                   Text(
                                     widget.manager.applicationLabel(source.id),
                                   ),
-                                  FutureBuilder(
-                                    future: widget.manager.credentialStatus(
-                                      source.id,
-                                    ),
-                                    builder: (context, snapshot) => Text(
-                                      snapshot.data?.label ??
-                                          (snapshot.hasError
-                                              ? '授权状态暂不可用'
-                                              : '正在检查授权…'),
-                                    ),
+                                  Text(
+                                    widget.manager
+                                        .credentialStatus(source.id)
+                                        .label,
                                   ),
                                 ],
                               ),

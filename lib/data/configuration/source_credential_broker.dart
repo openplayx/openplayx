@@ -70,21 +70,24 @@ class SourceCredentialBroker {
     await _storage.delete(key: ref);
   }
 
-  Future<SourceCredentialStatus> status(
+  /// Display saved metadata without unlocking the keychain. The secret is
+  /// checked only when the host actually opens a connection.
+  SourceCredentialStatus status(
     SourceConfig config, {
     bool verified = false,
     bool rejected = false,
-  }) async {
+  }) {
     if (config.kind == SourceKind.local ||
         (config.kind == SourceKind.smb &&
             config.username.isEmpty &&
             config.credentialRef == null)) {
       return const SourceCredentialStatus(SourceAuthorization.notRequired);
     }
-    final secret = await readForHost(config);
-    if (secret == null || (secret.isEmpty && config.kind != SourceKind.smb)) {
+    final ref = config.credentialRef;
+    if (ref == null) {
       return const SourceCredentialStatus(SourceAuthorization.missing);
     }
+    _check(config.id, ref);
     final expiry = config.credentialExpiresAt;
     if (expiry != null && !expiry.isAfter(DateTime.now())) {
       return SourceCredentialStatus(

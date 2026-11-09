@@ -65,7 +65,7 @@ void main() {
           home: PlayerPage(backend: backend, sourceManager: sources),
         ),
       );
-      await tester.tap(find.text('媒体源'));
+      await tester.tap(find.byTooltip('媒体源'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('添加源'));
       await tester.pumpAndSettle();
@@ -129,7 +129,7 @@ void main() {
           home: PlayerPage(backend: FakeBackend(), sourceManager: sources),
         ),
       );
-      await tester.tap(find.text('媒体源'));
+      await tester.tap(find.byTooltip('媒体源'));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('删除媒体源'));
       await tester.pumpAndSettle();
