@@ -1,30 +1,162 @@
+import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../../data/files/local_media_picker.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
-import '../sources/source_page.dart';
+import '../../services/library/library_service.dart';
+import '../../data/sources/source_config.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
     super.key,
     this.backend,
+    this.onExit,
+    this.onFileSelected,
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
+    this.libraryService,
   });
+  final VoidCallback? onExit;
+  final VoidCallback? onFileSelected;
   final PlayerBackend? backend;
   final SourceManager? sourceManager;
+  final LibraryService? libraryService;
   final Future<LocalMedia?> Function() pickMedia;
   @override
-  State<PlayerPage> createState() => _PlayerPageState();
+  State<PlayerPage> createState() => PlayerPageState();
 }
 
-class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
+class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   late final PlayerBackend _backend;
   late final SourceManager _sources;
+  LibraryService? _library;
+  Future<LibraryService>? _openingLibrary;
+  String? _resource;
+  String? _session;
+  Duration? _resume;
+  bool _resuming = false;
+  int _trackingGeneration = 0;
+  DateTime? _lastCheckpoint;
+  Future<LibraryService> _ensureLibrary() async {
+    if (_library != null) return _library!;
+    try {
+      final service = await (_openingLibrary ??= LibraryService.open());
+      if (!mounted) {
+        service.close();
+        throw StateError('播放器已关闭');
+      }
+      return _library = service;
+    } catch (_) {
+      _openingLibrary = null;
+      rethrow;
+    }
+  }
+
+  void _checkpoint({bool force = false}) {
+    final value = _backend.value;
+    if (_resource == null ||
+        _session == null ||
+        _resume != null ||
+        _resuming ||
+        ![
+          PlaybackStatus.playing,
+          PlaybackStatus.paused,
+          PlaybackStatus.ended,
+        ].contains(value.status)) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!force &&
+        _lastCheckpoint != null &&
+        now.difference(_lastCheckpoint!).inSeconds < 5) {
+      return;
+    }
+    _lastCheckpoint = now;
+    try {
+      _library?.saveProgress(
+        _resource!,
+        _session!,
+        value.position,
+        value.duration,
+        completed: value.status == PlaybackStatus.ended,
+      );
+    } catch (_) {
+      _resource = null;
+      _session = null;
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+      }
+    }
+  }
+
+  void _finishTracking() {
+    _checkpoint(force: true);
+    _trackingGeneration++;
+    _resource = null;
+    _resuming = false;
+    _session = null;
+    _resume = null;
+    _lastCheckpoint = null;
+  }
+
+  Future<void> _track(
+    ResourceRef ref,
+    String name, {
+    String? localPath,
+    int? generation,
+    SourceEntry? entry,
+  }) async {
+    generation ??= _trackingGeneration;
+    try {
+      final service = await _ensureLibrary();
+      if (!mounted || generation != _trackingGeneration) return;
+      final media = service.register(
+        entry ?? SourceEntry(ref, name, isFolder: false),
+        localPath: localPath,
+      );
+      final resource =
+          service.resourceFor(ref) ?? service.resources(media).first;
+      final id = resource['id'] as String;
+      final checkpoint = service.checkpoint(id);
+      _resource = id;
+      if (checkpoint != null &&
+          checkpoint['completed'] == 0 &&
+          (checkpoint['position'] as int) > 0) {
+        _resume = Duration(milliseconds: checkpoint['position'] as int);
+      }
+      _session = service.beginSession(id);
+      _onPlayback();
+    } catch (_) {
+      _openingLibrary = null;
+      // A storage error must not prevent direct playback.
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+      }
+    }
+  }
+
+  Future<void> _trackLocal(LocalMedia media) async {
+    final generation = _trackingGeneration;
+    var path = media.uri.toFilePath();
+    try {
+      path = await File(path).resolveSymbolicLinks();
+    } catch (_) {}
+    if (!mounted || generation != _trackingGeneration) return;
+    await _track(
+      ResourceRef('@local', path),
+      media.name,
+      localPath: path,
+      generation: generation,
+    );
+  }
+
   PlayableStream? _stream;
   String? _name;
   String? _error;
@@ -44,9 +176,100 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   int? _selectedAudioTrack;
   Future<void> _speedCommands = Future.value();
 
+  final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
+  int _volumeBeforeMute = 100;
+
+  KeyEventResult _handlePlayerKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        _busy ||
+        _openPanels > 0) {
+      return KeyEventResult.ignored;
+    }
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext?.widget is EditableText ||
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed ||
+        keyboard.isMetaPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      if (_locked) {
+        setState(() {
+          _locked = false;
+          _controlsVisible = true;
+        });
+        _scheduleHide();
+        return KeyEventResult.handled;
+      }
+      unawaited(_exitPlayback());
+      return KeyEventResult.handled;
+    }
+    final toggle =
+        key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyK;
+    final supported =
+        toggle ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.keyM ||
+        key == LogicalKeyboardKey.keyL;
+    if (!supported) return KeyEventResult.ignored;
+    if (_locked || !_enabled) return KeyEventResult.handled;
+    // Holding a toggle key must not repeatedly alternate play/mute/lock.
+    if (event is KeyRepeatEvent &&
+        (toggle ||
+            key == LogicalKeyboardKey.keyM ||
+            key == LogicalKeyboardKey.keyL)) {
+      return KeyEventResult.handled;
+    }
+    _showControls();
+    if (toggle) {
+      _togglePlayback();
+    } else if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      _skip(key == LogicalKeyboardKey.arrowLeft ? -10 : 10);
+    } else if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown) {
+      final volume =
+          (_backend.value.volume + (key == LogicalKeyboardKey.arrowUp ? 5 : -5))
+              .clamp(0, 100);
+      unawaited(_adjust(() => _backend.setVolume(volume)));
+    } else if (key == LogicalKeyboardKey.keyM) {
+      final volume = _backend.value.volume;
+      if (volume > 0) _volumeBeforeMute = volume.clamp(1, 100);
+      unawaited(
+        _adjust(() => _backend.setVolume(volume == 0 ? _volumeBeforeMute : 0)),
+      );
+    } else if (key == LogicalKeyboardKey.keyL) {
+      _lock();
+    }
+    return KeyEventResult.handled;
+  }
+
+  void _togglePlayback() {
+    if (!_enabled) return;
+    _endBoost();
+    unawaited(
+      _command(
+        _backend.value.status == PlaybackStatus.playing
+            ? _backend.pause
+            : _backend.play,
+      ),
+    );
+  }
+
   bool get _enabled =>
       _name != null &&
       !_busy &&
+      !_closing &&
       !_background &&
       !_locked &&
       _error == null &&
@@ -152,11 +375,44 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     super.initState();
     _backend = widget.backend ?? LibVlcBackend();
     _sources = widget.sourceManager ?? SourceManager();
+    _library = widget.libraryService;
     _backend.addListener(_onPlayback);
     WidgetsBinding.instance.addObserver(this);
   }
 
   void _onPlayback() {
+    final snapshot = _backend.value;
+    if (_resume != null &&
+        snapshot.canSeek &&
+        snapshot.duration > Duration.zero &&
+        [
+          PlaybackStatus.playing,
+          PlaybackStatus.paused,
+        ].contains(snapshot.status)) {
+      final target = _resume!;
+      _resume = null;
+      _resuming = true;
+      // Only this exact resource's timeline is eligible for continuation.
+      final generation = _trackingGeneration;
+      unawaited(
+        _adjust(
+          () => _backend.seek(
+            target < snapshot.duration ? target : Duration.zero,
+          ),
+        ).whenComplete(() {
+          if (generation == _trackingGeneration) {
+            _resuming = false;
+            _checkpoint(force: true);
+          }
+        }),
+      );
+      return;
+    }
+    _checkpoint(
+      force:
+          snapshot.status == PlaybackStatus.paused ||
+          snapshot.status == PlaybackStatus.ended,
+    );
     if (_lastStatus != _backend.value.status) {
       _lastStatus = _backend.value.status;
       if (mounted) setState(() => _controlsVisible = true);
@@ -177,6 +433,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached;
     if (_background || state == AppLifecycleState.inactive) _endBoost();
+    if (_background) _checkpoint(force: true);
     if (_background && _name != null) unawaited(_command(_backend.pause));
   }
 
@@ -206,6 +463,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       final media = await widget.pickMedia();
       if (media == null || !mounted) return;
+      widget.onFileSelected?.call();
+      _finishTracking();
       setState(() {
         _name = media.name;
         _error = null;
@@ -218,6 +477,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         await _stream?.release();
         _stream = null;
       });
+      if (_error == null && media.uri.scheme == 'file') {
+        unawaited(_trackLocal(media));
+      }
       if (_background && mounted) await _command(_backend.pause);
     } catch (error, stack) {
       debugPrint('File selection failed: $error\n$stack');
@@ -230,24 +492,76 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openSource() async {
+  Future<void>? _openingMedia;
+  bool _closing = false;
+
+  Future<void> openFile() {
+    if (_closing || _busy) return Future.value();
+    return _openingMedia = _open();
+  }
+
+  Future<void> _exitPlayback() async {
+    if (widget.onExit != null) {
+      widget.onExit!();
+    } else if (await stopPlayback() && mounted) {
+      Navigator.of(context).maybePop();
+    }
+  }
+
+  Future<bool> stopPlayback() async {
+    if (_closing) return false;
+    _closing = true;
+    _endBoost();
+    try {
+      await _openingMedia;
+      await _speedCommands;
+      if (!mounted) return false;
+      _checkpoint(force: true);
+      await _backend.stop();
+      _finishTracking();
+      final stream = _stream;
+      _stream = null;
+      await stream?.release();
+      if (!mounted) return false;
+      _hideTimer?.cancel();
+      setState(() {
+        _name = null;
+        _error = null;
+        _drag = null;
+        _locked = false;
+        _controlsVisible = true;
+      });
+      return true;
+    } catch (_) {
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('停止播放失败，请重试返回')));
+      }
+      return false;
+    } finally {
+      _closing = false;
+    }
+  }
+
+  Future<void> playSelection(SourceSelection selection) {
+    if (_closing || _busy) return selection.stream.release();
+    return _openingMedia = _playSelection(selection);
+  }
+
+  Future<void> _playSelection(SourceSelection selection) async {
+    if (!mounted) {
+      await selection.stream.release();
+      return;
+    }
     _endBoost();
     await _speedCommands;
-    if (!mounted) return;
-    _hideTimer?.cancel();
-    setState(() {
-      _busy = true;
-      _controlsVisible = true;
-    });
+    if (!mounted) {
+      await selection.stream.release();
+      return;
+    }
+    setState(() => _busy = true);
     try {
-      final selection = await Navigator.of(context).push<SourceSelection>(
-        MaterialPageRoute(builder: (_) => SourcePage(manager: _sources)),
-      );
-      if (selection == null) return;
-      if (!mounted) {
-        await selection.stream.release();
-        return;
-      }
+      _finishTracking();
       final previous = _stream;
       _stream = selection.stream;
       setState(() {
@@ -261,6 +575,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         await _backend.setSpeed(_speed);
       });
       await previous?.release();
+      if (_error == null && selection.ref != null) {
+        String? localPath;
+        final config = _sources.configs
+            .where((c) => c.id == selection.ref!.instanceId)
+            .firstOrNull;
+        if (config?.kind == SourceKind.local ||
+            selection.ref!.instanceId == '@local') {
+          localPath = selection.ref!.id;
+        }
+        unawaited(
+          _track(
+            selection.ref!,
+            selection.name,
+            localPath: localPath,
+            entry: selection.entry,
+          ),
+        );
+      }
       if (_background && mounted) await _command(_backend.pause);
     } finally {
       if (mounted) {
@@ -272,6 +604,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _playerFocus.dispose();
+    _finishTracking();
+    if (widget.libraryService == null) _library?.close();
     _hideTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _backend.removeListener(_onPlayback);
@@ -456,18 +791,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           value.status == PlaybackStatus.playing
               ? Icons.pause_rounded
               : Icons.play_arrow_rounded,
-          _enabled
-              ? () {
-                  _endBoost();
-                  unawaited(
-                    _command(
-                      value.status == PlaybackStatus.playing
-                          ? _backend.pause
-                          : _backend.play,
-                    ),
-                  );
-                }
-              : null,
+          _enabled ? _togglePlayback : null,
         ),
         _icon('快进 10 秒', Icons.forward_10, seekable ? () => _skip(10) : null),
       ],
@@ -552,19 +876,48 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text(
-                  '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-                const Spacer(),
-                if (duration > 0)
-                  Text(
-                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white54),
-                  ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final remaining =
+                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}';
+                return Row(
+                  children: [
+                    Flexible(
+                      child: Tooltip(
+                        message: remaining,
+                        child: Text(
+                          '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '读取 ${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
+                      key: const Key('playback-read-speed'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white54,
+                      ),
+                    ),
+                    if (duration > 0 && constraints.maxWidth >= 456) ...[
+                      const SizedBox(width: 16),
+                      Text(
+                        remaining,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
             SizedBox(
               height: 28,
@@ -641,192 +994,193 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: SafeArea(
-      child: MouseRegion(
-        onHover: (_) => _showControls(),
-        child: Listener(
-          onPointerDown: (_) {
-            _pointerDown = true;
-            _hideTimer?.cancel();
-          },
-          onPointerUp: (_) {
-            _pointerDown = false;
-            _endBoost();
-            _scheduleHide();
-          },
-          onPointerCancel: (_) {
-            _pointerDown = false;
-            _endBoost();
-            _scheduleHide();
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              GestureDetector(
-                key: const Key('video-gestures'),
-                behavior: HitTestBehavior.opaque,
-                onTap: _locked
-                    ? null
-                    : () {
-                        if (_controlsVisible &&
-                            _name != null &&
-                            _error == null) {
-                          _hideTimer?.cancel();
-                          setState(() => _controlsVisible = false);
-                        } else {
-                          _showControls();
-                        }
-                      },
-                onLongPressStart: _locked ? null : (_) => _startBoost(),
-                onLongPressEnd: (_) => _endBoost(),
-                onLongPressCancel: _endBoost,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    IgnorePointer(child: PlayerVideoView(backend: _backend)),
-                    IgnorePointer(
-                      child: ColoredBox(
-                        key: const Key('video-dimming'),
-                        color: Colors.black.withValues(
-                          alpha: (1 - _brightness) * 0.85,
+  Widget build(BuildContext context) => Focus(
+    focusNode: _playerFocus,
+    autofocus: true,
+    onKeyEvent: _handlePlayerKey,
+    child: Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: MouseRegion(
+          onHover: (_) => _showControls(),
+          child: Listener(
+            onPointerDown: (_) {
+              _playerFocus.requestFocus();
+              _pointerDown = true;
+              _hideTimer?.cancel();
+            },
+            onPointerUp: (_) {
+              _pointerDown = false;
+              _endBoost();
+              _scheduleHide();
+            },
+            onPointerCancel: (_) {
+              _pointerDown = false;
+              _endBoost();
+              _scheduleHide();
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  key: const Key('video-gestures'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _locked
+                      ? null
+                      : () {
+                          if (_controlsVisible &&
+                              _name != null &&
+                              _error == null) {
+                            _hideTimer?.cancel();
+                            setState(() => _controlsVisible = false);
+                          } else {
+                            _showControls();
+                          }
+                        },
+                  onLongPressStart: _locked ? null : (_) => _startBoost(),
+                  onLongPressEnd: (_) => _endBoost(),
+                  onLongPressCancel: _endBoost,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      IgnorePointer(child: PlayerVideoView(backend: _backend)),
+                      IgnorePointer(
+                        child: ColoredBox(
+                          key: const Key('video-dimming'),
+                          color: Colors.black.withValues(
+                            alpha: (1 - _brightness) * 0.85,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_name == null)
-                const IgnorePointer(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.play_circle_outline,
-                            size: 56,
-                            color: Colors.white38,
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            '打开一个视频，开始播放',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
-              if (!_locked)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: _chrome(
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0x99000000), Colors.transparent],
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _name ?? 'OpenPlayX',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                if (_name == null)
+                  const IgnorePointer(
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 56,
+                              color: Colors.white38,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              '打开一个视频，开始播放',
+                              style: TextStyle(
+                                fontSize: 18,
                                 color: Colors.white70,
-                                fontSize: 13,
                               ),
                             ),
-                          ),
-                          _icon(
-                            '媒体源',
-                            Icons.video_library_outlined,
-                            _busy ? null : _openSource,
-                          ),
-                          _icon(
-                            '打开文件',
-                            Icons.folder_open_outlined,
-                            _busy ? null : _open,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (!_locked)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _chrome(
-                    ValueListenableBuilder<PlayerSnapshot>(
-                      valueListenable: _backend,
-                      builder: (context, value, _) => _bottomControls(value),
-                    ),
-                  ),
-                ),
-              if (_busy || _backend.value.status == PlaybackStatus.opening)
-                const IgnorePointer(
-                  child: Center(
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ),
-              if (_error != null ||
-                  _backend.value.status == PlaybackStatus.error)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      _error ?? '播放失败，请检查文件或重新选择。',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                if (!_locked)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _chrome(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x99000000), Colors.transparent],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            _icon(
+                              '返回',
+                              Icons.arrow_back,
+                              _closing ? null : _exitPlayback,
+                            ),
+                            Expanded(
+                              child: Text(
+                                _name ?? 'OpenPlayX',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (_boosting)
-                const Positioned(
-                  top: 64,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                if (!_locked)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _chrome(
+                      ValueListenableBuilder<PlayerSnapshot>(
+                        valueListenable: _backend,
+                        builder: (context, value, _) => _bottomControls(value),
+                      ),
+                    ),
                   ),
-                ),
-              if (_locked)
-                Positioned(
-                  top: 8,
-                  left: 12,
-                  child: _icon('解锁控制', Icons.lock_open, () {
-                    setState(() {
-                      _locked = false;
-                      _controlsVisible = true;
-                    });
-                    _scheduleHide();
-                  }),
-                ),
-            ],
+                if (_busy || _backend.value.status == PlaybackStatus.opening)
+                  const IgnorePointer(
+                    child: Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                if (_error != null ||
+                    _backend.value.status == PlaybackStatus.error)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _error ?? '播放失败，请检查文件或重新选择。',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_boosting)
+                  const Positioned(
+                    top: 64,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                    ),
+                  ),
+                if (_locked)
+                  Positioned(
+                    top: 8,
+                    left: 12,
+                    child: _icon('解锁控制', Icons.lock_open, () {
+                      setState(() {
+                        _locked = false;
+                        _controlsVisible = true;
+                      });
+                      _scheduleHide();
+                    }),
+                  ),
+              ],
+            ),
           ),
         ),
       ),

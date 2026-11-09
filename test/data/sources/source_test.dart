@@ -126,6 +126,7 @@ void main() {
             'Items': [
               {
                 'Id': 'movie',
+                'Type': 'Movie',
                 'Name': 'Movie',
                 'MediaType': 'Video',
                 'MediaSources': [
@@ -139,6 +140,8 @@ void main() {
         case '/base/Users/user/Items/movie':
           result = {
             'Id': 'movie',
+            'Type': 'Movie',
+            'Name': 'Movie',
             'MediaType': 'Video',
             'MediaSources': [
               {'Id': 'v1', 'Name': '1080p'},
@@ -160,6 +163,7 @@ void main() {
               'Metadata': [
                 {
                   'key': '/library/metadata/7',
+                  'ratingKey': '7',
                   'title': 'Plex Movie',
                   'type': 'movie',
                 },
@@ -224,6 +228,8 @@ void main() {
         context,
       );
       entry = children.entries.first;
+      expect(entry.media?.id, kind == SourceKind.plex ? '7' : 'movie');
+      expect(entry.media?.kind, 'movie');
       final stream = await source.resolve(ResolveRequest(entry.ref), context);
       expect(stream.uri.toString(), isNot(contains('secret')));
       final request = await client.getUrl(stream.uri);

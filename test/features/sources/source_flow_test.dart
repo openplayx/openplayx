@@ -3,7 +3,9 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/features/player/player_page.dart';
+import 'package:openplayx/app/app_shell.dart';
+import 'package:openplayx/services/library/library_service.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import '../player/player_page_test.dart' show FakeBackend;
 
@@ -58,14 +60,17 @@ void main() {
   testWidgets(
     'configure SMB, edit it, recover browse failure and play selected file',
     (tester) async {
+      final library = LibraryService(sqlite3.openInMemory());
+      addTearDown(library.close);
       final sources = MemorySources();
       final backend = FakeBackend();
       await tester.pumpWidget(
         MaterialApp(
-          home: PlayerPage(backend: backend, sourceManager: sources),
+          home: AppShell(backend: backend, sources: sources, library: library),
         ),
       );
-      await tester.tap(find.byTooltip('媒体源'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('来源').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('添加源'));
       await tester.pumpAndSettle();
@@ -115,6 +120,8 @@ void main() {
   testWidgets(
     'delete configuration requires confirmation and cancellation preserves it',
     (tester) async {
+      final library = LibraryService(sqlite3.openInMemory());
+      addTearDown(library.close);
       final sources = MemorySources()
         ..saved.add(
           const SourceConfig(
@@ -126,10 +133,15 @@ void main() {
         );
       await tester.pumpWidget(
         MaterialApp(
-          home: PlayerPage(backend: FakeBackend(), sourceManager: sources),
+          home: AppShell(
+            backend: FakeBackend(),
+            sources: sources,
+            library: library,
+          ),
         ),
       );
-      await tester.tap(find.byTooltip('媒体源'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('来源').last);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('删除媒体源'));
       await tester.pumpAndSettle();
@@ -141,6 +153,7 @@ void main() {
       await tester.tap(find.text('删除'));
       await tester.pumpAndSettle();
       expect(sources.saved, isEmpty);
+      await tester.pumpWidget(const SizedBox());
     },
   );
 }

@@ -126,6 +126,7 @@ class JellyfinPlugin implements Plugin, SourceCapability {
                 ResourceRef(config.id, 'version:$id:${source['Id']}'),
                 source['Name'] as String? ?? '${source['Id']}',
                 isFolder: false,
+                media: _jellyfinInfo(item),
               ),
             )
             .toList(),
@@ -138,7 +139,7 @@ class JellyfinPlugin implements Plugin, SourceCapability {
         if (request.node != null) 'ParentId': request.node!.id,
         'StartIndex': '${request.offset}',
         'Limit': '${request.limit}',
-        'Fields': 'MediaSources',
+        'Fields': 'MediaSources,ParentId',
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
       },
@@ -160,6 +161,7 @@ class JellyfinPlugin implements Plugin, SourceCapability {
                   : item['Id'] as String,
             ),
             item['Name'] as String? ?? '未命名',
+            media: _jellyfinInfo(item),
             isFolder:
                 item['IsFolder'] == true ||
                 (item['MediaSources'] as List? ?? []).length > 1,
@@ -230,6 +232,9 @@ class PlexPlugin implements Plugin, SourceCapability {
     if (request.node?.id.startsWith('versions:') == true) {
       final json = await http.json(request.node!.id.substring(9));
       final parts = _parts(json);
+      final metadata = (json['MediaContainer']['Metadata'] as List)
+          .cast<Map<String, dynamic>>()
+          .first;
       return pageEntries(
         parts.indexed
             .map(
@@ -237,6 +242,7 @@ class PlexPlugin implements Plugin, SourceCapability {
                 ResourceRef(config.id, 'part:${pair.$2['key']}'),
                 '文件 ${pair.$1 + 1} · ${pair.$2['container'] ?? '媒体'}',
                 isFolder: false,
+                media: _plexInfo(metadata),
               ),
             )
             .toList(),
@@ -271,6 +277,7 @@ class PlexPlugin implements Plugin, SourceCapability {
         ResourceRef(config.id, multiple ? 'versions:$key' : key),
         item['title'] as String? ?? '未命名',
         isFolder: folder || multiple,
+        media: root ? null : _plexInfo(item),
       );
     }).toList();
     final next = request.offset + items.length;
@@ -316,4 +323,56 @@ class PlexPlugin implements Plugin, SourceCapability {
 
   @override
   Future<void> dispose() async => http.close();
+}
+
+SourceMediaInfo? _jellyfinInfo(Map<String, dynamic> item) {
+  if (item['Id'] == null ||
+      ![
+        'Movie',
+        'Series',
+        'Season',
+        'Episode',
+        'Audio',
+        'Video',
+        'MusicVideo',
+      ].contains(item['Type'])) {
+    return null;
+  }
+  return SourceMediaInfo(
+    id: item['Id'] as String,
+    title: item['Name'] as String? ?? '未命名',
+    kind: switch (item['Type']) {
+      'Movie' => 'movie',
+      'Series' => 'series',
+      'Season' => 'season',
+      'Episode' => 'episode',
+      'Audio' => 'audio',
+      _ => 'video',
+    },
+    parentId: item['ParentId'] as String?,
+    year: item['ProductionYear'] as int?,
+    season: item['ParentIndexNumber'] as int?,
+    episode: item['IndexNumber'] as int?,
+  );
+}
+
+SourceMediaInfo? _plexInfo(Map<String, dynamic> item) {
+  final id = item['ratingKey']?.toString();
+  if (id == null) return null;
+  return SourceMediaInfo(
+    id: id,
+    title: item['title'] as String? ?? '未命名',
+    kind: switch (item['type']) {
+      'movie' => 'movie',
+      'show' => 'series',
+      'season' => 'season',
+      'episode' => 'episode',
+      'track' => 'audio',
+      _ => 'video',
+    },
+    parentId: item['parentRatingKey']?.toString(),
+    year: item['year'] as int?,
+    season: item['parentIndex'] as int?,
+    episode: item['index'] as int?,
+  );
 }

@@ -68,6 +68,10 @@ void main() {
     expect(backend.value.duration.inSeconds, inInclusiveRange(11, 13));
     expect(backend.value.videoSize, const Size(160, 90));
 
+    // Input-byte statistics are sampled independently of playback progress.
+    await waitFor(() => backend.value.readSpeedMBps != null);
+    expect(backend.value.readSpeedMBps, greaterThanOrEqualTo(0));
+
     // Confirm adjustments through native events, not just method completion.
     await backend.setSpeed(1.5);
     await waitFor(() => (backend.value.speed - 1.5).abs() < 0.01);

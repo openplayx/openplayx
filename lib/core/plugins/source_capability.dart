@@ -37,10 +37,31 @@ class ResourceRef {
 }
 
 class SourceEntry {
-  const SourceEntry(this.ref, this.name, {required this.isFolder});
+  const SourceEntry(this.ref, this.name, {required this.isFolder, this.media});
+  final SourceMediaInfo? media;
   final ResourceRef ref;
   final String name;
   final bool isFolder;
+}
+
+/// Provider-owned stable content identity; titles never serve as identity keys.
+class SourceMediaInfo {
+  const SourceMediaInfo({
+    required this.id,
+    required this.title,
+    this.kind = 'video',
+    this.parentId,
+    this.year,
+    this.season,
+    this.episode,
+  });
+  final String id;
+  final String title;
+  final String kind;
+  final String? parentId;
+  final int? year;
+  final int? season;
+  final int? episode;
 }
 
 class BrowseRequest {
