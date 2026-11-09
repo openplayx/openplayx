@@ -5,6 +5,14 @@ import 'package:vlc_player/vlc_player.dart';
 enum PlaybackStatus { idle, opening, playing, paused, ended, error }
 
 @immutable
+class PlayerAudioTrack {
+  const PlayerAudioTrack({required this.id, required this.name, this.language});
+  final int id;
+  final String name;
+  final String? language;
+}
+
+@immutable
 class PlayerSnapshot {
   const PlayerSnapshot({
     this.status = PlaybackStatus.idle,
@@ -13,6 +21,8 @@ class PlayerSnapshot {
     this.canSeek = false,
     this.videoSize,
     this.isBuffering = false,
+    this.speed = 1,
+    this.volume = 100,
   });
   final PlaybackStatus status;
   final Duration position;
@@ -20,6 +30,8 @@ class PlayerSnapshot {
   final bool canSeek;
   final Size? videoSize;
   final bool isBuffering;
+  final double speed;
+  final int volume;
 }
 
 /// Application-facing contract; native VLC types stay inside this package.
@@ -29,6 +41,10 @@ abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   Future<void> play();
   Future<void> pause();
   Future<void> seek(Duration position);
+  Future<void> setSpeed(double speed);
+  Future<void> setVolume(int volume);
+  Future<List<PlayerAudioTrack>> getAudioTracks();
+  Future<void> setAudioTrack(int id);
   Widget buildVideo();
 }
 
@@ -84,6 +100,8 @@ class LibVlcBackend extends PlayerBackend {
       canSeek: native.isSeekable,
       videoSize: native.videoSize,
       isBuffering: native.isBuffering,
+      speed: native.playbackSpeed,
+      volume: native.volume,
     );
   }
 
@@ -128,6 +146,22 @@ class LibVlcBackend extends PlayerBackend {
 
   @override
   Future<void> seek(Duration position) => _controller.seekTo(position);
+  @override
+  Future<void> setSpeed(double speed) => _controller.setPlaybackSpeed(speed);
+  @override
+  Future<void> setVolume(int volume) =>
+      _controller.setVolume(volume.clamp(0, 100));
+  @override
+  Future<List<PlayerAudioTrack>> getAudioTracks() async => [
+    for (final track in await _controller.getAudioTracks())
+      PlayerAudioTrack(
+        id: track.id,
+        name: track.name,
+        language: track.language,
+      ),
+  ];
+  @override
+  Future<void> setAudioTrack(int id) => _controller.setAudioTrack(id);
   @override
   Widget buildVideo() => VlcPlayer(controller: _controller);
   @override

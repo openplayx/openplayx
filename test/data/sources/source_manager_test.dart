@@ -209,7 +209,7 @@ void main() {
       'secret',
     );
     expect(
-      (await host.credentialStatus('one')).authorization,
+      host.credentialStatus('one').authorization,
       SourceAuthorization.expired,
     );
     await expectLater(

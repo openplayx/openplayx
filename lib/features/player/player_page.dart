@@ -31,6 +31,121 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   bool _busy = false;
   bool _background = false;
   double? _drag;
+  Timer? _hideTimer;
+  bool _controlsVisible = true;
+  bool _pointerDown = false;
+  bool _hoveringControls = false;
+  int _openPanels = 0;
+  PlaybackStatus _lastStatus = PlaybackStatus.idle;
+  bool _locked = false;
+  bool _boosting = false;
+  double _speed = 1;
+  double _brightness = 1;
+  int? _selectedAudioTrack;
+  Future<void> _speedCommands = Future.value();
+
+  bool get _enabled =>
+      _name != null &&
+      !_busy &&
+      !_background &&
+      !_locked &&
+      _error == null &&
+      switch (_backend.value.status) {
+        PlaybackStatus.playing ||
+        PlaybackStatus.paused ||
+        PlaybackStatus.ended => true,
+        _ => false,
+      };
+
+  Future<bool> _adjust(Future<void> Function() action) async {
+    try {
+      await action();
+      return true;
+    } catch (error, stack) {
+      debugPrint('Player adjustment failed: $error\n$stack');
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('调整失败，请重试。')));
+      }
+      return false;
+    }
+  }
+
+  // Serialize native rate changes so a slow press cannot overtake its release.
+  Future<void> _applySpeed(double speed) {
+    return _speedCommands = _speedCommands.then((_) async {
+      if (mounted) await _adjust(() => _backend.setSpeed(speed));
+    });
+  }
+
+  void _startBoost() {
+    if (!_enabled || _backend.value.status != PlaybackStatus.playing) return;
+    _hideTimer?.cancel();
+    setState(() => _boosting = true);
+    unawaited(_applySpeed(2));
+  }
+
+  void _endBoost() {
+    if (!_boosting) return;
+    setState(() => _boosting = false);
+    unawaited(_applySpeed(_speed));
+    _scheduleHide();
+  }
+
+  void _skip(int seconds) {
+    final value = _backend.value;
+    if (!_enabled || !value.canSeek || value.duration <= Duration.zero) return;
+    final target = (value.position.inMilliseconds + seconds * 1000).clamp(
+      0,
+      value.duration.inMilliseconds,
+    );
+    unawaited(_command(() => _backend.seek(Duration(milliseconds: target))));
+  }
+
+  Future<void> _showAudioTracks() async {
+    List<PlayerAudioTrack> tracks = [];
+    if (!await _adjust(() async {
+      tracks = await _backend.getAudioTracks();
+    })) {
+      return;
+    }
+    if (!mounted || !_enabled) return;
+    _panelOpened();
+    final id = await showModalBottomSheet<int>(
+      context: context,
+      isScrollControlled: true,
+      builder: (context) => SafeArea(
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              const ListTile(title: Text('音轨')),
+              if (tracks.isEmpty) const ListTile(title: Text('此媒体没有可选音轨')),
+              for (final track in tracks)
+                ListTile(
+                  title: Text(
+                    track.name.isEmpty ? '音轨 ${track.id}' : track.name,
+                  ),
+                  subtitle: track.language == null
+                      ? null
+                      : Text(track.language!),
+                  trailing: _selectedAudioTrack == track.id
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: () => Navigator.pop(context, track.id),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    _panelClosed();
+    if (id != null &&
+        _enabled &&
+        await _adjust(() => _backend.setAudioTrack(id))) {
+      if (mounted) setState(() => _selectedAudioTrack = id);
+    }
+  }
 
   @override
   void initState() {
@@ -42,6 +157,14 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   void _onPlayback() {
+    if (_lastStatus != _backend.value.status) {
+      _lastStatus = _backend.value.status;
+      if (mounted) setState(() => _controlsVisible = true);
+      _scheduleHide();
+    }
+    if (_boosting && _backend.value.status != PlaybackStatus.playing) {
+      _endBoost();
+    }
     if (_background && _backend.value.status == PlaybackStatus.playing) {
       unawaited(_command(_backend.pause));
     }
@@ -53,6 +176,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached;
+    if (_background || state == AppLifecycleState.inactive) _endBoost();
     if (_background && _name != null) unawaited(_command(_backend.pause));
   }
 
@@ -61,12 +185,24 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       await action();
     } catch (error, stack) {
       debugPrint('Playback command failed: $error\n$stack');
-      if (mounted) setState(() => _error = '播放操作失败，请重新打开媒体文件。');
+      if (mounted) {
+        setState(() {
+          _controlsVisible = true;
+          _error = '播放操作失败，请重新打开媒体文件。';
+        });
+      }
     }
   }
 
   Future<void> _open() async {
-    setState(() => _busy = true);
+    _endBoost();
+    await _speedCommands;
+    if (!mounted) return;
+    _hideTimer?.cancel();
+    setState(() {
+      _busy = true;
+      _controlsVisible = true;
+    });
     try {
       final media = await widget.pickMedia();
       if (media == null || !mounted) return;
@@ -74,9 +210,11 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _name = media.name;
         _error = null;
         _drag = null;
+        _selectedAudioTrack = null;
       });
       await _command(() async {
         await _backend.open(media.uri);
+        await _backend.setSpeed(_speed);
         await _stream?.release();
         _stream = null;
       });
@@ -85,12 +223,22 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       debugPrint('File selection failed: $error\n$stack');
       if (mounted) setState(() => _error = '无法打开文件，请重新选择。');
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        _scheduleHide();
+      }
     }
   }
 
   Future<void> _openSource() async {
-    setState(() => _busy = true);
+    _endBoost();
+    await _speedCommands;
+    if (!mounted) return;
+    _hideTimer?.cancel();
+    setState(() {
+      _busy = true;
+      _controlsVisible = true;
+    });
     try {
       final selection = await Navigator.of(context).push<SourceSelection>(
         MaterialPageRoute(builder: (_) => SourcePage(manager: _sources)),
@@ -106,17 +254,25 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _name = selection.name;
         _error = null;
         _drag = null;
+        _selectedAudioTrack = null;
       });
-      await _command(() => _backend.open(selection.stream.uri));
+      await _command(() async {
+        await _backend.open(selection.stream.uri);
+        await _backend.setSpeed(_speed);
+      });
       await previous?.release();
       if (_background && mounted) await _command(_backend.pause);
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) {
+        setState(() => _busy = false);
+        _scheduleHide();
+      }
     }
   }
 
   @override
   void dispose() {
+    _hideTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _backend.removeListener(_onPlayback);
     _backend.dispose();
@@ -129,167 +285,550 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     if (widget.sourceManager == null) await _sources.dispose();
   }
 
-  @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(
-      title: const Text('OpenPlayX'),
-      actions: [
-        TextButton.icon(
-          onPressed: _busy ? null : _openSource,
-          icon: const Icon(Icons.video_library_outlined),
-          label: const Text('媒体源'),
-        ),
-        TextButton.icon(
-          onPressed: _busy ? null : _open,
-          icon: const Icon(Icons.folder_open),
-          label: const Text('打开文件'),
-        ),
-        const SizedBox(width: 12),
-      ],
-    ),
-    body: SafeArea(
-      child: Column(
-        children: [
-          Expanded(
-            child: ColoredBox(
-              color: Colors.black,
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  PlayerVideoView(backend: _backend),
-                  if (_name == null)
-                    const IgnorePointer(
-                      child: Center(
-                        child: Column(
+  void _scheduleHide() {
+    _hideTimer?.cancel();
+    if (!mounted) return;
+    if (_locked ||
+        _busy ||
+        _boosting ||
+        _drag != null ||
+        _pointerDown ||
+        _hoveringControls ||
+        _openPanels > 0 ||
+        _error != null ||
+        _backend.value.status != PlaybackStatus.playing) {
+      return;
+    }
+    _hideTimer = Timer(const Duration(seconds: 3), () {
+      if (mounted) setState(() => _controlsVisible = false);
+    });
+  }
+
+  void _showControls() {
+    if (_locked) return;
+    if (!_controlsVisible) setState(() => _controlsVisible = true);
+    _scheduleHide();
+  }
+
+  void _panelOpened() {
+    _openPanels++;
+    _hideTimer?.cancel();
+  }
+
+  void _panelClosed() {
+    if (_openPanels > 0) _openPanels--;
+    _scheduleHide();
+  }
+
+  void _lock() {
+    _endBoost();
+    _hideTimer?.cancel();
+    setState(() {
+      _drag = null;
+      _locked = true;
+      _hoveringControls = false;
+    });
+  }
+
+  Future<void> _showLevel(bool volume) async {
+    _panelOpened();
+    try {
+      await showDialog<void>(
+        context: context,
+        barrierColor: Colors.transparent,
+        builder: (context) => Dialog(
+          alignment: Alignment.bottomRight,
+          insetPadding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
+          child: SizedBox(
+            width: 280,
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
+              child: StatefulBuilder(
+                builder: (context, update) =>
+                    ValueListenableBuilder<PlayerSnapshot>(
+                      valueListenable: _backend,
+                      builder: (context, snapshot, _) {
+                        final level = volume
+                            ? snapshot.volume.clamp(0, 100).toDouble()
+                            : _brightness * 100;
+                        return Column(
                           mainAxisSize: MainAxisSize.min,
                           children: [
-                            Icon(
-                              Icons.play_circle_outline,
-                              size: 64,
-                              color: Colors.white54,
+                            Row(
+                              children: [
+                                Icon(
+                                  volume
+                                      ? Icons.volume_up_outlined
+                                      : Icons.brightness_6_outlined,
+                                  size: 18,
+                                ),
+                                const SizedBox(width: 8),
+                                Text(volume ? '音量' : '画面亮度'),
+                                const Spacer(),
+                                Text('${level.round()}%'),
+                              ],
                             ),
-                            SizedBox(height: 16),
-                            Text('打开一个视频，开始播放', style: TextStyle(fontSize: 20)),
-                            SizedBox(height: 8),
-                            Text(
-                              '本地播放 · libVLC',
-                              style: TextStyle(color: Colors.white54),
+                            Slider(
+                              key: Key(
+                                volume
+                                    ? 'playback-volume'
+                                    : 'playback-brightness',
+                              ),
+                              value: level,
+                              max: 100,
+                              onChanged: _enabled
+                                  ? (value) {
+                                      if (volume) {
+                                        unawaited(
+                                          _adjust(
+                                            () => _backend.setVolume(
+                                              value.round(),
+                                            ),
+                                          ),
+                                        );
+                                      } else {
+                                        setState(
+                                          () => _brightness = value / 100,
+                                        );
+                                        update(() {});
+                                      }
+                                    }
+                                  : null,
                             ),
                           ],
-                        ),
-                      ),
+                        );
+                      },
                     ),
-                ],
               ),
             ),
           ),
-          ValueListenableBuilder<PlayerSnapshot>(
-            valueListenable: _backend,
-            builder: (context, value, _) {
-              final loading = _busy || value.status == PlaybackStatus.opening;
-              final enabled =
-                  _name != null &&
-                  !loading &&
-                  value.status != PlaybackStatus.error &&
-                  _error == null;
-              final duration = value.duration.inMilliseconds.toDouble();
-              final seekable = enabled && value.canSeek && duration > 0;
-              final position =
-                  (_drag ?? value.position.inMilliseconds.toDouble()).clamp(
-                    0.0,
-                    duration > 0 ? duration : 1.0,
+        ),
+      );
+    } finally {
+      _panelClosed();
+    }
+  }
+
+  Widget _chrome(Widget child) => MouseRegion(
+    onEnter: (_) {
+      _hoveringControls = true;
+      _hideTimer?.cancel();
+    },
+    onExit: (_) {
+      _hoveringControls = false;
+      _scheduleHide();
+    },
+    child: IgnorePointer(
+      ignoring: !_controlsVisible,
+      child: ExcludeSemantics(
+        excluding: !_controlsVisible,
+        child: AnimatedOpacity(
+          opacity: _controlsVisible ? 1 : 0,
+          duration: const Duration(milliseconds: 180),
+          child: child,
+        ),
+      ),
+    ),
+  );
+
+  Widget _icon(String tooltip, IconData icon, VoidCallback? action) =>
+      IconButton(
+        tooltip: tooltip,
+        onPressed: action,
+        icon: Icon(icon, size: 22),
+        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
+        padding: EdgeInsets.zero,
+        style: IconButton.styleFrom(
+          foregroundColor: Colors.white,
+          disabledForegroundColor: Colors.white30,
+        ),
+      );
+
+  Widget _transport(PlayerSnapshot value) {
+    final seekable =
+        _enabled && value.canSeek && value.duration > Duration.zero;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        _icon('快退 10 秒', Icons.replay_10, seekable ? () => _skip(-10) : null),
+        _icon(
+          value.status == PlaybackStatus.playing ? '暂停' : '播放',
+          value.status == PlaybackStatus.playing
+              ? Icons.pause_rounded
+              : Icons.play_arrow_rounded,
+          _enabled
+              ? () {
+                  _endBoost();
+                  unawaited(
+                    _command(
+                      value.status == PlaybackStatus.playing
+                          ? _backend.pause
+                          : _backend.play,
+                    ),
                   );
-              final status = switch (value.status) {
-                PlaybackStatus.idle => '等待打开文件',
-                PlaybackStatus.opening => '正在加载…',
-                PlaybackStatus.playing => '正在播放',
-                PlaybackStatus.paused => '已暂停',
-                PlaybackStatus.ended => '播放结束',
-                PlaybackStatus.error => '播放失败，请检查文件或重新选择。',
-              };
-              return Padding(
-                padding: const EdgeInsets.fromLTRB(20, 12, 20, 16),
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Row(
-                      children: [
-                        Expanded(
-                          child: Text(
-                            _name ?? '未选择媒体',
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ),
-                        const SizedBox(width: 12),
-                        Flexible(
-                          child: Text(
-                            _error ?? status,
-                            style: TextStyle(
-                              color:
-                                  _error != null ||
-                                      value.status == PlaybackStatus.error
-                                  ? Theme.of(context).colorScheme.error
-                                  : Colors.white60,
+                }
+              : null,
+        ),
+        _icon('快进 10 秒', Icons.forward_10, seekable ? () => _skip(10) : null),
+      ],
+    );
+  }
+
+  Widget _speedMenu() => PopupMenuButton<double>(
+    tooltip: '播放速度',
+    enabled: _enabled,
+    initialValue: _speed,
+    onOpened: _panelOpened,
+    onCanceled: _panelClosed,
+    onSelected: (speed) async {
+      try {
+        await _speedCommands;
+        if (!mounted || !_enabled) return;
+        if (await _adjust(() => _backend.setSpeed(speed))) {
+          if (mounted) setState(() => _speed = speed);
+        }
+      } finally {
+        _panelClosed();
+      }
+    },
+    itemBuilder: (_) => [
+      for (final speed in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+        PopupMenuItem(value: speed, child: Text('$speed×')),
+    ],
+    child: SizedBox(
+      width: 48,
+      height: 44,
+      child: Center(
+        child: Text(
+          '$_speed×',
+          style: TextStyle(color: _enabled ? Colors.white : Colors.white30),
+        ),
+      ),
+    ),
+  );
+
+  Widget _moreMenu() => PopupMenuButton<String>(
+    tooltip: '更多播放设置',
+    enabled: _enabled,
+    onOpened: _panelOpened,
+    onCanceled: _panelClosed,
+    icon: const Icon(Icons.more_horiz),
+    onSelected: (action) {
+      _panelClosed();
+      switch (action) {
+        case 'audio':
+          unawaited(_showAudioTracks());
+        case 'brightness':
+          unawaited(_showLevel(false));
+        case 'lock':
+          _lock();
+      }
+    },
+    itemBuilder: (_) => const [
+      PopupMenuItem(value: 'audio', child: Text('音轨')),
+      PopupMenuItem(value: 'brightness', child: Text('画面亮度')),
+      PopupMenuItem(value: 'lock', child: Text('锁定控制')),
+    ],
+  );
+
+  Widget _bottomControls(PlayerSnapshot value) {
+    final duration = value.duration.inMilliseconds.toDouble();
+    final position = (_drag ?? value.position.inMilliseconds.toDouble()).clamp(
+      0.0,
+      duration > 0 ? duration : 1.0,
+    );
+    final seekable = _enabled && value.canSeek && duration > 0;
+    return DecoratedBox(
+      decoration: const BoxDecoration(
+        gradient: LinearGradient(
+          begin: Alignment.topCenter,
+          end: Alignment.bottomCenter,
+          colors: [Colors.transparent, Color(0xD9000000)],
+        ),
+      ),
+      child: Padding(
+        key: const Key('player-control-bar'),
+        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Row(
+              children: [
+                Text(
+                  '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
+                  style: const TextStyle(fontSize: 12, color: Colors.white70),
+                ),
+                const Spacer(),
+                if (duration > 0)
+                  Text(
+                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}',
+                    style: const TextStyle(fontSize: 12, color: Colors.white54),
+                  ),
+              ],
+            ),
+            SizedBox(
+              height: 28,
+              child: SliderTheme(
+                data: SliderTheme.of(context).copyWith(
+                  trackHeight: 2,
+                  overlayShape: const RoundSliderOverlayShape(
+                    overlayRadius: 12,
+                  ),
+                  thumbShape: const RoundSliderThumbShape(
+                    enabledThumbRadius: 4,
+                  ),
+                ),
+                child: Slider(
+                  key: const Key('playback-progress'),
+                  value: position,
+                  max: duration > 0 ? duration : 1,
+                  onChanged: seekable ? (v) => setState(() => _drag = v) : null,
+                  onChangeEnd: seekable
+                      ? (v) async {
+                          await _command(
+                            () => _backend.seek(
+                              Duration(milliseconds: v.round()),
                             ),
-                          ),
-                        ),
-                      ],
+                          );
+                          if (mounted) setState(() => _drag = null);
+                          _scheduleHide();
+                        }
+                      : null,
+                ),
+              ),
+            ),
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final wide = constraints.maxWidth >= 456;
+                return Row(
+                  children: [
+                    _transport(value),
+                    const Spacer(),
+                    _speedMenu(),
+                    _icon(
+                      '播放器音量',
+                      value.volume == 0
+                          ? Icons.volume_off_outlined
+                          : Icons.volume_up_outlined,
+                      _enabled ? () => _showLevel(true) : null,
                     ),
-                    if (loading) const LinearProgressIndicator(),
-                    Row(
-                      children: [
-                        Text(
-                          formatTime(Duration(milliseconds: position.round())),
+                    if (wide) ...[
+                      _icon(
+                        '画面亮度',
+                        Icons.brightness_6_outlined,
+                        _enabled ? () => _showLevel(false) : null,
+                      ),
+                      _icon(
+                        '音轨',
+                        Icons.audiotrack_outlined,
+                        _enabled ? _showAudioTracks : null,
+                      ),
+                      _icon(
+                        '锁定控制',
+                        Icons.lock_outline,
+                        _enabled ? _lock : null,
+                      ),
+                    ] else
+                      _moreMenu(),
+                  ],
+                );
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    backgroundColor: Colors.black,
+    body: SafeArea(
+      child: MouseRegion(
+        onHover: (_) => _showControls(),
+        child: Listener(
+          onPointerDown: (_) {
+            _pointerDown = true;
+            _hideTimer?.cancel();
+          },
+          onPointerUp: (_) {
+            _pointerDown = false;
+            _endBoost();
+            _scheduleHide();
+          },
+          onPointerCancel: (_) {
+            _pointerDown = false;
+            _endBoost();
+            _scheduleHide();
+          },
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              GestureDetector(
+                key: const Key('video-gestures'),
+                behavior: HitTestBehavior.opaque,
+                onTap: _locked
+                    ? null
+                    : () {
+                        if (_controlsVisible &&
+                            _name != null &&
+                            _error == null) {
+                          _hideTimer?.cancel();
+                          setState(() => _controlsVisible = false);
+                        } else {
+                          _showControls();
+                        }
+                      },
+                onLongPressStart: _locked ? null : (_) => _startBoost(),
+                onLongPressEnd: (_) => _endBoost(),
+                onLongPressCancel: _endBoost,
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    IgnorePointer(child: PlayerVideoView(backend: _backend)),
+                    IgnorePointer(
+                      child: ColoredBox(
+                        key: const Key('video-dimming'),
+                        color: Colors.black.withValues(
+                          alpha: (1 - _brightness) * 0.85,
                         ),
-                        Expanded(
-                          child: Slider(
-                            value: position,
-                            max: duration > 0 ? duration : 1,
-                            onChanged: seekable
-                                ? (v) => setState(() => _drag = v)
-                                : null,
-                            onChangeEnd: seekable
-                                ? (v) async {
-                                    await _command(
-                                      () => _backend.seek(
-                                        Duration(milliseconds: v.round()),
-                                      ),
-                                    );
-                                    if (mounted) setState(() => _drag = null);
-                                  }
-                                : null,
-                          ),
-                        ),
-                        Text(
-                          duration > 0 ? formatTime(value.duration) : '--:--',
-                        ),
-                      ],
-                    ),
-                    IconButton.filled(
-                      tooltip: value.status == PlaybackStatus.playing
-                          ? '暂停'
-                          : '播放',
-                      iconSize: 32,
-                      onPressed: enabled
-                          ? () => _command(
-                              value.status == PlaybackStatus.playing
-                                  ? _backend.pause
-                                  : _backend.play,
-                            )
-                          : null,
-                      icon: Icon(
-                        value.status == PlaybackStatus.playing
-                            ? Icons.pause
-                            : Icons.play_arrow,
                       ),
                     ),
                   ],
                 ),
-              );
-            },
+              ),
+              if (_name == null)
+                const IgnorePointer(
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(
+                            Icons.play_circle_outline,
+                            size: 56,
+                            color: Colors.white38,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            '打开一个视频，开始播放',
+                            style: TextStyle(
+                              fontSize: 18,
+                              color: Colors.white70,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (!_locked)
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: _chrome(
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 4,
+                      ),
+                      decoration: const BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [Color(0x99000000), Colors.transparent],
+                        ),
+                      ),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: Text(
+                              _name ?? 'OpenPlayX',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 13,
+                              ),
+                            ),
+                          ),
+                          _icon(
+                            '媒体源',
+                            Icons.video_library_outlined,
+                            _busy ? null : _openSource,
+                          ),
+                          _icon(
+                            '打开文件',
+                            Icons.folder_open_outlined,
+                            _busy ? null : _open,
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              if (!_locked)
+                Positioned(
+                  bottom: 0,
+                  left: 0,
+                  right: 0,
+                  child: _chrome(
+                    ValueListenableBuilder<PlayerSnapshot>(
+                      valueListenable: _backend,
+                      builder: (context, value, _) => _bottomControls(value),
+                    ),
+                  ),
+                ),
+              if (_busy || _backend.value.status == PlaybackStatus.opening)
+                const IgnorePointer(
+                  child: Center(
+                    child: SizedBox(
+                      width: 28,
+                      height: 28,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    ),
+                  ),
+                ),
+              if (_error != null ||
+                  _backend.value.status == PlaybackStatus.error)
+                Center(
+                  child: Padding(
+                    padding: const EdgeInsets.all(24),
+                    child: Text(
+                      _error ?? '播放失败，请检查文件或重新选择。',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(
+                        color: Theme.of(context).colorScheme.error,
+                      ),
+                    ),
+                  ),
+                ),
+              if (_boosting)
+                const Positioned(
+                  top: 64,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                  ),
+                ),
+              if (_locked)
+                Positioned(
+                  top: 8,
+                  left: 12,
+                  child: _icon('解锁控制', Icons.lock_open, () {
+                    setState(() {
+                      _locked = false;
+                      _controlsVisible = true;
+                    });
+                    _scheduleHide();
+                  }),
+                ),
+            ],
           ),
-        ],
+        ),
       ),
     ),
   );

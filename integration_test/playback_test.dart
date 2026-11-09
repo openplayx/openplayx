@@ -68,6 +68,18 @@ void main() {
     expect(backend.value.duration.inSeconds, inInclusiveRange(11, 13));
     expect(backend.value.videoSize, const Size(160, 90));
 
+    // Confirm adjustments through native events, not just method completion.
+    await backend.setSpeed(1.5);
+    await waitFor(() => (backend.value.speed - 1.5).abs() < 0.01);
+    await backend.setVolume(40);
+    await waitFor(() => backend.value.volume == 40);
+    await backend.setSpeed(1);
+    await waitFor(() => (backend.value.speed - 1).abs() < 0.01);
+    await backend.setVolume(100);
+    // This fixture is silent; track discovery must still be safe.
+    final tracks = await backend.getAudioTracks();
+    expect(tracks.where((track) => track.id >= 0), isEmpty);
+
     // 5. 请求暂停，并等待原生事件确认暂停状态。
     await backend.pause();
     await waitFor(() => backend.value.status == PlaybackStatus.paused);
