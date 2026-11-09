@@ -35,6 +35,8 @@ class SourceInstanceImpact {
 
 /// Plugin Manager is the sole UI entry point. Configuration/credentials are host
 /// services; providers receive only their own immutable snapshot and clients.
+enum SourceApplicationStatus { disabled, ready, failed, initialized, saved }
+
 class SourceManager {
   SourceManager({
     FlutterSecureStorage? credentials,
@@ -196,17 +198,25 @@ class SourceManager {
     );
   }
 
-  String applicationLabel(String id) {
+  SourceApplicationStatus applicationStatus(String id) {
     final config = _config(id);
-    if (!config.enabled) return '已禁用';
+    if (!config.enabled) return SourceApplicationStatus.disabled;
     final state = _configuration?.application(id);
     return switch (state?['status']) {
-      'ready' => '已就绪',
-      'failed' => '连接失败',
-      'initialized' => '已初始化 · 待连接验证',
-      _ => '已保存 · 下次访问生效',
+      'ready' => SourceApplicationStatus.ready,
+      'failed' => SourceApplicationStatus.failed,
+      'initialized' => SourceApplicationStatus.initialized,
+      _ => SourceApplicationStatus.saved,
     };
   }
+
+  String applicationLabel(String id) => switch (applicationStatus(id)) {
+    SourceApplicationStatus.disabled => '已禁用',
+    SourceApplicationStatus.ready => '已就绪',
+    SourceApplicationStatus.failed => '连接失败',
+    SourceApplicationStatus.initialized => '已初始化 · 待连接验证',
+    SourceApplicationStatus.saved => '已保存 · 下次访问生效',
+  };
 
   Future<void> setDefault(String capability, String? id) async {
     await load();

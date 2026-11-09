@@ -1,3 +1,5 @@
+import '../../app_test_host.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -10,7 +12,7 @@ import 'player_page_test.dart' show FakeBackend;
 Future<FakeBackend> openPlayer(WidgetTester tester) async {
   final backend = FakeBackend();
   await tester.pumpWidget(
-    MaterialApp(
+    TestApp(
       home: PlayerPage(
         backend: backend,
         pickMedia: () async =>
@@ -18,6 +20,7 @@ Future<FakeBackend> openPlayer(WidgetTester tester) async {
       ),
     ),
   );
+  await tester.pumpAndSettle();
   await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
   await tester.pumpAndSettle();
   return backend;
@@ -137,7 +140,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField), 'hello world');
+      await tester.enterText(find.byType(EditableText), 'hello world');
       await tester.sendKeyEvent(LogicalKeyboardKey.space);
       await tester.sendKeyEvent(LogicalKeyboardKey.arrowLeft);
       await tester.pumpAndSettle();

@@ -2,6 +2,20 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
+
+import 'player_orientation.dart';
+import '../../l10n/generated/app_localizations.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../app/theme/app_theme.dart';
+import '../../ui/tokens/app_semantic_colors.dart';
+import '../../ui/tokens/app_motion.dart';
+import '../../ui/components/media/playback_progress.dart';
+import '../../ui/components/media/content_row.dart';
+import '../../ui/icons/app_icons.dart';
+
 import 'package:flutter/services.dart';
 import 'package:openplayx_playback/playback.dart';
 
@@ -32,6 +46,7 @@ class PlayerPage extends StatefulWidget {
 }
 
 class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
+  AppLocalizations get l => AppLocalizations.of(context);
   late final PlayerBackend _backend;
   late final SourceManager _sources;
   LibraryService? _library;
@@ -48,7 +63,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       final service = await (_openingLibrary ??= LibraryService.open());
       if (!mounted) {
         service.close();
-        throw StateError('播放器已关闭');
+        throw StateError('Player is closed');
       }
       return _library = service;
     } catch (_) {
@@ -89,8 +104,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _resource = null;
       _session = null;
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+        ShadToaster.of(
+          context,
+        ).show(ShadToast.destructive(description: Text(l.historySaveFailed)));
       }
     }
   }
@@ -136,8 +152,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _openingLibrary = null;
       // A storage error must not prevent direct playback.
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+        ShadToaster.of(
+          context,
+        ).show(ShadToast.destructive(description: Text(l.historySaveFailed)));
       }
     }
   }
@@ -266,6 +283,67 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
   }
 
+  final _orientationSession = PlayerOrientationSession();
+  PlayerScreenOrientation _screenOrientation = PlayerScreenOrientation.system;
+  int _videoQuarterTurns = 0;
+  bool _changingDisplay = false;
+
+  bool get _mobileDisplay =>
+      !kIsWeb &&
+      (defaultTargetPlatform == TargetPlatform.android ||
+          defaultTargetPlatform == TargetPlatform.iOS);
+  String get _displayLabel =>
+      _mobileDisplay ? l.screenOrientation : l.videoRotation;
+
+  Future<void> _showDisplayOptions() async {
+    if (!_enabled || _changingDisplay) return;
+    _endBoost();
+    _panelOpened();
+    try {
+      final options = _mobileDisplay
+          ? [l.orientationSystem, l.orientationPortrait, l.orientationLandscape]
+          : [l.rotationOriginal, '90°', '180°', '270°'];
+      final current = _mobileDisplay
+          ? _screenOrientation.index
+          : _videoQuarterTurns;
+      final selected = await showShadDialog<int>(
+        context: context,
+        builder: (context) => ShadTheme(
+          data: AppTheme.dark,
+          child: ShadDialog(
+            title: Text(_displayLabel),
+            child: Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              children: [
+                for (var index = 0; index < options.length; index++)
+                  ShadButton.outline(
+                    onPressed: () => Navigator.pop(context, index),
+                    leading: current == index ? Icon(AppIcons.check) : null,
+                    child: Text(options[index]),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (selected == null || !mounted || !_enabled) return;
+      if (_mobileDisplay) {
+        setState(() => _changingDisplay = true);
+        final orientation = PlayerScreenOrientation.values[selected];
+        if (await _adjust(() => _orientationSession.apply(orientation)) &&
+            mounted) {
+          setState(() => _screenOrientation = orientation);
+        }
+      } else {
+        setState(() => _videoQuarterTurns = selected);
+      }
+    } finally {
+      if (mounted) setState(() => _changingDisplay = false);
+      _panelClosed();
+    }
+  }
+
   bool get _enabled =>
       _name != null &&
       !_busy &&
@@ -287,8 +365,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     } catch (error, stack) {
       debugPrint('Player adjustment failed: $error\n$stack');
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('调整失败，请重试。')));
+        ShadToaster.of(context)
+            .show(ShadToast.destructive(description: Text(l.adjustFailed)));
       }
       return false;
     }
@@ -334,30 +412,36 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
     if (!mounted || !_enabled) return;
     _panelOpened();
-    final id = await showModalBottomSheet<int>(
+    final id = await showShadSheet<int>(
       context: context,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const ListTile(title: Text('音轨')),
-              if (tracks.isEmpty) const ListTile(title: Text('此媒体没有可选音轨')),
-              for (final track in tracks)
-                ListTile(
-                  title: Text(
-                    track.name.isEmpty ? '音轨 ${track.id}' : track.name,
-                  ),
-                  subtitle: track.language == null
-                      ? null
-                      : Text(track.language!),
-                  trailing: _selectedAudioTrack == track.id
-                      ? const Icon(Icons.check)
-                      : null,
-                  onTap: () => Navigator.pop(context, track.id),
-                ),
-            ],
+      builder: (context) => ShadTheme(
+        data: AppTheme.dark,
+        child: ShadSheet(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ContentRow(title: Text(l.audioTrack)),
+                  if (tracks.isEmpty) ContentRow(title: Text(l.noAudioTracks)),
+                  for (final track in tracks)
+                    ContentRow(
+                      title: Text(
+                        track.name.isEmpty
+                            ? l.numberedAudioTrack(track.id)
+                            : track.name,
+                      ),
+                      subtitle: track.language == null
+                          ? null
+                          : Text(track.language!),
+                      trailing: _selectedAudioTrack == track.id
+                          ? Icon(AppIcons.check)
+                          : null,
+                      onTap: () => Navigator.pop(context, track.id),
+                    ),
+                ],
+              ),
+            ),
           ),
         ),
       ),
@@ -445,7 +529,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (mounted) {
         setState(() {
           _controlsVisible = true;
-          _error = '播放操作失败，请重新打开媒体文件。';
+          _error = l.playbackCommandFailed;
         });
       }
     }
@@ -483,7 +567,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (_background && mounted) await _command(_backend.pause);
     } catch (error, stack) {
       debugPrint('File selection failed: $error\n$stack');
-      if (mounted) setState(() => _error = '无法打开文件，请重新选择。');
+      if (mounted) setState(() => _error = l.openFileFailed);
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -518,6 +602,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       if (!mounted) return false;
       _checkpoint(force: true);
       await _backend.stop();
+      await _adjust(_orientationSession.restore);
       _finishTracking();
       final stream = _stream;
       _stream = null;
@@ -529,13 +614,16 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _error = null;
         _drag = null;
         _locked = false;
+        _videoQuarterTurns = 0;
+        _screenOrientation = PlayerScreenOrientation.system;
         _controlsVisible = true;
       });
       return true;
     } catch (_) {
       if (mounted) {
-        ScaffoldMessenger.of(context)
-            .showSnackBar(const SnackBar(content: Text('停止播放失败，请重试返回')));
+        ShadToaster.of(
+          context,
+        ).show(ShadToast.destructive(description: Text(l.stopPlaybackFailed)));
       }
       return false;
     } finally {
@@ -604,6 +692,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    unawaited(
+      _orientationSession.restore().catchError((Object error) {
+        debugPrint('Could not restore screen orientation: $error');
+      }),
+    );
     _playerFocus.dispose();
     _finishTracking();
     if (widget.libraryService == null) _library?.close();
@@ -634,7 +727,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _backend.value.status != PlaybackStatus.playing) {
       return;
     }
-    _hideTimer = Timer(const Duration(seconds: 3), () {
+    _hideTimer = Timer(Duration(seconds: 3), () {
       if (mounted) setState(() => _controlsVisible = false);
     });
   }
@@ -666,80 +759,96 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   Future<void> _showLevel(bool volume) async {
+    final slider = ShadSliderController(
+      initialValue: volume
+          ? _backend.value.volume.clamp(0, 100).toDouble()
+          : _brightness * 100,
+    );
+    void syncVolume() {
+      if (volume) slider.value = _backend.value.volume.clamp(0, 100).toDouble();
+    }
+
+    _backend.addListener(syncVolume);
     _panelOpened();
     try {
-      await showDialog<void>(
+      await showShadDialog<void>(
         context: context,
         barrierColor: Colors.transparent,
-        builder: (context) => Dialog(
-          alignment: Alignment.bottomRight,
-          insetPadding: const EdgeInsets.fromLTRB(16, 16, 16, 112),
-          child: SizedBox(
-            width: 280,
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(16, 12, 16, 8),
-              child: StatefulBuilder(
-                builder: (context, update) =>
-                    ValueListenableBuilder<PlayerSnapshot>(
-                      valueListenable: _backend,
-                      builder: (context, snapshot, _) {
-                        final level = volume
-                            ? snapshot.volume.clamp(0, 100).toDouble()
-                            : _brightness * 100;
-                        return Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Row(
-                              children: [
-                                Icon(
-                                  volume
-                                      ? Icons.volume_up_outlined
-                                      : Icons.brightness_6_outlined,
-                                  size: 18,
-                                ),
-                                const SizedBox(width: 8),
-                                Text(volume ? '音量' : '画面亮度'),
-                                const Spacer(),
-                                Text('${level.round()}%'),
-                              ],
-                            ),
-                            Slider(
-                              key: Key(
-                                volume
-                                    ? 'playback-volume'
-                                    : 'playback-brightness',
+        builder: (context) => ShadTheme(
+          data: AppTheme.dark,
+          child: ShadDialog(
+            alignment: Alignment.bottomRight,
+            constraints: BoxConstraints(maxWidth: 320),
+            child: SizedBox(
+              width: 280,
+              child: Padding(
+                padding: EdgeInsets.fromLTRB(16, 12, 16, 8),
+                child: StatefulBuilder(
+                  builder: (context, update) =>
+                      ValueListenableBuilder<PlayerSnapshot>(
+                        valueListenable: _backend,
+                        builder: (context, snapshot, _) {
+                          final level = volume
+                              ? snapshot.volume.clamp(0, 100).toDouble()
+                              : _brightness * 100;
+                          return Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Row(
+                                children: [
+                                  Icon(
+                                    volume
+                                        ? AppIcons.volume
+                                        : AppIcons.brightness,
+                                    size: 18,
+                                  ),
+                                  SizedBox(width: 8),
+                                  Text(volume ? l.volume : l.brightness),
+                                  Spacer(),
+                                  Text('${level.round()}%'),
+                                ],
                               ),
-                              value: level,
-                              max: 100,
-                              onChanged: _enabled
-                                  ? (value) {
-                                      if (volume) {
-                                        unawaited(
-                                          _adjust(
-                                            () => _backend.setVolume(
-                                              value.round(),
+                              ShadSlider(
+                                key: Key(
+                                  volume
+                                      ? 'playback-volume'
+                                      : 'playback-brightness',
+                                ),
+                                max: 100,
+                                onChanged: _enabled
+                                    ? (value) {
+                                        if (volume) {
+                                          unawaited(
+                                            _adjust(
+                                              () => _backend.setVolume(
+                                                value.round(),
+                                              ),
                                             ),
-                                          ),
-                                        );
-                                      } else {
-                                        setState(
-                                          () => _brightness = value / 100,
-                                        );
-                                        update(() {});
+                                          );
+                                        } else {
+                                          setState(
+                                            () => _brightness = value / 100,
+                                          );
+                                          update(() {});
+                                        }
                                       }
-                                    }
-                                  : null,
-                            ),
-                          ],
-                        );
-                      },
-                    ),
+                                    : null,
+                                controller: slider,
+                                enabled: _enabled,
+                              ),
+                            ],
+                          );
+                        },
+                      ),
+                ),
               ),
             ),
           ),
         ),
       );
     } finally {
+      _backend.removeListener(syncVolume);
+      slider.dispose();
       _panelClosed();
     }
   }
@@ -759,25 +868,28 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         excluding: !_controlsVisible,
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1 : 0,
-          duration: const Duration(milliseconds: 180),
+          duration: AppMotion.duration(context, AppMotion.feedback),
           child: child,
         ),
       ),
     ),
   );
 
-  Widget _icon(String tooltip, IconData icon, VoidCallback? action) =>
-      IconButton(
-        tooltip: tooltip,
+  Widget _icon(String tooltip, IconData icon, VoidCallback? action) => Tooltip(
+    message: tooltip,
+    child: Semantics(
+      button: true,
+      label: tooltip,
+      child: ShadIconButton.ghost(
         onPressed: action,
-        icon: Icon(icon, size: 22),
-        constraints: const BoxConstraints.tightFor(width: 44, height: 44),
-        padding: EdgeInsets.zero,
-        style: IconButton.styleFrom(
-          foregroundColor: Colors.white,
-          disabledForegroundColor: Colors.white30,
-        ),
-      );
+        enabled: action != null,
+        icon: Icon(icon, size: 20),
+        width: 48,
+        height: 48,
+        foregroundColor: AppSemanticColors.playerForeground,
+      ),
+    ),
+  );
 
   Widget _transport(PlayerSnapshot value) {
     final seekable =
@@ -785,74 +897,117 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
-        _icon('快退 10 秒', Icons.replay_10, seekable ? () => _skip(-10) : null),
+        _icon(l.rewind, AppIcons.rewind, seekable ? () => _skip(-10) : null),
         _icon(
-          value.status == PlaybackStatus.playing ? '暂停' : '播放',
+          value.status == PlaybackStatus.playing ? l.pause : l.play,
           value.status == PlaybackStatus.playing
-              ? Icons.pause_rounded
-              : Icons.play_arrow_rounded,
+              ? AppIcons.pause
+              : AppIcons.play,
           _enabled ? _togglePlayback : null,
         ),
-        _icon('快进 10 秒', Icons.forward_10, seekable ? () => _skip(10) : null),
+        _icon(l.forward, AppIcons.forward, seekable ? () => _skip(10) : null),
       ],
     );
   }
 
-  Widget _speedMenu() => PopupMenuButton<double>(
-    tooltip: '播放速度',
-    enabled: _enabled,
-    initialValue: _speed,
-    onOpened: _panelOpened,
-    onCanceled: _panelClosed,
-    onSelected: (speed) async {
-      try {
-        await _speedCommands;
-        if (!mounted || !_enabled) return;
-        if (await _adjust(() => _backend.setSpeed(speed))) {
-          if (mounted) setState(() => _speed = speed);
-        }
-      } finally {
-        _panelClosed();
-      }
-    },
-    itemBuilder: (_) => [
-      for (final speed in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
-        PopupMenuItem(value: speed, child: Text('$speed×')),
-    ],
-    child: SizedBox(
+  Widget _speedMenu() => Tooltip(
+    message: l.playbackSpeed,
+    child: ShadButton.ghost(
+      enabled: _enabled,
       width: 48,
-      height: 44,
-      child: Center(
-        child: Text(
-          '$_speed×',
-          style: TextStyle(color: _enabled ? Colors.white : Colors.white30),
+      height: 48,
+      padding: EdgeInsets.zero,
+      child: SizedBox(
+        width: 48,
+        child: Center(
+          child: FittedBox(fit: BoxFit.scaleDown, child: Text('$_speed×')),
         ),
       ),
+      onPressed: () async {
+        _panelOpened();
+        try {
+          final speed = await showShadDialog<double>(
+            context: context,
+            builder: (context) => ShadTheme(
+              data: AppTheme.dark,
+              child: ShadDialog(
+                title: Text(l.playbackSpeed),
+                child: Wrap(
+                  spacing: 8,
+                  runSpacing: 8,
+                  children: [
+                    for (final speed in [0.5, 0.75, 1.0, 1.25, 1.5, 2.0])
+                      ShadButton.outline(
+                        onPressed: () => Navigator.pop(context, speed),
+                        leading: speed == _speed ? Icon(AppIcons.check) : null,
+                        child: Text('$speed×'),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+          );
+          if (speed == null) return;
+          await _speedCommands;
+          if (!mounted || !_enabled) return;
+          if (await _adjust(() => _backend.setSpeed(speed))) {
+            if (mounted) setState(() => _speed = speed);
+          }
+        } finally {
+          _panelClosed();
+        }
+      },
     ),
   );
 
-  Widget _moreMenu() => PopupMenuButton<String>(
-    tooltip: '更多播放设置',
-    enabled: _enabled,
-    onOpened: _panelOpened,
-    onCanceled: _panelClosed,
-    icon: const Icon(Icons.more_horiz),
-    onSelected: (action) {
-      _panelClosed();
-      switch (action) {
-        case 'audio':
-          unawaited(_showAudioTracks());
-        case 'brightness':
-          unawaited(_showLevel(false));
-        case 'lock':
-          _lock();
-      }
-    },
-    itemBuilder: (_) => const [
-      PopupMenuItem(value: 'audio', child: Text('音轨')),
-      PopupMenuItem(value: 'brightness', child: Text('画面亮度')),
-      PopupMenuItem(value: 'lock', child: Text('锁定控制')),
-    ],
+  Widget _moreMenu() => _icon(
+    l.morePlaybackSettings,
+    AppIcons.more,
+    !_enabled
+        ? null
+        : () async {
+            _panelOpened();
+            String? action;
+            try {
+              action = await showShadDialog<String>(
+                context: context,
+                builder: (context) => ShadTheme(
+                  data: AppTheme.dark,
+                  child: ShadDialog(
+                    title: Text(l.morePlaybackSettings),
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        for (final item in {
+                          'display': _displayLabel,
+                          'audio': l.audioTrack,
+                          'brightness': l.brightness,
+                          'lock': l.lockControls,
+                        }.entries)
+                          ShadButton.ghost(
+                            onPressed: () => Navigator.pop(context, item.key),
+                            child: Text(item.value),
+                          ),
+                      ],
+                    ),
+                  ),
+                ),
+              );
+            } finally {
+              _panelClosed();
+            }
+            if (!mounted) return;
+            switch (action) {
+              case 'display':
+                await _showDisplayOptions();
+              case 'audio':
+                await _showAudioTracks();
+              case 'brightness':
+                await _showLevel(false);
+              case 'lock':
+                _lock();
+            }
+          },
   );
 
   Widget _bottomControls(PlayerSnapshot value) {
@@ -863,23 +1018,26 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
     final seekable = _enabled && value.canSeek && duration > 0;
     return DecoratedBox(
-      decoration: const BoxDecoration(
+      decoration: BoxDecoration(
         gradient: LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
-          colors: [Colors.transparent, Color(0xD9000000)],
+          colors: [Colors.transparent, AppSemanticColors.playerOverlay],
         ),
       ),
       child: Padding(
-        key: const Key('player-control-bar'),
-        padding: const EdgeInsets.fromLTRB(12, 8, 12, 4),
+        key: Key('player-control-bar'),
+        padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
-                final remaining =
-                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}';
+                final remaining = l.remainingTime(
+                  formatTime(
+                    Duration(milliseconds: (duration - position).round()),
+                  ),
+                );
                 return Row(
                   children: [
                     Flexible(
@@ -889,29 +1047,34 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                           '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
                           maxLines: 1,
                           overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            fontSize: 12,
-                            color: Colors.white70,
+                          style: AppTheme.dark.textTheme.muted.copyWith(
+                            color: AppSemanticColors.playerMuted,
                           ),
                         ),
                       ),
                     ),
-                    const Spacer(),
-                    Text(
-                      '读取 ${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
-                      key: const Key('playback-read-speed'),
-                      style: const TextStyle(
-                        fontSize: 12,
-                        color: Colors.white54,
+                    Spacer(),
+                    Flexible(
+                      child: Text(
+                        l.readSpeed(
+                          value.readSpeedMBps == null
+                              ? '--'
+                              : value.readSpeedMBps!.toStringAsFixed(2),
+                        ),
+                        key: Key('playback-read-speed'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.dark.textTheme.muted.copyWith(
+                          color: AppSemanticColors.playerMuted,
+                        ),
                       ),
                     ),
                     if (duration > 0 && constraints.maxWidth >= 456) ...[
-                      const SizedBox(width: 16),
+                      SizedBox(width: 16),
                       Text(
                         remaining,
-                        style: const TextStyle(
-                          fontSize: 12,
-                          color: Colors.white54,
+                        style: AppTheme.dark.textTheme.muted.copyWith(
+                          color: AppSemanticColors.playerMuted,
                         ),
                       ),
                     ],
@@ -919,66 +1082,57 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 );
               },
             ),
-            SizedBox(
-              height: 28,
-              child: SliderTheme(
-                data: SliderTheme.of(context).copyWith(
-                  trackHeight: 2,
-                  overlayShape: const RoundSliderOverlayShape(
-                    overlayRadius: 12,
-                  ),
-                  thumbShape: const RoundSliderThumbShape(
-                    enabledThumbRadius: 4,
-                  ),
-                ),
-                child: Slider(
-                  key: const Key('playback-progress'),
-                  value: position,
-                  max: duration > 0 ? duration : 1,
-                  onChanged: seekable ? (v) => setState(() => _drag = v) : null,
-                  onChangeEnd: seekable
-                      ? (v) async {
-                          await _command(
-                            () => _backend.seek(
-                              Duration(milliseconds: v.round()),
-                            ),
-                          );
-                          if (mounted) setState(() => _drag = null);
-                          _scheduleHide();
-                        }
-                      : null,
-                ),
-              ),
+            PlaybackProgress(
+              key: const Key('playback-progress'),
+              value: position,
+              max: duration > 0 ? duration : 1,
+              enabled: seekable,
+              label: l.playbackPosition,
+              onPreview: (value) => setState(() => _drag = value),
+              onCommit: (value) async {
+                await _command(
+                  () => _backend.seek(Duration(milliseconds: value.round())),
+                );
+                if (mounted) setState(() => _drag = null);
+                _scheduleHide();
+              },
             ),
             LayoutBuilder(
               builder: (context, constraints) {
-                final wide = constraints.maxWidth >= 456;
+                final wide = constraints.maxWidth >= 560;
                 return Row(
                   children: [
                     _transport(value),
-                    const Spacer(),
+                    Spacer(),
                     _speedMenu(),
                     _icon(
-                      '播放器音量',
-                      value.volume == 0
-                          ? Icons.volume_off_outlined
-                          : Icons.volume_up_outlined,
+                      l.playerVolume,
+                      value.volume == 0 ? AppIcons.muted : AppIcons.volume,
                       _enabled ? () => _showLevel(true) : null,
                     ),
                     if (wide) ...[
                       _icon(
-                        '画面亮度',
-                        Icons.brightness_6_outlined,
+                        _displayLabel,
+                        _mobileDisplay
+                            ? AppIcons.screenOrientation
+                            : AppIcons.rotateVideo,
+                        _enabled && !_changingDisplay
+                            ? _showDisplayOptions
+                            : null,
+                      ),
+                      _icon(
+                        l.brightness,
+                        AppIcons.brightness,
                         _enabled ? () => _showLevel(false) : null,
                       ),
                       _icon(
-                        '音轨',
-                        Icons.audiotrack_outlined,
+                        l.audioTrack,
+                        AppIcons.audio,
                         _enabled ? _showAudioTracks : null,
                       ),
                       _icon(
-                        '锁定控制',
-                        Icons.lock_outline,
+                        l.lockControls,
+                        AppIcons.lock,
                         _enabled ? _lock : null,
                       ),
                     ] else
@@ -994,192 +1148,202 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => Focus(
-    focusNode: _playerFocus,
-    autofocus: true,
-    onKeyEvent: _handlePlayerKey,
-    child: Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: MouseRegion(
-          onHover: (_) => _showControls(),
-          child: Listener(
-            onPointerDown: (_) {
-              _playerFocus.requestFocus();
-              _pointerDown = true;
-              _hideTimer?.cancel();
-            },
-            onPointerUp: (_) {
-              _pointerDown = false;
-              _endBoost();
-              _scheduleHide();
-            },
-            onPointerCancel: (_) {
-              _pointerDown = false;
-              _endBoost();
-              _scheduleHide();
-            },
-            child: Stack(
-              fit: StackFit.expand,
-              children: [
-                GestureDetector(
-                  key: const Key('video-gestures'),
-                  behavior: HitTestBehavior.opaque,
-                  onTap: _locked
-                      ? null
-                      : () {
-                          if (_controlsVisible &&
-                              _name != null &&
-                              _error == null) {
-                            _hideTimer?.cancel();
-                            setState(() => _controlsVisible = false);
-                          } else {
-                            _showControls();
-                          }
-                        },
-                  onLongPressStart: _locked ? null : (_) => _startBoost(),
-                  onLongPressEnd: (_) => _endBoost(),
-                  onLongPressCancel: _endBoost,
-                  child: Stack(
-                    fit: StackFit.expand,
-                    children: [
-                      IgnorePointer(child: PlayerVideoView(backend: _backend)),
-                      IgnorePointer(
-                        child: ColoredBox(
-                          key: const Key('video-dimming'),
-                          color: Colors.black.withValues(
-                            alpha: (1 - _brightness) * 0.85,
+  Widget build(BuildContext context) => ShadTheme(
+    data: AppTheme.dark,
+    child: Focus(
+      focusNode: _playerFocus,
+      autofocus: true,
+      onKeyEvent: _handlePlayerKey,
+      child: Scaffold(
+        backgroundColor: AppSemanticColors.playerSurface,
+        body: SafeArea(
+          child: MouseRegion(
+            onHover: (_) => _showControls(),
+            child: Listener(
+              onPointerDown: (_) {
+                _playerFocus.requestFocus();
+                _pointerDown = true;
+                _hideTimer?.cancel();
+              },
+              onPointerUp: (_) {
+                _pointerDown = false;
+                _endBoost();
+                _scheduleHide();
+              },
+              onPointerCancel: (_) {
+                _pointerDown = false;
+                _endBoost();
+                _scheduleHide();
+              },
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  GestureDetector(
+                    key: Key('video-gestures'),
+                    behavior: HitTestBehavior.opaque,
+                    onTap: _locked
+                        ? null
+                        : () {
+                            if (_controlsVisible &&
+                                _name != null &&
+                                _error == null) {
+                              _hideTimer?.cancel();
+                              setState(() => _controlsVisible = false);
+                            } else {
+                              _showControls();
+                            }
+                          },
+                    onLongPressStart: _locked ? null : (_) => _startBoost(),
+                    onLongPressEnd: (_) => _endBoost(),
+                    onLongPressCancel: _endBoost,
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        IgnorePointer(
+                          child: RotatedBox(
+                            key: const Key('video-rotation'),
+                            quarterTurns: _videoQuarterTurns,
+                            child: PlayerVideoView(backend: _backend),
                           ),
                         ),
-                      ),
-                    ],
-                  ),
-                ),
-                if (_name == null)
-                  const IgnorePointer(
-                    child: Center(
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Icon(
-                              Icons.play_circle_outline,
-                              size: 56,
-                              color: Colors.white38,
+                        IgnorePointer(
+                          child: ColoredBox(
+                            key: Key('video-dimming'),
+                            color: AppSemanticColors.playerSurface.withValues(
+                              alpha: (1 - _brightness) * 0.85,
                             ),
-                            SizedBox(height: 12),
-                            Text(
-                              '打开一个视频，开始播放',
-                              style: TextStyle(
-                                fontSize: 18,
-                                color: Colors.white70,
-                              ),
-                            ),
-                          ],
+                          ),
                         ),
-                      ),
+                      ],
                     ),
                   ),
-                if (!_locked)
-                  Positioned(
-                    top: 0,
-                    left: 0,
-                    right: 0,
-                    child: _chrome(
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 4,
-                        ),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            begin: Alignment.topCenter,
-                            end: Alignment.bottomCenter,
-                            colors: [Color(0x99000000), Colors.transparent],
-                          ),
-                        ),
-                        child: Row(
-                          children: [
-                            _icon(
-                              '返回',
-                              Icons.arrow_back,
-                              _closing ? null : _exitPlayback,
-                            ),
-                            Expanded(
-                              child: Text(
-                                _name ?? 'OpenPlayX',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white70,
-                                  fontSize: 13,
+                  if (_name == null)
+                    IgnorePointer(
+                      child: Center(
+                        child: FittedBox(
+                          fit: BoxFit.scaleDown,
+                          child: Column(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Icon(
+                                AppIcons.playMedia,
+                                size: 56,
+                                color: AppSemanticColors.playerMuted,
+                              ),
+                              SizedBox(height: 12),
+                              Text(
+                                l.playerEmpty,
+                                style: AppTheme.dark.textTheme.large.copyWith(
+                                  color: AppSemanticColors.playerMuted,
                                 ),
                               ),
+                            ],
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (!_locked)
+                    Positioned(
+                      top: 0,
+                      left: 0,
+                      right: 0,
+                      child: _chrome(
+                        Container(
+                          padding: EdgeInsets.symmetric(
+                            horizontal: 12,
+                            vertical: 4,
+                          ),
+                          decoration: BoxDecoration(
+                            gradient: LinearGradient(
+                              begin: Alignment.topCenter,
+                              end: Alignment.bottomCenter,
+                              colors: [
+                                AppSemanticColors.playerScrim,
+                                Colors.transparent,
+                              ],
                             ),
-                          ],
+                          ),
+                          child: Row(
+                            children: [
+                              _icon(
+                                l.back,
+                                AppIcons.back,
+                                _closing ? null : _exitPlayback,
+                              ),
+                              Expanded(
+                                child: Text(
+                                  _name ?? 'OpenPlayX',
+                                  maxLines: 1,
+                                  overflow: TextOverflow.ellipsis,
+                                  style: AppTheme.dark.textTheme.small.copyWith(
+                                    color: AppSemanticColors.playerMuted,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                if (!_locked)
-                  Positioned(
-                    bottom: 0,
-                    left: 0,
-                    right: 0,
-                    child: _chrome(
-                      ValueListenableBuilder<PlayerSnapshot>(
-                        valueListenable: _backend,
-                        builder: (context, value, _) => _bottomControls(value),
-                      ),
-                    ),
-                  ),
-                if (_busy || _backend.value.status == PlaybackStatus.opening)
-                  const IgnorePointer(
-                    child: Center(
-                      child: SizedBox(
-                        width: 28,
-                        height: 28,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      ),
-                    ),
-                  ),
-                if (_error != null ||
-                    _backend.value.status == PlaybackStatus.error)
-                  Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(
-                        _error ?? '播放失败，请检查文件或重新选择。',
-                        textAlign: TextAlign.center,
-                        style: TextStyle(
-                          color: Theme.of(context).colorScheme.error,
+                  if (!_locked)
+                    Positioned(
+                      bottom: 0,
+                      left: 0,
+                      right: 0,
+                      child: _chrome(
+                        ValueListenableBuilder<PlayerSnapshot>(
+                          valueListenable: _backend,
+                          builder: (context, value, _) =>
+                              _bottomControls(value),
                         ),
                       ),
                     ),
-                  ),
-                if (_boosting)
-                  const Positioned(
-                    top: 64,
-                    left: 0,
-                    right: 0,
-                    child: IgnorePointer(
-                      child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                  if (_busy || _backend.value.status == PlaybackStatus.opening)
+                    IgnorePointer(
+                      child: Center(
+                        child: SizedBox(
+                          width: 120,
+                          child: ShadProgress(semanticsLabel: l.loading),
+                        ),
+                      ),
                     ),
-                  ),
-                if (_locked)
-                  Positioned(
-                    top: 8,
-                    left: 12,
-                    child: _icon('解锁控制', Icons.lock_open, () {
-                      setState(() {
-                        _locked = false;
-                        _controlsVisible = true;
-                      });
-                      _scheduleHide();
-                    }),
-                  ),
-              ],
+                  if (_error != null ||
+                      _backend.value.status == PlaybackStatus.error)
+                    Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          _error ?? l.playbackFailed,
+                          textAlign: TextAlign.center,
+                          style: TextStyle(
+                            color: Theme.of(context).colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ),
+                  if (_boosting)
+                    Positioned(
+                      top: 64,
+                      left: 0,
+                      right: 0,
+                      child: IgnorePointer(
+                        child: Center(child: ShadBadge(child: Text(l.boost))),
+                      ),
+                    ),
+                  if (_locked)
+                    Positioned(
+                      top: 8,
+                      left: 12,
+                      child: _icon(l.unlockControls, AppIcons.unlock, () {
+                        setState(() {
+                          _locked = false;
+                          _controlsVisible = true;
+                        });
+                        _scheduleHide();
+                      }),
+                    ),
+                ],
+              ),
             ),
           ),
         ),

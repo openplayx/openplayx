@@ -1,3 +1,5 @@
+import '../test/app_test_host.dart';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -138,7 +140,7 @@ void main() {
         }
       }
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(body: PlayerVideoView(backend: backend)),
         ),
       );

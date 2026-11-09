@@ -3,6 +3,14 @@ import 'dart:io';
 
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
+
+import '../../l10n/generated/app_localizations.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../ui/components/media/content_row.dart';
+import '../../ui/icons/app_icons.dart';
+
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/plugins/source_capability.dart';
@@ -30,6 +38,7 @@ class SourceInstanceForm extends StatefulWidget {
 }
 
 class _SourceInstanceFormState extends State<SourceInstanceForm> {
+  AppLocalizations get l => AppLocalizations.of(context);
   late SourceKind _kind;
   late final String _id;
   late final SourceSignIn _signIn;
@@ -47,9 +56,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   bool _authorizing = false;
   bool _showPassword = false;
   bool _manualPlex = false;
-  bool _advanced = false;
+  final _advancedController = ShadAccordionController<String>();
   String? _error;
-  List<PlexServer> _servers = const [];
+  List<PlexServer> _servers = [];
   PlexServer? _server;
   String? _plexToken;
   Uri? _loginUri;
@@ -63,6 +72,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _signIn = widget.signIn ?? SourceSignIn();
     _name.text = initial?.name ?? '';
     if (initial != null) _fillConnection(initial);
+    _advancedController.addListener(() {
+      if (_advancedController.value.isNotEmpty && mounted) {
+        FocusScope.of(context).unfocus();
+        _normalizeAddress();
+      }
+    });
     _addressFocus.addListener(() {
       if (!_addressFocus.hasFocus && mounted) _normalizeAddress();
     });
@@ -86,6 +101,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   void dispose() {
     _loginGeneration++;
     _addressFocus.dispose();
+    _advancedController.dispose();
     if (widget.signIn == null) _signIn.close();
     for (final c in [
       _name,
@@ -107,7 +123,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     setState(() {
       _kind = kind;
       _error = null;
-      _advanced = false;
+      _advancedController.value = [];
       _manualPlex = false;
       _server = null;
       _servers = [];
@@ -175,7 +191,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         ? Directory(address).uri.pathSegments
                   .where((s) => s.isNotEmpty)
                   .lastOrNull ??
-              '本地文件夹'
+              l.localFolder
         : _server?.name ?? Uri.parse(address).host;
     final config =
         widget.initial ??
@@ -195,7 +211,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       final path = await (widget.chooseDirectory?.call() ?? getDirectoryPath());
       if (path != null && mounted) setState(() => _address.text = path);
     } catch (_) {
-      if (mounted) setState(() => _error = '无法选择文件夹，请重试。');
+      if (mounted) setState(() => _error = l.pickFolderFailed);
     }
   }
 
@@ -218,20 +234,20 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
           await (widget.openBrowser?.call(pin.loginUri) ??
               launchUrl(pin.loginUri, mode: LaunchMode.externalApplication));
       if (!opened) {
-        throw const PluginException('unsupported', '无法打开浏览器，请点击登录链接重试。');
+        throw PluginException('unsupported', l.openBrowserFailed);
       }
       String? token;
       while (mounted && generation == _loginGeneration && token == null) {
         token = await _signIn.pollPlex(_id, pin);
         if (token == null) {
-          await Future<void>.delayed(const Duration(seconds: 2));
+          await Future<void>.delayed(Duration(seconds: 2));
         }
       }
       if (!mounted || generation != _loginGeneration || token == null) return;
       final servers = await _signIn.plexServers(_id, token);
       if (!mounted || generation != _loginGeneration) return;
       if (servers.isEmpty) {
-        throw const PluginException('notFound', '此 Plex 账号下没有可访问的服务器。');
+        throw PluginException('notFound', l.noPlexServers);
       }
       setState(() {
         _servers = servers;
@@ -242,7 +258,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         setState(
           () => _error = error is PluginException
               ? error.message
-              : 'Plex 登录失败，请重试。',
+              : l.plexSignInFailed,
         );
       }
     } finally {
@@ -299,7 +315,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
           if (widget.initial == null && secret.isEmpty) {
             throw PluginException(
               'authRequired',
-              _manualPlex ? '请填写访问令牌后连接服务器。' : '请先登录 Plex 并选择服务器。',
+              _manualPlex ? l.enterToken : l.signInPlexFirst,
             );
           }
           await widget.manager.testDraft(draft, secret);
@@ -314,7 +330,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               ? error.message
               : error is PluginException
               ? error.message
-              : '连接失败，请检查地址和登录信息。',
+              : l.connectionFormFailed,
         );
       }
     } finally {
@@ -330,31 +346,47 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     bool password = false,
     bool number = false,
   }) => Padding(
-    padding: const EdgeInsets.only(top: 12),
-    child: TextField(
-      controller: c,
-      focusNode: identical(c, _address) ? _addressFocus : null,
-      enabled: !_busy,
-      autocorrect: false,
-      enableSuggestions: !password,
-      obscureText: password && !_showPassword,
-      keyboardType: number ? TextInputType.number : TextInputType.text,
-      decoration: InputDecoration(
-        labelText: label,
-        hintText: hint,
-        helperText: help,
-        helperMaxLines: 2,
-        border: const OutlineInputBorder(),
-        suffixIcon: password
-            ? IconButton(
-                tooltip: _showPassword ? '隐藏密码' : '显示密码',
-                onPressed: () => setState(() => _showPassword = !_showPassword),
-                icon: Icon(
-                  _showPassword ? Icons.visibility_off : Icons.visibility,
-                ),
-              )
-            : null,
-      ),
+    padding: EdgeInsets.only(top: 12),
+    child: Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(label, style: ShadTheme.of(context).textTheme.small),
+        SizedBox(height: 8),
+        ShadInput(
+          key: ValueKey(label),
+          controller: c,
+          focusNode: identical(c, _address) ? _addressFocus : null,
+          enabled: !_busy,
+          autocorrect: false,
+          enableSuggestions: !password,
+          obscureText: password && !_showPassword,
+          keyboardType: number ? TextInputType.number : TextInputType.text,
+          placeholder: hint == null ? null : Text(hint),
+          trailing: password
+              ? Tooltip(
+                  message: _showPassword ? l.hidePassword : l.showPassword,
+                  child: Semantics(
+                    button: true,
+                    label: _showPassword ? l.hidePassword : l.showPassword,
+                    child: ShadIconButton.ghost(
+                      onPressed: () =>
+                          setState(() => _showPassword = !_showPassword),
+                      icon: Icon(
+                        _showPassword
+                            ? AppIcons.hidePassword
+                            : AppIcons.showPassword,
+                      ),
+                    ),
+                  ),
+                )
+              : null,
+        ),
+        if (help != null)
+          Padding(
+            padding: EdgeInsets.only(top: 4),
+            child: Text(help, style: ShadTheme.of(context).textTheme.muted),
+          ),
+      ],
     ),
   );
   Widget _networkFields() => Column(
@@ -362,55 +394,65 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     children: [
       _field(
         _address,
-        '地址',
-        hint: _kind == SourceKind.smb
-            ? '192.168.1.10'
-            : '192.168.1.10 或 https://media.example.com',
+        l.address,
+        hint: _kind == SourceKind.smb ? '192.168.1.10' : l.addressHint,
       ),
       _field(
         _username,
-        '用户名',
-        help: _kind == SourceKind.smb ? '访客访问时，用户名和密码都留空' : null,
+        l.username,
+        help: _kind == SourceKind.smb ? l.guestHelp : null,
       ),
       _field(
         _password,
-        '密码',
+        l.password,
         password: true,
-        help: widget.initial != null ? '留空保留当前登录' : null,
+        help: widget.initial != null ? l.keepCredentials : null,
       ),
-      ExpansionTile(
+      ShadAccordion<String>(
         key: ValueKey('advanced-${_kind.name}'),
-        title: const Text('高级'),
-        initiallyExpanded: _advanced,
-        onExpansionChanged: (value) {
-          _advanced = value;
-          if (value) {
-            FocusScope.of(context).unfocus();
-            _normalizeAddress();
-          }
-        },
+        controller: _advancedController,
         children: [
-          if (_kind == SourceKind.smb)
-            const ListTile(title: Text('端口'), trailing: Text('445'))
-          else ...[
-            SwitchListTile(
-              title: const Text('HTTPS'),
-              value: _https,
-              onChanged: _busy
-                  ? null
-                  : (value) => setState(() {
-                      _https = value;
-                      _port.clear();
-                    }),
+          ShadAccordionItem(
+            value: 'advanced',
+            title: Text(l.advanced),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_kind == SourceKind.smb)
+                  ContentRow(title: Text(l.port), trailing: Text('445'))
+                else ...[
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: ShadSwitch(
+                      enabled: !_busy,
+                      label: Text('HTTPS'),
+                      value: _https,
+                      onChanged: _busy
+                          ? null
+                          : (value) => setState(() {
+                              _https = value;
+                              _port.clear();
+                            }),
+                    ),
+                  ),
+                  _field(
+                    _port,
+                    l.port,
+                    number: true,
+                    hint: _https ? '443' : '8096',
+                  ),
+                ],
+                _field(
+                  _path,
+                  l.optionalPath,
+                  hint: _kind == SourceKind.smb
+                      ? l.smbPathHint
+                      : l.serverPathHint,
+                ),
+                if (_kind == SourceKind.smb) _field(_domain, l.optionalDomain),
+              ],
             ),
-            _field(_port, '端口', number: true, hint: _https ? '443' : '8096'),
-          ],
-          _field(
-            _path,
-            '路径（可选）',
-            hint: _kind == SourceKind.smb ? '共享文件夹/影片目录' : '例如 jellyfin，没有则留空',
           ),
-          if (_kind == SourceKind.smb) _field(_domain, '工作组（可选）'),
         ],
       ),
     ],
@@ -418,148 +460,102 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   Widget _plexFields() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      const SizedBox(height: 12),
+      SizedBox(height: 12),
       if (widget.initial != null && _servers.isEmpty)
-        ListTile(
+        ContentRow(
           contentPadding: EdgeInsets.zero,
-          leading: const Icon(Icons.dns_outlined),
+          leading: Icon(AppIcons.server),
           title: Text(widget.initial!.name),
           subtitle: Text(Uri.parse(widget.initial!.address).host),
         ),
-      FilledButton.icon(
+      ShadButton(
         onPressed: _busy ? null : _loginPlex,
-        icon: const Icon(Icons.login),
-        label: Text(
+        leading: Icon(AppIcons.signIn),
+        enabled: !(_busy),
+        child: Text(
           _authorizing
-              ? '等待 Plex 授权…'
+              ? l.waitingPlex
               : widget.initial == null
-              ? '登录 Plex'
-              : '重新登录 Plex',
+              ? l.signInPlex
+              : l.signInPlexAgain,
         ),
       ),
-      const Padding(
-        padding: EdgeInsets.only(top: 8),
-        child: Text('在浏览器中登录 Plex，然后选择要连接的服务器。'),
-      ),
+      Padding(padding: EdgeInsets.only(top: 8), child: Text(l.plexBrowserHelp)),
       if (_authorizing && _loginUri != null)
-        TextButton(
+        ShadButton.ghost(
           onPressed: () =>
               widget.openBrowser?.call(_loginUri!) ??
               launchUrl(_loginUri!, mode: LaunchMode.externalApplication),
-          child: const Text('重新打开登录页'),
+          child: Text(l.reopenSignIn),
         ),
       if (_servers.isNotEmpty)
         Padding(
-          padding: const EdgeInsets.only(top: 12),
-          child: DropdownButtonFormField<PlexServer>(
+          padding: EdgeInsets.only(top: 12),
+          child: ShadSelect<PlexServer>(
             initialValue: _server,
-            decoration: const InputDecoration(labelText: '服务器'),
-            items: _servers
-                .map((s) => DropdownMenuItem(value: s, child: Text(s.name)))
-                .toList(),
             onChanged: _busy ? null : (s) => setState(() => _server = s),
+            selectedOptionBuilder: (_, server) => Text(server.name),
+            placeholder: Text(l.server),
+            key: ValueKey(_server?.id ?? 'plex-server'),
+            options: _servers
+                .map((s) => ShadOption(value: s, child: Text(s.name)))
+                .toList(),
+            maxWidth: 520,
+            enabled: !(_busy),
           ),
         ),
-      ExpansionTile(
-        title: const Text('高级'),
+      ShadAccordion<String>(
         children: [
-          SwitchListTile(
-            title: const Text('手动连接服务器'),
-            value: _manualPlex,
-            onChanged: _busy
-                ? null
-                : (value) => setState(() => _manualPlex = value),
+          ShadAccordionItem(
+            value: 'advanced',
+            title: Text(l.advanced),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Align(
+                  alignment: AlignmentDirectional.centerStart,
+                  child: ShadSwitch(
+                    enabled: !_busy,
+                    label: Text(l.manualServer),
+                    value: _manualPlex,
+                    onChanged: _busy
+                        ? null
+                        : (value) => setState(() => _manualPlex = value),
+                  ),
+                ),
+                if (_manualPlex) ...[
+                  _field(
+                    _address,
+                    l.serverAddress,
+                    hint: 'http://192.168.1.10:32400',
+                    help: l.portInAddress,
+                  ),
+                  _field(
+                    _manualToken,
+                    l.accessToken,
+                    password: true,
+                    help: widget.initial == null ? null : l.keepCredentials,
+                  ),
+                ],
+              ],
+            ),
           ),
-          if (_manualPlex) ...[
-            _field(
-              _address,
-              '服务器地址',
-              hint: 'http://192.168.1.10:32400',
-              help: '使用自定义端口时，请在地址中一并填写。',
-            ),
-            _field(
-              _manualToken,
-              '访问令牌',
-              password: true,
-              help: widget.initial == null ? null : '留空保留当前登录',
-            ),
-          ],
         ],
       ),
     ],
   );
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: Text(widget.initial == null ? '添加媒体源' : '编辑媒体源'),
-    content: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            DropdownButtonFormField<SourceKind>(
-              initialValue: _kind,
-              decoration: const InputDecoration(labelText: '类型'),
-              items: SourceKind.values
-                  .map(
-                    (kind) =>
-                        DropdownMenuItem(value: kind, child: Text(kind.label)),
-                  )
-                  .toList(),
-              onChanged: _busy || widget.initial != null
-                  ? null
-                  : (kind) => _changeKind(kind!),
-            ),
-            _field(_name, '名称（可选）'),
-            if (_kind == SourceKind.local) ...[
-              const SizedBox(height: 12),
-              OutlinedButton.icon(
-                onPressed: _busy ? null : _pickDirectory,
-                icon: const Icon(Icons.folder_open),
-                label: const Text('选择文件夹'),
-              ),
-              if (_address.text.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: Text(
-                    _address.text,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              if (Platform.isAndroid || Platform.isIOS)
-                const Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text('请选择系统允许应用访问的文件夹。'),
-                ),
-            ] else if (_kind == SourceKind.plex)
-              _plexFields()
-            else
-              _networkFields(),
-            if (_error != null)
-              Padding(
-                padding: const EdgeInsets.only(top: 12),
-                child: Text(
-                  _error!,
-                  style: TextStyle(color: Theme.of(context).colorScheme.error),
-                ),
-              ),
-            if (_busy)
-              const Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: LinearProgressIndicator(),
-              ),
-          ],
-        ),
-      ),
-    ),
+  Widget build(BuildContext context) => ShadDialog(
+    closeIcon: SizedBox.shrink(),
+    constraints: BoxConstraints(maxWidth: 568),
+    title: Text(widget.initial == null ? l.addSource : l.editSource),
     actions: [
-      TextButton(
+      ShadButton.ghost(
         onPressed: _busy && !_authorizing ? null : () => Navigator.pop(context),
-        child: const Text('取消'),
+        enabled: !(_busy && !_authorizing),
+        child: Text(l.cancel),
       ),
-      FilledButton(
+      ShadButton(
         onPressed:
             _busy ||
                 _kind == SourceKind.local && _address.text.isEmpty ||
@@ -569,8 +565,82 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                     _server == null
             ? null
             : _save,
-        child: Text(widget.initial == null ? '添加' : '保存'),
+        enabled:
+            !(_busy ||
+                _kind == SourceKind.local && _address.text.isEmpty ||
+                _kind == SourceKind.plex &&
+                    widget.initial == null &&
+                    !_manualPlex &&
+                    _server == null),
+        child: Text(widget.initial == null ? l.add : l.save),
       ),
     ],
+    child: SizedBox(
+      width: 520,
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            ShadSelect<SourceKind>(
+              initialValue: _kind,
+              onChanged: _busy || widget.initial != null
+                  ? null
+                  : (kind) => _changeKind(kind!),
+              selectedOptionBuilder: (_, kind) =>
+                  Text(kind == SourceKind.local ? l.localFolder : kind.label),
+              key: ValueKey('kind-${_kind.name}'),
+              placeholder: Text(l.type),
+              options: SourceKind.values
+                  .map(
+                    (kind) => ShadOption(
+                      value: kind,
+                      child: Text(
+                        kind == SourceKind.local ? l.localFolder : kind.label,
+                      ),
+                    ),
+                  )
+                  .toList(),
+              maxWidth: 520,
+              enabled: !(_busy || widget.initial != null),
+            ),
+            _field(_name, l.optionalName),
+            if (_kind == SourceKind.local) ...[
+              SizedBox(height: 12),
+              ShadButton.outline(
+                onPressed: _busy ? null : _pickDirectory,
+                leading: Icon(AppIcons.openFolder),
+                enabled: !(_busy),
+                child: Text(l.chooseFolder),
+              ),
+              if (_address.text.isNotEmpty)
+                Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(
+                    _address.text,
+                    maxLines: 3,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              if (Platform.isAndroid || Platform.isIOS)
+                Padding(
+                  padding: EdgeInsets.only(top: 8),
+                  child: Text(l.folderAccessHelp),
+                ),
+            ] else if (_kind == SourceKind.plex)
+              _plexFields()
+            else
+              _networkFields(),
+            if (_error != null)
+              Padding(
+                padding: EdgeInsets.only(top: 12),
+                child: ShadAlert.destructive(title: Text(_error!)),
+              ),
+            if (_busy)
+              Padding(padding: EdgeInsets.only(top: 12), child: ShadProgress()),
+          ],
+        ),
+      ),
+    ),
   );
 }

@@ -1,0 +1,364 @@
+{
+  "@@locale": "zh_Hant",
+  "home": "首頁",
+  "library": "媒體庫",
+  "sources": "來源",
+  "settings": "設定",
+  "system": "跟隨系統",
+  "light": "淺色",
+  "dark": "深色",
+  "appearance": "外觀",
+  "themeMode": "主題模式",
+  "themeDescription": "立即套用並於下次啟動時恢復",
+  "language": "介面語言",
+  "preferenceSaveFailed": "偏好儲存失敗",
+  "preferenceSaveRetry": "目前選擇已生效，請重新選擇以重試儲存。",
+  "sourceDefaults": "來源預設設定",
+  "sourceDefaultsDescription": "管理瀏覽、搜尋及掃描使用的預設來源",
+  "manage": "管理",
+  "about": "關於 OpenPlayX",
+  "aboutDescription": "你的媒體，一個安靜的播放空間。",
+  "favorite": "收藏",
+  "unfavorite": "取消收藏",
+  "retry": "重試",
+  "cancel": "取消",
+  "save": "儲存",
+  "add": "新增",
+  "delete": "刪除",
+  "remove": "移除",
+  "close": "關閉",
+  "openFile": "開啟檔案",
+  "welcome": "歡迎使用 OpenPlayX",
+  "welcomeDescription": "從上次停下的地方繼續，或瀏覽你的媒體庫。",
+  "continueWatching": "繼續觀看",
+  "continueEmpty": "尚無未看完的影片，播放後會在這裡顯示。",
+  "recentlyPlayed": "最近播放",
+  "recentEmpty": "尚無播放紀錄。到媒體庫或來源中選擇影片。",
+  "rewatch": "已看完 · 重新播放",
+  "libraryOpenFailed": "無法開啟媒體庫，請重試",
+  "platformUnsupported": "目前平台暫不支援播放",
+  "historyUnavailable": "此播放紀錄的資源無法使用",
+  "fileUnavailable": "檔案無法使用",
+  "historyOpenFailed": "無法開啟此紀錄，請檢查檔案或來源連線",
+  "libraryLoadFailed": "媒體庫開啟失敗，請返回後重試",
+  "createLibrary": "建立媒體庫",
+  "contentType": "內容類型",
+  "mixed": "混合",
+  "movie": "電影",
+  "series": "影集",
+  "homeVideos": "家庭影片",
+  "audio": "音訊",
+  "chooseScopeSource": "選擇來源（僅掃描選定範圍）",
+  "addEnabledSource": "請先新增並啟用來源",
+  "bindFailed": "無法新增來源，請檢查連線後重試",
+  "scanFailedRetained": "掃描失敗；已入庫的內容保留，可重試",
+  "localUnavailable": "本機檔案無法使用",
+  "watchedSuffix": " · 已看完",
+  "missingOnScan": "掃描未發現，可能已失聯",
+  "verifyOnPlay": "播放時驗證可用性",
+  "chooseVersion": "選擇資源版本播放；不同版本不自動換算時間軸",
+  "season": "季",
+  "episode": "單集",
+  "media": "媒體",
+  "previousPage": "上一頁",
+  "nextPage": "下一頁",
+  "versionOpenFailed": "此版本無法開啟，請檢查來源或選擇其他版本",
+  "addToLibrary": "加入其他媒體庫",
+  "chooseLibrary": "選擇媒體庫",
+  "correctTitle": "修正標題",
+  "removeFromLibrary": "從目前媒體庫移除（保留原檔案和媒體紀錄）",
+  "continueIncludingHistory": "繼續觀看（包括未入庫的播放紀錄）",
+  "allLibraries": "全部媒體庫",
+  "renameLibrary": "重新命名媒體庫",
+  "addSourceScope": "新增來源範圍",
+  "deleteLibrary": "刪除媒體庫",
+  "deleteLibraryConfirm": "刪除目前媒體庫？",
+  "deleteLibraryDescription": "僅刪除媒體庫和成員關係，保留原檔案、媒體及收藏。",
+  "searchLibrary": "搜尋庫內媒體",
+  "allSources": "全部來源",
+  "allTypes": "全部類型",
+  "video": "一般影片",
+  "allWatchStates": "全部觀看狀態",
+  "watched": "已看完",
+  "unwatched": "未看完",
+  "restoreIgnored": "取消移除忽略（下次掃描恢復）",
+  "sourceNeedsSetup": "需要設定來源",
+  "rescan": "重新掃描",
+  "removeBinding": "移除綁定",
+  "removeBindingConfirm": "移除掃描綁定？",
+  "createFirstLibrary": "建立第一個媒體庫",
+  "noMatchingMedia": "沒有符合條件的媒體",
+  "libraryEmpty": "尚無內容，請新增來源範圍或重新掃描",
+  "browseFailed": "無法瀏覽，請檢查來源後重試",
+  "scopeDescription": "掃描會索引此範圍內的媒體，不下載影片。請選擇已授權的目錄或伺服器媒體庫。",
+  "parent": "上一層",
+  "loadMore": "載入更多",
+  "rootFolder": "根目錄",
+  "confirmScanScope": "確認掃描此範圍",
+  "chooseScanScope": "選擇掃描範圍",
+  "defaultSaveFailed": "預設實例儲存失敗。",
+  "defaultDescription": "預設實例僅用於未明確選擇來源的操作。已有資源始終由原實例解析，不自動切換帳號。",
+  "defaultBrowse": "預設瀏覽實例",
+  "defaultResolve": "預設資源解析實例",
+  "chooseEachTime": "每次選擇",
+  "defaultUnavailable": "存在無法使用的預設實例綁定，請重新選擇；未自動替換為其他帳號。",
+  "searchScope": "多來源搜尋範圍",
+  "searchScopeDescription": "範圍以實例清單儲存，可包含多個實例。目前來源僅支援瀏覽及解析，搜尋能力接入後才開放相關預設設定。",
+  "sourceDefaultsTitle": "能力預設實例及搜尋範圍",
+  "localFolder": "本機資料夾",
+  "pickFolderFailed": "無法選擇資料夾，請重試。",
+  "openBrowserFailed": "無法開啟瀏覽器，請點選登入連結重試。",
+  "noPlexServers": "此 Plex 帳號下沒有可存取的伺服器。",
+  "plexSignInFailed": "Plex 登入失敗，請重試。",
+  "enterToken": "請填寫存取權杖後連線至伺服器。",
+  "signInPlexFirst": "請先登入 Plex 並選擇伺服器。",
+  "connectionFormFailed": "連線失敗，請檢查位址及登入資訊。",
+  "hidePassword": "隱藏密碼",
+  "showPassword": "顯示密碼",
+  "address": "位址",
+  "addressHint": "192.168.1.10 或 https://media.example.com",
+  "username": "使用者名稱",
+  "guestHelp": "訪客存取時，使用者名稱及密碼均留空",
+  "password": "密碼",
+  "keepCredentials": "留空保留目前登入",
+  "advanced": "進階",
+  "port": "連接埠",
+  "optionalPath": "路徑（選填）",
+  "smbPathHint": "共用資料夾/影片目錄",
+  "serverPathHint": "例如 jellyfin，無則留空",
+  "optionalDomain": "工作群組（選填）",
+  "waitingPlex": "等待 Plex 授權…",
+  "signInPlex": "登入 Plex",
+  "signInPlexAgain": "重新登入 Plex",
+  "plexBrowserHelp": "在瀏覽器中登入 Plex，再選擇要連線的伺服器。",
+  "reopenSignIn": "重新開啟登入頁面",
+  "server": "伺服器",
+  "manualServer": "手動連線至伺服器",
+  "serverAddress": "伺服器位址",
+  "portInAddress": "使用自訂連接埠時，請一併填入位址。",
+  "accessToken": "存取權杖",
+  "addSource": "新增媒體來源",
+  "editSource": "編輯媒體來源",
+  "type": "類型",
+  "optionalName": "名稱（選填）",
+  "chooseFolder": "選擇資料夾",
+  "folderAccessHelp": "請選擇系統允許應用程式存取的資料夾。",
+  "loadSourcesFailed": "載入媒體來源失敗，請重試。",
+  "filePlayFailed": "無法播放此檔案。",
+  "previewLimit": "已達預覽上限 500 個檔案，結果不完整。",
+  "previewDescription": "已套用存取範圍及掃描排除項目；此操作不寫入媒體庫、不建立背景索引。",
+  "scanFailed": "掃描失敗。",
+  "backToParent": "返回上一層",
+  "sourcesEmpty": "新增本機資料夾、SMB、Jellyfin 或 Plex 來源。",
+  "disableSourceConfirm": "停用媒體來源？",
+  "disable": "停用",
+  "toggleSourceFailed": "啟停失敗，請重試。",
+  "verifyConnection": "驗證連線",
+  "connectionFailed": "連線失敗。",
+  "previewScan": "預覽掃描",
+  "deleteSource": "刪除媒體來源",
+  "deleteSourceFailed": "刪除來源失敗，請重試。",
+  "folderEmpty": "此目錄沒有可瀏覽的媒體。",
+  "reloadConfiguration": "重新載入設定",
+  "defaultBrowseUnavailable": "預設實例無法使用，請重新選擇，未自動切換其他帳號。",
+  "browseDefault": "預設瀏覽",
+  "capabilityDefaults": "能力預設實例",
+  "addSourceShort": "新增來源",
+  "playerClosed": "播放器已關閉",
+  "historySaveFailed": "觀看紀錄暫時無法儲存，仍可繼續播放",
+  "adjustFailed": "調整失敗，請重試。",
+  "audioTrack": "音軌",
+  "noAudioTracks": "此媒體沒有可選音軌",
+  "playbackCommandFailed": "播放操作失敗，請重新開啟媒體檔案。",
+  "openFileFailed": "無法開啟檔案，請重新選擇。",
+  "stopPlaybackFailed": "停止播放失敗，請重試返回",
+  "volume": "音量",
+  "brightness": "畫面亮度",
+  "rewind": "倒退 10 秒",
+  "pause": "暫停",
+  "play": "播放",
+  "forward": "快轉 10 秒",
+  "playbackSpeed": "播放速度",
+  "morePlaybackSettings": "更多播放設定",
+  "lockControls": "鎖定控制",
+  "playerVolume": "播放器音量",
+  "playerEmpty": "開啟影片，開始播放",
+  "back": "返回",
+  "playbackFailed": "播放失敗，請檢查檔案或重新選擇。",
+  "boost": "暫時 2× · 放開恢復",
+  "unlockControls": "解鎖控制",
+  "loading": "正在載入…",
+  "watchProgress": "已看 {position} / {duration} 分鐘",
+  "@watchProgress": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "watchedMinutes": " · 已看 {minutes} 分鐘",
+  "@watchedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "localResource": "本機檔案（播放時檢查存取權限）{progress}",
+  "@localResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "setupResource": "需要設定或啟用來源{progress}",
+  "@setupResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "removeBindingDescription": "此綁定關聯 {count} 項內容。僅移除失去全部來源依據的自動成員，保留手動成員、共用媒體及原檔案。",
+  "@removeBindingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceVersion": "{kind} · 外掛程式 {plugin} · 設定 v{config} · r{revision}",
+  "@sourceVersion": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "plugin": {
+        "type": "String"
+      },
+      "config": {
+        "type": "int"
+      },
+      "revision": {
+        "type": "int"
+      }
+    }
+  },
+  "disableSourceDescription": "目前播放 {playing} 個，進行中請求 {running} 個，預設能力綁定 {defaults} 項。停用後拒絕新請求並清除預設綁定；目前播放可繼續，結束後釋放連線。設定、收藏和產物保留。",
+  "@disableSourceDescription": {
+    "placeholders": {
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "defaults": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteSourceDescription": "僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。預設能力綁定 {defaults} 項及搜尋範圍綁定將被清除。目前播放 {playing} 個、進行中請求 {running} 個可完成，之後釋放連線。",
+  "@deleteSourceDescription": {
+    "placeholders": {
+      "defaults": {
+        "type": "int"
+      },
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      }
+    }
+  },
+  "previewTitle": "掃描預覽：{name}",
+  "@previewTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesFound": "找到 {count} 個檔案。",
+  "@filesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteNamedSource": "刪除 {name}？",
+  "@deleteNamedSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "numberedAudioTrack": "音軌 {id}",
+  "@numberedAudioTrack": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingTime": "剩餘 {time}",
+  "@remainingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "readSpeed": "讀取 {speed} MB/s",
+  "@readSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "notVerified": "尚未驗證",
+  "disabled": "已停用",
+  "pendingApply": "待套用",
+  "applied": "已套用",
+  "applyFailed": "套用失敗",
+  "credentialsMissing": "需要登入",
+  "credentialsReady": "憑證已儲存",
+  "localSource": "本機資料夾",
+  "credentialsUnknown": "憑證狀態未知",
+  "screenOrientation": "螢幕方向",
+  "orientationSystem": "跟隨系統",
+  "orientationPortrait": "直向",
+  "orientationLandscape": "橫向",
+  "videoRotation": "畫面旋轉",
+  "rotationOriginal": "原始方向（0°）",
+  "sourceReady": "已就緒",
+  "sourceConnectionFailed": "連線失敗",
+  "sourceInitialized": "已初始化 · 待連線驗證",
+  "sourceSaved": "已儲存 · 下次存取生效",
+  "credentialsNotRequired": "無需帳號憑證",
+  "credentialsUnverified": "憑證已儲存 · 尚未驗證",
+  "credentialsExpiring": "權杖將在 7 天內到期",
+  "credentialsExpired": "權杖已到期",
+  "credentialsRejected": "驗證失敗 · 請更新憑證",
+  "credentialsVerified": "連線已驗證",
+  "playbackPosition": "播放進度",
+  "shadHours": "時",
+  "shadMinutes": "分",
+  "shadSeconds": "秒",
+  "shadPeriod": "時段",
+  "shadMorning": "上午",
+  "shadSelectDate": "選擇日期",
+  "shadCut": "剪下",
+  "shadCopy": "複製",
+  "shadPaste": "貼上",
+  "shadSelectAll": "全選",
+  "shadDone": "完成"
+}

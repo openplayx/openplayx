@@ -1,3 +1,6 @@
+import '../../app_test_host.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -39,18 +42,20 @@ void main() {
         await manager.dispose();
         service.close();
       });
-      await tester.pumpWidget(MaterialApp(home: SourcePage(manager: manager)));
+      await tester.pumpWidget(TestApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
       expect(find.textContaining('配置 v2'), findsOneWidget);
       expect(find.textContaining('尚未验证'), findsOneWidget);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.byType(Switch));
+      await tester.ensureVisible(find.byType(ShadSwitch));
+      await tester.tap(find.byType(ShadSwitch));
       await tester.pumpAndSettle();
       expect(find.text('禁用媒体源？'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(manager.configs.single.enabled, isTrue);
-      await tester.tap(find.byType(Switch));
+      await tester.ensureVisible(find.byType(ShadSwitch));
+      await tester.tap(find.byType(ShadSwitch));
       await tester.pumpAndSettle();
       await tester.tap(find.text('禁用'));
       await tester.pumpAndSettle();
@@ -60,6 +65,7 @@ void main() {
       expect(find.text('已禁用'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     },
   );
 
@@ -75,37 +81,37 @@ void main() {
         service.close();
       });
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(body: SourceInstanceForm(manager: manager)),
         ),
       );
       await tester.pumpAndSettle();
       expect(find.text('选择文件夹'), findsOneWidget);
-      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(EditableText), findsOneWidget);
       expect(find.textContaining('修订'), findsNothing);
       expect(find.text('实例与连接策略'), findsNothing);
       expect(find.text('目录范围与扫描策略'), findsNothing);
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jellyfin').last);
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '地址'), findsOneWidget);
-      expect(find.widgetWithText(TextField, '用户名'), findsOneWidget);
-      expect(find.widgetWithText(TextField, '密码'), findsOneWidget);
+      expect(find.byKey(ValueKey('地址')), findsOneWidget);
+      expect(find.byKey(ValueKey('用户名')), findsOneWidget);
+      expect(find.byKey(ValueKey('密码')), findsOneWidget);
       expect(find.textContaining('用户 ID'), findsNothing);
       expect(find.textContaining('API Key'), findsNothing);
-      expect(find.widgetWithText(TextField, '端口'), findsNothing);
+      expect(find.byKey(ValueKey('端口')), findsNothing);
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(TextField, '端口'), findsOneWidget);
-      expect(find.widgetWithText(TextField, '路径（可选）'), findsOneWidget);
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      expect(find.byKey(ValueKey('端口')), findsOneWidget);
+      expect(find.byKey(ValueKey('路径（可选）')), findsOneWidget);
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
       expect(find.text('登录 Plex'), findsOneWidget);
       expect(find.text('X-Plex-Token'), findsNothing);
-      expect(find.byType(TextField), findsOneWidget);
+      expect(find.byType(EditableText), findsOneWidget);
     },
   );
   testWidgets(
@@ -127,7 +133,7 @@ void main() {
       final signIn = _FakeSignIn();
       addTearDown(signIn.close);
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
@@ -145,28 +151,23 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, '地址'),
+        find.byKey(ValueKey('地址')),
         'https://new.test:8443/jellyfin',
       );
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
+      expect(tester.widget<ShadSwitch>(find.byType(ShadSwitch)).value, isTrue);
       expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isTrue,
-      );
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '端口'))
-            .controller!
-            .text,
+        tester.widget<ShadInput>(find.byKey(ValueKey('端口'))).controller!.text,
         '8443',
       );
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '路径（可选）'))
+            .widget<ShadInput>(find.byKey(ValueKey('路径（可选）')))
             .controller!
             .text,
         'jellyfin',
@@ -186,7 +187,7 @@ void main() {
       final signIn = _FakeSignIn();
       addTearDown(signIn.close);
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
@@ -201,21 +202,16 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jellyfin').last);
       await tester.pumpAndSettle();
-      await tester.enterText(
-        find.widgetWithText(TextField, '地址'),
-        '192.168.1.20',
-      );
-      await tester.enterText(find.widgetWithText(TextField, '用户名'), 'viewer');
-      await tester.enterText(
-        find.widgetWithText(TextField, '密码'),
-        'user-password',
-      );
+      await tester.enterText(find.byKey(ValueKey('地址')), '192.168.1.20');
+      await tester.enterText(find.byKey(ValueKey('用户名')), 'viewer');
+      await tester.enterText(find.byKey(ValueKey('密码')), 'user-password');
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'http://192.168.1.20:8096');
@@ -230,7 +226,7 @@ void main() {
     (tester) async {
       final manager = MemorySources();
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
@@ -244,28 +240,27 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(SwitchListTile));
+      await tester.ensureVisible(find.byType(ShadSwitch));
+      await tester.tap(find.byType(ShadSwitch));
       await tester.pumpAndSettle();
       await tester.enterText(
-        find.widgetWithText(TextField, '服务器地址'),
+        find.byKey(ValueKey('服务器地址')),
         'http://192.168.1.211:13240',
       );
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(find.text('请填写访问令牌后连接服务器。'), findsOneWidget);
       expect(find.text('请先登录 Plex 并选择服务器。'), findsNothing);
-      await tester.enterText(
-        find.widgetWithText(TextField, '访问令牌'),
-        'test-token',
-      );
+      await tester.enterText(find.byKey(ValueKey('访问令牌')), 'test-token');
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'http://192.168.1.211:13240');
@@ -280,7 +275,7 @@ void main() {
       addTearDown(signIn.close);
       Uri? opened;
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
@@ -301,9 +296,10 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
@@ -323,7 +319,7 @@ void main() {
   ) async {
     final manager = MemorySources();
     await tester.pumpWidget(
-      MaterialApp(
+      TestApp(
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
@@ -340,6 +336,7 @@ void main() {
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.tap(find.text('Open'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('选择文件夹'));

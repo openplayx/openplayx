@@ -1,3 +1,5 @@
+import '../../app_test_host.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -45,7 +47,7 @@ void main() {
         const Duration(seconds: 60),
       );
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: PlayerPage(
             backend: backend,
             libraryService: service,
@@ -53,6 +55,7 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
       await tester.pump();
       for (var i = 0; i < 20 && !backend.resumed.isCompleted; i++) {
@@ -74,6 +77,7 @@ void main() {
       expect(service.libraries, isEmpty);
       expect(service.continueWatching().single['id'], media);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       service.close();
     },
   );

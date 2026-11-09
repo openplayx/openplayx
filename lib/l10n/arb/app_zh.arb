@@ -1,0 +1,364 @@
+{
+  "@@locale": "zh",
+  "home": "首页",
+  "library": "媒体库",
+  "sources": "来源",
+  "settings": "设置",
+  "system": "跟随系统",
+  "light": "浅色",
+  "dark": "深色",
+  "appearance": "外观",
+  "themeMode": "主题模式",
+  "themeDescription": "立即应用并在下次启动时恢复",
+  "language": "界面语言",
+  "preferenceSaveFailed": "偏好保存失败",
+  "preferenceSaveRetry": "当前选择已生效，请重新选择以重试保存。",
+  "sourceDefaults": "来源默认配置",
+  "sourceDefaultsDescription": "管理浏览、搜索与扫描使用的默认来源",
+  "manage": "管理",
+  "about": "关于 OpenPlayX",
+  "aboutDescription": "你的媒体，一个安静的播放空间。",
+  "favorite": "收藏",
+  "unfavorite": "取消收藏",
+  "retry": "重试",
+  "cancel": "取消",
+  "save": "保存",
+  "add": "添加",
+  "delete": "删除",
+  "remove": "移除",
+  "close": "关闭",
+  "openFile": "打开文件",
+  "welcome": "欢迎使用 OpenPlayX",
+  "welcomeDescription": "从上次停下的地方继续，或浏览你的媒体库。",
+  "continueWatching": "继续观看",
+  "continueEmpty": "还没有未看完的视频，播放后会在这里显示。",
+  "recentlyPlayed": "最近播放",
+  "recentEmpty": "还没有播放记录。去媒体库或来源中选择视频。",
+  "rewatch": "已看完 · 重新播放",
+  "libraryOpenFailed": "无法打开媒体库，请重试",
+  "platformUnsupported": "当前平台暂不支持播放",
+  "historyUnavailable": "此播放记录的资源不可用",
+  "fileUnavailable": "文件不可用",
+  "historyOpenFailed": "无法打开此记录，请检查文件或来源连接",
+  "libraryLoadFailed": "媒体库打开失败，请返回后重试",
+  "createLibrary": "创建媒体库",
+  "contentType": "内容类型",
+  "mixed": "混合",
+  "movie": "电影",
+  "series": "剧集",
+  "homeVideos": "家庭视频",
+  "audio": "音频",
+  "chooseScopeSource": "选择来源（仅扫描选定范围）",
+  "addEnabledSource": "请先在媒体源中添加并启用来源",
+  "bindFailed": "无法添加来源，请检查连接后重试",
+  "scanFailedRetained": "扫描失败；已入库的内容保留，可重试",
+  "localUnavailable": "本地文件不可用",
+  "watchedSuffix": " · 已看完",
+  "missingOnScan": "扫描未发现，可能已失联",
+  "verifyOnPlay": "播放时验证可用性",
+  "chooseVersion": "选择资源版本播放；不同版本不自动换算时间轴",
+  "season": "季",
+  "episode": "单集",
+  "media": "媒体",
+  "previousPage": "上一页",
+  "nextPage": "下一页",
+  "versionOpenFailed": "此版本无法打开，请检查来源或选择其他版本",
+  "addToLibrary": "加入其他媒体库",
+  "chooseLibrary": "选择媒体库",
+  "correctTitle": "修正标题",
+  "removeFromLibrary": "从当前库移除（保留原文件和媒体记录）",
+  "continueIncludingHistory": "继续观看（包括未入库的播放记录）",
+  "allLibraries": "全部媒体库",
+  "renameLibrary": "重命名媒体库",
+  "addSourceScope": "添加来源范围",
+  "deleteLibrary": "删除库",
+  "deleteLibraryConfirm": "删除当前媒体库？",
+  "deleteLibraryDescription": "仅删除库和成员关系，保留原文件、媒体和收藏。",
+  "searchLibrary": "搜索库内媒体",
+  "allSources": "全部来源",
+  "allTypes": "全部类型",
+  "video": "普通视频",
+  "allWatchStates": "全部观看状态",
+  "watched": "已看完",
+  "unwatched": "未看完",
+  "restoreIgnored": "取消移除忽略（下次扫描恢复）",
+  "sourceNeedsSetup": "需要配置来源",
+  "rescan": "重新扫描",
+  "removeBinding": "移除绑定",
+  "removeBindingConfirm": "移除扫描绑定？",
+  "createFirstLibrary": "创建第一个媒体库",
+  "noMatchingMedia": "没有符合条件的媒体",
+  "libraryEmpty": "暂无内容，请添加来源范围或刷新扫描",
+  "browseFailed": "无法浏览，请检查来源后重试",
+  "scopeDescription": "扫描会索引此范围内的媒体，不下载视频。请选择已授权的目录或服务端库。",
+  "parent": "上一级",
+  "loadMore": "加载更多",
+  "rootFolder": "根目录",
+  "confirmScanScope": "确认扫描此范围",
+  "chooseScanScope": "选择扫描范围",
+  "defaultSaveFailed": "默认实例保存失败。",
+  "defaultDescription": "默认实例只用于未显式选择来源的操作。已有资源始终由原实例解析，不自动切换账号。",
+  "defaultBrowse": "默认浏览实例",
+  "defaultResolve": "默认资源解析实例",
+  "chooseEachTime": "每次选择",
+  "defaultUnavailable": "存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。",
+  "searchScope": "多源搜索范围",
+  "searchScopeDescription": "范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。",
+  "sourceDefaultsTitle": "能力默认实例与搜索范围",
+  "localFolder": "本地文件夹",
+  "pickFolderFailed": "无法选择文件夹，请重试。",
+  "openBrowserFailed": "无法打开浏览器，请点击登录链接重试。",
+  "noPlexServers": "此 Plex 账号下没有可访问的服务器。",
+  "plexSignInFailed": "Plex 登录失败，请重试。",
+  "enterToken": "请填写访问令牌后连接服务器。",
+  "signInPlexFirst": "请先登录 Plex 并选择服务器。",
+  "connectionFormFailed": "连接失败，请检查地址和登录信息。",
+  "hidePassword": "隐藏密码",
+  "showPassword": "显示密码",
+  "address": "地址",
+  "addressHint": "192.168.1.10 或 https://media.example.com",
+  "username": "用户名",
+  "guestHelp": "访客访问时，用户名和密码都留空",
+  "password": "密码",
+  "keepCredentials": "留空保留当前登录",
+  "advanced": "高级",
+  "port": "端口",
+  "optionalPath": "路径（可选）",
+  "smbPathHint": "共享文件夹/影片目录",
+  "serverPathHint": "例如 jellyfin，没有则留空",
+  "optionalDomain": "工作组（可选）",
+  "waitingPlex": "等待 Plex 授权…",
+  "signInPlex": "登录 Plex",
+  "signInPlexAgain": "重新登录 Plex",
+  "plexBrowserHelp": "在浏览器中登录 Plex，然后选择要连接的服务器。",
+  "reopenSignIn": "重新打开登录页",
+  "server": "服务器",
+  "manualServer": "手动连接服务器",
+  "serverAddress": "服务器地址",
+  "portInAddress": "使用自定义端口时，请在地址中一并填写。",
+  "accessToken": "访问令牌",
+  "addSource": "添加媒体源",
+  "editSource": "编辑媒体源",
+  "type": "类型",
+  "optionalName": "名称（可选）",
+  "chooseFolder": "选择文件夹",
+  "folderAccessHelp": "请选择系统允许应用访问的文件夹。",
+  "loadSourcesFailed": "加载媒体源失败，请重试。",
+  "filePlayFailed": "无法播放此文件。",
+  "previewLimit": "已达到预览上限 500 个文件，结果不完整。",
+  "previewDescription": "已应用访问范围和扫描排除项；此操作不写入媒体库、不创建后台索引。",
+  "scanFailed": "扫描失败。",
+  "backToParent": "返回上一级",
+  "sourcesEmpty": "添加本地文件夹、SMB、Jellyfin 或 Plex 来源。",
+  "disableSourceConfirm": "禁用媒体源？",
+  "disable": "禁用",
+  "toggleSourceFailed": "启停失败，请重试。",
+  "verifyConnection": "验证连接",
+  "connectionFailed": "连接失败。",
+  "previewScan": "预览扫描",
+  "deleteSource": "删除媒体源",
+  "deleteSourceFailed": "删除源失败，请重试。",
+  "folderEmpty": "此目录没有可浏览的媒体。",
+  "reloadConfiguration": "重新加载配置",
+  "defaultBrowseUnavailable": "默认实例不可用，请重新选择，未自动切换其他账号。",
+  "browseDefault": "默认浏览",
+  "capabilityDefaults": "能力默认实例",
+  "addSourceShort": "添加源",
+  "playerClosed": "播放器已关闭",
+  "historySaveFailed": "观看记录暂时无法保存，仍可继续播放",
+  "adjustFailed": "调整失败，请重试。",
+  "audioTrack": "音轨",
+  "noAudioTracks": "此媒体没有可选音轨",
+  "playbackCommandFailed": "播放操作失败，请重新打开媒体文件。",
+  "openFileFailed": "无法打开文件，请重新选择。",
+  "stopPlaybackFailed": "停止播放失败，请重试返回",
+  "volume": "音量",
+  "brightness": "画面亮度",
+  "rewind": "快退 10 秒",
+  "pause": "暂停",
+  "play": "播放",
+  "forward": "快进 10 秒",
+  "playbackSpeed": "播放速度",
+  "morePlaybackSettings": "更多播放设置",
+  "lockControls": "锁定控制",
+  "playerVolume": "播放器音量",
+  "playerEmpty": "打开一个视频，开始播放",
+  "back": "返回",
+  "playbackFailed": "播放失败，请检查文件或重新选择。",
+  "boost": "临时 2× · 松手恢复",
+  "unlockControls": "解锁控制",
+  "loading": "正在加载…",
+  "watchProgress": "已看 {position} / {duration} 分钟",
+  "@watchProgress": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "watchedMinutes": " · 已看 {minutes} 分钟",
+  "@watchedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "localResource": "本机文件（播放时检查访问权限）{progress}",
+  "@localResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "setupResource": "需要配置或启用来源{progress}",
+  "@setupResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "removeBindingDescription": "此绑定关联 {count} 项内容。仅移除失去全部来源证据的自动成员，保留手动成员、共享媒体和原文件。",
+  "@removeBindingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceVersion": "{kind} · 插件 {plugin} · 配置 v{config} · r{revision}",
+  "@sourceVersion": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "plugin": {
+        "type": "String"
+      },
+      "config": {
+        "type": "int"
+      },
+      "revision": {
+        "type": "int"
+      }
+    }
+  },
+  "disableSourceDescription": "当前播放 {playing} 个，进行中请求 {running} 个，默认能力绑定 {defaults} 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。",
+  "@disableSourceDescription": {
+    "placeholders": {
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "defaults": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteSourceDescription": "仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。默认能力绑定 {defaults} 项和搜索范围绑定将被清除。当前播放 {playing} 个、进行中请求 {running} 个可完成，之后释放连接。",
+  "@deleteSourceDescription": {
+    "placeholders": {
+      "defaults": {
+        "type": "int"
+      },
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      }
+    }
+  },
+  "previewTitle": "扫描预览：{name}",
+  "@previewTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesFound": "发现 {count} 个文件。",
+  "@filesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteNamedSource": "删除 {name}？",
+  "@deleteNamedSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "numberedAudioTrack": "音轨 {id}",
+  "@numberedAudioTrack": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingTime": "剩余 {time}",
+  "@remainingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "readSpeed": "读取 {speed} MB/s",
+  "@readSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "notVerified": "尚未验证",
+  "disabled": "已禁用",
+  "pendingApply": "待应用",
+  "applied": "已应用",
+  "applyFailed": "应用失败",
+  "credentialsMissing": "需要登录",
+  "credentialsReady": "凭据已保存",
+  "localSource": "本地文件夹",
+  "credentialsUnknown": "凭据状态未知",
+  "screenOrientation": "屏幕方向",
+  "orientationSystem": "跟随系统",
+  "orientationPortrait": "竖屏",
+  "orientationLandscape": "横屏",
+  "videoRotation": "画面旋转",
+  "rotationOriginal": "原始方向（0°）",
+  "sourceReady": "已就绪",
+  "sourceConnectionFailed": "连接失败",
+  "sourceInitialized": "已初始化 · 待连接验证",
+  "sourceSaved": "已保存 · 下次访问生效",
+  "credentialsNotRequired": "无需账号凭据",
+  "credentialsUnverified": "凭据已保存 · 尚未验证",
+  "credentialsExpiring": "令牌将在 7 天内到期",
+  "credentialsExpired": "令牌已到期",
+  "credentialsRejected": "认证失败 · 请更新凭据",
+  "credentialsVerified": "连接已验证",
+  "playbackPosition": "播放进度",
+  "shadHours": "时",
+  "shadMinutes": "分",
+  "shadSeconds": "秒",
+  "shadPeriod": "时段",
+  "shadMorning": "上午",
+  "shadSelectDate": "选择日期",
+  "shadCut": "剪切",
+  "shadCopy": "复制",
+  "shadPaste": "粘贴",
+  "shadSelectAll": "全选",
+  "shadDone": "完成"
+}

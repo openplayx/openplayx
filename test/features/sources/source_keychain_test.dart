@@ -1,3 +1,5 @@
+import '../../app_test_host.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -60,7 +62,7 @@ void main() {
         service.close();
       });
 
-      await tester.pumpWidget(MaterialApp(home: SourcePage(manager: manager)));
+      await tester.pumpWidget(TestApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
       expect(find.textContaining('尚未验证'), findsNWidgets(3));
       expect(find.byType(SegmentedButton<bool>), findsNothing);
@@ -68,12 +70,7 @@ void main() {
 
       await tester.tap(find.byTooltip('重新加载配置'));
       await tester.pumpAndSettle();
-      await tester.pumpWidget(
-        MaterialApp(
-          theme: ThemeData.dark(),
-          home: SourcePage(manager: manager),
-        ),
-      );
+      await tester.pumpWidget(TestApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
       expect(keychain.reads, 0);
       expect(tester.takeException(), isNull);
@@ -94,6 +91,7 @@ void main() {
       }
       expect(keychain.reads, 3);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     },
   );
 }

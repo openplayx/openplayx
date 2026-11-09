@@ -2,6 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+
+import '../l10n/generated/app_localizations.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../ui/components/states/content_state.dart';
+import '../ui/adaptive/app_page.dart';
+import '../ui/icons/app_icons.dart';
+
 import 'package:openplayx_playback/playback.dart';
 
 import '../core/plugins/source_capability.dart';
@@ -12,17 +21,9 @@ import '../features/player/player_page.dart';
 import '../features/sources/source_defaults_page.dart';
 import '../features/sources/source_page.dart';
 import '../services/library/library_service.dart';
-
-enum AppDestination {
-  home('首页', Icons.home_outlined),
-  library('媒体库', Icons.video_library_outlined),
-  sources('来源', Icons.folder_outlined),
-  settings('设置', Icons.settings_outlined);
-
-  const AppDestination(this.label, this.icon);
-  final String label;
-  final IconData icon;
-}
+import '../ui/adaptive/app_navigation.dart';
+import '../features/settings/settings_page.dart';
+import '../ui/tokens/app_spacing.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -42,6 +43,7 @@ class AppShell extends StatefulWidget {
 }
 
 class _AppShellState extends State<AppShell> {
+  AppLocalizations get l => AppLocalizations.of(context);
   late final _sources = widget.sources ?? SourceManager();
   final _revision = ValueNotifier(0);
   final _player = GlobalKey<PlayerPageState>();
@@ -75,7 +77,7 @@ class _AppShellState extends State<AppShell> {
         _error = null;
       });
     } catch (_) {
-      if (mounted) setState(() => _error = '无法打开媒体库，请重试');
+      if (mounted) setState(() => _error = l.libraryOpenFailed);
     }
   }
 
@@ -102,7 +104,7 @@ class _AppShellState extends State<AppShell> {
   Future<void> _play(SourceSelection selection) async {
     if (_opening || _exitingPlayer || _backend == null) {
       await selection.stream.release();
-      if (mounted && _backend == null) _message('当前平台暂不支持播放');
+      if (mounted && _backend == null) _message(l.platformUnsupported);
       return;
     }
     _opening = true;
@@ -117,8 +119,7 @@ class _AppShellState extends State<AppShell> {
   }
 
   void _message(String message) =>
-      ScaffoldMessenger.of(context)
-          .showSnackBar(SnackBar(content: Text(message)));
+      ShadToaster.of(context).show(ShadToast(description: Text(message)));
 
   Future<void> _playHistory(dynamic media) async {
     if (_opening) return;
@@ -127,7 +128,7 @@ class _AppShellState extends State<AppShell> {
         .resources(media['id'] as String)
         .where((r) => r['id'] == media['resource_id']);
     if (resources.isEmpty) {
-      _message('此播放记录的资源不可用');
+      _message(l.historyUnavailable);
       return;
     }
     final resource = resources.first;
@@ -139,7 +140,7 @@ class _AppShellState extends State<AppShell> {
     try {
       PlayableStream stream;
       if (ref.instanceId == '@local') {
-        if (!await File(ref.id).exists()) throw StateError('文件不可用');
+        if (!await File(ref.id).exists()) throw StateError(l.fileUnavailable);
         stream = PlayableStream(Uri.file(ref.id));
       } else {
         await _sources.load();
@@ -154,7 +155,7 @@ class _AppShellState extends State<AppShell> {
         SourceSelection(resource['name'] as String, stream, ref: ref),
       );
     } catch (_) {
-      if (mounted) _message('无法打开此记录，请检查文件或来源连接');
+      if (mounted) _message(l.historyOpenFailed);
     } finally {
       _opening = false;
     }
@@ -165,22 +166,18 @@ class _AppShellState extends State<AppShell> {
     builder: (_, _, _) => _homeContent(),
   );
 
-  Widget _homeContent() => Scaffold(
-    appBar: AppBar(title: const Text('首页')),
+  Widget _homeContent() => AppPage(
     body: ListView(
-      key: const PageStorageKey('home'),
-      padding: const EdgeInsets.all(20),
+      key: PageStorageKey('home'),
+      padding: AppSpacing.page(context),
       children: [
-        Text(
-          '欢迎使用 OpenPlayX',
-          style: Theme.of(context).textTheme.headlineSmall,
-        ),
-        const SizedBox(height: 8),
-        const Text('从上次停下的地方继续，或浏览你的媒体库。'),
-        const SizedBox(height: 20),
+        Text(l.welcome, style: ShadTheme.of(context).textTheme.h3),
+        SizedBox(height: 8),
+        Text(l.welcomeDescription),
+        SizedBox(height: 20),
         Align(
           alignment: Alignment.centerLeft,
-          child: FilledButton.icon(
+          child: ShadButton(
             onPressed: _backend == null
                 ? null
                 : () async {
@@ -192,117 +189,101 @@ class _AppShellState extends State<AppShell> {
                       _opening = false;
                     }
                   },
-            icon: const Icon(Icons.file_open_outlined),
-            label: const Text('打开文件'),
+            leading: Icon(AppIcons.openFile),
+            enabled: !(_backend == null),
+            child: Text(l.openFile),
           ),
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28),
         _history(
-          '继续观看',
+          l.continueWatching,
           _library!.continueWatching(),
-          empty: '还没有未看完的视频，播放后会在这里显示。',
+          empty: l.continueEmpty,
         ),
-        const SizedBox(height: 28),
+        SizedBox(height: 28),
         _history(
-          '最近播放',
+          l.recentlyPlayed,
           _library!.recentlyPlayed(),
-          empty: '还没有播放记录。去媒体库或来源中选择视频。',
+          empty: l.recentEmpty,
         ),
       ],
     ),
+    title: Text(l.home),
   );
 
-  Widget _history(
-    String title,
-    List<dynamic> rows, {
-    required String empty,
-  }) => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      Text(title, style: Theme.of(context).textTheme.titleLarge),
-      const SizedBox(height: 12),
-      if (rows.isEmpty)
-        Card(
-          child: Padding(padding: const EdgeInsets.all(24), child: Text(empty)),
-        )
-      else
-        SizedBox(
-          height: 156,
-          child: ListView.separated(
-            scrollDirection: Axis.horizontal,
-            itemCount: rows.length,
-            separatorBuilder: (_, _) => const SizedBox(width: 12),
-            itemBuilder: (_, index) {
-              final row = rows[index];
-              final position = row['position'] as int;
-              final duration = row['duration'] as int;
-              return SizedBox(
-                width: 256,
-                child: Card(
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => _playHistory(row),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const Icon(Icons.play_circle_outline),
-                          const SizedBox(height: 8),
-                          Text(
-                            row['title'] as String,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+  Widget _history(String title, List<dynamic> rows, {required String empty}) =>
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(title, style: ShadTheme.of(context).textTheme.h4),
+          SizedBox(height: 12),
+          if (rows.isEmpty)
+            ShadCard(
+              padding: EdgeInsets.zero,
+              child: Padding(padding: EdgeInsets.all(24), child: Text(empty)),
+            )
+          else
+            SizedBox(
+              height: 184 + MediaQuery.textScalerOf(context).scale(14) * 2,
+              child: ListView.separated(
+                scrollDirection: Axis.horizontal,
+                itemCount: rows.length,
+                separatorBuilder: (_, _) => SizedBox(width: 12),
+                itemBuilder: (_, index) {
+                  final row = rows[index];
+                  final position = row['position'] as int;
+                  final duration = row['duration'] as int;
+                  return SizedBox(
+                    width: 256,
+                    child: ShadCard(
+                      padding: EdgeInsets.zero,
+                      clipBehavior: Clip.antiAlias,
+                      child: InkWell(
+                        onTap: () => _playHistory(row),
+                        child: Padding(
+                          padding: EdgeInsets.all(16),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Icon(AppIcons.playMedia),
+                              SizedBox(height: 8),
+                              Text(
+                                row['title'] as String,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                              Spacer(),
+                              Text(
+                                row['completed'] == 1
+                                    ? l.rewatch
+                                    : l.watchProgress(
+                                        position ~/ 60000,
+                                        duration ~/ 60000,
+                                      ),
+                              ),
+                              SizedBox(height: 8),
+                              ShadProgress(
+                                value: duration > 0
+                                    ? (position / duration).clamp(0, 1)
+                                    : 0,
+                              ),
+                            ],
                           ),
-                          const Spacer(),
-                          Text(
-                            row['completed'] == 1
-                                ? '已看完 · 重新播放'
-                                : '已看 ${position ~/ 60000} / ${duration ~/ 60000} 分钟',
-                          ),
-                          const SizedBox(height: 8),
-                          LinearProgressIndicator(
-                            value: duration > 0
-                                ? (position / duration).clamp(0, 1)
-                                : 0,
-                          ),
-                        ],
+                        ),
                       ),
                     ),
-                  ),
-                ),
-              );
-            },
-          ),
-        ),
-    ],
-  );
-
-  Widget _settings() => Scaffold(
-    appBar: AppBar(title: const Text('设置')),
-    body: ListView(
-      children: [
-        ListTile(
-          leading: const Icon(Icons.tune),
-          title: const Text('来源默认配置'),
-          subtitle: const Text('管理浏览、搜索与扫描使用的默认来源'),
-          trailing: const Icon(Icons.chevron_right),
-          onTap: () => _branches[3].currentState!.push(
-            MaterialPageRoute<void>(
-              builder: (_) => SourceDefaultsPage(manager: _sources),
+                  );
+                },
+              ),
             ),
-          ),
-        ),
-        ListTile(
-          leading: const Icon(Icons.info_outline),
-          title: const Text('关于 OpenPlayX'),
-          onTap: () => showAboutDialog(
-            context: context,
-            applicationName: 'OpenPlayX',
-            applicationVersion: '1.0.0',
-          ),
-        ),
-      ],
+        ],
+      );
+
+  Widget _settings() => SettingsPage(
+    onSourceDefaults: () => _branches[3].currentState!.push(
+      MaterialPageRoute<void>(
+        builder: (_) => SourceDefaultsPage(manager: _sources),
+      ),
     ),
   );
 
@@ -329,12 +310,12 @@ class _AppShellState extends State<AppShell> {
       return Scaffold(
         body: Center(
           child: _error == null
-              ? const CircularProgressIndicator()
+              ? ContentState(message: l.loading, loading: true)
               : Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
                     Text(_error!),
-                    TextButton(onPressed: _load, child: const Text('重试')),
+                    ShadButton.ghost(onPressed: _load, child: Text(l.retry)),
                   ],
                 ),
         ),
@@ -352,7 +333,11 @@ class _AppShellState extends State<AppShell> {
       },
       child: LayoutBuilder(
         builder: (context, constraints) {
-          final wide = constraints.maxWidth >= 840;
+          final effectiveWidth =
+              constraints.maxWidth /
+              (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1, 2);
+          final wide = effectiveWidth >= 840;
+          final sidebar = effectiveWidth >= 600;
           return Scaffold(
             body: Stack(
               children: [
@@ -360,34 +345,12 @@ class _AppShellState extends State<AppShell> {
                   offstage: _showPlayer,
                   child: Row(
                     children: [
-                      SizedBox(
-                        width: wide ? 208 : 0,
-                        child: wide
-                            ? NavigationRail(
-                                extended: true,
-                                minExtendedWidth: 208,
-                                leading: const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 24),
-                                  child: Text(
-                                    'OpenPlayX',
-                                    style: TextStyle(
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                                destinations: [
-                                  for (final d in AppDestination.values)
-                                    NavigationRailDestination(
-                                      icon: Icon(d.icon),
-                                      label: Text(d.label),
-                                    ),
-                                ],
-                                selectedIndex: _destination,
-                                onDestinationSelected: _select,
-                              )
-                            : null,
-                      ),
+                      if (sidebar)
+                        AppSidebar(
+                          selected: _destination,
+                          onSelected: _select,
+                          compact: !wide,
+                        ),
                       Expanded(
                         child: Column(
                           children: [
@@ -424,19 +387,9 @@ class _AppShellState extends State<AppShell> {
                   ),
               ],
             ),
-            bottomNavigationBar: wide || _showPlayer
+            bottomNavigationBar: sidebar || _showPlayer
                 ? null
-                : NavigationBar(
-                    selectedIndex: _destination,
-                    onDestinationSelected: _select,
-                    destinations: [
-                      for (final d in AppDestination.values)
-                        NavigationDestination(
-                          icon: Icon(d.icon),
-                          label: d.label,
-                        ),
-                    ],
-                  ),
+                : AppBottomBar(selected: _destination, onSelected: _select),
           );
         },
       ),

@@ -1,0 +1,364 @@
+{
+  "@@locale": "en",
+  "home": "Home",
+  "library": "Library",
+  "sources": "Sources",
+  "settings": "Settings",
+  "system": "System",
+  "light": "Light",
+  "dark": "Dark",
+  "appearance": "Appearance",
+  "themeMode": "Theme",
+  "themeDescription": "Apply now and restore on launch",
+  "language": "Language",
+  "preferenceSaveFailed": "Could not save preferences",
+  "preferenceSaveRetry": "Your choice is active. Select it again to retry saving.",
+  "sourceDefaults": "Source defaults",
+  "sourceDefaultsDescription": "Manage default sources for browsing, search and scans",
+  "manage": "Manage",
+  "about": "About OpenPlayX",
+  "aboutDescription": "Your media. A quieter place to play.",
+  "favorite": "Favorite",
+  "unfavorite": "Remove favorite",
+  "retry": "Retry",
+  "cancel": "Cancel",
+  "save": "Save",
+  "add": "Add",
+  "delete": "Delete",
+  "remove": "Remove",
+  "close": "Close",
+  "openFile": "Open file",
+  "welcome": "Welcome to OpenPlayX",
+  "welcomeDescription": "Pick up where you left off, or explore your library.",
+  "continueWatching": "Continue watching",
+  "continueEmpty": "Unfinished videos will appear here after you start watching.",
+  "recentlyPlayed": "Recently played",
+  "recentEmpty": "No playback history yet. Choose a video from your library or sources.",
+  "rewatch": "Finished · Play again",
+  "libraryOpenFailed": "Could not open the library. Try again.",
+  "platformUnsupported": "Playback is unavailable on this platform.",
+  "historyUnavailable": "This history item's resource is unavailable.",
+  "fileUnavailable": "File unavailable",
+  "historyOpenFailed": "Could not open this item. Check the file or source connection.",
+  "libraryLoadFailed": "Could not open the library. Go back and try again.",
+  "createLibrary": "Create library",
+  "contentType": "Content type",
+  "mixed": "Mixed",
+  "movie": "Movies",
+  "series": "Series",
+  "homeVideos": "Home videos",
+  "audio": "Audio",
+  "chooseScopeSource": "Choose a source to scan",
+  "addEnabledSource": "Add and enable a source first.",
+  "bindFailed": "Could not add the source. Check the connection and retry.",
+  "scanFailedRetained": "Scan failed. Indexed media is retained; you can retry.",
+  "localUnavailable": "Local file unavailable",
+  "watchedSuffix": " · Finished",
+  "missingOnScan": "Not found in scan; may be unavailable",
+  "verifyOnPlay": "Availability checked on playback",
+  "chooseVersion": "Choose a version. Each version keeps its own playback timeline.",
+  "season": "Season",
+  "episode": "Episode",
+  "media": "Media",
+  "previousPage": "Previous",
+  "nextPage": "Next",
+  "versionOpenFailed": "Could not open this version. Check its source or choose another.",
+  "addToLibrary": "Add to another library",
+  "chooseLibrary": "Choose library",
+  "correctTitle": "Edit title",
+  "removeFromLibrary": "Remove from this library (keep files and media records)",
+  "continueIncludingHistory": "Continue watching (including items outside your library)",
+  "allLibraries": "All libraries",
+  "renameLibrary": "Rename library",
+  "addSourceScope": "Add source scope",
+  "deleteLibrary": "Delete library",
+  "deleteLibraryConfirm": "Delete this library?",
+  "deleteLibraryDescription": "Remove the library and its memberships. Files, media and favorites are kept.",
+  "searchLibrary": "Search library",
+  "allSources": "All sources",
+  "allTypes": "All types",
+  "video": "Video",
+  "allWatchStates": "All watch states",
+  "watched": "Finished",
+  "unwatched": "Unfinished",
+  "restoreIgnored": "Restore ignored items on next scan",
+  "sourceNeedsSetup": "Source setup required",
+  "rescan": "Rescan",
+  "removeBinding": "Remove binding",
+  "removeBindingConfirm": "Remove scan binding?",
+  "createFirstLibrary": "Create your first library",
+  "noMatchingMedia": "No matching media",
+  "libraryEmpty": "No media yet. Add a source scope or rescan.",
+  "browseFailed": "Could not browse. Check the source and retry.",
+  "scopeDescription": "Scanning indexes media without downloading it. Choose an authorized folder or server library.",
+  "parent": "Parent folder",
+  "loadMore": "Load more",
+  "rootFolder": "Root folder",
+  "confirmScanScope": "Scan this scope",
+  "chooseScanScope": "Choose scan scope",
+  "defaultSaveFailed": "Could not save the default source.",
+  "defaultDescription": "Defaults apply when no source is selected. Existing resources keep their original source and account.",
+  "defaultBrowse": "Default browsing source",
+  "defaultResolve": "Default resolution source",
+  "chooseEachTime": "Choose each time",
+  "defaultUnavailable": "A default source is unavailable. Choose again; no other account was substituted.",
+  "searchScope": "Multi-source search scope",
+  "searchScopeDescription": "Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.",
+  "sourceDefaultsTitle": "Default sources and search scope",
+  "localFolder": "Local folder",
+  "pickFolderFailed": "Could not choose a folder. Try again.",
+  "openBrowserFailed": "Could not open the browser. Use the sign-in link to retry.",
+  "noPlexServers": "No accessible servers in this Plex account.",
+  "plexSignInFailed": "Plex sign-in failed. Try again.",
+  "enterToken": "Enter an access token to connect.",
+  "signInPlexFirst": "Sign in to Plex and choose a server first.",
+  "connectionFormFailed": "Connection failed. Check the address and credentials.",
+  "hidePassword": "Hide password",
+  "showPassword": "Show password",
+  "address": "Address",
+  "addressHint": "192.168.1.10 or https://media.example.com",
+  "username": "Username",
+  "guestHelp": "Leave username and password blank for guest access.",
+  "password": "Password",
+  "keepCredentials": "Leave blank to keep the current sign-in.",
+  "advanced": "Advanced",
+  "port": "Port",
+  "optionalPath": "Path (optional)",
+  "smbPathHint": "Share/video-folder",
+  "serverPathHint": "For example jellyfin; otherwise leave blank.",
+  "optionalDomain": "Workgroup (optional)",
+  "waitingPlex": "Waiting for Plex authorization…",
+  "signInPlex": "Sign in to Plex",
+  "signInPlexAgain": "Sign in to Plex again",
+  "plexBrowserHelp": "Sign in to Plex in your browser, then choose a server.",
+  "reopenSignIn": "Reopen sign-in page",
+  "server": "Server",
+  "manualServer": "Connect manually",
+  "serverAddress": "Server address",
+  "portInAddress": "Include a custom port in the address.",
+  "accessToken": "Access token",
+  "addSource": "Add media source",
+  "editSource": "Edit media source",
+  "type": "Type",
+  "optionalName": "Name (optional)",
+  "chooseFolder": "Choose folder",
+  "folderAccessHelp": "Choose a folder this app is allowed to access.",
+  "loadSourcesFailed": "Could not load sources. Try again.",
+  "filePlayFailed": "Could not play this file.",
+  "previewLimit": "Preview limit of 500 files reached; results are incomplete.",
+  "previewDescription": "Access scopes and scan exclusions apply. This preview does not update the library or create a background index.",
+  "scanFailed": "Scan failed.",
+  "backToParent": "Back to parent folder",
+  "sourcesEmpty": "Add a local folder, SMB, Jellyfin or Plex source.",
+  "disableSourceConfirm": "Disable media source?",
+  "disable": "Disable",
+  "toggleSourceFailed": "Could not change source status. Try again.",
+  "verifyConnection": "Test connection",
+  "connectionFailed": "Connection failed.",
+  "previewScan": "Preview scan",
+  "deleteSource": "Delete media source",
+  "deleteSourceFailed": "Could not delete the source. Try again.",
+  "folderEmpty": "No browsable media in this folder.",
+  "reloadConfiguration": "Reload configuration",
+  "defaultBrowseUnavailable": "Default source unavailable. Choose again; no other account was substituted.",
+  "browseDefault": "Browse default",
+  "capabilityDefaults": "Default sources",
+  "addSourceShort": "Add source",
+  "playerClosed": "Player is closed",
+  "historySaveFailed": "Could not save history. Playback can continue.",
+  "adjustFailed": "Adjustment failed. Try again.",
+  "audioTrack": "Audio track",
+  "noAudioTracks": "No selectable audio tracks",
+  "playbackCommandFailed": "Playback failed. Reopen the media file.",
+  "openFileFailed": "Could not open the file. Choose again.",
+  "stopPlaybackFailed": "Could not stop playback. Try going back again.",
+  "volume": "Volume",
+  "brightness": "Brightness",
+  "rewind": "Back 10 seconds",
+  "pause": "Pause",
+  "play": "Play",
+  "forward": "Forward 10 seconds",
+  "playbackSpeed": "Playback speed",
+  "morePlaybackSettings": "More playback settings",
+  "lockControls": "Lock controls",
+  "playerVolume": "Player volume",
+  "playerEmpty": "Open a video to start watching",
+  "back": "Back",
+  "playbackFailed": "Playback failed. Check the file or choose another.",
+  "boost": "Temporary 2× · Release to restore",
+  "unlockControls": "Unlock controls",
+  "loading": "Loading…",
+  "watchProgress": "Watched {position} / {duration} min",
+  "@watchProgress": {
+    "placeholders": {
+      "position": {
+        "type": "int"
+      },
+      "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "watchedMinutes": " · Watched {minutes} min",
+  "@watchedMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
+  "localResource": "Local file (access checked on playback){progress}",
+  "@localResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "setupResource": "Configure or enable the source{progress}",
+  "@setupResource": {
+    "placeholders": {
+      "progress": {
+        "type": "String"
+      }
+    }
+  },
+  "removeBindingDescription": "This binding links {count} items. Remove automatic memberships only when no source evidence remains. Manual memberships, shared media and files are kept.",
+  "@removeBindingDescription": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "sourceVersion": "{kind} · Plugin {plugin} · Config v{config} · r{revision}",
+  "@sourceVersion": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      },
+      "plugin": {
+        "type": "String"
+      },
+      "config": {
+        "type": "int"
+      },
+      "revision": {
+        "type": "int"
+      }
+    }
+  },
+  "disableSourceDescription": "{playing} playing, {running} requests, {defaults} default bindings. New requests will be rejected and defaults cleared. Current playback can finish. Configuration and favorites are kept.",
+  "@disableSourceDescription": {
+    "placeholders": {
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "defaults": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteSourceDescription": "Remove this source configuration and credential reference. Files and favorites are kept. {defaults} default bindings and search-scope bindings will be cleared. {playing} playing items and {running} requests can finish before connections are released.",
+  "@deleteSourceDescription": {
+    "placeholders": {
+      "defaults": {
+        "type": "int"
+      },
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      }
+    }
+  },
+  "previewTitle": "Scan preview: {name}",
+  "@previewTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "filesFound": "{count} files found.",
+  "@filesFound": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "deleteNamedSource": "Delete {name}?",
+  "@deleteNamedSource": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "numberedAudioTrack": "Audio track {id}",
+  "@numberedAudioTrack": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
+  "remainingTime": "{time} remaining",
+  "@remainingTime": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
+  "readSpeed": "Read {speed} MB/s",
+  "@readSpeed": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
+  "notVerified": "Not verified yet",
+  "disabled": "Disabled",
+  "pendingApply": "Pending",
+  "applied": "Applied",
+  "applyFailed": "Could not apply",
+  "credentialsMissing": "Sign-in required",
+  "credentialsReady": "Credentials saved",
+  "localSource": "Local folder",
+  "credentialsUnknown": "Credential status unknown",
+  "screenOrientation": "Screen orientation",
+  "orientationSystem": "Follow system",
+  "orientationPortrait": "Portrait",
+  "orientationLandscape": "Landscape",
+  "videoRotation": "Video rotation",
+  "rotationOriginal": "Original (0°)",
+  "sourceReady": "Ready",
+  "sourceConnectionFailed": "Connection failed",
+  "sourceInitialized": "Initialized · Awaiting connection test",
+  "sourceSaved": "Saved · Applies on next access",
+  "credentialsNotRequired": "No credentials required",
+  "credentialsUnverified": "Credentials saved · Not verified",
+  "credentialsExpiring": "Token expires within 7 days",
+  "credentialsExpired": "Token expired",
+  "credentialsRejected": "Authentication failed · Update credentials",
+  "credentialsVerified": "Connection verified",
+  "playbackPosition": "Playback position",
+  "shadHours": "Hours",
+  "shadMinutes": "Minutes",
+  "shadSeconds": "Seconds",
+  "shadPeriod": "Period",
+  "shadMorning": "AM",
+  "shadSelectDate": "Select date",
+  "shadCut": "Cut",
+  "shadCopy": "Copy",
+  "shadPaste": "Paste",
+  "shadSelectAll": "Select all",
+  "shadDone": "Done"
+}

@@ -1,3 +1,6 @@
+import '../../app_test_host.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
@@ -65,25 +68,25 @@ void main() {
       final sources = MemorySources();
       final backend = FakeBackend();
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: AppShell(backend: backend, sources: sources, library: library),
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('来源').last);
+      await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('添加源'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButtonFormField<SourceKind>));
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
       await tester.pumpAndSettle();
       await tester.tap(find.text('SMB').last);
       await tester.pumpAndSettle();
-      final fields = find.byType(TextField);
+      final fields = find.byType(EditableText);
       await tester.enterText(fields.at(0), 'NAS');
       await tester.enterText(fields.at(1), 'smb://localhost/media');
       await tester.enterText(fields.at(2), 'viewer');
       await tester.enterText(fields.at(3), 'password');
-      expect(tester.widget<TextField>(fields.at(3)).obscureText, isTrue);
+      expect(tester.widget<EditableText>(fields.at(3)).obscureText, isTrue);
       await tester.ensureVisible(find.text('添加'));
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
@@ -91,7 +94,10 @@ void main() {
       expect(sources.secrets.single, 'password');
       await tester.tap(find.byTooltip('编辑媒体源'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextField).first, 'Living Room NAS');
+      await tester.enterText(
+        find.byType(EditableText).first,
+        'Living Room NAS',
+      );
       await tester.ensureVisible(find.text('保存'));
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
@@ -112,6 +118,7 @@ void main() {
       );
       expect(find.text('Demo.mp4'), findsOneWidget);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       await tester.pump();
       expect(sources.releases, 1);
     },
@@ -132,7 +139,7 @@ void main() {
           ),
         );
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: AppShell(
             backend: FakeBackend(),
             sources: sources,
@@ -141,7 +148,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('来源').last);
+      await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('删除媒体源'));
       await tester.pumpAndSettle();
@@ -154,6 +161,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(sources.saved, isEmpty);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     },
   );
 }
