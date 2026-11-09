@@ -13,7 +13,9 @@ import 'source_config.dart';
 import 'source_schema.dart';
 
 class SourceSelection {
-  const SourceSelection(this.name, this.stream);
+  const SourceSelection(this.name, this.stream, {this.ref, this.entry});
+  final SourceEntry? entry;
+  final ResourceRef? ref;
   final String name;
   final PlayableStream stream;
 }

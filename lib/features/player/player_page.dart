@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -7,6 +8,9 @@ import '../../data/files/local_media_picker.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../sources/source_page.dart';
+import '../library/library_page.dart';
+import '../../services/library/library_service.dart';
+import '../../data/sources/source_config.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
@@ -14,9 +18,11 @@ class PlayerPage extends StatefulWidget {
     this.backend,
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
+    this.libraryService,
   });
   final PlayerBackend? backend;
   final SourceManager? sourceManager;
+  final LibraryService? libraryService;
   final Future<LocalMedia?> Function() pickMedia;
   @override
   State<PlayerPage> createState() => _PlayerPageState();
@@ -25,6 +31,129 @@ class PlayerPage extends StatefulWidget {
 class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   late final PlayerBackend _backend;
   late final SourceManager _sources;
+  LibraryService? _library;
+  Future<LibraryService>? _openingLibrary;
+  String? _resource;
+  String? _session;
+  Duration? _resume;
+  bool _resuming = false;
+  int _trackingGeneration = 0;
+  DateTime? _lastCheckpoint;
+  Future<LibraryService> _ensureLibrary() async {
+    if (_library != null) return _library!;
+    try {
+      final service = await (_openingLibrary ??= LibraryService.open());
+      if (!mounted) {
+        service.close();
+        throw StateError('播放器已关闭');
+      }
+      return _library = service;
+    } catch (_) {
+      _openingLibrary = null;
+      rethrow;
+    }
+  }
+
+  void _checkpoint({bool force = false}) {
+    final value = _backend.value;
+    if (_resource == null ||
+        _session == null ||
+        _resume != null ||
+        _resuming ||
+        ![
+          PlaybackStatus.playing,
+          PlaybackStatus.paused,
+          PlaybackStatus.ended,
+        ].contains(value.status)) {
+      return;
+    }
+    final now = DateTime.now();
+    if (!force &&
+        _lastCheckpoint != null &&
+        now.difference(_lastCheckpoint!).inSeconds < 5) {
+      return;
+    }
+    _lastCheckpoint = now;
+    try {
+      _library?.saveProgress(
+        _resource!,
+        _session!,
+        value.position,
+        value.duration,
+        completed: value.status == PlaybackStatus.ended,
+      );
+    } catch (_) {
+      _resource = null;
+      _session = null;
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+      }
+    }
+  }
+
+  void _finishTracking() {
+    _checkpoint(force: true);
+    _trackingGeneration++;
+    _resource = null;
+    _resuming = false;
+    _session = null;
+    _resume = null;
+    _lastCheckpoint = null;
+  }
+
+  Future<void> _track(
+    ResourceRef ref,
+    String name, {
+    String? localPath,
+    int? generation,
+    SourceEntry? entry,
+  }) async {
+    generation ??= _trackingGeneration;
+    try {
+      final service = await _ensureLibrary();
+      if (!mounted || generation != _trackingGeneration) return;
+      final media = service.register(
+        entry ?? SourceEntry(ref, name, isFolder: false),
+        localPath: localPath,
+      );
+      final resource =
+          service.resourceFor(ref) ?? service.resources(media).first;
+      final id = resource['id'] as String;
+      final checkpoint = service.checkpoint(id);
+      _resource = id;
+      if (checkpoint != null &&
+          checkpoint['completed'] == 0 &&
+          (checkpoint['position'] as int) > 0) {
+        _resume = Duration(milliseconds: checkpoint['position'] as int);
+      }
+      _session = service.beginSession(id);
+      _onPlayback();
+    } catch (_) {
+      _openingLibrary = null;
+      // A storage error must not prevent direct playback.
+      if (mounted) {
+        ScaffoldMessenger.of(context)
+            .showSnackBar(const SnackBar(content: Text('观看记录暂时无法保存，仍可继续播放')));
+      }
+    }
+  }
+
+  Future<void> _trackLocal(LocalMedia media) async {
+    final generation = _trackingGeneration;
+    var path = media.uri.toFilePath();
+    try {
+      path = await File(path).resolveSymbolicLinks();
+    } catch (_) {}
+    if (!mounted || generation != _trackingGeneration) return;
+    await _track(
+      ResourceRef('@local', path),
+      media.name,
+      localPath: path,
+      generation: generation,
+    );
+  }
+
   PlayableStream? _stream;
   String? _name;
   String? _error;
@@ -152,11 +281,44 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     super.initState();
     _backend = widget.backend ?? LibVlcBackend();
     _sources = widget.sourceManager ?? SourceManager();
+    _library = widget.libraryService;
     _backend.addListener(_onPlayback);
     WidgetsBinding.instance.addObserver(this);
   }
 
   void _onPlayback() {
+    final snapshot = _backend.value;
+    if (_resume != null &&
+        snapshot.canSeek &&
+        snapshot.duration > Duration.zero &&
+        [
+          PlaybackStatus.playing,
+          PlaybackStatus.paused,
+        ].contains(snapshot.status)) {
+      final target = _resume!;
+      _resume = null;
+      _resuming = true;
+      // Only this exact resource's timeline is eligible for continuation.
+      final generation = _trackingGeneration;
+      unawaited(
+        _adjust(
+          () => _backend.seek(
+            target < snapshot.duration ? target : Duration.zero,
+          ),
+        ).whenComplete(() {
+          if (generation == _trackingGeneration) {
+            _resuming = false;
+            _checkpoint(force: true);
+          }
+        }),
+      );
+      return;
+    }
+    _checkpoint(
+      force:
+          snapshot.status == PlaybackStatus.paused ||
+          snapshot.status == PlaybackStatus.ended,
+    );
     if (_lastStatus != _backend.value.status) {
       _lastStatus = _backend.value.status;
       if (mounted) setState(() => _controlsVisible = true);
@@ -177,6 +339,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         state == AppLifecycleState.paused ||
         state == AppLifecycleState.detached;
     if (_background || state == AppLifecycleState.inactive) _endBoost();
+    if (_background) _checkpoint(force: true);
     if (_background && _name != null) unawaited(_command(_backend.pause));
   }
 
@@ -206,6 +369,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       final media = await widget.pickMedia();
       if (media == null || !mounted) return;
+      _finishTracking();
       setState(() {
         _name = media.name;
         _error = null;
@@ -218,6 +382,9 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         await _stream?.release();
         _stream = null;
       });
+      if (_error == null && media.uri.scheme == 'file') {
+        unawaited(_trackLocal(media));
+      }
       if (_background && mounted) await _command(_backend.pause);
     } catch (error, stack) {
       debugPrint('File selection failed: $error\n$stack');
@@ -230,7 +397,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
-  Future<void> _openSource() async {
+  Future<void> _openSource({bool library = false}) async {
     _endBoost();
     await _speedCommands;
     if (!mounted) return;
@@ -240,14 +407,22 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _controlsVisible = true;
     });
     try {
+      _checkpoint(force: true);
+      final service = library ? await _ensureLibrary() : _library;
+      if (!mounted) return;
       final selection = await Navigator.of(context).push<SourceSelection>(
-        MaterialPageRoute(builder: (_) => SourcePage(manager: _sources)),
+        MaterialPageRoute(
+          builder: (_) => library
+              ? LibraryPage(sources: _sources, service: service)
+              : SourcePage(manager: _sources),
+        ),
       );
       if (selection == null) return;
       if (!mounted) {
         await selection.stream.release();
         return;
       }
+      _finishTracking();
       final previous = _stream;
       _stream = selection.stream;
       setState(() {
@@ -261,7 +436,27 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         await _backend.setSpeed(_speed);
       });
       await previous?.release();
+      if (_error == null && selection.ref != null) {
+        String? localPath;
+        final config = _sources.configs
+            .where((c) => c.id == selection.ref!.instanceId)
+            .firstOrNull;
+        if (config?.kind == SourceKind.local ||
+            selection.ref!.instanceId == '@local') {
+          localPath = selection.ref!.id;
+        }
+        unawaited(
+          _track(
+            selection.ref!,
+            selection.name,
+            localPath: localPath,
+            entry: selection.entry,
+          ),
+        );
+      }
       if (_background && mounted) await _command(_backend.pause);
+    } catch (_) {
+      if (mounted) setState(() => _error = '无法打开媒体库或来源，请重试');
     } finally {
       if (mounted) {
         setState(() => _busy = false);
@@ -272,6 +467,8 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _finishTracking();
+    if (widget.libraryService == null) _library?.close();
     _hideTimer?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     _backend.removeListener(_onPlayback);
@@ -757,7 +954,12 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                           _icon(
                             '媒体源',
                             Icons.video_library_outlined,
-                            _busy ? null : _openSource,
+                            _busy ? null : () => _openSource(),
+                          ),
+                          _icon(
+                            '媒体库',
+                            Icons.video_library_outlined,
+                            _busy ? null : () => _openSource(library: true),
                           ),
                           _icon(
                             '打开文件',

@@ -81,7 +81,9 @@ class _SourcePageState extends State<SourcePage> {
         await stream.release();
         return;
       }
-      Navigator.of(context).pop(SourceSelection(entry.name, stream));
+      Navigator.of(
+        context,
+      ).pop(SourceSelection(entry.name, stream, ref: entry.ref, entry: entry));
     } catch (error) {
       if (mounted) {
         setState(() {
