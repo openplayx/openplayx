@@ -31,9 +31,6 @@ dependencies:
   flutter:
     sdk: flutter
 
-  # The following adds the Cupertino Icons font to your application.
-  # Use with the CupertinoIcons class for iOS style icons.
-  cupertino_icons: ^1.0.8
   openplayx_playback:
     path: packages/playback
   file_selector: ^1.1.0
@@ -43,7 +40,12 @@ dependencies:
   sqlite3: ^3.3.1
   path_provider: ^2.1.6
   url_launcher: ^6.3.3
+  shadcn_ui: ^0.59.0
+  lucide_icons_flutter: ^3.1.25
+  flutter_localizations:
+    sdk: flutter
 
+  intl: ^0.20.3
 dev_dependencies:
   integration_test:
     sdk: flutter
@@ -62,6 +64,7 @@ dev_dependencies:
 
 # The following section is specific to Flutter packages.
 flutter:
+  generate: true
   assets:
     - test/fixtures/test_video.mp4
 

@@ -298,5 +298,23 @@ class SourceConfigurationService {
     }
   }
 
+  String? appearance(String key) {
+    final rows = _db.select(
+      "SELECT value_json FROM settings WHERE namespace='appearance' AND scope='user' AND owner_id='local' AND key=?",
+      [key],
+    );
+    return rows.isEmpty
+        ? null
+        : jsonDecode(rows.first['value_json'] as String) as String?;
+  }
+
+  void saveAppearance(String key, String value) => _transaction(() {
+    _db.execute(
+      "INSERT INTO settings VALUES ('appearance','user','local',?,?,1) "
+      'ON CONFLICT(namespace,scope,owner_id,key) DO UPDATE SET value_json=excluded.value_json, revision=settings.revision+1',
+      [key, jsonEncode(value)],
+    );
+  });
+
   void close() => _db.close();
 }

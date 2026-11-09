@@ -1,3 +1,7 @@
+import '../app_test_host.dart';
+
+import 'package:openplayx/ui/adaptive/app_navigation.dart';
+
 import 'dart:async';
 
 import 'package:flutter/material.dart';
@@ -33,7 +37,7 @@ void main() {
         final selection = Completer<LocalMedia?>();
         var pickerCalls = 0;
         await tester.pumpWidget(
-          MaterialApp(
+          TestApp(
             home: AppShell(
               library: library,
               sources: ShellSources(),
@@ -67,7 +71,7 @@ void main() {
           expect(find.byTooltip('返回'), findsNothing);
           expect(backend.opened, isEmpty);
           expect(backend.value.status, PlaybackStatus.idle);
-          await tester.tap(find.text('媒体库').last);
+          await tester.tap(find.byKey(const ValueKey('nav-library')));
           await tester.pumpAndSettle();
           expect(find.text('创建第一个媒体库'), findsOneWidget);
         } else {
@@ -77,6 +81,7 @@ void main() {
         }
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
         library.close();
       },
     );
@@ -93,7 +98,7 @@ void main() {
       addTearDown(tester.view.resetDevicePixelRatio);
       addTearDown(tester.view.resetPhysicalSize);
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: AppShell(
             library: service,
             sources: ShellSources(),
@@ -102,26 +107,27 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byType(NavigationRail), findsOneWidget);
+      expect(find.byType(AppSidebar), findsOneWidget);
       expect(find.text('继续观看'), findsOneWidget);
       expect(find.text('最近播放'), findsOneWidget);
-      await tester.tap(find.text('媒体库').first);
+      await tester.tap(find.byKey(const ValueKey('nav-library')));
       await tester.pumpAndSettle();
       expect(find.text('全部媒体库'), findsOneWidget);
-      await tester.tap(find.text('来源').first);
+      await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       expect(find.text('NAS'), findsOneWidget);
       expect(find.byType(SegmentedButton<bool>), findsNothing);
       tester.view.physicalSize = const Size(390, 760);
       await tester.pumpAndSettle();
-      expect(find.byType(NavigationBar), findsOneWidget);
+      expect(find.byType(AppBottomBar), findsOneWidget);
       expect(find.text('NAS'), findsOneWidget);
       expect(find.byType(SegmentedButton<bool>), findsNothing);
-      await tester.tap(find.text('设置').last);
+      await tester.tap(find.byKey(const ValueKey('nav-settings')));
       await tester.pumpAndSettle();
       expect(find.text('来源默认配置'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       service.close();
     },
   );
@@ -143,7 +149,7 @@ void main() {
       final sources = ShellSources();
       final backend = FakeBackend();
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: AppShell(library: service, sources: sources, backend: backend),
         ),
       );
@@ -171,7 +177,7 @@ void main() {
         await tester.tap(find.byTooltip('返回'));
       }
       await tester.pumpAndSettle();
-      await tester.tap(find.text('媒体库').last);
+      await tester.tap(find.byKey(const ValueKey('nav-library')));
       await tester.pumpAndSettle();
       expect(backend.opened, hasLength(1));
       expect(backend.released, isFalse);
@@ -181,13 +187,14 @@ void main() {
       expect(backend.value.status, PlaybackStatus.idle);
       expect(find.byTooltip('暂停'), findsNothing);
       expect(tester.takeException(), isNull);
-      await tester.tap(find.text('首页').last);
+      await tester.tap(find.byKey(const ValueKey('nav-home')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Film').first);
       await tester.pumpAndSettle();
       expect(backend.opened, hasLength(2));
       expect(backend.seeks.last, const Duration(seconds: 35));
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       service.close();
     });
   }

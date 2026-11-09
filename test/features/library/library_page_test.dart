@@ -1,3 +1,5 @@
+import '../../app_test_host.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
@@ -40,14 +42,14 @@ void main() {
     'create library, select scope, scan, favorite, search and safely remove',
     (tester) async {
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: LibraryPage(sources: Sources(), service: service),
         ),
       );
       await tester.pumpAndSettle();
       await tester.tap(find.text('创建第一个媒体库'));
       await tester.pumpAndSettle();
-      await tester.enterText(find.byType(TextFormField), 'Movies');
+      await tester.enterText(find.byType(EditableText), 'Movies');
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('电影'));
@@ -61,24 +63,32 @@ void main() {
       await tester.tap(find.text('确认扫描此范围'));
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsOneWidget);
-      await tester.tap(find.byIcon(Icons.favorite_border));
+      await tester.ensureVisible(find.byTooltip('收藏'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('收藏'));
       await tester.pumpAndSettle();
       expect(service.query(library, favorites: true), hasLength(1));
-      await tester.enterText(find.byType(TextField), 'missing');
+      await tester.ensureVisible(find.byType(EditableText));
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byType(EditableText), 'missing');
       await tester.pumpAndSettle();
       expect(find.text('没有符合条件的媒体'), findsOneWidget);
-      await tester.enterText(find.byType(TextField), '');
+      await tester.enterText(find.byType(EditableText), '');
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.text('Film.mp4'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Film.mp4'));
       await tester.pumpAndSettle();
       final remove = find.text('从当前库移除（保留原文件和媒体记录）');
       await tester.ensureVisible(remove);
+      await tester.pumpAndSettle();
       await tester.tap(remove);
       await tester.pumpAndSettle();
       expect(service.query(library), isEmpty);
       expect(service.db.select('SELECT * FROM resources'), hasLength(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
     },
   );
   testWidgets('library, history and bindings fit narrow and short layouts', (
@@ -108,7 +118,7 @@ void main() {
     for (final size in [const Size(320, 480), const Size(760, 320)]) {
       tester.view.physicalSize = size;
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: LibraryPage(sources: Sources(), service: service),
         ),
       );
@@ -116,5 +126,6 @@ void main() {
       expect(tester.takeException(), isNull);
     }
     await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
   });
 }

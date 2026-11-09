@@ -2,11 +2,22 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../ui/tokens/app_spacing.dart';
+
+import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/media/content_row.dart';
+import '../../ui/icons/app_icons.dart';
+
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_config.dart';
 import '../../data/sources/source_manager.dart';
 import 'source_instance_form.dart';
 import 'source_defaults_page.dart';
+import 'source_presentation.dart';
 
 class SourcePage extends StatefulWidget {
   const SourcePage({super.key, required this.manager, this.onPlay});
@@ -17,6 +28,7 @@ class SourcePage extends StatefulWidget {
 }
 
 class _SourcePageState extends State<SourcePage> {
+  AppLocalizations get l => AppLocalizations.of(context);
   SourceConfig? _source;
   final _nodes = <SourceEntry>[];
   final _entries = <SourceEntry>[];
@@ -59,7 +71,7 @@ class _SourcePageState extends State<SourcePage> {
       }
     } catch (error) {
       if (mounted) {
-        _error = error is PluginException ? error.message : '加载媒体源失败，请重试。';
+        _error = error is PluginException ? error.message : l.loadSourcesFailed;
       }
     } finally {
       if (mounted) setState(() => _busy = false);
@@ -97,7 +109,7 @@ class _SourcePageState extends State<SourcePage> {
     } catch (error) {
       if (mounted) {
         setState(() {
-          _error = error is PluginException ? error.message : '无法播放此文件。';
+          _error = error is PluginException ? error.message : l.filePlayFailed;
           _busy = false;
         });
       }
@@ -117,7 +129,11 @@ class _SourcePageState extends State<SourcePage> {
 
   String _deletionMessage(String id) {
     final impact = widget.manager.impact(id);
-    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。默认能力绑定 ${impact.defaultCapabilities.length} 项和搜索范围绑定将被清除。当前播放 ${impact.playing} 个、进行中请求 ${impact.running} 个可完成，之后释放连接。';
+    return l.deleteSourceDescription(
+      impact.defaultCapabilities.length,
+      impact.playing,
+      impact.running,
+    );
   }
 
   Future<void> _scan(SourceConfig config) async {
@@ -138,35 +154,38 @@ class _SourcePageState extends State<SourcePage> {
         _scanIterator = null;
       }
       if (!mounted) return;
-      await showDialog<void>(
+      await showShadDialog<void>(
         context: context,
-        builder: (context) => AlertDialog(
-          title: Text('扫描预览：${config.name}'),
-          content: SizedBox(
+        builder: (context) => ShadDialog(
+          title: Text(l.previewTitle(config.name)),
+          actions: [
+            ShadButton.ghost(
+              onPressed: () => Navigator.pop(context),
+              child: Text(l.close),
+            ),
+          ],
+          child: SizedBox(
             width: 480,
             height: 320,
             child: ListView(
               children: [
                 Text(
                   entries.length >= 500
-                      ? '已达到预览上限 500 个文件，结果不完整。'
-                      : '发现 ${entries.length} 个文件。',
+                      ? l.previewLimit
+                      : l.filesFound(entries.length),
                 ),
-                const Text('已应用访问范围和扫描排除项；此操作不写入媒体库、不创建后台索引。'),
-                for (final entry in entries) ListTile(title: Text(entry.name)),
+                Text(l.previewDescription),
+                for (final entry in entries)
+                  ContentRow(title: Text(entry.name)),
               ],
             ),
           ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('关闭'),
-            ),
-          ],
         ),
       );
     } catch (error) {
-      if (mounted) _error = error is PluginException ? error.message : '扫描失败。';
+      if (mounted) {
+        _error = error is PluginException ? error.message : l.scanFailed;
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -178,101 +197,32 @@ class _SourcePageState extends State<SourcePage> {
     onPopInvokedWithResult: (didPop, _) {
       if (!didPop && _source != null && !_busy) _back();
     },
-    child: Scaffold(
-      appBar: AppBar(
-        title: Text(
-          _nodes.isNotEmpty ? _nodes.last.name : _source?.name ?? '来源',
-        ),
-        actions: [
-          if (_source == null)
-            IconButton(
-              tooltip: '重新加载配置',
-              icon: const Icon(Icons.refresh),
-              onPressed: _busy ? null : () => _load(),
-            ),
-          if (_source == null &&
-              widget.manager.bindings.defaults['source.browse'] != null)
-            TextButton(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      final id =
-                          widget.manager.bindings.defaults['source.browse'];
-                      final config = widget.manager.configs
-                          .where((c) => c.id == id && c.enabled)
-                          .firstOrNull;
-                      if (config == null) {
-                        setState(() => _error = '默认实例不可用，请重新选择，未自动切换其他账号。');
-                        return;
-                      }
-                      _source = config;
-                      _load();
-                    },
-              child: const Text('默认浏览'),
-            ),
-          if (_source == null)
-            IconButton(
-              tooltip: '能力默认实例',
-              icon: const Icon(Icons.tune),
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      await Navigator.of(context).push(
-                        MaterialPageRoute<void>(
-                          builder: (_) =>
-                              SourceDefaultsPage(manager: widget.manager),
-                        ),
-                      );
-                      if (mounted) await _load();
-                    },
-            ),
-          if (_source == null)
-            TextButton.icon(
-              onPressed: _busy
-                  ? null
-                  : () async {
-                      await showDialog<bool>(
-                        context: context,
-                        barrierDismissible: false,
-                        builder: (_) =>
-                            SourceInstanceForm(manager: widget.manager),
-                      );
-                      if (mounted) await _load();
-                    },
-              icon: const Icon(Icons.add),
-              label: const Text('添加源'),
-            ),
-        ],
-      ),
+    child: AppPage(
       body: Column(
         children: [
           if (_source != null)
-            ListTile(
-              leading: const Icon(Icons.arrow_upward),
-              title: const Text('返回上一级'),
+            ContentRow(
+              leading: Icon(AppIcons.parent),
+              title: Text(l.backToParent),
               onTap: _busy ? null : _back,
             ),
-          if (_busy) const LinearProgressIndicator(),
+          if (_busy) ShadProgress(),
           for (final issue in widget.manager.configurationIssues)
-            ListTile(
-              leading: const Icon(Icons.warning_amber),
+            ContentRow(
+              leading: Icon(AppIcons.warning),
               title: Text(issue.message),
               subtitle: Text(issue.instanceId),
             ),
           if (_error != null)
             Padding(
-              padding: const EdgeInsets.all(16),
+              padding: EdgeInsets.all(16),
               child: Column(
                 children: [
-                  Text(
-                    _error!,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.error,
-                    ),
-                  ),
-                  TextButton(
+                  ShadAlert.destructive(title: Text(_error!)),
+                  ShadButton.ghost(
                     onPressed: _busy ? null : _load,
-                    child: const Text('重试'),
+                    enabled: !(_busy),
+                    child: Text(l.retry),
                   ),
                 ],
               ),
@@ -280,264 +230,433 @@ class _SourcePageState extends State<SourcePage> {
           Expanded(
             child: _source == null
                 ? ListView(
+                    padding: AppSpacing.page(context),
                     children: [
                       if (!_busy && widget.manager.configs.isEmpty)
-                        const Padding(
+                        Padding(
                           padding: EdgeInsets.all(32),
-                          child: Text('添加本地文件夹、SMB、Jellyfin 或 Plex 来源。'),
+                          child: Text(l.sourcesEmpty),
                         ),
                       for (final source in widget.manager.configs)
-                        Card(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              ListTile(
-                                leading: Icon(
-                                  source.kind == SourceKind.local
-                                      ? Icons.folder
-                                      : Icons.dns,
+                        Padding(
+                          padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                          child: ShadCard(
+                            padding: EdgeInsets.zero,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                ContentRow(
+                                  leading: Icon(
+                                    source.kind == SourceKind.local
+                                        ? AppIcons.folder
+                                        : AppIcons.server,
+                                  ),
+                                  title: Text(source.name),
+                                  subtitle: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l.sourceVersion(
+                                          source.kind == SourceKind.local
+                                              ? l.localSource
+                                              : source.kind.label,
+                                          source.pluginVersion,
+                                          source.configVersion,
+                                          source.revision,
+                                        ),
+                                      ),
+                                      Text(
+                                        SourcePresentation.application(
+                                          l,
+                                          widget.manager.applicationStatus(
+                                            source.id,
+                                          ),
+                                        ),
+                                      ),
+                                      Text(
+                                        SourcePresentation.credential(
+                                          l,
+                                          widget.manager
+                                              .credentialStatus(source.id)
+                                              .authorization,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  onTap: _busy || !source.enabled
+                                      ? null
+                                      : () {
+                                          _source = source;
+                                          _load();
+                                        },
                                 ),
-                                title: Text(source.name),
-                                subtitle: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                Wrap(
+                                  alignment: WrapAlignment.end,
                                   children: [
-                                    Text(
-                                      '${source.kind.label} · 插件 ${source.pluginVersion} · 配置 v${source.configVersion} · r${source.revision}',
-                                    ),
-                                    Text(
-                                      widget.manager.applicationLabel(
-                                        source.id,
+                                    Semantics(
+                                      label: source.name,
+                                      child: ShadSwitch(
+                                        value: source.enabled,
+                                        onChanged: _busy
+                                            ? null
+                                            : (enabled) async {
+                                                final impact = widget.manager
+                                                    .impact(source.id);
+                                                if (!enabled &&
+                                                    (impact.playing > 0 ||
+                                                        impact.running > 0 ||
+                                                        impact
+                                                            .defaultCapabilities
+                                                            .isNotEmpty)) {
+                                                  final accepted = await showShadDialog<bool>(
+                                                    context: context,
+                                                    builder: (context) => ShadDialog(
+                                                      title: Text(
+                                                        l.disableSourceConfirm,
+                                                      ),
+                                                      actions: [
+                                                        ShadButton.ghost(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                context,
+                                                                false,
+                                                              ),
+                                                          child: Text(l.cancel),
+                                                        ),
+                                                        ShadButton(
+                                                          onPressed: () =>
+                                                              Navigator.pop(
+                                                                context,
+                                                                true,
+                                                              ),
+                                                          child: Text(
+                                                            l.disable,
+                                                          ),
+                                                        ),
+                                                      ],
+                                                      child: Text(
+                                                        l.disableSourceDescription(
+                                                          impact.playing,
+                                                          impact.running,
+                                                          impact
+                                                              .defaultCapabilities
+                                                              .length,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  );
+                                                  if (accepted != true ||
+                                                      !mounted) {
+                                                    return;
+                                                  }
+                                                }
+                                                setState(() => _busy = true);
+                                                try {
+                                                  await widget.manager
+                                                      .setEnabled(
+                                                        source.id,
+                                                        enabled,
+                                                      );
+                                                  await _load();
+                                                } catch (error) {
+                                                  if (mounted) {
+                                                    setState(() {
+                                                      _busy = false;
+                                                      _error =
+                                                          error
+                                                              is PluginException
+                                                          ? error.message
+                                                          : l.toggleSourceFailed;
+                                                    });
+                                                  }
+                                                }
+                                              },
+                                        enabled: !(_busy),
                                       ),
                                     ),
-                                    Text(
-                                      widget.manager
-                                          .credentialStatus(source.id)
-                                          .label,
+                                    Tooltip(
+                                      message: l.verifyConnection,
+                                      child: Semantics(
+                                        button: true,
+                                        label: l.verifyConnection,
+                                        child: ShadIconButton.ghost(
+                                          icon: Icon(AppIcons.connection),
+                                          onPressed: _busy || !source.enabled
+                                              ? null
+                                              : () async {
+                                                  setState(() => _busy = true);
+                                                  try {
+                                                    await widget.manager
+                                                        .testConnection(
+                                                          source.id,
+                                                        );
+                                                    await _load();
+                                                  } catch (error) {
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _busy = false;
+                                                        _error =
+                                                            error
+                                                                is PluginException
+                                                            ? error.message
+                                                            : l.connectionFailed;
+                                                      });
+                                                    }
+                                                  }
+                                                },
+                                          enabled: !(_busy || !source.enabled),
+                                          width: 48,
+                                          height: 48,
+                                        ),
+                                      ),
+                                    ),
+                                    if (source.isFileSource)
+                                      Tooltip(
+                                        message: l.previewScan,
+                                        child: Semantics(
+                                          button: true,
+                                          label: l.previewScan,
+                                          child: ShadIconButton.ghost(
+                                            icon: Icon(AppIcons.scan),
+                                            onPressed:
+                                                _busy ||
+                                                    !source.enabled ||
+                                                    source.scanMode ==
+                                                        ScanMode.disabled
+                                                ? null
+                                                : () => _scan(source),
+                                            enabled:
+                                                !(_busy ||
+                                                    !source.enabled ||
+                                                    source.scanMode ==
+                                                        ScanMode.disabled),
+                                            width: 48,
+                                            height: 48,
+                                          ),
+                                        ),
+                                      ),
+                                    Tooltip(
+                                      message: l.editSource,
+                                      child: Semantics(
+                                        button: true,
+                                        label: l.editSource,
+                                        child: ShadIconButton.ghost(
+                                          icon: Icon(AppIcons.edit),
+                                          onPressed: _busy
+                                              ? null
+                                              : () async {
+                                                  await showShadDialog<bool>(
+                                                    context: context,
+                                                    barrierDismissible: false,
+                                                    builder: (_) =>
+                                                        SourceInstanceForm(
+                                                          manager:
+                                                              widget.manager,
+                                                          initial: source,
+                                                        ),
+                                                  );
+                                                  if (mounted) await _load();
+                                                },
+                                          enabled: !(_busy),
+                                          width: 48,
+                                          height: 48,
+                                        ),
+                                      ),
+                                    ),
+                                    Tooltip(
+                                      message: l.deleteSource,
+                                      child: Semantics(
+                                        button: true,
+                                        label: l.deleteSource,
+                                        child: ShadIconButton.ghost(
+                                          icon: Icon(AppIcons.delete),
+                                          onPressed: _busy
+                                              ? null
+                                              : () async {
+                                                  final confirmed =
+                                                      await showShadDialog<
+                                                        bool
+                                                      >(
+                                                        context: context,
+                                                        builder: (context) => ShadDialog(
+                                                          title: Text(
+                                                            l.deleteNamedSource(
+                                                              source.name,
+                                                            ),
+                                                          ),
+                                                          actions: [
+                                                            ShadButton.ghost(
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                    context,
+                                                                    false,
+                                                                  ),
+                                                              child: Text(
+                                                                l.cancel,
+                                                              ),
+                                                            ),
+                                                            ShadButton.ghost(
+                                                              onPressed: () =>
+                                                                  Navigator.pop(
+                                                                    context,
+                                                                    true,
+                                                                  ),
+                                                              child: Text(
+                                                                l.delete,
+                                                              ),
+                                                            ),
+                                                          ],
+                                                          child: Text(
+                                                            _deletionMessage(
+                                                              source.id,
+                                                            ),
+                                                          ),
+                                                        ),
+                                                      );
+                                                  if (confirmed != true ||
+                                                      !mounted) {
+                                                    return;
+                                                  }
+                                                  setState(() => _busy = true);
+                                                  try {
+                                                    await widget.manager.remove(
+                                                      source.id,
+                                                    );
+                                                    await _load();
+                                                  } catch (_) {
+                                                    if (mounted) {
+                                                      setState(() {
+                                                        _error = l
+                                                            .deleteSourceFailed;
+                                                        _busy = false;
+                                                      });
+                                                    }
+                                                  }
+                                                },
+                                          enabled: !(_busy),
+                                          width: 48,
+                                          height: 48,
+                                        ),
+                                      ),
                                     ),
                                   ],
                                 ),
-                                onTap: _busy || !source.enabled
-                                    ? null
-                                    : () {
-                                        _source = source;
-                                        _load();
-                                      },
-                              ),
-                              Wrap(
-                                alignment: WrapAlignment.end,
-                                children: [
-                                  Switch(
-                                    value: source.enabled,
-                                    onChanged: _busy
-                                        ? null
-                                        : (enabled) async {
-                                            final impact = widget.manager
-                                                .impact(source.id);
-                                            if (!enabled &&
-                                                (impact.playing > 0 ||
-                                                    impact.running > 0 ||
-                                                    impact
-                                                        .defaultCapabilities
-                                                        .isNotEmpty)) {
-                                              final accepted = await showDialog<bool>(
-                                                context: context,
-                                                builder: (context) => AlertDialog(
-                                                  title: const Text('禁用媒体源？'),
-                                                  content: Text(
-                                                    '当前播放 ${impact.playing} 个，进行中请求 ${impact.running} 个，默认能力绑定 ${impact.defaultCapabilities.length} 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。',
-                                                  ),
-                                                  actions: [
-                                                    TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                            context,
-                                                            false,
-                                                          ),
-                                                      child: const Text('取消'),
-                                                    ),
-                                                    FilledButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                            context,
-                                                            true,
-                                                          ),
-                                                      child: const Text('禁用'),
-                                                    ),
-                                                  ],
-                                                ),
-                                              );
-                                              if (accepted != true ||
-                                                  !mounted) {
-                                                return;
-                                              }
-                                            }
-                                            setState(() => _busy = true);
-                                            try {
-                                              await widget.manager.setEnabled(
-                                                source.id,
-                                                enabled,
-                                              );
-                                              await _load();
-                                            } catch (error) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _busy = false;
-                                                  _error =
-                                                      error is PluginException
-                                                      ? error.message
-                                                      : '启停失败，请重试。';
-                                                });
-                                              }
-                                            }
-                                          },
-                                  ),
-                                  IconButton(
-                                    tooltip: '验证连接',
-                                    icon: const Icon(Icons.wifi_find),
-                                    onPressed: _busy || !source.enabled
-                                        ? null
-                                        : () async {
-                                            setState(() => _busy = true);
-                                            try {
-                                              await widget.manager
-                                                  .testConnection(source.id);
-                                              await _load();
-                                            } catch (error) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _busy = false;
-                                                  _error =
-                                                      error is PluginException
-                                                      ? error.message
-                                                      : '连接失败。';
-                                                });
-                                              }
-                                            }
-                                          },
-                                  ),
-                                  if (source.isFileSource)
-                                    IconButton(
-                                      tooltip: '预览扫描',
-                                      icon: const Icon(Icons.manage_search),
-                                      onPressed:
-                                          _busy ||
-                                              !source.enabled ||
-                                              source.scanMode ==
-                                                  ScanMode.disabled
-                                          ? null
-                                          : () => _scan(source),
-                                    ),
-                                  IconButton(
-                                    tooltip: '编辑媒体源',
-                                    icon: const Icon(Icons.edit_outlined),
-                                    onPressed: _busy
-                                        ? null
-                                        : () async {
-                                            await showDialog<bool>(
-                                              context: context,
-                                              barrierDismissible: false,
-                                              builder: (_) =>
-                                                  SourceInstanceForm(
-                                                    manager: widget.manager,
-                                                    initial: source,
-                                                  ),
-                                            );
-                                            if (mounted) await _load();
-                                          },
-                                  ),
-                                  IconButton(
-                                    tooltip: '删除媒体源',
-                                    icon: const Icon(Icons.delete_outline),
-                                    onPressed: _busy
-                                        ? null
-                                        : () async {
-                                            final confirmed =
-                                                await showDialog<bool>(
-                                                  context: context,
-                                                  builder: (context) =>
-                                                      AlertDialog(
-                                                        title: Text(
-                                                          '删除 ${source.name}？',
-                                                        ),
-                                                        content: Text(
-                                                          _deletionMessage(
-                                                            source.id,
-                                                          ),
-                                                        ),
-                                                        actions: [
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                  context,
-                                                                  false,
-                                                                ),
-                                                            child: const Text(
-                                                              '取消',
-                                                            ),
-                                                          ),
-                                                          TextButton(
-                                                            onPressed: () =>
-                                                                Navigator.pop(
-                                                                  context,
-                                                                  true,
-                                                                ),
-                                                            child: const Text(
-                                                              '删除',
-                                                            ),
-                                                          ),
-                                                        ],
-                                                      ),
-                                                );
-                                            if (confirmed != true || !mounted) {
-                                              return;
-                                            }
-                                            setState(() => _busy = true);
-                                            try {
-                                              await widget.manager.remove(
-                                                source.id,
-                                              );
-                                              await _load();
-                                            } catch (_) {
-                                              if (mounted) {
-                                                setState(() {
-                                                  _error = '删除源失败，请重试。';
-                                                  _busy = false;
-                                                });
-                                              }
-                                            }
-                                          },
-                                  ),
-                                ],
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
                         ),
                     ],
                   )
                 : ListView(
+                    padding: AppSpacing.page(context),
                     children: [
                       if (!_busy && _error == null && _entries.isEmpty)
-                        const ListTile(title: Text('此目录没有可浏览的媒体。')),
+                        ContentRow(title: Text(l.folderEmpty)),
                       for (final entry in _entries)
-                        ListTile(
+                        ContentRow(
                           leading: Icon(
                             entry.isFolder
-                                ? Icons.folder_outlined
-                                : Icons.play_circle_outline,
+                                ? AppIcons.folder
+                                : AppIcons.playMedia,
                           ),
                           title: Text(entry.name),
                           onTap: _busy ? null : () => _select(entry),
                         ),
                       if (_next != null)
-                        TextButton(
+                        ShadButton.ghost(
                           onPressed: _busy ? null : () => _load(more: true),
-                          child: const Text('加载更多'),
+                          enabled: !(_busy),
+                          child: Text(l.loadMore),
                         ),
                     ],
                   ),
           ),
         ],
       ),
+      title: Text(
+        _nodes.isNotEmpty ? _nodes.last.name : _source?.name ?? l.sources,
+      ),
+      actions: [
+        if (_source == null)
+          Tooltip(
+            message: l.reloadConfiguration,
+            child: Semantics(
+              button: true,
+              label: l.reloadConfiguration,
+              child: ShadIconButton.ghost(
+                icon: Icon(AppIcons.refresh),
+                onPressed: _busy ? null : () => _load(),
+                enabled: !(_busy),
+                width: 48,
+                height: 48,
+              ),
+            ),
+          ),
+        if (_source == null &&
+            widget.manager.bindings.defaults['source.browse'] != null)
+          ShadButton.ghost(
+            onPressed: _busy
+                ? null
+                : () {
+                    final id =
+                        widget.manager.bindings.defaults['source.browse'];
+                    final config = widget.manager.configs
+                        .where((c) => c.id == id && c.enabled)
+                        .firstOrNull;
+                    if (config == null) {
+                      setState(() => _error = l.defaultBrowseUnavailable);
+                      return;
+                    }
+                    _source = config;
+                    _load();
+                  },
+            enabled: !(_busy),
+            child: Text(l.browseDefault),
+          ),
+        if (_source == null)
+          Tooltip(
+            message: l.capabilityDefaults,
+            child: Semantics(
+              button: true,
+              label: l.capabilityDefaults,
+              child: ShadIconButton.ghost(
+                icon: Icon(AppIcons.preferences),
+                onPressed: _busy
+                    ? null
+                    : () async {
+                        await Navigator.of(context).push(
+                          MaterialPageRoute<void>(
+                            builder: (_) =>
+                                SourceDefaultsPage(manager: widget.manager),
+                          ),
+                        );
+                        if (mounted) await _load();
+                      },
+                enabled: !(_busy),
+                width: 48,
+                height: 48,
+              ),
+            ),
+          ),
+        if (_source == null)
+          ShadButton.ghost(
+            onPressed: _busy
+                ? null
+                : () async {
+                    await showShadDialog<bool>(
+                      context: context,
+                      barrierDismissible: false,
+                      builder: (_) =>
+                          SourceInstanceForm(manager: widget.manager),
+                    );
+                    if (mounted) await _load();
+                  },
+            leading: Icon(AppIcons.add),
+            enabled: !(_busy),
+            child: Text(l.addSourceShort),
+          ),
+      ],
     ),
   );
 }

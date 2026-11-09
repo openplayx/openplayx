@@ -4,6 +4,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openplayx_playback/playback.dart';
+import 'package:openplayx/app/app.dart';
+import 'package:openplayx/app/theme/app_theme_controller.dart';
+import 'package:openplayx/data/configuration/source_configuration_service.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import 'support/test_video.dart';
 
@@ -20,7 +25,19 @@ void main() {
     final file = await createTestVideo(directory);
 
     // 2. 创建真正的 libVLC 播放后端，并打印状态、进度和时长，方便排查失败。
+    final configuration = SourceConfigurationService(sqlite3.openInMemory());
+    final appearance = AppThemeController(
+      configuration: configuration,
+      initialLanguage: 'zh-Hans',
+      initialMode: ThemeMode.light,
+    );
+    addTearDown(() {
+      appearance.dispose();
+      configuration.close();
+    });
     final backend = LibVlcBackend();
+    final turns = ValueNotifier(0);
+    addTearDown(turns.dispose);
     backend.addListener(
       () => debugPrint(
         'VLC test: ${backend.value.status} ${backend.value.position} ${backend.value.duration}',
@@ -49,8 +66,16 @@ void main() {
     // 这里不使用带后台暂停策略的 PlayerPage：macOS 测试窗口未必能切到前台，
     // 避免窗口前后台状态干扰对原生播放引擎的验证。
     await tester.pumpWidget(
-      MaterialApp(
-        home: Scaffold(body: PlayerVideoView(backend: backend)),
+      OpenPlayXApp(
+        appearance: appearance,
+        home: Scaffold(
+          body: ValueListenableBuilder<int>(
+            valueListenable: turns,
+            builder: (_, value, child) =>
+                RotatedBox(quarterTurns: value, child: child),
+            child: PlayerVideoView(backend: backend),
+          ),
+        ),
       ),
     );
     // 给原生视图约一秒的创建时间，然后打开测试视频（后端默认自动播放）。
@@ -66,6 +91,22 @@ void main() {
     );
     // 素材约 12 秒、尺寸为 160×90；时长检查预留原生读取和取整差异。
     expect(backend.value.duration.inSeconds, inInclusiveRange(11, 13));
+    expect(backend.value.videoSize, const Size(160, 90));
+
+    // Rotate the attached native video without rebuilding its player/session.
+    final videoElement = tester.element(find.byType(PlayerVideoView));
+    final size = tester.getSize(find.byType(PlayerVideoView));
+    final beforeRotation = backend.value.position;
+    for (final quarterTurns in [1, 2, 3, 0]) {
+      turns.value = quarterTurns;
+      await tester.pump(const Duration(milliseconds: 200));
+      expect(tester.element(find.byType(PlayerVideoView)), same(videoElement));
+      expect(
+        tester.getSize(find.byType(PlayerVideoView)),
+        quarterTurns.isOdd ? Size(size.height, size.width) : size,
+      );
+    }
+    await waitFor(() => backend.value.position > beforeRotation);
     expect(backend.value.videoSize, const Size(160, 90));
 
     // Input-byte statistics are sampled independently of playback progress.
@@ -87,6 +128,34 @@ void main() {
     // 5. 请求暂停，并等待原生事件确认暂停状态。
     await backend.pause();
     await waitFor(() => backend.value.status == PlaybackStatus.paused);
+    // Theme and Shad overlays must not detach or reopen the native video.
+    final pausedPosition = backend.value.position;
+    await appearance.setMode(ThemeMode.dark);
+    await tester.pumpAndSettle();
+    expect(tester.element(find.byType(PlayerVideoView)), same(videoElement));
+    expect(backend.value.status, PlaybackStatus.paused);
+    expect(backend.value.position, pausedPosition);
+    final dialog = showShadDialog<void>(
+      context: tester.element(find.byType(PlayerVideoView)),
+      builder: (context) => ShadDialog(
+        title: const Text('Playback panel'),
+        actions: [
+          ShadButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Close playback panel'),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Close playback panel'));
+    await dialog;
+    await tester.pumpAndSettle();
+    expect(find.text('Playback panel'), findsNothing);
+    expect(tester.element(find.byType(PlayerVideoView)), same(videoElement));
+    expect(backend.value.status, PlaybackStatus.paused);
+    expect(backend.value.position, pausedPosition);
+
     // 6. 确认媒体支持跳转，跳到第 7 秒后继续播放。
     // 等待进度达到至少第 6 秒，给原生 Seek 的定位和事件上报预留余量。
     expect(backend.value.canSeek, isTrue);

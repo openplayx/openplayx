@@ -1,19 +1,12 @@
-import 'package:flutter/material.dart';
+import 'package:flutter/widgets.dart';
 
-import 'app/app_shell.dart';
+import 'app/app.dart';
+import 'app/theme/app_theme_controller.dart';
+export 'app/app.dart' show OpenPlayXApp;
 
-void main() => runApp(const OpenPlayXApp());
-
-class OpenPlayXApp extends StatelessWidget {
-  const OpenPlayXApp({super.key});
-  @override
-  Widget build(BuildContext context) => MaterialApp(
-    title: 'OpenPlayX',
-    debugShowCheckedModeBanner: false,
-    theme: ThemeData(
-      brightness: Brightness.dark,
-      colorSchemeSeed: const Color(0xFF67D9BD),
-    ),
-    home: const AppShell(),
-  );
+Future<void> main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final appearance = AppThemeController();
+  await appearance.load();
+  runApp(OpenPlayXApp(appearance: appearance));
 }

@@ -1,3 +1,6 @@
+import '../../app_test_host.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
@@ -81,7 +84,7 @@ void main() {
       final backend = FakeBackend();
       var selections = 0;
       await tester.pumpWidget(
-        MaterialApp(
+        TestApp(
           home: PlayerPage(
             backend: backend,
             pickMedia: () async => selections++ == 0
@@ -90,11 +93,13 @@ void main() {
           ),
         ),
       );
+      await tester.pumpAndSettle();
       expect(
         tester
-            .widget<IconButton>(
-              find.byWidgetPredicate(
-                (w) => w is IconButton && w.tooltip == '播放',
+            .widget<ShadIconButton>(
+              find.descendant(
+                of: find.byTooltip('播放'),
+                matching: find.byType(ShadIconButton),
               ),
             )
             .onPressed,
@@ -112,6 +117,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(backend.value.status, PlaybackStatus.paused);
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       expect(backend.released, isTrue);
     },
   );
@@ -121,13 +127,14 @@ void main() {
   ) async {
     final backend = FakeBackend()..fail = true;
     await tester.pumpWidget(
-      MaterialApp(
+      TestApp(
         home: PlayerPage(
           backend: backend,
           pickMedia: () async => LocalMedia(Uri.file('/demo.mp4'), 'demo.mp4'),
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
     expect(find.text('播放操作失败，请重新打开媒体文件。'), findsOneWidget);
@@ -140,13 +147,14 @@ void main() {
   testWidgets('seek is submitted once after dragging finishes', (tester) async {
     final backend = FakeBackend();
     await tester.pumpWidget(
-      MaterialApp(
+      TestApp(
         home: PlayerPage(
           backend: backend,
           pickMedia: () async => LocalMedia(Uri.file('/demo.mp4'), 'demo.mp4'),
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
     final gesture = await tester.startGesture(
@@ -162,13 +170,14 @@ void main() {
   });
   Future<void> openPlayer(WidgetTester tester, FakeBackend backend) async {
     await tester.pumpWidget(
-      MaterialApp(
+      TestApp(
         home: PlayerPage(
           backend: backend,
           pickMedia: () async => LocalMedia(Uri.file('/demo.mp4'), 'demo.mp4'),
         ),
       ),
     );
+    await tester.pumpAndSettle();
     await tester.state<PlayerPageState>(find.byType(PlayerPage)).openFile();
     await tester.pumpAndSettle();
   }
@@ -196,9 +205,10 @@ void main() {
       await tester.pump();
       expect(
         tester
-            .widget<IconButton>(
-              find.byWidgetPredicate(
-                (w) => w is IconButton && w.tooltip == '快进 10 秒',
+            .widget<ShadIconButton>(
+              find.descendant(
+                of: find.byTooltip('快进 10 秒'),
+                matching: find.byType(ShadIconButton),
               ),
             )
             .onPressed,
@@ -316,6 +326,7 @@ void main() {
     for (final size in [const Size(320, 640), const Size(640, 320)]) {
       tester.view.physicalSize = size;
       await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
       await openPlayer(tester, FakeBackend());
       expect(tester.takeException(), isNull);
     }
@@ -329,7 +340,8 @@ void main() {
       expect(videoSize, const Size(800, 600));
       expect(
         tester.getSize(find.byKey(const Key('player-control-bar'))).height,
-        lessThan(112),
+        // 48px seek target + 48px controls + time text and padding.
+        lessThanOrEqualTo(136),
       );
       await tester.pump(const Duration(seconds: 4));
       await tester.pumpAndSettle();

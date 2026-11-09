@@ -1,5 +1,13 @@
 import 'package:flutter/material.dart';
 
+import '../../l10n/generated/app_localizations.dart';
+
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../ui/tokens/app_spacing.dart';
+
+import '../../ui/adaptive/app_page.dart';
+
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_schema.dart';
@@ -12,6 +20,7 @@ class SourceDefaultsPage extends StatefulWidget {
 }
 
 class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
+  AppLocalizations get l => AppLocalizations.of(context);
   String? _error;
   bool _busy = false;
   Future<void> _save(String capability, String? id) async {
@@ -22,7 +31,9 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
     try {
       await widget.manager.setDefault(capability, id);
     } catch (error) {
-      _error = error is PluginException ? error.message : '默认实例保存失败。';
+      if (mounted) {
+        _error = error is PluginException ? error.message : l.defaultSaveFailed;
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -41,58 +52,69 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    appBar: AppBar(title: const Text('能力默认实例与搜索范围')),
+  Widget build(BuildContext context) => AppPage(
     body: ListView(
-      padding: const EdgeInsets.all(20),
+      padding: AppSpacing.page(context),
       children: [
-        const Text('默认实例只用于未显式选择来源的操作。已有资源始终由原实例解析，不自动切换账号。'),
+        Text(l.defaultDescription),
         for (final capability in ['source.browse', 'source.resolve'])
           Padding(
-            padding: const EdgeInsets.only(top: 20),
-            child: DropdownButtonFormField<String>(
-              key: ValueKey(
-                '$capability-${widget.manager.bindings.defaults[capability]}',
-              ),
-              initialValue: _selected(capability),
-              decoration: InputDecoration(
-                labelText: capability == 'source.browse'
-                    ? '默认浏览实例'
-                    : '默认资源解析实例',
-              ),
-              items: [
-                const DropdownMenuItem(value: '', child: Text('每次选择')),
-                for (final config in widget.manager.configs.where(
-                  (c) =>
-                      c.enabled &&
-                      SourceSchemas.forKind(c.kind).capabilities
-                          .contains(capability),
-                ))
-                  DropdownMenuItem(value: config.id, child: Text(config.name)),
+            padding: EdgeInsets.only(top: 20),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Text(
+                  capability == 'source.browse'
+                      ? l.defaultBrowse
+                      : l.defaultResolve,
+                ),
+                SizedBox(height: 8),
+                ShadSelect<String>(
+                  key: ValueKey(
+                    '$capability-${widget.manager.bindings.defaults[capability]}',
+                  ),
+                  initialValue: _selected(capability),
+                  onChanged: _busy
+                      ? null
+                      : (value) =>
+                            _save(capability, value == '' ? null : value),
+                  options: [
+                    ShadOption(value: '', child: Text(l.chooseEachTime)),
+                    for (final config in widget.manager.configs.where(
+                      (c) =>
+                          c.enabled &&
+                          SourceSchemas.forKind(c.kind).capabilities
+                              .contains(capability),
+                    ))
+                      ShadOption(value: config.id, child: Text(config.name)),
+                  ],
+                  selectedOptionBuilder: (_, id) => Text(
+                    id.isEmpty
+                        ? l.chooseEachTime
+                        : widget.manager.configs
+                              .firstWhere((c) => c.id == id)
+                              .name,
+                  ),
+                  enabled: !_busy,
+                  maxWidth: 640,
+                ),
               ],
-              onChanged: _busy
-                  ? null
-                  : (value) => _save(capability, value == '' ? null : value),
             ),
           ),
         if (widget.manager.bindings.defaults.entries.any(
           (e) => _selected(e.key).isEmpty,
         ))
-          const Text('存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。'),
-        const SizedBox(height: 24),
-        const Text('多源搜索范围'),
-        const Text(
-          '范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。',
-        ),
+          Text(l.defaultUnavailable),
+        SizedBox(height: 24),
+        Text(l.searchScope),
+        Text(l.searchScopeDescription),
         if (_error != null)
           Padding(
-            padding: const EdgeInsets.only(top: 12),
-            child: Text(
-              _error!,
-              style: TextStyle(color: Theme.of(context).colorScheme.error),
-            ),
+            padding: EdgeInsets.only(top: 12),
+            child: ShadAlert.destructive(title: Text(_error!)),
           ),
       ],
     ),
+    title: Text(l.sourceDefaultsTitle),
   );
 }
