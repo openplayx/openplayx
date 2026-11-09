@@ -17,7 +17,6 @@ class SourcePage extends StatefulWidget {
 }
 
 class _SourcePageState extends State<SourcePage> {
-  bool _files = true;
   SourceConfig? _source;
   final _nodes = <SourceEntry>[];
   final _entries = <SourceEntry>[];
@@ -235,10 +234,8 @@ class _SourcePageState extends State<SourcePage> {
                       await showDialog<bool>(
                         context: context,
                         barrierDismissible: false,
-                        builder: (_) => SourceInstanceForm(
-                          manager: widget.manager,
-                          fileSources: _files,
-                        ),
+                        builder: (_) =>
+                            SourceInstanceForm(manager: widget.manager),
                       );
                       if (mounted) await _load();
                     },
@@ -249,27 +246,6 @@ class _SourcePageState extends State<SourcePage> {
       ),
       body: Column(
         children: [
-          if (_source == null)
-            Padding(
-              padding: const EdgeInsets.all(12),
-              child: SegmentedButton<bool>(
-                segments: const [
-                  ButtonSegment(
-                    value: true,
-                    icon: Icon(Icons.folder_outlined),
-                    label: Text('文件'),
-                  ),
-                  ButtonSegment(
-                    value: false,
-                    icon: Icon(Icons.dns_outlined),
-                    label: Text('媒体服务'),
-                  ),
-                ],
-                selected: {_files},
-                onSelectionChanged: (value) =>
-                    setState(() => _files = value.single),
-              ),
-            ),
           if (_source != null)
             ListTile(
               leading: const Icon(Icons.arrow_upward),
@@ -305,21 +281,12 @@ class _SourcePageState extends State<SourcePage> {
             child: _source == null
                 ? ListView(
                     children: [
-                      if (!_busy &&
-                          widget.manager.configs
-                              .where((s) => s.isFileSource == _files)
-                              .isEmpty)
-                        Padding(
-                          padding: const EdgeInsets.all(32),
-                          child: Text(
-                            _files
-                                ? '添加本地文件夹或 SMB 文件来源。WebDAV 与网盘尚未接入。'
-                                : '添加 Jellyfin 或 Plex 媒体服务。Emby 尚未接入。',
-                          ),
+                      if (!_busy && widget.manager.configs.isEmpty)
+                        const Padding(
+                          padding: EdgeInsets.all(32),
+                          child: Text('添加本地文件夹、SMB、Jellyfin 或 Plex 来源。'),
                         ),
-                      for (final source in widget.manager.configs.where(
-                        (s) => s.isFileSource == _files,
-                      ))
+                      for (final source in widget.manager.configs)
                         Card(
                           child: Column(
                             crossAxisAlignment: CrossAxisAlignment.start,

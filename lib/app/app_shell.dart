@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../core/plugins/source_capability.dart';
+import '../data/files/local_media_picker.dart';
 import '../data/sources/source_manager.dart';
 import '../features/library/library_page.dart';
 import '../features/player/player_page.dart';
@@ -24,10 +25,17 @@ enum AppDestination {
 }
 
 class AppShell extends StatefulWidget {
-  const AppShell({super.key, this.sources, this.library, this.backend});
+  const AppShell({
+    super.key,
+    this.sources,
+    this.library,
+    this.backend,
+    this.pickMedia = pickLocalMedia,
+  });
   final SourceManager? sources;
   final LibraryService? library;
   final PlayerBackend? backend;
+  final Future<LocalMedia?> Function() pickMedia;
 
   @override
   State<AppShell> createState() => _AppShellState();
@@ -176,8 +184,13 @@ class _AppShellState extends State<AppShell> {
             onPressed: _backend == null
                 ? null
                 : () async {
-                    setState(() => _showPlayer = true);
-                    await _player.currentState?.openFile();
+                    if (_opening || _exitingPlayer) return;
+                    _opening = true;
+                    try {
+                      await _player.currentState?.openFile();
+                    } finally {
+                      _opening = false;
+                    }
                   },
             icon: const Icon(Icons.file_open_outlined),
             label: const Text('打开文件'),
@@ -403,6 +416,9 @@ class _AppShellState extends State<AppShell> {
                         sourceManager: _sources,
                         libraryService: _library,
                         onExit: _exitPlayer,
+                        pickMedia: widget.pickMedia,
+                        onFileSelected: () =>
+                            setState(() => _showPlayer = true),
                       ),
                     ),
                   ),

@@ -62,10 +62,8 @@ void main() {
 
       await tester.pumpWidget(MaterialApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
-      expect(find.textContaining('尚未验证'), findsOneWidget);
-      await tester.tap(find.text('媒体服务'));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('尚未验证'), findsNWidgets(2));
+      expect(find.textContaining('尚未验证'), findsNWidgets(3));
+      expect(find.byType(SegmentedButton<bool>), findsNothing);
       expect(keychain.reads, 0);
 
       await tester.tap(find.byTooltip('重新加载配置'));

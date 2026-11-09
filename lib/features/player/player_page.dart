@@ -16,11 +16,13 @@ class PlayerPage extends StatefulWidget {
     super.key,
     this.backend,
     this.onExit,
+    this.onFileSelected,
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
     this.libraryService,
   });
   final VoidCallback? onExit;
+  final VoidCallback? onFileSelected;
   final PlayerBackend? backend;
   final SourceManager? sourceManager;
   final LibraryService? libraryService;
@@ -461,6 +463,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       final media = await widget.pickMedia();
       if (media == null || !mounted) return;
+      widget.onFileSelected?.call();
       _finishTracking();
       setState(() {
         _name = media.name;
