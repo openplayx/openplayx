@@ -362,4 +362,25 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('解锁控制'), findsOneWidget);
   });
+  testWidgets('read speed shows measured MB/s or an unavailable placeholder', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    expect(find.text('读取 -- MB/s'), findsOneWidget);
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      readSpeedMBps: 12.345,
+      duration: Duration(seconds: 60),
+      canSeek: true,
+    );
+    await tester.pump();
+    expect(find.text('读取 12.35 MB/s'), findsOneWidget);
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.paused,
+      readSpeedMBps: 0,
+    );
+    await tester.pump();
+    expect(find.text('读取 0.00 MB/s'), findsOneWidget);
+  });
 }

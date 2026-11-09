@@ -2,6 +2,7 @@ import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../../data/files/local_media_picker.dart';
@@ -172,6 +173,96 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   double _brightness = 1;
   int? _selectedAudioTrack;
   Future<void> _speedCommands = Future.value();
+
+  final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
+  int _volumeBeforeMute = 100;
+
+  KeyEventResult _handlePlayerKey(FocusNode node, KeyEvent event) {
+    if (event is KeyUpEvent ||
+        ModalRoute.of(context)?.isCurrent != true ||
+        _busy ||
+        _openPanels > 0) {
+      return KeyEventResult.ignored;
+    }
+    final focusContext = FocusManager.instance.primaryFocus?.context;
+    if (focusContext?.widget is EditableText ||
+        focusContext?.findAncestorWidgetOfExactType<EditableText>() != null) {
+      return KeyEventResult.ignored;
+    }
+    final keyboard = HardwareKeyboard.instance;
+    if (keyboard.isControlPressed ||
+        keyboard.isMetaPressed ||
+        keyboard.isAltPressed ||
+        keyboard.isShiftPressed) {
+      return KeyEventResult.ignored;
+    }
+    final key = event.logicalKey;
+    if (key == LogicalKeyboardKey.escape) {
+      if (_locked) {
+        setState(() {
+          _locked = false;
+          _controlsVisible = true;
+        });
+        _scheduleHide();
+        return KeyEventResult.handled;
+      }
+      _showControls();
+      return KeyEventResult.ignored;
+    }
+    final toggle =
+        key == LogicalKeyboardKey.space || key == LogicalKeyboardKey.keyK;
+    final supported =
+        toggle ||
+        key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight ||
+        key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown ||
+        key == LogicalKeyboardKey.keyM ||
+        key == LogicalKeyboardKey.keyL;
+    if (!supported) return KeyEventResult.ignored;
+    if (_locked || !_enabled) return KeyEventResult.handled;
+    // Holding a toggle key must not repeatedly alternate play/mute/lock.
+    if (event is KeyRepeatEvent &&
+        (toggle ||
+            key == LogicalKeyboardKey.keyM ||
+            key == LogicalKeyboardKey.keyL)) {
+      return KeyEventResult.handled;
+    }
+    _showControls();
+    if (toggle) {
+      _togglePlayback();
+    } else if (key == LogicalKeyboardKey.arrowLeft ||
+        key == LogicalKeyboardKey.arrowRight) {
+      _skip(key == LogicalKeyboardKey.arrowLeft ? -10 : 10);
+    } else if (key == LogicalKeyboardKey.arrowUp ||
+        key == LogicalKeyboardKey.arrowDown) {
+      final volume =
+          (_backend.value.volume + (key == LogicalKeyboardKey.arrowUp ? 5 : -5))
+              .clamp(0, 100);
+      unawaited(_adjust(() => _backend.setVolume(volume)));
+    } else if (key == LogicalKeyboardKey.keyM) {
+      final volume = _backend.value.volume;
+      if (volume > 0) _volumeBeforeMute = volume.clamp(1, 100);
+      unawaited(
+        _adjust(() => _backend.setVolume(volume == 0 ? _volumeBeforeMute : 0)),
+      );
+    } else if (key == LogicalKeyboardKey.keyL) {
+      _lock();
+    }
+    return KeyEventResult.handled;
+  }
+
+  void _togglePlayback() {
+    if (!_enabled) return;
+    _endBoost();
+    unawaited(
+      _command(
+        _backend.value.status == PlaybackStatus.playing
+            ? _backend.pause
+            : _backend.play,
+      ),
+    );
+  }
 
   bool get _enabled =>
       _name != null &&
@@ -467,6 +558,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _playerFocus.dispose();
     _finishTracking();
     if (widget.libraryService == null) _library?.close();
     _hideTimer?.cancel();
@@ -653,18 +745,7 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           value.status == PlaybackStatus.playing
               ? Icons.pause_rounded
               : Icons.play_arrow_rounded,
-          _enabled
-              ? () {
-                  _endBoost();
-                  unawaited(
-                    _command(
-                      value.status == PlaybackStatus.playing
-                          ? _backend.pause
-                          : _backend.play,
-                    ),
-                  );
-                }
-              : null,
+          _enabled ? _togglePlayback : null,
         ),
         _icon('快进 10 秒', Icons.forward_10, seekable ? () => _skip(10) : null),
       ],
@@ -749,19 +830,48 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Row(
-              children: [
-                Text(
-                  '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
-                  style: const TextStyle(fontSize: 12, color: Colors.white70),
-                ),
-                const Spacer(),
-                if (duration > 0)
-                  Text(
-                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}',
-                    style: const TextStyle(fontSize: 12, color: Colors.white54),
-                  ),
-              ],
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final remaining =
+                    '剩余 ${formatTime(Duration(milliseconds: (duration - position).round()))}';
+                return Row(
+                  children: [
+                    Flexible(
+                      child: Tooltip(
+                        message: remaining,
+                        child: Text(
+                          '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                            fontSize: 12,
+                            color: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '读取 ${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
+                      key: const Key('playback-read-speed'),
+                      style: const TextStyle(
+                        fontSize: 12,
+                        color: Colors.white54,
+                      ),
+                    ),
+                    if (duration > 0 && constraints.maxWidth >= 456) ...[
+                      const SizedBox(width: 16),
+                      Text(
+                        remaining,
+                        style: const TextStyle(
+                          fontSize: 12,
+                          color: Colors.white54,
+                        ),
+                      ),
+                    ],
+                  ],
+                );
+              },
             ),
             SizedBox(
               height: 28,
@@ -838,197 +948,203 @@ class _PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => Scaffold(
-    backgroundColor: Colors.black,
-    body: SafeArea(
-      child: MouseRegion(
-        onHover: (_) => _showControls(),
-        child: Listener(
-          onPointerDown: (_) {
-            _pointerDown = true;
-            _hideTimer?.cancel();
-          },
-          onPointerUp: (_) {
-            _pointerDown = false;
-            _endBoost();
-            _scheduleHide();
-          },
-          onPointerCancel: (_) {
-            _pointerDown = false;
-            _endBoost();
-            _scheduleHide();
-          },
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              GestureDetector(
-                key: const Key('video-gestures'),
-                behavior: HitTestBehavior.opaque,
-                onTap: _locked
-                    ? null
-                    : () {
-                        if (_controlsVisible &&
-                            _name != null &&
-                            _error == null) {
-                          _hideTimer?.cancel();
-                          setState(() => _controlsVisible = false);
-                        } else {
-                          _showControls();
-                        }
-                      },
-                onLongPressStart: _locked ? null : (_) => _startBoost(),
-                onLongPressEnd: (_) => _endBoost(),
-                onLongPressCancel: _endBoost,
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    IgnorePointer(child: PlayerVideoView(backend: _backend)),
-                    IgnorePointer(
-                      child: ColoredBox(
-                        key: const Key('video-dimming'),
-                        color: Colors.black.withValues(
-                          alpha: (1 - _brightness) * 0.85,
+  Widget build(BuildContext context) => Focus(
+    focusNode: _playerFocus,
+    autofocus: true,
+    onKeyEvent: _handlePlayerKey,
+    child: Scaffold(
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: MouseRegion(
+          onHover: (_) => _showControls(),
+          child: Listener(
+            onPointerDown: (_) {
+              _playerFocus.requestFocus();
+              _pointerDown = true;
+              _hideTimer?.cancel();
+            },
+            onPointerUp: (_) {
+              _pointerDown = false;
+              _endBoost();
+              _scheduleHide();
+            },
+            onPointerCancel: (_) {
+              _pointerDown = false;
+              _endBoost();
+              _scheduleHide();
+            },
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                GestureDetector(
+                  key: const Key('video-gestures'),
+                  behavior: HitTestBehavior.opaque,
+                  onTap: _locked
+                      ? null
+                      : () {
+                          if (_controlsVisible &&
+                              _name != null &&
+                              _error == null) {
+                            _hideTimer?.cancel();
+                            setState(() => _controlsVisible = false);
+                          } else {
+                            _showControls();
+                          }
+                        },
+                  onLongPressStart: _locked ? null : (_) => _startBoost(),
+                  onLongPressEnd: (_) => _endBoost(),
+                  onLongPressCancel: _endBoost,
+                  child: Stack(
+                    fit: StackFit.expand,
+                    children: [
+                      IgnorePointer(child: PlayerVideoView(backend: _backend)),
+                      IgnorePointer(
+                        child: ColoredBox(
+                          key: const Key('video-dimming'),
+                          color: Colors.black.withValues(
+                            alpha: (1 - _brightness) * 0.85,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
-                ),
-              ),
-              if (_name == null)
-                const IgnorePointer(
-                  child: Center(
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Icon(
-                            Icons.play_circle_outline,
-                            size: 56,
-                            color: Colors.white38,
-                          ),
-                          SizedBox(height: 12),
-                          Text(
-                            '打开一个视频，开始播放',
-                            style: TextStyle(
-                              fontSize: 18,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
+                    ],
                   ),
                 ),
-              if (!_locked)
-                Positioned(
-                  top: 0,
-                  left: 0,
-                  right: 0,
-                  child: _chrome(
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 4,
-                      ),
-                      decoration: const BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [Color(0x99000000), Colors.transparent],
-                        ),
-                      ),
-                      child: Row(
-                        children: [
-                          Expanded(
-                            child: Text(
-                              _name ?? 'OpenPlayX',
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
+                if (_name == null)
+                  const IgnorePointer(
+                    child: Center(
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Icon(
+                              Icons.play_circle_outline,
+                              size: 56,
+                              color: Colors.white38,
+                            ),
+                            SizedBox(height: 12),
+                            Text(
+                              '打开一个视频，开始播放',
+                              style: TextStyle(
+                                fontSize: 18,
                                 color: Colors.white70,
-                                fontSize: 13,
                               ),
                             ),
-                          ),
-                          _icon(
-                            '媒体源',
-                            Icons.video_library_outlined,
-                            _busy ? null : () => _openSource(),
-                          ),
-                          _icon(
-                            '媒体库',
-                            Icons.video_library_outlined,
-                            _busy ? null : () => _openSource(library: true),
-                          ),
-                          _icon(
-                            '打开文件',
-                            Icons.folder_open_outlined,
-                            _busy ? null : _open,
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (!_locked)
-                Positioned(
-                  bottom: 0,
-                  left: 0,
-                  right: 0,
-                  child: _chrome(
-                    ValueListenableBuilder<PlayerSnapshot>(
-                      valueListenable: _backend,
-                      builder: (context, value, _) => _bottomControls(value),
-                    ),
-                  ),
-                ),
-              if (_busy || _backend.value.status == PlaybackStatus.opening)
-                const IgnorePointer(
-                  child: Center(
-                    child: SizedBox(
-                      width: 28,
-                      height: 28,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    ),
-                  ),
-                ),
-              if (_error != null ||
-                  _backend.value.status == PlaybackStatus.error)
-                Center(
-                  child: Padding(
-                    padding: const EdgeInsets.all(24),
-                    child: Text(
-                      _error ?? '播放失败，请检查文件或重新选择。',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        color: Theme.of(context).colorScheme.error,
+                if (!_locked)
+                  Positioned(
+                    top: 0,
+                    left: 0,
+                    right: 0,
+                    child: _chrome(
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 12,
+                          vertical: 4,
+                        ),
+                        decoration: const BoxDecoration(
+                          gradient: LinearGradient(
+                            begin: Alignment.topCenter,
+                            end: Alignment.bottomCenter,
+                            colors: [Color(0x99000000), Colors.transparent],
+                          ),
+                        ),
+                        child: Row(
+                          children: [
+                            Expanded(
+                              child: Text(
+                                _name ?? 'OpenPlayX',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 13,
+                                ),
+                              ),
+                            ),
+                            _icon(
+                              '媒体源',
+                              Icons.video_library_outlined,
+                              _busy ? null : () => _openSource(),
+                            ),
+                            _icon(
+                              '媒体库',
+                              Icons.video_library_outlined,
+                              _busy ? null : () => _openSource(library: true),
+                            ),
+                            _icon(
+                              '打开文件',
+                              Icons.folder_open_outlined,
+                              _busy ? null : _open,
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
-                ),
-              if (_boosting)
-                const Positioned(
-                  top: 64,
-                  left: 0,
-                  right: 0,
-                  child: IgnorePointer(
-                    child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                if (!_locked)
+                  Positioned(
+                    bottom: 0,
+                    left: 0,
+                    right: 0,
+                    child: _chrome(
+                      ValueListenableBuilder<PlayerSnapshot>(
+                        valueListenable: _backend,
+                        builder: (context, value, _) => _bottomControls(value),
+                      ),
+                    ),
                   ),
-                ),
-              if (_locked)
-                Positioned(
-                  top: 8,
-                  left: 12,
-                  child: _icon('解锁控制', Icons.lock_open, () {
-                    setState(() {
-                      _locked = false;
-                      _controlsVisible = true;
-                    });
-                    _scheduleHide();
-                  }),
-                ),
-            ],
+                if (_busy || _backend.value.status == PlaybackStatus.opening)
+                  const IgnorePointer(
+                    child: Center(
+                      child: SizedBox(
+                        width: 28,
+                        height: 28,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      ),
+                    ),
+                  ),
+                if (_error != null ||
+                    _backend.value.status == PlaybackStatus.error)
+                  Center(
+                    child: Padding(
+                      padding: const EdgeInsets.all(24),
+                      child: Text(
+                        _error ?? '播放失败，请检查文件或重新选择。',
+                        textAlign: TextAlign.center,
+                        style: TextStyle(
+                          color: Theme.of(context).colorScheme.error,
+                        ),
+                      ),
+                    ),
+                  ),
+                if (_boosting)
+                  const Positioned(
+                    top: 64,
+                    left: 0,
+                    right: 0,
+                    child: IgnorePointer(
+                      child: Center(child: Chip(label: Text('临时 2× · 松手恢复'))),
+                    ),
+                  ),
+                if (_locked)
+                  Positioned(
+                    top: 8,
+                    left: 12,
+                    child: _icon('解锁控制', Icons.lock_open, () {
+                      setState(() {
+                        _locked = false;
+                        _controlsVisible = true;
+                      });
+                      _scheduleHide();
+                    }),
+                  ),
+              ],
+            ),
           ),
         ),
       ),
