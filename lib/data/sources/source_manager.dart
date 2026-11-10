@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../../core/plugins/metadata_capability.dart';
 import '../configuration/source_configuration_service.dart';
 import '../configuration/source_credential_broker.dart';
 import 'file_sources.dart';
@@ -445,6 +446,33 @@ class SourceManager {
           },
         );
       }, releaseLate: (stream) => stream.release());
+  Future<MetadataResult> lookupMetadata(String id, MetadataRequest request) =>
+      _call(id, (runtime) async {
+        final provider = runtime.provider;
+        if (provider is! MetadataCapability) {
+          throw const PluginException('unsupported', '此来源不支持影视信息查询');
+        }
+        return (provider as MetadataCapability).lookup(
+          request,
+          CallContext.forInstance(id),
+        );
+      });
+
+  Future<List<int>> readAttachment(
+    ResourceRef ref, {
+    int maxBytes = 1024 * 1024,
+  }) => _call(ref.instanceId, (runtime) async {
+    final provider = runtime.provider;
+    if (provider is! SourceAttachmentCapability) {
+      throw const PluginException('unsupported', '此来源不支持附件读取');
+    }
+    return (provider as SourceAttachmentCapability).readAttachment(
+      ref,
+      CallContext.forInstance(ref.instanceId),
+      maxBytes: maxBytes,
+    );
+  });
+
   Future<void> testConnection(String id) async {
     await browse(id, const BrowseRequest(limit: 1));
   }

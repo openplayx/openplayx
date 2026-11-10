@@ -5,6 +5,8 @@ import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../../core/plugins/metadata_capability.dart';
+import '../../data/metadata/metadata_repository.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_config.dart';
 
@@ -13,7 +15,7 @@ import '../../data/sources/source_config.dart';
 class LibraryService {
   LibraryService(this.db) {
     final version = db.select('PRAGMA user_version').first.values.first as int;
-    if (version > 1) throw StateError('媒体库版本较新，请升级应用');
+    if (version > 2) throw StateError('媒体库版本较新，请升级应用');
     db.execute('PRAGMA foreign_keys=ON');
     db.execute('PRAGMA busy_timeout=5000');
     db.execute('''CREATE TABLE IF NOT EXISTS libraries (
@@ -91,13 +93,39 @@ class LibraryService {
     db.execute(
       'CREATE INDEX IF NOT EXISTS source_media_media ON source_media(media_id)',
     );
-    db.execute('PRAGMA user_version=1');
+    metadata = MetadataRepository(db);
+    transaction(() {
+      metadata.migrate();
+      if (version < 2) {
+        // Existing manual titles from v1 must become locks on first upgrade.
+        db.execute(
+          '''INSERT OR IGNORE INTO metadata_overrides
+          SELECT m.id,'title',json_quote(m.title),0 FROM media m
+          WHERE EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND r.name<>m.title)
+          AND NOT EXISTS (SELECT 1 FROM source_media s WHERE s.media_id=m.id)''',
+        );
+      }
+      db.execute('PRAGMA user_version=2');
+    });
+    metadata.recover();
     // A crashed or interrupted scan must never reconcile missing observations.
     db.execute(
       "UPDATE bindings SET status='扫描中断', error='请重新扫描' WHERE status='扫描中'",
     );
   }
   final Database db;
+  late final MetadataRepository metadata;
+  bool get isClosing => _closeRequested;
+  void beginMetadataWork(String id) {
+    if (_closeRequested) throw StateError("媒体库正在关闭");
+    _running.add("metadata:$id");
+  }
+
+  void endMetadataWork(String id) {
+    _running.remove("metadata:$id");
+    if (_closeRequested && _running.isEmpty) db.close();
+  }
+
   final Set<String> _running = {};
   bool _closeRequested = false;
   static String _id() =>
@@ -176,7 +204,11 @@ class LibraryService {
         'SELECT media_id FROM source_media WHERE source=? AND source_key=?',
         [entry.ref.instanceId, info.id],
       ).firstOrNull;
-      if (known != null) return known['media_id'] as String;
+      if (known != null) {
+        final media = known['media_id'] as String;
+        _serverMetadata(media, entry);
+        return media;
+      }
     }
     if (info != null && info.parentId != null) {
       final visited = <String>{info.id};
@@ -210,7 +242,27 @@ class LibraryService {
         info.episode,
       ]);
     }
+    _serverMetadata(media, entry);
     return media;
+  }
+
+  void _serverMetadata(String media, SourceEntry entry) {
+    final info = entry.media;
+    if (info == null) return;
+    final kind = MediaKind.values.where((k) => k.name == info.kind).firstOrNull;
+    if (kind == null) return;
+    final record = metadataFromSource(info, entry.ref.instanceId);
+    final selected = metadata.association(media);
+    if (selected != null && !metadata.compatible(record, selected)) return;
+    metadata.apply(
+      media,
+      record,
+      sourceKey: 'server:${entry.ref.instanceId}',
+      authority: 300,
+      expectedRevision: metadata.revision(media),
+      operationId: _id(),
+      select: selected == null,
+    );
   }
 
   void _observe(String binding, String library, String media) {
@@ -230,15 +282,29 @@ class LibraryService {
     int offset = 0,
     int limit = 40,
   }) => db.select(
-    'SELECT m.*,s.kind,s.season,s.episode FROM source_media parent JOIN source_media s ON s.source=parent.source AND s.parent_key=parent.source_key JOIN media m ON m.id=s.media_id WHERE parent.media_id=? AND (? IS NULL OR EXISTS (SELECT 1 FROM memberships lm WHERE lm.media_id=m.id AND lm.library_id=?)) ORDER BY s.season,s.episode,m.id LIMIT ? OFFSET ?',
-    [media, library, library, limit, offset],
+    '''WITH children AS (
+      SELECT s.media_id FROM source_media p JOIN source_media s ON s.source=p.source AND s.parent_key=p.source_key WHERE p.media_id=?
+      UNION SELECT child_id FROM metadata_relations WHERE parent_id=?)
+      SELECT m.*,COALESCE(json_extract(mp.fields,'\$.kind'),sm.kind) AS kind,
+      COALESCE(json_extract(mp.fields,'\$.season'),sm.season) AS season,
+      COALESCE(json_extract(mp.fields,'\$.episode'),sm.episode) AS episode
+      FROM children c JOIN media m ON m.id=c.media_id
+      LEFT JOIN metadata_projection mp ON mp.media_id=m.id
+      LEFT JOIN source_media sm ON sm.media_id=m.id
+      WHERE (? IS NULL OR EXISTS (SELECT 1 FROM memberships lm WHERE lm.media_id=m.id AND lm.library_id=?))
+      GROUP BY m.id ORDER BY season,episode,m.id LIMIT ? OFFSET ?''',
+    [media, media, library, library, limit, offset],
   );
   String register(SourceEntry entry, {String? localPath}) => transaction(() {
     final existing = db.select(
       'SELECT r.media_id FROM resource_locators l JOIN resources r ON r.id=l.resource_id WHERE l.source=? AND l.item=?',
       [entry.ref.instanceId, entry.ref.id],
     );
-    if (existing.isNotEmpty) return existing.first['media_id'] as String;
+    if (existing.isNotEmpty) {
+      final media = existing.first['media_id'] as String;
+      _serverMetadata(media, entry);
+      return media;
+    }
     if (localPath != null) {
       final local = db.select(
         'SELECT r.* FROM local_identity l JOIN resources r ON r.id=l.resource_id WHERE l.path=?',
@@ -291,10 +357,11 @@ class LibraryService {
     return db.select(
       '''SELECT m.*, lm.added_at FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
       WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
+      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
+      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id AND (? IS NULL OR pm.library_id=?)))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
-      AND (? IS NULL OR COALESCE((SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
-      AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.year=?))
+      AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.kind') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
+      AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.year') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.year FROM source_media sm WHERE sm.media_id=m.id LIMIT 1))=?)
       AND (? IS NULL OR EXISTS (SELECT 1 FROM progress p JOIN resources r ON r.id=p.resource_id WHERE r.media_id=m.id AND p.completed=1)=?)
       ORDER BY lm.added_at DESC,m.id LIMIT ? OFFSET ?''',
       [
@@ -303,6 +370,12 @@ class LibraryService {
         search,
         search,
         contentType,
+        year,
+        library,
+        library,
+        search,
+        contentType,
+        year,
         library,
         library,
         source,
@@ -330,7 +403,14 @@ class LibraryService {
   );
   void rename(String media, String title) {
     if (title.trim().isEmpty) throw ArgumentError('请输入标题');
-    db.execute('UPDATE media SET title=? WHERE id=?', [title.trim(), media]);
+    transaction(
+      () => metadata.overrideField(
+        media,
+        'title',
+        title.trim(),
+        expectedRevision: metadata.revision(media),
+      ),
+    );
   }
 
   void remove(String library, String media) => transaction(() {

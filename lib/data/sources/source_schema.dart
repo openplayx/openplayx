@@ -9,6 +9,13 @@ class SourceSchemas {
     browseExperience: kind == SourceKind.local || kind == SourceKind.smb
         ? 'files'
         : 'library',
+    capabilities: [
+      'source.browse',
+      'source.resolve',
+      'source.attachments',
+      if (kind == SourceKind.jellyfin || kind == SourceKind.plex)
+        'metadata.lookup',
+    ],
     configSchema: PluginConfigSchema(
       version: 2,
       fields: switch (kind) {

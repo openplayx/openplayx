@@ -28,7 +28,8 @@ BrowseResult pageEntries(List<SourceEntry> entries, BrowseRequest request) {
   );
 }
 
-class LocalFolderPlugin implements Plugin, SourceCapability {
+class LocalFolderPlugin
+    implements Plugin, SourceCapability, SourceAttachmentCapability {
   LocalFolderPlugin(this.config);
   final SourceConfig config;
   @override
@@ -106,10 +107,33 @@ class LocalFolderPlugin implements Plugin, SourceCapability {
   }
 
   @override
+  Future<List<int>> readAttachment(
+    ResourceRef ref,
+    CallContext context, {
+    required int maxBytes,
+  }) async {
+    checkOwnership(config.id, ref, context);
+    validateAttachment(ref, maxBytes);
+    final file = File(await _path(ref.id));
+    if (await file.length() > maxBytes) {
+      throw const PluginException('quotaExceeded', '附件过大');
+    }
+    final bytes = <int>[];
+    await for (final chunk in file.openRead()) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw const PluginException('quotaExceeded', '附件过大');
+      }
+      bytes.addAll(chunk);
+    }
+    return bytes;
+  }
+
+  @override
   Future<void> dispose() async {}
 }
 
-class SmbPlugin implements Plugin, SourceCapability {
+class SmbPlugin
+    implements Plugin, SourceCapability, SourceAttachmentCapability {
   SmbPlugin(this.config, String password)
     : _access = SmbAccess(config, password);
   SmbPlugin.withAccess(this.config, this._access);
@@ -223,6 +247,32 @@ class SmbPlugin implements Plugin, SourceCapability {
   }
 
   @override
+  Future<List<int>> readAttachment(
+    ResourceRef ref,
+    CallContext context, {
+    required int maxBytes,
+  }) async {
+    checkOwnership(config.id, ref, context);
+    validateAttachment(ref, maxBytes);
+    final connection = await _access._connect();
+    final file = await connection.file(_path(ref.id));
+    if (!file.isExists || file.isDirectory()) {
+      throw const PluginException('notFound', '附件不存在');
+    }
+    if (file.size > maxBytes) {
+      throw const PluginException('quotaExceeded', '附件过大');
+    }
+    final bytes = <int>[];
+    await for (final chunk in await connection.openRead(file)) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw const PluginException('quotaExceeded', '附件过大');
+      }
+      bytes.addAll(chunk);
+    }
+    return bytes;
+  }
+
+  @override
   Future<void> dispose() async {
     await _access.close();
   }
@@ -252,5 +302,16 @@ class SmbAccess {
         await (await connection).close();
       } catch (_) {}
     }
+  }
+}
+
+void validateAttachment(ResourceRef ref, int maxBytes) {
+  if (maxBytes < 1 ||
+      maxBytes > 20 * 1024 * 1024 ||
+      !RegExp(
+        r'\.(nfo|jpg|jpeg|png|webp)$',
+        caseSensitive: false,
+      ).hasMatch(ref.id)) {
+    throw const PluginException('invalidInput', '不支持的附件类型或读取上限');
   }
 }

@@ -46,6 +46,8 @@ dependencies:
     sdk: flutter
 
   intl: ^0.20.3
+  xml: ^7.0.1
+  crypto: ^3.0.8
 dev_dependencies:
   integration_test:
     sdk: flutter
@@ -67,6 +69,7 @@ flutter:
   generate: true
   assets:
     - test/fixtures/test_video.mp4
+    - assets/branding/tmdb.svg
 
   # The following line ensures that the Material Icons font is
   # included with your application, so that you can use the icons in

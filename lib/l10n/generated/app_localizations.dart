@@ -1533,6 +1533,282 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Done'**
   String get shadDone;
+
+  /// No description provided for @metadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata'**
+  String get metadata;
+
+  /// No description provided for @metadataIdentify.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify / rematch'**
+  String get metadataIdentify;
+
+  /// No description provided for @metadataImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import nearby NFO and artwork'**
+  String get metadataImport;
+
+  /// No description provided for @metadataRefresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh linked work'**
+  String get metadataRefresh;
+
+  /// No description provided for @metadataSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Field sources'**
+  String get metadataSource;
+
+  /// No description provided for @metadataQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Title or name'**
+  String get metadataQuery;
+
+  /// No description provided for @metadataYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Year (optional)'**
+  String get metadataYear;
+
+  /// No description provided for @metadataProviderId.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB ID (optional)'**
+  String get metadataProviderId;
+
+  /// No description provided for @metadataLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata language'**
+  String get metadataLanguage;
+
+  /// No description provided for @metadataToken.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB read access token'**
+  String get metadataToken;
+
+  /// No description provided for @metadataConfigure.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure TMDB'**
+  String get metadataConfigure;
+
+  /// No description provided for @metadataPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.'**
+  String get metadataPrivacy;
+
+  /// No description provided for @metadataSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB configuration saved'**
+  String get metadataSaved;
+
+  /// No description provided for @metadataCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a work'**
+  String get metadataCandidates;
+
+  /// No description provided for @metadataChooseChildren.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose season / episode'**
+  String get metadataChooseChildren;
+
+  /// No description provided for @metadataConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this match'**
+  String get metadataConfirm;
+
+  /// No description provided for @metadataKeepLocks.
+  ///
+  /// In en, this message translates to:
+  /// **'Locked fields and artwork will be retained. Playback progress and resource versions stay intact.'**
+  String get metadataKeepLocks;
+
+  /// No description provided for @metadataOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get metadataOverview;
+
+  /// No description provided for @metadataOriginalTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Original title'**
+  String get metadataOriginalTitle;
+
+  /// No description provided for @metadataGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get metadataGenres;
+
+  /// No description provided for @metadataEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit and lock fields'**
+  String get metadataEdit;
+
+  /// No description provided for @metadataRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore automatic value'**
+  String get metadataRestore;
+
+  /// No description provided for @metadataArtwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose artwork'**
+  String get metadataArtwork;
+
+  /// No description provided for @metadataArtworkLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Artwork locked'**
+  String get metadataArtworkLocked;
+
+  /// No description provided for @metadataReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset match'**
+  String get metadataReset;
+
+  /// No description provided for @metadataResetDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove imported fields and the work association. User overrides, locked artwork and playback data are retained.'**
+  String get metadataResetDescription;
+
+  /// No description provided for @metadataClearCache.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear artwork cache'**
+  String get metadataClearCache;
+
+  /// No description provided for @metadataBatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Import library metadata'**
+  String get metadataBatch;
+
+  /// No description provided for @metadataBatchDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Library metadata import finished. See each item for status.'**
+  String get metadataBatchDone;
+
+  /// No description provided for @metadataUnmatched.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching metadata found'**
+  String get metadataUnmatched;
+
+  /// No description provided for @metadataAwaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your selection'**
+  String get metadataAwaiting;
+
+  /// No description provided for @metadataCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata saved'**
+  String get metadataCompleted;
+
+  /// No description provided for @metadataCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled or interrupted; saved information is retained'**
+  String get metadataCancelled;
+
+  /// No description provided for @metadataBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'Looking up metadata…'**
+  String get metadataBusy;
+
+  /// No description provided for @metadataNotStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Not identified'**
+  String get metadataNotStarted;
+
+  /// No description provided for @metadataFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata could not be read. Existing media remains available.'**
+  String get metadataFailed;
+
+  /// No description provided for @metadataConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Work identity conflicts. Choose the correct candidate.'**
+  String get metadataConflict;
+
+  /// No description provided for @metadataStale.
+  ///
+  /// In en, this message translates to:
+  /// **'Information changed during lookup. Search again.'**
+  String get metadataStale;
+
+  /// No description provided for @metadataAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a valid TMDB read access token.'**
+  String get metadataAuth;
+
+  /// No description provided for @metadataOffline.
+  ///
+  /// In en, this message translates to:
+  /// **'Network request failed. Please retry when connected.'**
+  String get metadataOffline;
+
+  /// No description provided for @metadataPermission.
+  ///
+  /// In en, this message translates to:
+  /// **'The source does not allow reading this attachment.'**
+  String get metadataPermission;
+
+  /// No description provided for @metadataRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB is rate limiting requests. Retry later.'**
+  String get metadataRateLimited;
+
+  /// No description provided for @metadataMissingSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Source file missing'**
+  String get metadataMissingSource;
+
+  /// No description provided for @metadataAttribution.
+  ///
+  /// In en, this message translates to:
+  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
+  String get metadataAttribution;
+
+  /// No description provided for @metadataForgetToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove TMDB credential'**
+  String get metadataForgetToken;
+
+  /// No description provided for @metadataSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search TMDB'**
+  String get metadataSearch;
 }
 
 class _AppLocalizationsDelegate

@@ -754,6 +754,145 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get shadDone => '完成';
+
+  @override
+  String get metadata => '影视信息';
+
+  @override
+  String get metadataIdentify => '识别 / 重新匹配';
+
+  @override
+  String get metadataImport => '导入邻近 NFO 和图片';
+
+  @override
+  String get metadataRefresh => '刷新已关联作品';
+
+  @override
+  String get metadataSource => '字段来源';
+
+  @override
+  String get metadataQuery => '作品名称';
+
+  @override
+  String get metadataYear => '年份（可选）';
+
+  @override
+  String get metadataProviderId => 'TMDB ID（可选）';
+
+  @override
+  String get metadataLanguage => '元数据语言';
+
+  @override
+  String get metadataToken => 'TMDB 读取访问令牌';
+
+  @override
+  String get metadataConfigure => '配置 TMDB';
+
+  @override
+  String get metadataPrivacy =>
+      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+
+  @override
+  String get metadataSaved => 'TMDB 配置已保存';
+
+  @override
+  String get metadataCandidates => '选择作品';
+
+  @override
+  String get metadataChooseChildren => '选择季 / 集';
+
+  @override
+  String get metadataConfirm => '确认匹配';
+
+  @override
+  String get metadataKeepLocks => '保留已锁定字段和海报，播放进度及资源版本不受影响。';
+
+  @override
+  String get metadataOverview => '简介';
+
+  @override
+  String get metadataOriginalTitle => '原名';
+
+  @override
+  String get metadataGenres => '类型';
+
+  @override
+  String get metadataEdit => '编辑并锁定字段';
+
+  @override
+  String get metadataRestore => '恢复自动来源';
+
+  @override
+  String get metadataArtwork => '选择海报';
+
+  @override
+  String get metadataArtworkLocked => '海报已锁定';
+
+  @override
+  String get metadataReset => '重置匹配';
+
+  @override
+  String get metadataResetDescription => '清除导入字段和作品关联，保留用户修改、锁定海报及播放数据。';
+
+  @override
+  String get metadataClearCache => '清理图片缓存';
+
+  @override
+  String get metadataBatch => '导入全库影视信息';
+
+  @override
+  String get metadataBatchDone => '全库导入完成，可查看各条目的识别状态。';
+
+  @override
+  String get metadataUnmatched => '未找到匹配信息';
+
+  @override
+  String get metadataAwaiting => '等待确认';
+
+  @override
+  String get metadataCompleted => '影视信息已保存';
+
+  @override
+  String get metadataCancelled => '已取消或中断，保留已保存信息';
+
+  @override
+  String get metadataBusy => '正在获取影视信息…';
+
+  @override
+  String get metadataNotStarted => '尚未识别';
+
+  @override
+  String get metadataFailed => '读取影视信息失败，已有媒体仍可使用。';
+
+  @override
+  String get metadataConflict => '作品身份冲突，请选择正确候选。';
+
+  @override
+  String get metadataStale => '查询期间信息已更改，请重新查询。';
+
+  @override
+  String get metadataAuth => '请配置有效的 TMDB 读取访问令牌。';
+
+  @override
+  String get metadataOffline => '网络请求失败，请联网后重试。';
+
+  @override
+  String get metadataPermission => '来源未授权读取此附件。';
+
+  @override
+  String get metadataRateLimited => 'TMDB 请求受限，请稍后重试。';
+
+  @override
+  String get metadataMissingSource => '来源文件已缺失';
+
+  @override
+  String get metadataAttribution => '本产品使用 TMDB API，但未经 TMDB 认可或认证。';
+
+  @override
+  String get metadataForgetToken => '移除 TMDB 凭据';
+
+  @override
+  String get metadataSearch => '搜索 TMDB';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1505,6 +1644,145 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get shadDone => '完成';
+
+  @override
+  String get metadata => '影视信息';
+
+  @override
+  String get metadataIdentify => '识别 / 重新匹配';
+
+  @override
+  String get metadataImport => '导入邻近 NFO 和图片';
+
+  @override
+  String get metadataRefresh => '刷新已关联作品';
+
+  @override
+  String get metadataSource => '字段来源';
+
+  @override
+  String get metadataQuery => '作品名称';
+
+  @override
+  String get metadataYear => '年份（可选）';
+
+  @override
+  String get metadataProviderId => 'TMDB ID（可选）';
+
+  @override
+  String get metadataLanguage => '元数据语言';
+
+  @override
+  String get metadataToken => 'TMDB 读取访问令牌';
+
+  @override
+  String get metadataConfigure => '配置 TMDB';
+
+  @override
+  String get metadataPrivacy =>
+      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+
+  @override
+  String get metadataSaved => 'TMDB 配置已保存';
+
+  @override
+  String get metadataCandidates => '选择作品';
+
+  @override
+  String get metadataChooseChildren => '选择季 / 集';
+
+  @override
+  String get metadataConfirm => '确认匹配';
+
+  @override
+  String get metadataKeepLocks => '保留已锁定字段和海报，播放进度及资源版本不受影响。';
+
+  @override
+  String get metadataOverview => '简介';
+
+  @override
+  String get metadataOriginalTitle => '原名';
+
+  @override
+  String get metadataGenres => '类型';
+
+  @override
+  String get metadataEdit => '编辑并锁定字段';
+
+  @override
+  String get metadataRestore => '恢复自动来源';
+
+  @override
+  String get metadataArtwork => '选择海报';
+
+  @override
+  String get metadataArtworkLocked => '海报已锁定';
+
+  @override
+  String get metadataReset => '重置匹配';
+
+  @override
+  String get metadataResetDescription => '清除导入字段和作品关联，保留用户修改、锁定海报及播放数据。';
+
+  @override
+  String get metadataClearCache => '清理图片缓存';
+
+  @override
+  String get metadataBatch => '导入全库影视信息';
+
+  @override
+  String get metadataBatchDone => '全库导入完成，可查看各条目的识别状态。';
+
+  @override
+  String get metadataUnmatched => '未找到匹配信息';
+
+  @override
+  String get metadataAwaiting => '等待确认';
+
+  @override
+  String get metadataCompleted => '影视信息已保存';
+
+  @override
+  String get metadataCancelled => '已取消或中断，保留已保存信息';
+
+  @override
+  String get metadataBusy => '正在获取影视信息…';
+
+  @override
+  String get metadataNotStarted => '尚未识别';
+
+  @override
+  String get metadataFailed => '读取影视信息失败，已有媒体仍可使用。';
+
+  @override
+  String get metadataConflict => '作品身份冲突，请选择正确候选。';
+
+  @override
+  String get metadataStale => '查询期间信息已更改，请重新查询。';
+
+  @override
+  String get metadataAuth => '请配置有效的 TMDB 读取访问令牌。';
+
+  @override
+  String get metadataOffline => '网络请求失败，请联网后重试。';
+
+  @override
+  String get metadataPermission => '来源未授权读取此附件。';
+
+  @override
+  String get metadataRateLimited => 'TMDB 请求受限，请稍后重试。';
+
+  @override
+  String get metadataMissingSource => '来源文件已缺失';
+
+  @override
+  String get metadataAttribution => '本产品使用 TMDB API，但未经 TMDB 认可或认证。';
+
+  @override
+  String get metadataForgetToken => '移除 TMDB 凭据';
+
+  @override
+  String get metadataSearch => '搜索 TMDB';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2256,4 +2534,143 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get shadDone => '完成';
+
+  @override
+  String get metadata => '影視資訊';
+
+  @override
+  String get metadataIdentify => '識別 / 重新配對';
+
+  @override
+  String get metadataImport => '匯入鄰近 NFO 和圖片';
+
+  @override
+  String get metadataRefresh => '重新整理已關聯作品';
+
+  @override
+  String get metadataSource => '欄位來源';
+
+  @override
+  String get metadataQuery => '作品名稱';
+
+  @override
+  String get metadataYear => '年份（選填）';
+
+  @override
+  String get metadataProviderId => 'TMDB ID（選填）';
+
+  @override
+  String get metadataLanguage => '中繼資料語言';
+
+  @override
+  String get metadataToken => 'TMDB 讀取存取權杖';
+
+  @override
+  String get metadataConfigure => '設定 TMDB';
+
+  @override
+  String get metadataPrivacy =>
+      '線上查詢僅向 TMDB 傳送名稱、年份、ID 和語言，不上傳影片或私人路徑。僅在主動操作時連網查詢。';
+
+  @override
+  String get metadataSaved => 'TMDB 設定已儲存';
+
+  @override
+  String get metadataCandidates => '選擇作品';
+
+  @override
+  String get metadataChooseChildren => '選擇季 / 集';
+
+  @override
+  String get metadataConfirm => '確認配對';
+
+  @override
+  String get metadataKeepLocks => '保留已鎖定欄位和海報，播放進度及資源版本不受影響。';
+
+  @override
+  String get metadataOverview => '簡介';
+
+  @override
+  String get metadataOriginalTitle => '原名';
+
+  @override
+  String get metadataGenres => '類型';
+
+  @override
+  String get metadataEdit => '編輯並鎖定欄位';
+
+  @override
+  String get metadataRestore => '恢復自動來源';
+
+  @override
+  String get metadataArtwork => '選擇海報';
+
+  @override
+  String get metadataArtworkLocked => '海報已鎖定';
+
+  @override
+  String get metadataReset => '重設配對';
+
+  @override
+  String get metadataResetDescription => '清除匯入欄位和作品關聯，保留使用者修改、鎖定海報及播放資料。';
+
+  @override
+  String get metadataClearCache => '清理圖片快取';
+
+  @override
+  String get metadataBatch => '匯入全庫影視資訊';
+
+  @override
+  String get metadataBatchDone => '全庫匯入完成，可查看各項目的識別狀態。';
+
+  @override
+  String get metadataUnmatched => '找不到配對資訊';
+
+  @override
+  String get metadataAwaiting => '等待確認';
+
+  @override
+  String get metadataCompleted => '影視資訊已儲存';
+
+  @override
+  String get metadataCancelled => '已取消或中斷，保留已儲存資訊';
+
+  @override
+  String get metadataBusy => '正在取得影視資訊…';
+
+  @override
+  String get metadataNotStarted => '尚未識別';
+
+  @override
+  String get metadataFailed => '讀取影視資訊失敗，已有媒體仍可使用。';
+
+  @override
+  String get metadataConflict => '作品身分衝突，請選擇正確候選。';
+
+  @override
+  String get metadataStale => '查詢期間資訊已更改，請重新查詢。';
+
+  @override
+  String get metadataAuth => '請設定有效的 TMDB 讀取存取權杖。';
+
+  @override
+  String get metadataOffline => '網路請求失敗，請連網後重試。';
+
+  @override
+  String get metadataPermission => '來源未授權讀取此附件。';
+
+  @override
+  String get metadataRateLimited => 'TMDB 請求受限，請稍後重試。';
+
+  @override
+  String get metadataMissingSource => '來源檔案已遺失';
+
+  @override
+  String get metadataAttribution => '本產品使用 TMDB API，但未經 TMDB 認可或認證。';
+
+  @override
+  String get metadataForgetToken => '移除 TMDB 憑證';
+
+  @override
+  String get metadataSearch => '搜尋 TMDB';
 }

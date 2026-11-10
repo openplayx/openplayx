@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import '../../core/plugins/source_capability.dart';
+import '../../core/plugins/metadata_capability.dart';
 import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
@@ -87,6 +88,30 @@ class SourceHttp {
     ) as Map<String, dynamic>;
   }
 
+  Future<List<int>> attachment(String path, {required int maxBytes}) async {
+    final request = await _client.getUrl(uri(path));
+    request.followRedirects = false;
+    _headers.forEach(request.headers.set);
+    final response = await request.close();
+    if (response.statusCode != 200 ||
+        ![
+          'image/jpeg',
+          'image/png',
+          'image/webp',
+        ].contains(response.headers.contentType?.mimeType)) {
+      await response.drain<void>();
+      throw const PluginException('invalidArtwork', '服务端图片不可用');
+    }
+    final bytes = <int>[];
+    await for (final chunk in response) {
+      if (bytes.length + chunk.length > maxBytes) {
+        throw const PluginException('quotaExceeded', '图片过大');
+      }
+      bytes.addAll(chunk);
+    }
+    return bytes;
+  }
+
   Future<PlayableStream> stream(
     String path, {
     Map<String, String> query = const {},
@@ -100,7 +125,12 @@ class SourceHttp {
   void close() => _client.close(force: true);
 }
 
-class JellyfinPlugin implements Plugin, SourceCapability {
+class JellyfinPlugin
+    implements
+        Plugin,
+        SourceCapability,
+        MetadataCapability,
+        SourceAttachmentCapability {
   JellyfinPlugin(this.config, this.http);
   final SourceConfig config;
   final SourceHttp http;
@@ -139,7 +169,8 @@ class JellyfinPlugin implements Plugin, SourceCapability {
         if (request.node != null) 'ParentId': request.node!.id,
         'StartIndex': '${request.offset}',
         'Limit': '${request.limit}',
-        'Fields': 'MediaSources,ParentId',
+        'Fields':
+            'MediaSources,ParentId,Overview,Genres,ProviderIds,OriginalTitle',
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
       },
@@ -214,10 +245,48 @@ class JellyfinPlugin implements Plugin, SourceCapability {
   }
 
   @override
+  Set<MetadataAction> get actions => {MetadataAction.details};
+  @override
+  Future<MetadataResult> lookup(
+    MetadataRequest request,
+    CallContext context,
+  ) async {
+    checkMetadataRequest(config.id, request, context);
+    final item = await http.json(
+      'Users/${Uri.encodeComponent(config.userId)}/Items/${Uri.encodeComponent(request.ref!.id)}',
+    );
+    final info = _jellyfinInfo(item);
+    if (info == null ||
+        info.id != request.ref!.id ||
+        info.kind != request.kind.name) {
+      throw const PluginException('invalidMetadata', '服务端对象身份不匹配');
+    }
+    return MetadataResult([metadataFromSource(info, config.id)]);
+  }
+
+  @override
+  Future<List<int>> readAttachment(
+    ResourceRef ref,
+    CallContext context, {
+    required int maxBytes,
+  }) async {
+    final parts = checkServerArtwork(config.id, ref, context, maxBytes);
+    return http.attachment(
+      'Items/${Uri.encodeComponent(parts[2])}/Images/${parts[1] == 'poster' ? 'Primary' : 'Backdrop'}/0',
+      maxBytes: maxBytes,
+    );
+  }
+
+  @override
   Future<void> dispose() async => http.close();
 }
 
-class PlexPlugin implements Plugin, SourceCapability {
+class PlexPlugin
+    implements
+        Plugin,
+        SourceCapability,
+        MetadataCapability,
+        SourceAttachmentCapability {
   PlexPlugin(this.config, this.http);
   final SourceConfig config;
   final SourceHttp http;
@@ -322,6 +391,40 @@ class PlexPlugin implements Plugin, SourceCapability {
   }
 
   @override
+  Set<MetadataAction> get actions => {MetadataAction.details};
+  @override
+  Future<MetadataResult> lookup(
+    MetadataRequest request,
+    CallContext context,
+  ) async {
+    checkMetadataRequest(config.id, request, context);
+    final result = await http.json(
+      'library/metadata/${Uri.encodeComponent(request.ref!.id)}',
+    );
+    final items = result['MediaContainer']?['Metadata'] as List? ?? [];
+    final info = items.length == 1 ? _plexInfo(items.single) : null;
+    if (info == null ||
+        info.id != request.ref!.id ||
+        info.kind != request.kind.name) {
+      throw const PluginException('invalidMetadata', '服务端对象身份不匹配');
+    }
+    return MetadataResult([metadataFromSource(info, config.id)]);
+  }
+
+  @override
+  Future<List<int>> readAttachment(
+    ResourceRef ref,
+    CallContext context, {
+    required int maxBytes,
+  }) async {
+    final parts = checkServerArtwork(config.id, ref, context, maxBytes);
+    return http.attachment(
+      'library/metadata/${Uri.encodeComponent(parts[2])}/${parts[1] == 'poster' ? 'thumb' : 'art'}',
+      maxBytes: maxBytes,
+    );
+  }
+
+  @override
   Future<void> dispose() async => http.close();
 }
 
@@ -350,6 +453,19 @@ SourceMediaInfo? _jellyfinInfo(Map<String, dynamic> item) {
       _ => 'video',
     },
     parentId: item['ParentId'] as String?,
+    artworkTypes: [
+      if ((item['ImageTags'] as Map?)?.containsKey('Primary') == true) 'poster',
+      if ((item['BackdropImageTags'] as List?)?.isNotEmpty == true) 'backdrop',
+    ],
+    metadata: {
+      if (item['Overview'] != null) 'overview': item['Overview'],
+      if (item['OriginalTitle'] != null) 'originalTitle': item['OriginalTitle'],
+      if (item['Genres'] != null) 'genres': item['Genres'],
+    },
+    externalIds: {
+      for (final e in (item['ProviderIds'] as Map? ?? {}).entries)
+        e.key.toString().toLowerCase(): e.value.toString(),
+    },
     year: item['ProductionYear'] as int?,
     season: item['ParentIndexNumber'] as int?,
     episode: item['IndexNumber'] as int?,
@@ -371,8 +487,52 @@ SourceMediaInfo? _plexInfo(Map<String, dynamic> item) {
       _ => 'video',
     },
     parentId: item['parentRatingKey']?.toString(),
+    artworkTypes: [
+      if (item['thumb'] != null) 'poster',
+      if (item['art'] != null) 'backdrop',
+    ],
+    metadata: {
+      if (item['summary'] != null) 'overview': item['summary'],
+      if (item['originalTitle'] != null) 'originalTitle': item['originalTitle'],
+    },
+    externalIds: {
+      for (final g in item['Guid'] as List? ?? [])
+        if (g['id'] is String && (g['id'] as String).contains('://'))
+          (g['id'] as String).split('://').first: (g['id'] as String)
+              .split('://')
+              .last,
+    },
     year: item['year'] as int?,
     season: item['parentIndex'] as int?,
     episode: item['index'] as int?,
   );
+}
+
+void checkMetadataRequest(
+  String instance,
+  MetadataRequest request,
+  CallContext context,
+) {
+  if (context.instanceId != instance ||
+      request.action != MetadataAction.details ||
+      request.ref?.provider != 'server:$instance' ||
+      !RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(request.ref!.id)) {
+    throw const PluginException('permissionDenied', '元数据查询不属于此服务端实例');
+  }
+}
+
+List<String> checkServerArtwork(
+  String instance,
+  ResourceRef ref,
+  CallContext context,
+  int maxBytes,
+) {
+  checkOwnership(instance, ref, context);
+  if (maxBytes < 1 ||
+      maxBytes > 20 * 1024 * 1024 ||
+      !RegExp(r'^artwork:(poster|backdrop):[A-Za-z0-9_-]{1,128}$')
+          .hasMatch(ref.id)) {
+    throw const PluginException('permissionDenied', '图片不属于此服务端实例');
+  }
+  return ref.id.split(':');
 }

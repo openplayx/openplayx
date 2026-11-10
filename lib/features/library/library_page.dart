@@ -15,6 +15,10 @@ import '../../ui/icons/app_icons.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
+import '../../services/metadata/metadata_service.dart';
+import '../../services/artwork/artwork_service.dart';
+import 'metadata_page.dart';
+import 'metadata_artwork.dart';
 import '../../ui/components/media/media_poster_card.dart';
 
 class LibraryPage extends StatefulWidget {
@@ -34,6 +38,14 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   AppLocalizations get l => AppLocalizations.of(context);
   LibraryService? _service;
+  MetadataService? _metadata;
+  late final ArtworkService _artwork = ArtworkService(
+    widget.sources,
+    retainedArtwork: () => _service?.metadata.retainedArtwork ?? [],
+  );
+  bool _metadataBusy = false;
+  String? _metadataSummary;
+  String? _metadataProgress;
   String? _library;
   String _search = '';
   String? _sourceFilter;
@@ -61,6 +73,7 @@ class _LibraryPageState extends State<LibraryPage> {
       }
       setState(() {
         _service = service;
+        _metadata = MetadataService(service, widget.sources);
       });
     } catch (_) {
       if (mounted) setState(() => _error = l.libraryLoadFailed);
@@ -70,6 +83,8 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void dispose() {
     _scanRefresh?.cancel();
+    _metadata?.dispose();
+    _artwork.dispose();
     // Database closure waits for any active scan.
     if (widget.service == null) _service?.close();
     super.dispose();
@@ -196,6 +211,18 @@ class _LibraryPageState extends State<LibraryPage> {
     });
     try {
       await _service!.scan(binding, widget.sources);
+      if (mounted) {
+        final library =
+            _service!.db.select('SELECT library_id FROM bindings WHERE id=?', [
+                  binding,
+                ]).firstOrNull?['library_id']
+                as String?;
+        if (library != null &&
+            _service!.libraries.firstWhere((l) => l['id'] == library)['type'] !=
+                'home') {
+          unawaited(_importMetadata(library));
+        }
+      }
     } catch (_) {
       if (mounted) setState(() => _error = l.scanFailedRetained);
     } finally {
@@ -227,6 +254,29 @@ class _LibraryPageState extends State<LibraryPage> {
     return '${source.name} · ${_service!.observedMissing(resource['id'] as String) ? l.missingOnScan : l.verifyOnPlay}$progress';
   }
 
+  Future<void> _importMetadata(String library) async {
+    if (_metadataBusy) return;
+    setState(() => _metadataBusy = true);
+    try {
+      final result = await _metadata!.importLibrary(
+        library,
+        onProgress: (done, total) {
+          if (mounted) setState(() => _metadataProgress = '$done / $total');
+        },
+      );
+      if (mounted) {
+        setState(
+          () => _metadataSummary =
+              '${l.metadataCompleted}: ${result['completed']} · ${l.metadataAwaiting}: ${result['waiting']} · ${l.metadataUnmatched}: ${result['unmatched']} · ${l.metadataFailed}: ${result['failed']}',
+        );
+      }
+    } catch (_) {
+      if (mounted) setState(() => _error = l.metadataFailed);
+    } finally {
+      if (mounted) setState(() => _metadataBusy = false);
+    }
+  }
+
   Future<void> _detail(dynamic media) async {
     final service = _service!;
     var childOffset = 0;
@@ -243,6 +293,30 @@ class _LibraryPageState extends State<LibraryPage> {
                   ContentRow(
                     title: Text(media['title'] as String),
                     subtitle: Text(l.chooseVersion),
+                  ),
+                  ContentRow(
+                    leading: Icon(AppIcons.search),
+                    title: Text(l.metadata),
+                    subtitle: Text(
+                      service.metadata.fields(media['id'] as String)['overview']
+                              as String? ??
+                          l.metadataIdentify,
+                      maxLines: 3,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onTap: () async {
+                      Navigator.pop(sheet);
+                      await Navigator.of(context).push<void>(
+                        MaterialPageRoute(
+                          builder: (_) => MetadataPage(
+                            library: service,
+                            sources: widget.sources,
+                            media: media['id'] as String,
+                          ),
+                        ),
+                      );
+                      if (mounted) setState(() {});
+                    },
                   ),
                   for (final child in service.children(
                     media['id'] as String,
@@ -930,7 +1004,24 @@ class _LibraryPageState extends State<LibraryPage> {
                                   ),
                                 ),
                             ],
-                            if (_scanning) ShadProgress(),
+                            if (_scanning || _metadataBusy) ShadProgress(),
+                            if (_metadataBusy)
+                              Text(
+                                '${l.metadataBusy} ${_metadataProgress ?? ''}',
+                              ),
+                            if (_metadataBusy)
+                              ShadButton.ghost(
+                                onPressed: _metadata?.cancelActive,
+                                child: Text(l.cancel),
+                              ),
+                            if (!_metadataBusy && _metadataSummary != null)
+                              Text(_metadataSummary!),
+                            if (_library != null)
+                              ShadButton.outline(
+                                enabled: !_scanning && !_metadataBusy,
+                                onPressed: () => _importMetadata(_library!),
+                                child: Text(l.metadataBatch),
+                              ),
                             if (_error != null)
                               ShadAlert.destructive(title: Text(_error!)),
                           ],
@@ -975,6 +1066,19 @@ class _LibraryPageState extends State<LibraryPage> {
                                 final media = rows[index];
                                 return MediaPosterCard(
                                   title: media['title'] as String,
+                                  artwork:
+                                      service.metadata.selectedArtwork(
+                                            media['id'] as String,
+                                          ) ==
+                                          null
+                                      ? null
+                                      : MetadataArtwork(
+                                          service: _artwork,
+                                          artwork: service.metadata
+                                              .selectedArtwork(
+                                                media['id'] as String,
+                                              )!,
+                                        ),
                                   favorite: media['favorite'] == 1,
                                   onOpen: _scanning
                                       ? null

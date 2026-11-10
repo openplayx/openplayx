@@ -784,4 +784,154 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get shadDone => 'Done';
+
+  @override
+  String get metadata => 'Metadata';
+
+  @override
+  String get metadataIdentify => 'Identify / rematch';
+
+  @override
+  String get metadataImport => 'Import nearby NFO and artwork';
+
+  @override
+  String get metadataRefresh => 'Refresh linked work';
+
+  @override
+  String get metadataSource => 'Field sources';
+
+  @override
+  String get metadataQuery => 'Title or name';
+
+  @override
+  String get metadataYear => 'Year (optional)';
+
+  @override
+  String get metadataProviderId => 'TMDB ID (optional)';
+
+  @override
+  String get metadataLanguage => 'Metadata language';
+
+  @override
+  String get metadataToken => 'TMDB read access token';
+
+  @override
+  String get metadataConfigure => 'Configure TMDB';
+
+  @override
+  String get metadataPrivacy =>
+      'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.';
+
+  @override
+  String get metadataSaved => 'TMDB configuration saved';
+
+  @override
+  String get metadataCandidates => 'Choose a work';
+
+  @override
+  String get metadataChooseChildren => 'Choose season / episode';
+
+  @override
+  String get metadataConfirm => 'Confirm this match';
+
+  @override
+  String get metadataKeepLocks =>
+      'Locked fields and artwork will be retained. Playback progress and resource versions stay intact.';
+
+  @override
+  String get metadataOverview => 'Overview';
+
+  @override
+  String get metadataOriginalTitle => 'Original title';
+
+  @override
+  String get metadataGenres => 'Genres';
+
+  @override
+  String get metadataEdit => 'Edit and lock fields';
+
+  @override
+  String get metadataRestore => 'Restore automatic value';
+
+  @override
+  String get metadataArtwork => 'Choose artwork';
+
+  @override
+  String get metadataArtworkLocked => 'Artwork locked';
+
+  @override
+  String get metadataReset => 'Reset match';
+
+  @override
+  String get metadataResetDescription =>
+      'Remove imported fields and the work association. User overrides, locked artwork and playback data are retained.';
+
+  @override
+  String get metadataClearCache => 'Clear artwork cache';
+
+  @override
+  String get metadataBatch => 'Import library metadata';
+
+  @override
+  String get metadataBatchDone =>
+      'Library metadata import finished. See each item for status.';
+
+  @override
+  String get metadataUnmatched => 'No matching metadata found';
+
+  @override
+  String get metadataAwaiting => 'Waiting for your selection';
+
+  @override
+  String get metadataCompleted => 'Metadata saved';
+
+  @override
+  String get metadataCancelled =>
+      'Cancelled or interrupted; saved information is retained';
+
+  @override
+  String get metadataBusy => 'Looking up metadata…';
+
+  @override
+  String get metadataNotStarted => 'Not identified';
+
+  @override
+  String get metadataFailed =>
+      'Metadata could not be read. Existing media remains available.';
+
+  @override
+  String get metadataConflict =>
+      'Work identity conflicts. Choose the correct candidate.';
+
+  @override
+  String get metadataStale =>
+      'Information changed during lookup. Search again.';
+
+  @override
+  String get metadataAuth => 'Configure a valid TMDB read access token.';
+
+  @override
+  String get metadataOffline =>
+      'Network request failed. Please retry when connected.';
+
+  @override
+  String get metadataPermission =>
+      'The source does not allow reading this attachment.';
+
+  @override
+  String get metadataRateLimited =>
+      'TMDB is rate limiting requests. Retry later.';
+
+  @override
+  String get metadataMissingSource => 'Source file missing';
+
+  @override
+  String get metadataAttribution =>
+      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
+
+  @override
+  String get metadataForgetToken => 'Remove TMDB credential';
+
+  @override
+  String get metadataSearch => 'Search TMDB';
 }

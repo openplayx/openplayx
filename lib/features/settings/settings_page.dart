@@ -4,6 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../app/theme/app_theme_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/media/tmdb_attribution.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
@@ -107,6 +108,7 @@ class SettingsPage extends StatelessWidget {
                     children: [
                       Text(l.aboutDescription),
                       const Text('OpenPlayX 1.0.0'),
+                      const TmdbAttribution(),
                     ],
                   ),
                 ],

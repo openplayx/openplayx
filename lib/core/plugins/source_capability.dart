@@ -14,13 +14,14 @@ class PluginManifest {
     required this.browseExperience,
     this.version = '1.0.0',
     this.configSchema,
+    this.capabilities = const ['source.browse', 'source.resolve'],
   });
   final String version;
   final PluginConfigSchema? configSchema;
   final String id;
   final String name;
   final String browseExperience;
-  final List<String> capabilities = const ['source.browse', 'source.resolve'];
+  final List<String> capabilities;
 }
 
 class CallContext {
@@ -54,6 +55,9 @@ class SourceMediaInfo {
     this.year,
     this.season,
     this.episode,
+    this.metadata = const {},
+    this.externalIds = const {},
+    this.artworkTypes = const [],
   });
   final String id;
   final String title;
@@ -62,6 +66,9 @@ class SourceMediaInfo {
   final int? year;
   final int? season;
   final int? episode;
+  final Map<String, dynamic> metadata;
+  final Map<String, String> externalIds;
+  final List<String> artworkTypes;
 }
 
 class BrowseRequest {
@@ -111,4 +118,14 @@ class PluginException implements Exception {
   final bool retryable;
   @override
   String toString() => message;
+}
+
+/// Bounded attachment access, separate from playable URLs. The host verifies
+/// instance ownership, configured scope and allowed file types on every call.
+abstract interface class SourceAttachmentCapability {
+  Future<List<int>> readAttachment(
+    ResourceRef ref,
+    CallContext context, {
+    required int maxBytes,
+  });
 }

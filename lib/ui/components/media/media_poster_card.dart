@@ -12,7 +12,9 @@ class MediaPosterCard extends StatelessWidget {
     required this.favorite,
     required this.onFavorite,
     this.onOpen,
+    this.artwork,
   });
+  final Widget? artwork;
   final String title;
   final bool favorite;
   final VoidCallback onFavorite;
@@ -37,13 +39,15 @@ class MediaPosterCard extends StatelessWidget {
                 child: Semantics(
                   button: true,
                   label: title,
-                  child: Center(
-                    child: Icon(
-                      AppIcons.movie,
-                      size: 48,
-                      color: theme.colorScheme.mutedForeground,
-                    ),
-                  ),
+                  child:
+                      artwork ??
+                      Center(
+                        child: Icon(
+                          AppIcons.movie,
+                          size: 48,
+                          color: theme.colorScheme.mutedForeground,
+                        ),
+                      ),
                 ),
               ),
             ),
