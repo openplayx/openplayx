@@ -10,8 +10,13 @@ import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, required this.onSourceDefaults});
+  const SettingsPage({
+    super.key,
+    required this.onSourceDefaults,
+    this.onModelSettings,
+  });
   final VoidCallback onSourceDefaults;
+  final VoidCallback? onModelSettings;
   @override
   Widget build(BuildContext context) {
     final appearance = AppAppearance.of(context);
@@ -103,6 +108,20 @@ class SettingsPage extends StatelessWidget {
                       ),
                     ],
                   ),
+                  if (onModelSettings != null)
+                    SettingsSection(
+                      title: l.aiAssistant,
+                      children: [
+                        SettingsRow(
+                          title: l.aiModelSettings,
+                          description: l.aiProviderDescription,
+                          control: ShadButton.outline(
+                            onPressed: onModelSettings,
+                            child: Text(l.manage),
+                          ),
+                        ),
+                      ],
+                    ),
                   SettingsSection(
                     title: l.about,
                     children: [

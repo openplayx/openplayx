@@ -103,7 +103,7 @@
   "chooseEachTime": "Choose each time",
   "defaultUnavailable": "A default source is unavailable. Choose again; no other account was substituted.",
   "searchScope": "Multi-source search scope",
-  "searchScopeDescription": "Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.",
+  "searchScopeDescription": "Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.",
   "sourceDefaultsTitle": "Default sources and search scope",
   "localFolder": "Local folder",
   "pickFolderFailed": "Could not choose a folder. Try again.",
@@ -406,5 +406,59 @@
   "metadataMissingSource": "Source file missing",
   "metadataAttribution": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
   "metadataForgetToken": "Remove TMDB credential",
-  "metadataSearch": "Search TMDB"
+  "metadataSearch": "Search TMDB",
+  "aiAssistant": "AI assistant",
+  "aiPrivacyNotice": "Messages, selected context and tool results are sent to your configured model provider.",
+  "aiWelcome": "Ask me to find media, continue watching, or control playback. Configure a model to begin.",
+  "aiYou": "You",
+  "aiToolResult": "Tool result",
+  "aiConfirmAction": "Confirm this change",
+  "aiApprove": "Approve",
+  "aiInputHint": "What would you like to watch?",
+  "aiStop": "Stop generating",
+  "aiSend": "Send",
+  "aiToolFailed": "Tool did not complete",
+  "aiConfigureFirst": "Configure your model, API key and cloud consent in AI settings first.",
+  "aiSendFailed": "Unable to send. Check the input length and try again.",
+  "aiCancelled": "Generation stopped. Completed actions are retained.",
+  "aiTimeout": "The request timed out. Completed actions are retained.",
+  "aiBudgetReached": "Turn limit reached. Completed results are retained.",
+  "aiProviderFailed": "Model request failed. Check credentials, endpoint and model support.",
+  "aiInterrupted": "Interrupted on shutdown; actions will not be replayed.",
+  "aiTokenUsage": "Reported tokens: {count}",
+  "aiModelSettings": "Model settings",
+  "aiProviderDescription": "OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.",
+  "aiEndpoint": "API base URL",
+  "aiModel": "Model ID",
+  "aiApiKey": "API key",
+  "aiKeyRequired": "Enter an API key",
+  "aiKeySaved": "Key saved; leave blank to keep it",
+  "aiOutputLimit": "Maximum output tokens (128–16384)",
+  "aiCloudConsent": "Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.",
+  "aiTestText": "Test reply",
+  "aiTestStream": "Test streaming",
+  "aiTestTools": "Test tool calls",
+  "aiTestPassed": "Connection test passed. Save to apply.",
+  "aiTestFailed": "Test failed. Check credentials and protocol support. Tool support must pass independently.",
+  "aiToolsVerified": "Tool calls verified. Available business tools will be enabled.",
+  "aiTextOnly": "Conversation only until the tool-call test passes.",
+  "aiSaveFailed": "Unable to save. Check the configuration and credential store access.",
+  "@aiTokenUsage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiExecuting": "Running {name}…",
+  "@aiExecuting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAuthenticationFailed": "Authentication failed. Update the API key in model settings.",
+  "aiRateLimited": "Provider rate limit reached. Try again later.",
+  "aiProtocolMismatch": "The endpoint or model does not support this request. Check connection tests."
 }

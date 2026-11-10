@@ -338,7 +338,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchScopeDescription =>
-      'Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.';
+      'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.';
 
   @override
   String get sourceDefaultsTitle => 'Default sources and search scope';
@@ -934,4 +934,144 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metadataSearch => 'Search TMDB';
+
+  @override
+  String get aiAssistant => 'AI assistant';
+
+  @override
+  String get aiPrivacyNotice =>
+      'Messages, selected context and tool results are sent to your configured model provider.';
+
+  @override
+  String get aiWelcome =>
+      'Ask me to find media, continue watching, or control playback. Configure a model to begin.';
+
+  @override
+  String get aiYou => 'You';
+
+  @override
+  String get aiToolResult => 'Tool result';
+
+  @override
+  String get aiConfirmAction => 'Confirm this change';
+
+  @override
+  String get aiApprove => 'Approve';
+
+  @override
+  String get aiInputHint => 'What would you like to watch?';
+
+  @override
+  String get aiStop => 'Stop generating';
+
+  @override
+  String get aiSend => 'Send';
+
+  @override
+  String get aiToolFailed => 'Tool did not complete';
+
+  @override
+  String get aiConfigureFirst =>
+      'Configure your model, API key and cloud consent in AI settings first.';
+
+  @override
+  String get aiSendFailed =>
+      'Unable to send. Check the input length and try again.';
+
+  @override
+  String get aiCancelled =>
+      'Generation stopped. Completed actions are retained.';
+
+  @override
+  String get aiTimeout =>
+      'The request timed out. Completed actions are retained.';
+
+  @override
+  String get aiBudgetReached =>
+      'Turn limit reached. Completed results are retained.';
+
+  @override
+  String get aiProviderFailed =>
+      'Model request failed. Check credentials, endpoint and model support.';
+
+  @override
+  String get aiInterrupted =>
+      'Interrupted on shutdown; actions will not be replayed.';
+
+  @override
+  String aiTokenUsage(int count) {
+    return 'Reported tokens: $count';
+  }
+
+  @override
+  String get aiModelSettings => 'Model settings';
+
+  @override
+  String get aiProviderDescription =>
+      'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.';
+
+  @override
+  String get aiEndpoint => 'API base URL';
+
+  @override
+  String get aiModel => 'Model ID';
+
+  @override
+  String get aiApiKey => 'API key';
+
+  @override
+  String get aiKeyRequired => 'Enter an API key';
+
+  @override
+  String get aiKeySaved => 'Key saved; leave blank to keep it';
+
+  @override
+  String get aiOutputLimit => 'Maximum output tokens (128–16384)';
+
+  @override
+  String get aiCloudConsent =>
+      'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.';
+
+  @override
+  String get aiTestText => 'Test reply';
+
+  @override
+  String get aiTestStream => 'Test streaming';
+
+  @override
+  String get aiTestTools => 'Test tool calls';
+
+  @override
+  String get aiTestPassed => 'Connection test passed. Save to apply.';
+
+  @override
+  String get aiTestFailed =>
+      'Test failed. Check credentials and protocol support. Tool support must pass independently.';
+
+  @override
+  String get aiToolsVerified =>
+      'Tool calls verified. Available business tools will be enabled.';
+
+  @override
+  String get aiTextOnly => 'Conversation only until the tool-call test passes.';
+
+  @override
+  String get aiSaveFailed =>
+      'Unable to save. Check the configuration and credential store access.';
+
+  @override
+  String aiExecuting(String name) {
+    return 'Running $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed =>
+      'Authentication failed. Update the API key in model settings.';
+
+  @override
+  String get aiRateLimited => 'Provider rate limit reached. Try again later.';
+
+  @override
+  String get aiProtocolMismatch =>
+      'The endpoint or model does not support this request. Check connection tests.';
 }

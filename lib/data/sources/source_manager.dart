@@ -427,6 +427,30 @@ class SourceManager {
         }
         return runtime.provider.browse(request, CallContext.forInstance(id));
       });
+  Future<BrowseResult> search(
+    String id,
+    String query, {
+    int offset = 0,
+    int limit = 20,
+  }) => _call(id, (runtime) async {
+    if (query.trim().isEmpty ||
+        query.length > 200 ||
+        offset < 0 ||
+        limit < 1 ||
+        limit > 40) {
+      throw const PluginException('invalidInput', '无效搜索或分页');
+    }
+    final provider = runtime.provider;
+    if (provider is! SearchCapability) {
+      throw const PluginException('unsupported', '此来源不支持搜索');
+    }
+    return (provider as SearchCapability).search(
+      query,
+      BrowseRequest(offset: offset, limit: limit),
+      CallContext.forInstance(id),
+    );
+  });
+
   Future<PlayableStream> resolve(ResourceRef resource) =>
       _call(resource.instanceId, (runtime) async {
         final stream = await runtime.provider.resolve(

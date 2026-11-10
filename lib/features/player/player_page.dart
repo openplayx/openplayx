@@ -592,6 +592,76 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
+  /// AI and UI share the same player state and backend command path.
+  Map<String, dynamic> assistantSnapshot() {
+    final value = _backend.value;
+    return {
+      'session_id': _busy || _closing ? null : _session,
+      'resource_id': _resource,
+      'status': value.status.name,
+      'position_ms': value.position.inMilliseconds,
+      'duration_ms': value.duration.inMilliseconds,
+      'can_seek': value.canSeek,
+      'speed': value.speed,
+      'volume': value.volume,
+    };
+  }
+
+  Future<Map<String, dynamic>> assistantControl(
+    String command,
+    Map<String, dynamic> args,
+  ) async {
+    if (_busy ||
+        _closing ||
+        _session == null ||
+        args['session_id'] != _session) {
+      throw StateError('staleSession');
+    }
+    final session = _session;
+    switch (command) {
+      case 'pause':
+        await _backend.pause();
+      case 'resume':
+        await _backend.play();
+      case 'stop':
+        if (!await stopPlayback()) throw StateError('stopFailed');
+      case 'seek':
+        final position = args['position_ms'] as int;
+        if (!_backend.value.canSeek ||
+            position > _backend.value.duration.inMilliseconds) {
+          throw StateError('invalidPosition');
+        }
+        await _backend.seek(Duration(milliseconds: position));
+      case 'set_speed':
+        final speed = (args['speed'] as num).toDouble();
+        if (!const [
+          0.25,
+          0.5,
+          0.75,
+          1.0,
+          1.25,
+          1.5,
+          1.75,
+          2.0,
+          3.0,
+          4.0,
+        ].contains(speed)) {
+          throw StateError('unsupportedSpeed');
+        }
+        await _backend.setSpeed(speed);
+        if (mounted) setState(() => _speed = speed);
+      case 'set_volume':
+        await _backend.setVolume(args['volume'] as int);
+      default:
+        throw StateError('unsupportedCommand');
+    }
+    if (command != 'stop' && session != _session) {
+      throw StateError('staleSession');
+    }
+    _checkpoint(force: true);
+    return assistantSnapshot();
+  }
+
   Future<bool> stopPlayback() async {
     if (_closing) return false;
     _closing = true;

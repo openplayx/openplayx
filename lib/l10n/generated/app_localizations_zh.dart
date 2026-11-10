@@ -320,7 +320,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchScopeDescription =>
-      '范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。';
+      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
 
   @override
   String get sourceDefaultsTitle => '能力默认实例与搜索范围';
@@ -893,6 +893,131 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metadataSearch => '搜索 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
+
+  @override
+  String get aiWelcome => '可以让我查找媒体、继续观看或控制播放。请先配置模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具结果';
+
+  @override
+  String get aiConfirmAction => '确认这项变更';
+
+  @override
+  String get aiApprove => '同意执行';
+
+  @override
+  String get aiInputHint => '想看些什么？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '发送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+
+  @override
+  String get aiSendFailed => '无法发送，请检查输入长度后重试。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作会保留。';
+
+  @override
+  String get aiTimeout => '请求超时，已完成操作会保留。';
+
+  @override
+  String get aiBudgetReached => '已达到本回合上限，已完成结果会保留。';
+
+  @override
+  String get aiProviderFailed => '模型请求失败，请检查凭据、端点及模型支持情况。';
+
+  @override
+  String get aiInterrupted => '上次关闭时中断，不会重放操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供应商报告用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型设置';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填写 API Key';
+
+  @override
+  String get aiKeySaved => '已保存凭据，留空保留';
+
+  @override
+  String get aiOutputLimit => '输出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiTestText => '测试普通回复';
+
+  @override
+  String get aiTestStream => '测试流式回复';
+
+  @override
+  String get aiTestTools => '测试工具调用';
+
+  @override
+  String get aiTestPassed => '连接测试通过，保存后生效。';
+
+  @override
+  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
+
+  @override
+  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
+
+  @override
+  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
+
+  @override
+  String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已达到供应商限流，请稍后重试。';
+
+  @override
+  String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1210,7 +1335,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get searchScopeDescription =>
-      '范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。';
+      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
 
   @override
   String get sourceDefaultsTitle => '能力默认实例与搜索范围';
@@ -1783,6 +1908,131 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get metadataSearch => '搜索 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
+
+  @override
+  String get aiWelcome => '可以让我查找媒体、继续观看或控制播放。请先配置模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具结果';
+
+  @override
+  String get aiConfirmAction => '确认这项变更';
+
+  @override
+  String get aiApprove => '同意执行';
+
+  @override
+  String get aiInputHint => '想看些什么？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '发送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+
+  @override
+  String get aiSendFailed => '无法发送，请检查输入长度后重试。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作会保留。';
+
+  @override
+  String get aiTimeout => '请求超时，已完成操作会保留。';
+
+  @override
+  String get aiBudgetReached => '已达到本回合上限，已完成结果会保留。';
+
+  @override
+  String get aiProviderFailed => '模型请求失败，请检查凭据、端点及模型支持情况。';
+
+  @override
+  String get aiInterrupted => '上次关闭时中断，不会重放操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供应商报告用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型设置';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填写 API Key';
+
+  @override
+  String get aiKeySaved => '已保存凭据，留空保留';
+
+  @override
+  String get aiOutputLimit => '输出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiTestText => '测试普通回复';
+
+  @override
+  String get aiTestStream => '测试流式回复';
+
+  @override
+  String get aiTestTools => '测试工具调用';
+
+  @override
+  String get aiTestPassed => '连接测试通过，保存后生效。';
+
+  @override
+  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
+
+  @override
+  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
+
+  @override
+  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
+
+  @override
+  String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已达到供应商限流，请稍后重试。';
+
+  @override
+  String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2100,7 +2350,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get searchScopeDescription =>
-      '範圍以實例清單儲存，可包含多個實例。目前來源僅支援瀏覽及解析，搜尋能力接入後才開放相關預設設定。';
+      '選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。';
 
   @override
   String get sourceDefaultsTitle => '能力預設實例及搜尋範圍';
@@ -2673,4 +2923,129 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get metadataSearch => '搜尋 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '訊息、選定上下文及工具結果會傳送至你設定的模型供應商。';
+
+  @override
+  String get aiWelcome => '可以讓我尋找媒體、繼續觀看或控制播放。請先設定模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具結果';
+
+  @override
+  String get aiConfirmAction => '確認這項變更';
+
+  @override
+  String get aiApprove => '同意執行';
+
+  @override
+  String get aiInputHint => '想看些什麼？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '傳送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '請先在 AI 設定中設定模型、API Key 並授權傳送至雲端。';
+
+  @override
+  String get aiSendFailed => '無法傳送，請檢查輸入長度後重試。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作會保留。';
+
+  @override
+  String get aiTimeout => '請求逾時，已完成操作會保留。';
+
+  @override
+  String get aiBudgetReached => '已達到本回合上限，已完成結果會保留。';
+
+  @override
+  String get aiProviderFailed => '模型請求失敗，請檢查憑據、端點及模型支援情況。';
+
+  @override
+  String get aiInterrupted => '上次關閉時中斷，不會重播操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供應商回報用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型設定';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或相容協定的 HTTPS 端點。API Key 儲存在系統憑據儲存區。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填寫 API Key';
+
+  @override
+  String get aiKeySaved => '已儲存憑據，留空保留';
+
+  @override
+  String get aiOutputLimit => '輸出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。';
+
+  @override
+  String get aiTestText => '測試一般回覆';
+
+  @override
+  String get aiTestStream => '測試串流回覆';
+
+  @override
+  String get aiTestTools => '測試工具呼叫';
+
+  @override
+  String get aiTestPassed => '連線測試通過，儲存後生效。';
+
+  @override
+  String get aiTestFailed => '測試失敗，請檢查憑據及協定支援。工具呼叫須獨立通過測試。';
+
+  @override
+  String get aiToolsVerified => '工具呼叫已驗證，將啟用實際可用的業務工具。';
+
+  @override
+  String get aiTextOnly => '工具呼叫測試通過前僅啟用純對話。';
+
+  @override
+  String get aiSaveFailed => '儲存失敗，請檢查設定及系統憑據儲存權限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在執行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '驗證失敗，請在模型設定中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已達到供應商速率限制，請稍後重試。';
+
+  @override
+  String get aiProtocolMismatch => '端點或模型不支援此請求，請檢查連線測試結果。';
 }

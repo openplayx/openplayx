@@ -39,6 +39,22 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
     }
   }
 
+  Future<void> _searchScope(String id, bool selected) async {
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final ids = widget.manager.bindings.searchInstances.toSet();
+      selected ? ids.add(id) : ids.remove(id);
+      await widget.manager.setSearchInstances(ids.toList());
+    } catch (_) {
+      if (mounted) _error = l.defaultSaveFailed;
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   String _selected(String capability) {
     final id = widget.manager.bindings.defaults[capability];
     return widget.manager.configs.any(
@@ -108,6 +124,23 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
         SizedBox(height: 24),
         Text(l.searchScope),
         Text(l.searchScopeDescription),
+        for (final source in widget.manager.configs.where(
+          (s) =>
+              s.enabled &&
+              SourceSchemas.forKind(s.kind).capabilities
+                  .contains('search.media'),
+        ))
+          Padding(
+            padding: const EdgeInsets.only(top: 12),
+            child: ShadCheckbox(
+              value: widget.manager.bindings.searchInstances.contains(
+                source.id,
+              ),
+              enabled: !_busy,
+              label: Text(source.name),
+              onChanged: (value) => _searchScope(source.id, value),
+            ),
+          ),
         if (_error != null)
           Padding(
             padding: EdgeInsets.only(top: 12),

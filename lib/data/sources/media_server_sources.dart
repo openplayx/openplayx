@@ -129,6 +129,7 @@ class JellyfinPlugin
     implements
         Plugin,
         SourceCapability,
+        SearchCapability,
         MetadataCapability,
         SourceAttachmentCapability {
   JellyfinPlugin(this.config, this.http);
@@ -167,6 +168,10 @@ class JellyfinPlugin
       'Users/${Uri.encodeComponent(config.userId)}/Items',
       {
         if (request.node != null) 'ParentId': request.node!.id,
+        if (request.search != null) ...{
+          'SearchTerm': request.search!,
+          'Recursive': 'true',
+        },
         'StartIndex': '${request.offset}',
         'Limit': '${request.limit}',
         'Fields':
@@ -208,6 +213,16 @@ class JellyfinPlugin
           : null,
     );
   }
+
+  @override
+  Future<BrowseResult> search(
+    String query,
+    BrowseRequest page,
+    CallContext context,
+  ) => browse(
+    BrowseRequest(search: query, offset: page.offset, limit: page.limit),
+    context,
+  );
 
   @override
   Future<PlayableStream> resolve(
@@ -285,6 +300,7 @@ class PlexPlugin
     implements
         Plugin,
         SourceCapability,
+        SearchCapability,
         MetadataCapability,
         SourceAttachmentCapability {
   PlexPlugin(this.config, this.http);
@@ -318,9 +334,12 @@ class PlexPlugin
         request,
       );
     }
-    final root = request.node == null;
-    final path = request.node?.id ?? '/library/sections';
+    final root = request.node == null && request.search == null;
+    final path = request.search != null
+        ? '/library/all'
+        : request.node?.id ?? '/library/sections';
     final json = await http.json(path, {
+      if (request.search != null) 'title': request.search!,
       'X-Plex-Container-Start': '${request.offset}',
       'X-Plex-Container-Size': '${request.limit}',
     });
@@ -357,6 +376,16 @@ class PlexPlugin
       nextOffset: items.isNotEmpty && next < total ? next : null,
     );
   }
+
+  @override
+  Future<BrowseResult> search(
+    String query,
+    BrowseRequest page,
+    CallContext context,
+  ) => browse(
+    BrowseRequest(search: query, offset: page.offset, limit: page.limit),
+    context,
+  );
 
   @override
   Future<PlayableStream> resolve(

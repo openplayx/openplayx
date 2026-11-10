@@ -103,7 +103,7 @@
   "chooseEachTime": "每次選擇",
   "defaultUnavailable": "存在無法使用的預設實例綁定，請重新選擇；未自動替換為其他帳號。",
   "searchScope": "多來源搜尋範圍",
-  "searchScopeDescription": "範圍以實例清單儲存，可包含多個實例。目前來源僅支援瀏覽及解析，搜尋能力接入後才開放相關預設設定。",
+  "searchScopeDescription": "選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。",
   "sourceDefaultsTitle": "能力預設實例及搜尋範圍",
   "localFolder": "本機資料夾",
   "pickFolderFailed": "無法選擇資料夾，請重試。",
@@ -406,5 +406,59 @@
   "metadataMissingSource": "來源檔案已遺失",
   "metadataAttribution": "本產品使用 TMDB API，但未經 TMDB 認可或認證。",
   "metadataForgetToken": "移除 TMDB 憑證",
-  "metadataSearch": "搜尋 TMDB"
+  "metadataSearch": "搜尋 TMDB",
+  "aiAssistant": "AI 助手",
+  "aiPrivacyNotice": "訊息、選定上下文及工具結果會傳送至你設定的模型供應商。",
+  "aiWelcome": "可以讓我尋找媒體、繼續觀看或控制播放。請先設定模型。",
+  "aiYou": "你",
+  "aiToolResult": "工具結果",
+  "aiConfirmAction": "確認這項變更",
+  "aiApprove": "同意執行",
+  "aiInputHint": "想看些什麼？",
+  "aiStop": "停止生成",
+  "aiSend": "傳送",
+  "aiToolFailed": "工具未完成",
+  "aiConfigureFirst": "請先在 AI 設定中設定模型、API Key 並授權傳送至雲端。",
+  "aiSendFailed": "無法傳送，請檢查輸入長度後重試。",
+  "aiCancelled": "已停止生成，已完成操作會保留。",
+  "aiTimeout": "請求逾時，已完成操作會保留。",
+  "aiBudgetReached": "已達到本回合上限，已完成結果會保留。",
+  "aiProviderFailed": "模型請求失敗，請檢查憑據、端點及模型支援情況。",
+  "aiInterrupted": "上次關閉時中斷，不會重播操作。",
+  "aiTokenUsage": "供應商回報用量：{count} tokens",
+  "aiModelSettings": "模型設定",
+  "aiProviderDescription": "使用 OpenAI 或相容協定的 HTTPS 端點。API Key 儲存在系統憑據儲存區。",
+  "aiEndpoint": "API 基址",
+  "aiModel": "模型 ID",
+  "aiApiKey": "API Key",
+  "aiKeyRequired": "填寫 API Key",
+  "aiKeySaved": "已儲存憑據，留空保留",
+  "aiOutputLimit": "輸出 token 上限（128–16384）",
+  "aiCloudConsent": "允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。",
+  "aiTestText": "測試一般回覆",
+  "aiTestStream": "測試串流回覆",
+  "aiTestTools": "測試工具呼叫",
+  "aiTestPassed": "連線測試通過，儲存後生效。",
+  "aiTestFailed": "測試失敗，請檢查憑據及協定支援。工具呼叫須獨立通過測試。",
+  "aiToolsVerified": "工具呼叫已驗證，將啟用實際可用的業務工具。",
+  "aiTextOnly": "工具呼叫測試通過前僅啟用純對話。",
+  "aiSaveFailed": "儲存失敗，請檢查設定及系統憑據儲存權限。",
+  "@aiTokenUsage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiExecuting": "正在執行 {name}…",
+  "@aiExecuting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAuthenticationFailed": "驗證失敗，請在模型設定中更新 API Key。",
+  "aiRateLimited": "已達到供應商速率限制，請稍後重試。",
+  "aiProtocolMismatch": "端點或模型不支援此請求，請檢查連線測試結果。"
 }

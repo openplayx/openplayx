@@ -721,7 +721,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchScopeDescription.
   ///
   /// In en, this message translates to:
-  /// **'Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.'**
+  /// **'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.'**
   String get searchScopeDescription;
 
   /// No description provided for @sourceDefaultsTitle.
@@ -1809,6 +1809,246 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Search TMDB'**
   String get metadataSearch;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'AI assistant'**
+  String get aiAssistant;
+
+  /// No description provided for @aiPrivacyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages, selected context and tool results are sent to your configured model provider.'**
+  String get aiPrivacyNotice;
+
+  /// No description provided for @aiWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me to find media, continue watching, or control playback. Configure a model to begin.'**
+  String get aiWelcome;
+
+  /// No description provided for @aiYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get aiYou;
+
+  /// No description provided for @aiToolResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool result'**
+  String get aiToolResult;
+
+  /// No description provided for @aiConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this change'**
+  String get aiConfirmAction;
+
+  /// No description provided for @aiApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get aiApprove;
+
+  /// No description provided for @aiInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to watch?'**
+  String get aiInputHint;
+
+  /// No description provided for @aiStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get aiStop;
+
+  /// No description provided for @aiSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get aiSend;
+
+  /// No description provided for @aiToolFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool did not complete'**
+  String get aiToolFailed;
+
+  /// No description provided for @aiConfigureFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure your model, API key and cloud consent in AI settings first.'**
+  String get aiConfigureFirst;
+
+  /// No description provided for @aiSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to send. Check the input length and try again.'**
+  String get aiSendFailed;
+
+  /// No description provided for @aiCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Generation stopped. Completed actions are retained.'**
+  String get aiCancelled;
+
+  /// No description provided for @aiTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out. Completed actions are retained.'**
+  String get aiTimeout;
+
+  /// No description provided for @aiBudgetReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn limit reached. Completed results are retained.'**
+  String get aiBudgetReached;
+
+  /// No description provided for @aiProviderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Model request failed. Check credentials, endpoint and model support.'**
+  String get aiProviderFailed;
+
+  /// No description provided for @aiInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupted on shutdown; actions will not be replayed.'**
+  String get aiInterrupted;
+
+  /// No description provided for @aiTokenUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported tokens: {count}'**
+  String aiTokenUsage(int count);
+
+  /// No description provided for @aiModelSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Model settings'**
+  String get aiModelSettings;
+
+  /// No description provided for @aiProviderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.'**
+  String get aiProviderDescription;
+
+  /// No description provided for @aiEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'API base URL'**
+  String get aiEndpoint;
+
+  /// No description provided for @aiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model ID'**
+  String get aiModel;
+
+  /// No description provided for @aiApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get aiApiKey;
+
+  /// No description provided for @aiKeyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an API key'**
+  String get aiKeyRequired;
+
+  /// No description provided for @aiKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Key saved; leave blank to keep it'**
+  String get aiKeySaved;
+
+  /// No description provided for @aiOutputLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum output tokens (128–16384)'**
+  String get aiOutputLimit;
+
+  /// No description provided for @aiCloudConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.'**
+  String get aiCloudConsent;
+
+  /// No description provided for @aiTestText.
+  ///
+  /// In en, this message translates to:
+  /// **'Test reply'**
+  String get aiTestText;
+
+  /// No description provided for @aiTestStream.
+  ///
+  /// In en, this message translates to:
+  /// **'Test streaming'**
+  String get aiTestStream;
+
+  /// No description provided for @aiTestTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Test tool calls'**
+  String get aiTestTools;
+
+  /// No description provided for @aiTestPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test passed. Save to apply.'**
+  String get aiTestPassed;
+
+  /// No description provided for @aiTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Test failed. Check credentials and protocol support. Tool support must pass independently.'**
+  String get aiTestFailed;
+
+  /// No description provided for @aiToolsVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool calls verified. Available business tools will be enabled.'**
+  String get aiToolsVerified;
+
+  /// No description provided for @aiTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation only until the tool-call test passes.'**
+  String get aiTextOnly;
+
+  /// No description provided for @aiSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to save. Check the configuration and credential store access.'**
+  String get aiSaveFailed;
+
+  /// No description provided for @aiExecuting.
+  ///
+  /// In en, this message translates to:
+  /// **'Running {name}…'**
+  String aiExecuting(String name);
+
+  /// No description provided for @aiAuthenticationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Update the API key in model settings.'**
+  String get aiAuthenticationFailed;
+
+  /// No description provided for @aiRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider rate limit reached. Try again later.'**
+  String get aiRateLimited;
+
+  /// No description provided for @aiProtocolMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The endpoint or model does not support this request. Check connection tests.'**
+  String get aiProtocolMismatch;
 }
 
 class _AppLocalizationsDelegate

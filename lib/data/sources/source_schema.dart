@@ -13,8 +13,10 @@ class SourceSchemas {
       'source.browse',
       'source.resolve',
       'source.attachments',
-      if (kind == SourceKind.jellyfin || kind == SourceKind.plex)
+      if (kind == SourceKind.jellyfin || kind == SourceKind.plex) ...[
         'metadata.lookup',
+        'search.media',
+      ],
     ],
     configSchema: PluginConfigSchema(
       version: 2,
