@@ -2282,6 +2282,288 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'More actions'**
   String get moreActions;
+
+  /// No description provided for @aiNewChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get aiNewChat;
+
+  /// No description provided for @aiChatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get aiChatHistory;
+
+  /// No description provided for @aiShowMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Show home content'**
+  String get aiShowMedia;
+
+  /// No description provided for @aiExpandChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand on Home'**
+  String get aiExpandChat;
+
+  /// No description provided for @aiLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to latest'**
+  String get aiLatest;
+
+  /// No description provided for @aiDraftNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying. You can draft your next message.'**
+  String get aiDraftNext;
+
+  /// No description provided for @aiSuggestMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Help me find a movie'**
+  String get aiSuggestMedia;
+
+  /// No description provided for @aiSuggestResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Where did I leave off?'**
+  String get aiSuggestResume;
+
+  /// No description provided for @aiToolPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get aiToolPreparing;
+
+  /// No description provided for @aiToolRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get aiToolRunning;
+
+  /// No description provided for @aiToolWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting confirmation'**
+  String get aiToolWaiting;
+
+  /// No description provided for @aiToolSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get aiToolSucceeded;
+
+  /// No description provided for @aiToolCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not executed or cancelled'**
+  String get aiToolCancelled;
+
+  /// No description provided for @aiActionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is no longer available. Select again.'**
+  String get aiActionExpired;
+
+  /// No description provided for @aiRemoteImageBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote image not loaded'**
+  String get aiRemoteImageBlocked;
+
+  /// No description provided for @aiOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open external link?'**
+  String get aiOpenLink;
+
+  /// No description provided for @aiLinkBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be opened'**
+  String get aiLinkBlocked;
+
+  /// No description provided for @aiTaskSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Task submitted'**
+  String get aiTaskSubmitted;
+
+  /// No description provided for @aiPartialFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sources are unavailable'**
+  String get aiPartialFailure;
+
+  /// No description provided for @aiMoreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'More results are available. Ask to see another page.'**
+  String get aiMoreResults;
+
+  /// No description provided for @aiNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching results'**
+  String get aiNoResults;
+
+  /// No description provided for @aiUntitledChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get aiUntitledChat;
+
+  /// No description provided for @aiHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get aiHistoryEmpty;
+
+  /// No description provided for @aiReplying.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying…'**
+  String get aiReplying;
+
+  /// No description provided for @aiToolSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions and results come from local services'**
+  String get aiToolSummary;
+
+  /// No description provided for @aiEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get aiEarlier;
+
+  /// No description provided for @diagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send diagnostics'**
+  String get diagnosticsTitle;
+
+  /// No description provided for @diagnosticsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.'**
+  String get diagnosticsDescription;
+
+  /// No description provided for @anonymousHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave username and password blank for anonymous access.'**
+  String get anonymousHelp;
+
+  /// No description provided for @s3AccessKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Key ID'**
+  String get s3AccessKey;
+
+  /// No description provided for @s3SecretKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Access Key'**
+  String get s3SecretKey;
+
+  /// No description provided for @s3AnonymousHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Public buckets need no keys.'**
+  String get s3AnonymousHelp;
+
+  /// No description provided for @s3Region.
+  ///
+  /// In en, this message translates to:
+  /// **'Region (optional, default us-east-1)'**
+  String get s3Region;
+
+  /// No description provided for @s3PathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'bucket/optional-prefix, e.g. media/movies'**
+  String get s3PathHint;
+
+  /// No description provided for @remotePathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. media/movies; leave blank for the root'**
+  String get remotePathHint;
+
+  /// No description provided for @dlnaSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search local network'**
+  String get dlnaSearch;
+
+  /// No description provided for @dlnaSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get dlnaSearching;
+
+  /// No description provided for @dlnaNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No media servers found. You can enter the device description URL manually.'**
+  String get dlnaNoDevices;
+
+  /// No description provided for @dlnaDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get dlnaDevice;
+
+  /// No description provided for @dlnaAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Device description URL'**
+  String get dlnaAddress;
+
+  /// No description provided for @dlnaAddressHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in when you pick a discovered device; you can also enter it manually.'**
+  String get dlnaAddressHelp;
+
+  /// No description provided for @aiOpenExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get aiOpenExternal;
+
+  /// No description provided for @serverBrowseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get serverBrowseAll;
+
+  /// No description provided for @serverUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach this server'**
+  String get serverUnavailable;
+
+  /// No description provided for @serverEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get serverEmpty;
+
+  /// No description provided for @serverLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get serverLoadMore;
+
+  /// No description provided for @localLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Local library'**
+  String get localLibrary;
 }
 
 class _AppLocalizationsDelegate

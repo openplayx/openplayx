@@ -60,8 +60,12 @@ class SourceSignIn {
       request.followRedirects = false;
       headers.forEach(request.headers.set);
       if (body != null) {
-        request.headers.contentType = ContentType.json;
-        request.write(jsonEncode(body));
+        // Plain application/json with an explicit length: Emby parses neither
+        // the charset variant nor a chunked request body.
+        final bytes = utf8.encode(jsonEncode(body));
+        request.headers.set(HttpHeaders.contentTypeHeader, 'application/json');
+        request.contentLength = bytes.length;
+        request.add(bytes);
       }
       final response = await request.close().timeout(
         const Duration(seconds: 15),
@@ -101,7 +105,7 @@ class SourceSignIn {
 
   Future<JellyfinSession> jellyfin(SourceConfig config, String password) async {
     if (config.username.trim().isEmpty) {
-      throw const PluginException('invalidInput', '请填写 Jellyfin 用户名。');
+      throw PluginException('invalidInput', '请填写 ${config.kind.label} 用户名。');
     }
     final base = Uri.parse(
       '${config.address.replaceFirst(RegExp(r'/+$'), '')}/',
@@ -111,6 +115,8 @@ class SourceSignIn {
       method: 'POST',
       headers: {
         'Authorization':
+            'MediaBrowser Client="OpenPlayX", Device="OpenPlayX", DeviceId="${config.id}", Version="1"',
+        'X-Emby-Authorization':
             'MediaBrowser Client="OpenPlayX", Device="OpenPlayX", DeviceId="${config.id}", Version="1"',
       },
       body: {'Username': config.username, 'Pw': password},

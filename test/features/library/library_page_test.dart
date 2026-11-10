@@ -201,9 +201,13 @@ void main() {
       expect(find.text('Film.mp4'), findsOneWidget);
       // Disabling a file source hides its media; enabling brings it back.
       service.setBindingEnabled(binding, false);
+      // Change notifications are throttled for 300 ms after a scan.
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsNothing);
       service.setBindingEnabled(binding, true);
+      // Change notifications are throttled for 300 ms after a scan.
+      await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsOneWidget);
       // Favourites are hidden for now.

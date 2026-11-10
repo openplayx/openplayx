@@ -1,9 +1,15 @@
 name: openplayx-source-test
+# BIND: address the ports listen on (127.0.0.1 locally, 0.0.0.0 on a shared
+# test machine). HOST_IP: address clients use to reach this machine.
+x-rclone: &rclone
+  image: rclone/rclone@sha256:7cbeec24a44f206067597c0368be4de90ae19a64d5113c7d1938bd737a81e466
+  volumes:
+    - ../../test/fixtures:/data/media:ro
 services:
   smb:
     image: dockurr/samba@sha256:2a0452a12b7a244a22f18d0f233101bb8d4952b5500ae263905e3b9dad3bf2ae
     ports:
-      - "127.0.0.1:445:445"
+      - "${BIND:-127.0.0.1}:445:445"
     environment:
       NAME: media
       USER: openplayx
@@ -14,7 +20,7 @@ services:
   jellyfin:
     image: jellyfin/jellyfin@sha256:fea863d0cd9ec445985d9c75fc6ed64e38a1d2766cf0c250a33d553f4fc1b771
     ports:
-      - "127.0.0.1:18096:8096"
+      - "${BIND:-127.0.0.1}:18096:8096"
     volumes:
       - ../../test/fixtures:/media:ro
     tmpfs:
@@ -23,9 +29,9 @@ services:
   plex:
     image: plexinc/pms-docker@sha256:6d778d41daae68f89115aa87a44ae14a96b23e71a2093da173b5a9aac4091336
     ports:
-      - "127.0.0.1:13240:32400"
+      - "${BIND:-127.0.0.1}:13240:32400"
     environment:
-      ADVERTISE_IP: http://127.0.0.1:13240/
+      ADVERTISE_IP: http://${HOST_IP:-127.0.0.1}:13240/
       ALLOWED_NETWORKS: 0.0.0.0/0
       PLEX_UID: "1000"
       PLEX_GID: "1000"
@@ -34,3 +40,50 @@ services:
     tmpfs:
       - /config
       - /transcode
+  emby:
+    image: emby/embyserver@sha256:7082c63b10a2fcb3805a7eaebba407d5723bc57c085c9f0b29b7d0a702765cc1
+    ports:
+      - "${BIND:-127.0.0.1}:18097:8096"
+    volumes:
+      - ../../test/fixtures:/media:ro
+    tmpfs:
+      - /config
+  # WebDAV, FTP, SFTP and S3 are served read-only by rclone from the same
+  # fixtures; /data/media is the folder (or S3 bucket) "media".
+  webdav:
+    <<: *rclone
+    command: [serve, webdav, /data, --addr, ":8080", --read-only,
+      --user, openplayx, --pass, test-only-password]
+    ports:
+      - "${BIND:-127.0.0.1}:18080:8080"
+  ftp:
+    <<: *rclone
+    command: [serve, ftp, /data, --addr, ":2121", --read-only,
+      --user, openplayx, --pass, test-only-password,
+      --passive-port, "31000-31009", --public-ip, "${HOST_IP:-127.0.0.1}"]
+    ports:
+      - "${BIND:-127.0.0.1}:2121:2121"
+      - "${BIND:-127.0.0.1}:31000-31009:31000-31009"
+  sftp:
+    <<: *rclone
+    command: [serve, sftp, /data, --addr, ":2022", --read-only,
+      --user, openplayx, --pass, test-only-password]
+    ports:
+      - "${BIND:-127.0.0.1}:2222:2022"
+  s3:
+    <<: *rclone
+    command: [serve, s3, /data, --addr, ":9000", --read-only,
+      --auth-key, "openplayx,test-only-password"]
+    ports:
+      - "${BIND:-127.0.0.1}:19000:9000"
+  # SSDP and media URLs need the machine's own address, so MiniDLNA uses the
+  # host network (Linux only); its description is http://HOST:8200/rootDesc.xml.
+  dlna:
+    image: vladgh/minidlna@sha256:cdfa0ed2bc9482b350c387d793ec6e2d41749cdafd9b69a4fe3579c0995469ef
+    network_mode: host
+    environment:
+      MINIDLNA_MEDIA_DIR: /media
+      MINIDLNA_FRIENDLY_NAME: OpenPlayX Test
+      MINIDLNA_PORT: "8200"
+    volumes:
+      - ../../test/fixtures:/media:ro

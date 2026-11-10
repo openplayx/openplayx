@@ -28,21 +28,67 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.byTooltip('AI 助手'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('home-open-chat')));
+      await tester.pumpAndSettle();
       final homeView = tester.widget<AssistantView>(find.byType(AssistantView));
+      final composer = find.descendant(
+        of: find.byKey(const ValueKey('ai-composer-input')),
+        matching: find.byType(EditableText),
+      );
+      await tester.enterText(composer, '保留这个草稿');
+      await tester.tap(find.byTooltip('媒体库').first);
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
-      final views = tester
-          .widgetList<AssistantView>(find.byType(AssistantView))
-          .toList();
-      expect(views.length, 2);
-      expect(identical(views.last.coordinator, homeView.coordinator), true);
-      await tester.tap(find.text('设置').last);
+      final panelView = tester.widget<AssistantView>(
+        find.byType(AssistantView).last,
+      );
+      expect(identical(panelView.coordinator, homeView.coordinator), true);
+      expect(identical(panelView.controller, homeView.controller), true);
+      expect(find.text('保留这个草稿'), findsOneWidget);
+      await tester.tap(find.byTooltip('在首页展开'));
+      await tester.pumpAndSettle();
+      expect(find.text('保留这个草稿'), findsOneWidget);
+      expect(find.byTooltip('AI 助手'), findsNothing);
+      await tester.tap(find.byTooltip('模型设置'));
       await tester.pumpAndSettle();
       expect(find.byType(AssistantSettingsPage), findsOneWidget);
       expect(find.text('模型设置'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
+      library.close();
+    },
+  );
+  testWidgets(
+    'home suggestions and composer fit a narrow screen with large text',
+    (tester) async {
+      tester.view.physicalSize = const Size(320, 1000);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final library = LibraryService(sqlite3.openInMemory());
+      await tester.pumpWidget(
+        TestApp(
+          home: MediaQuery(
+            data: const MediaQueryData(
+              size: Size(320, 1000),
+              textScaler: TextScaler.linear(2),
+            ),
+            child: AppShell(
+              library: library,
+              sources: Sources(),
+              backend: FakeBackend(),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.byKey(const ValueKey('home-open-chat')));
+      await tester.pumpAndSettle();
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
       library.close();
     },
   );

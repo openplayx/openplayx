@@ -14,11 +14,13 @@ import '../../ui/components/media/content_row.dart';
 import '../../ui/icons/app_icons.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../../data/sources/source_config.dart';
 import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
 import '../../services/artwork/artwork_service.dart';
 import 'media_detail_page.dart';
 import 'metadata_artwork.dart';
+import 'server_shelf.dart';
 import '../../ui/components/media/media_poster_card.dart';
 
 class LibraryPage extends StatefulWidget {
@@ -209,6 +211,59 @@ class _LibraryPageState extends State<LibraryPage> {
     }
   }
 
+  /// Server shelf / browse tap: folders open their poster wall, files play.
+  Future<void> _openEntry(BuildContext from, SourceEntry entry) async {
+    if (entry.isFolder) {
+      await Navigator.of(from).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ServerBrowsePage(
+            sources: widget.sources,
+            artwork: _artwork,
+            instanceId: entry.ref.instanceId,
+            title: entry.name,
+            node: entry.ref,
+            onOpen: _openEntry,
+          ),
+        ),
+      );
+      return;
+    }
+    if (_resolving) return;
+    _resolving = true;
+    try {
+      final stream = await widget.sources.resolve(entry.ref);
+      if (!mounted) {
+        await stream.release();
+        return;
+      }
+      final selection = SourceSelection(
+        entry.name,
+        stream,
+        ref: entry.ref,
+        entry: entry,
+      );
+      if (widget.onPlay != null) {
+        widget.onPlay!(selection);
+      } else {
+        final own = ModalRoute.of(context);
+        Navigator.of(context).popUntil((route) => route == own);
+        Navigator.pop(context, selection);
+      }
+    } catch (error) {
+      if (from.mounted) {
+        ShadToaster.of(from).show(
+          ShadToast.destructive(
+            description: Text(
+              error is PluginException ? error.message : l.versionOpenFailed,
+            ),
+          ),
+        );
+      }
+    } finally {
+      _resolving = false;
+    }
+  }
+
   Future<void> _openSearch() async {
     final controller = TextEditingController(text: _search);
     void apply(String value) => setState(() {
@@ -255,6 +310,12 @@ class _LibraryPageState extends State<LibraryPage> {
         ? []
         : service.query(null, search: _search, offset: _offset);
     final recent = service?.continueWatching() ?? const <sql.Row>[];
+    // A search filters the local wall only, so the shelves step aside.
+    final servers = service == null || _search.isNotEmpty
+        ? const <SourceConfig>[]
+        : widget.sources.configs
+              .where((c) => c.enabled && !c.isFileSource)
+              .toList();
     // Recent/continue-watching entries are on screen: process them first.
     for (final media in recent) {
       _boost(media['id'] as String);
@@ -285,147 +346,158 @@ class _LibraryPageState extends State<LibraryPage> {
                     ? ContentState(message: l.loading, loading: true)
                     : Text(_error!),
               )
-            : LayoutBuilder(
-                builder: (context, layout) => Column(
-                  children: [
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: layout.maxHeight * 0.45,
+            : CustomScrollView(
+                slivers: [
+                  if (widget.onPlay == null && recent.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(l.continueIncludingHistory),
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 100,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
                           children: [
-                            if (widget.onPlay == null && recent.isNotEmpty) ...[
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Text(l.continueIncludingHistory),
-                                ),
-                              ),
+                            for (final media in recent)
                               SizedBox(
-                                height: 100,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    for (final media in recent)
-                                      SizedBox(
-                                        width: 240,
-                                        child: ShadCard(
-                                          padding: EdgeInsets.zero,
-                                          child: ContentRow(
-                                            leading: Icon(AppIcons.history),
-                                            title: Text(
-                                              media['title'] as String,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            subtitle: Text(
-                                              l.watchProgress(
-                                                (media['position'] as int) ~/
-                                                    60000,
-                                                (media['duration'] as int) ~/
-                                                    60000,
-                                              ),
-                                            ),
-                                            onTap: _scanning
-                                                ? null
-                                                : () => _detail(media),
-                                          ),
-                                        ),
+                                width: 240,
+                                child: ShadCard(
+                                  padding: EdgeInsets.zero,
+                                  child: ContentRow(
+                                    leading: Icon(AppIcons.history),
+                                    title: Text(
+                                      media['title'] as String,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Text(
+                                      l.watchProgress(
+                                        (media['position'] as int) ~/ 60000,
+                                        (media['duration'] as int) ~/ 60000,
                                       ),
-                                  ],
+                                    ),
+                                    onTap: _scanning
+                                        ? null
+                                        : () => _detail(media),
+                                  ),
                                 ),
                               ),
-                            ],
-                            if (_scanning) ShadProgress(),
-                            if (_error != null)
-                              ShadAlert.destructive(title: Text(_error!)),
                           ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: fileSources.isEmpty && rows.isEmpty
-                          ? Center(
-                              child: Padding(
-                                padding: EdgeInsets.all(24),
-                                child: Text(l.libraryNoFileSources),
-                              ),
-                            )
-                          : rows.isEmpty
-                          ? Center(
-                              child: Text(
-                                _search.isNotEmpty
-                                    ? l.noMatchingMedia
-                                    : l.libraryEmptyNoMedia,
-                              ),
-                            )
-                          : GridView.builder(
-                              padding: EdgeInsets.all(16),
-                              gridDelegate:
-                                  SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 220,
-                                    childAspectRatio: 0.5,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                  ),
-                              itemCount: rows.length,
-                              itemBuilder: (_, index) {
-                                final media = rows[index];
-                                _boost(media['id'] as String);
-                                return MediaPosterCard(
-                                  title: media['title'] as String,
-                                  artwork:
-                                      service.metadata.displayArtwork(
-                                            media['id'] as String,
-                                          ) ==
-                                          null
-                                      ? null
-                                      : MetadataArtwork(
-                                          service: _artwork,
-                                          artwork: service.metadata
-                                              .displayArtwork(
-                                                media['id'] as String,
-                                              )!,
-                                        ),
-                                  favorite: media['favorite'] == 1,
-                                  onOpen: _scanning
-                                      ? null
-                                      : () => _detail(media),
-                                  onFavorite: () => setState(
-                                    () => service.favorite(
-                                      media['id'] as String,
-                                      media['favorite'] != 1,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
-                    ),
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        ShadButton.ghost(
-                          onPressed: _offset == 0
-                              ? null
-                              : () => setState(() => _offset -= 40),
-                          enabled: !(_offset == 0),
-                          child: Text(l.previousPage),
-                        ),
-                        Text('${_offset ~/ 40 + 1}'),
-                        ShadButton.ghost(
-                          onPressed: rows.length < 40
-                              ? null
-                              : () => setState(() => _offset += 40),
-                          enabled: !(rows.length < 40),
-                          child: Text(l.nextPage),
-                        ),
-                      ],
-                    ),
                   ],
-                ),
+                  if (_scanning) SliverToBoxAdapter(child: ShadProgress()),
+                  if (_error != null)
+                    SliverToBoxAdapter(
+                      child: ShadAlert.destructive(title: Text(_error!)),
+                    ),
+                  // Media servers keep their own catalogues and artwork, so
+                  // each gets a shelf instead of being merged into the wall.
+                  for (final server in servers)
+                    SliverToBoxAdapter(
+                      child: ServerShelf(
+                        key: ValueKey('shelf-${server.id}-${server.revision}'),
+                        sources: widget.sources,
+                        config: server,
+                        artwork: _artwork,
+                        onOpen: _openEntry,
+                      ),
+                    ),
+                  if (servers.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                        child: Text(
+                          l.localLibrary,
+                          style: ShadTheme.of(context).textTheme.large,
+                        ),
+                      ),
+                    ),
+                  if (rows.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: servers.isEmpty ? 120 : 32,
+                        ),
+                        child: Center(
+                          child: Text(
+                            fileSources.isEmpty
+                                ? l.libraryNoFileSources
+                                : _search.isNotEmpty
+                                ? l.noMatchingMedia
+                                : l.libraryEmptyNoMedia,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.all(16),
+                      sliver: SliverGrid.builder(
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
+                          childAspectRatio: 0.5,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: rows.length,
+                        itemBuilder: (_, index) {
+                          final media = rows[index];
+                          _boost(media['id'] as String);
+                          final artwork = service.metadata.displayArtwork(
+                            media['id'] as String,
+                          );
+                          return MediaPosterCard(
+                            title: media['title'] as String,
+                            artwork: artwork == null
+                                ? null
+                                : MetadataArtwork(
+                                    service: _artwork,
+                                    artwork: artwork,
+                                  ),
+                            favorite: media['favorite'] == 1,
+                            onOpen: _scanning ? null : () => _detail(media),
+                            onFavorite: () => setState(
+                              () => service.favorite(
+                                media['id'] as String,
+                                media['favorite'] != 1,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  if (rows.isNotEmpty || _offset > 0)
+                    SliverToBoxAdapter(
+                      child: Wrap(
+                        alignment: WrapAlignment.center,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          ShadButton.ghost(
+                            onPressed: _offset == 0
+                                ? null
+                                : () => setState(() => _offset -= 40),
+                            enabled: !(_offset == 0),
+                            child: Text(l.previousPage),
+                          ),
+                          Text('${_offset ~/ 40 + 1}'),
+                          ShadButton.ghost(
+                            onPressed: rows.length < 40
+                                ? null
+                                : () => setState(() => _offset += 40),
+                            enabled: !(rows.length < 40),
+                            child: Text(l.nextPage),
+                          ),
+                        ],
+                      ),
+                    ),
+                ],
               ),
         title: Text(l.library),
       ),

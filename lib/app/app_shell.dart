@@ -36,6 +36,10 @@ import '../services/ai_tools/tool_registry.dart';
 import '../services/conversations/assistant_store.dart';
 import '../services/conversations/conversation_coordinator.dart';
 import '../features/ai_assistant/assistant_page.dart';
+import '../features/ai_assistant/ai_chat_controller.dart';
+import '../features/ai_assistant/ai_chat_panel.dart';
+import '../features/ai_assistant/widgets/ai_composer.dart';
+import '../ui/icons/app_icons.dart';
 import '../features/ai_assistant/assistant_settings_page.dart';
 
 class AppShell extends StatefulWidget {
@@ -66,6 +70,8 @@ class _AppShellState extends State<AppShell> {
   ArtworkService? _artwork;
   AssistantStore? _assistantStore;
   ConversationCoordinator? _assistant;
+  AiChatController? _chat;
+  MediaTools? _mediaTools;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
@@ -119,6 +125,7 @@ class _AppShellState extends State<AppShell> {
   void dispose() {
     unawaited(_metadataRuntime?.dispose());
     _artwork?.dispose();
+    _chat?.dispose();
     _assistant?.dispose();
     _assistantStore?.close();
     _revision.dispose();
@@ -136,7 +143,7 @@ class _AppShellState extends State<AppShell> {
 
   void _initializeAssistant(LibraryService library) {
     final store = _assistantStore = AssistantStore(library.db);
-    final tools = MediaTools(
+    final tools = _mediaTools = MediaTools(
       canExecute: () => _assistant?.acceptingActions ?? false,
       library: library,
       sources: _sources,
@@ -201,6 +208,16 @@ class _AppShellState extends State<AppShell> {
       store: store,
       gateway: ToolGateway(tools.registry, journal: store),
       context: _aiContext,
+      confirmationTarget: (_, arguments) {
+        final id = arguments['media_id'];
+        if (id is! String) return null;
+        final rows = _library!.db.select('SELECT title FROM media WHERE id=?', [
+          id,
+        ]);
+        return rows.isEmpty
+            ? null
+            : MediaTools.safeText(rows.first['title'] as String);
+      },
       model: () async {
         final config = store.loadConfig();
         config.validate();
@@ -218,6 +235,7 @@ class _AppShellState extends State<AppShell> {
         );
       },
     );
+    _chat = AiChatController(_assistant!);
   }
 
   Future<void> _modelSettings() async {
@@ -230,32 +248,112 @@ class _AppShellState extends State<AppShell> {
     if (mounted) setState(() {});
   }
 
-  Widget _assistantView() => AssistantView(
-    coordinator: _assistant!,
-    toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
-    onSettings: _modelSettings,
-  );
+  Widget _assistantView({bool panel = false, BuildContext? panelContext}) =>
+      AssistantView(
+        coordinator: _assistant!,
+        controller: _chat,
+        toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
+        onSettings: _modelSettings,
+        onShowContent: panel ? null : _chat!.showContent,
+        onExpand: !panel
+            ? null
+            : () {
+                Navigator.of(panelContext!).pop();
+                _chat!.showChat();
+                _select(0);
+              },
+        onOpenMedia: _openChatMedia,
+        onFavorite: (id) async {
+          final rows = _library!.db.select(
+            'SELECT favorite FROM media WHERE id=?',
+            [id],
+          );
+          if (rows.isEmpty) throw StateError('Media unavailable');
+          final favorite = rows.first['favorite'] != 1;
+          _library!.favorite(id, favorite);
+          _revision.value++;
+          return favorite;
+        },
+      );
 
-  void _openAssistant() {
-    showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      builder: (context) => SafeArea(
-        child: SizedBox(
-          height: MediaQuery.sizeOf(context).height * 0.85,
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              20 + MediaQuery.viewInsetsOf(context).bottom,
+  Future<void> _openChatMedia(Map<String, dynamic> item) async {
+    SourceEntry? entry;
+    if (item['ref'] is String) {
+      entry = _mediaTools!.entryForReference(item['ref'] as String);
+    }
+    if (item['media_id'] is String || item['resource_id'] is String) {
+      final resources = item['resource_id'] is String
+          ? _library!.db.select('SELECT * FROM resources WHERE id=?', [
+              item['resource_id'],
+            ])
+          : _library!.resources(item['media_id'] as String);
+      if (resources.isEmpty || !mounted) {
+        throw StateError('Resource unavailable');
+      }
+      String? id = resources.length == 1
+          ? resources.single['id'] as String
+          : null;
+      id ??= await showShadDialog<String>(
+        context: context,
+        builder: (context) => ShadDialog(
+          title: Text(l.chooseVersion),
+          child: SizedBox(
+            width: 480,
+            height: 320,
+            child: ListView(
+              children: [
+                for (final resource in resources)
+                  ShadButton.ghost(
+                    onPressed: () =>
+                        Navigator.pop(context, resource['id'] as String),
+                    child: Text(
+                      MediaTools.safeText(resource['name'] as String),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
             ),
-            child: _assistantView(),
           ),
         ),
-      ),
+      );
+      if (id == null) return;
+      final fresh = _library!.db.select('SELECT * FROM resources WHERE id=?', [
+        id,
+      ]);
+      if (fresh.isEmpty) throw StateError('Resource unavailable');
+      final r = fresh.single;
+      entry = SourceEntry(
+        ResourceRef(r['source'] as String, r['item'] as String),
+        r['name'] as String,
+        isFolder: false,
+      );
+    }
+    if (entry == null || entry.isFolder || !mounted) {
+      throw StateError('Resource unavailable');
+    }
+    if (entry.ref.instanceId == '@local' &&
+        !await File(entry.ref.id).exists()) {
+      throw StateError('File unavailable');
+    }
+    final stream = entry.ref.instanceId == '@local'
+        ? PlayableStream(Uri.file(entry.ref.id))
+        : await _sources.resolve(entry.ref);
+    if (!mounted) {
+      await stream.release();
+      return;
+    }
+    await _play(
+      SourceSelection(entry.name, stream, ref: entry.ref, entry: entry),
     );
   }
+
+  Future<void> _openAssistant() => showAiChatPanel(
+    context,
+    playing: _showPlayer,
+    builder: (panelContext) =>
+        _assistantView(panel: true, panelContext: panelContext),
+  );
 
   // Distance of the floating button from the bottom-right corner; draggable.
   Offset _fabInset = const Offset(16, 16);
@@ -263,7 +361,7 @@ class _AppShellState extends State<AppShell> {
   Widget _draggableAssistantButton() => Positioned.fill(
     child: LayoutBuilder(
       builder: (context, box) {
-        const size = 40.0;
+        const size = 48.0;
         final maxX = (box.maxWidth - size).clamp(0.0, double.infinity);
         final maxY = (box.maxHeight - size).clamp(0.0, double.infinity);
         final right = _fabInset.dx.clamp(0.0, maxX);
@@ -280,10 +378,16 @@ class _AppShellState extends State<AppShell> {
                     (bottom - d.delta.dy).clamp(0.0, maxY),
                   ),
                 ),
-                child: FloatingActionButton.small(
-                  tooltip: l.aiAssistant,
-                  onPressed: _openAssistant,
-                  child: const Icon(LucideIcons.sparkles),
+                child: Tooltip(
+                  message: l.aiAssistant,
+                  child: Semantics(
+                    label: l.aiAssistant,
+                    button: true,
+                    child: ShadIconButton(
+                      icon: const Icon(AppIcons.assistant),
+                      onPressed: _openAssistant,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -380,22 +484,76 @@ class _AppShellState extends State<AppShell> {
   );
 
   Widget _homeContent() => AppPage(
-    body: ListView(
-      key: PageStorageKey('home'),
-      padding: AppSpacing.page(context),
-      children: [
-        _history(
-          l.recentlyPlayed,
-          _library!.recentlyPlayed(),
-          empty: l.recentEmpty,
-        ),
-        if (_assistant != null) ...[
-          const SizedBox(height: 20),
-          ShadCard(child: _assistantView()),
-        ],
-      ],
-    ),
     title: Text(l.home),
+    body: _chat == null
+        ? _homeMedia()
+        : ListenableBuilder(
+            listenable: _chat!,
+            builder: (context, _) =>
+                _chat!.showConversation ? _assistantView() : _homeMedia(),
+          ),
+  );
+
+  Widget _homeMedia() => ListView(
+    key: const PageStorageKey('home'),
+    padding: AppSpacing.page(context),
+    children: [
+      if (_library!.continueWatching().isNotEmpty) ...[
+        _history(
+          l.continueWatching,
+          _library!.continueWatching(),
+          empty: l.continueEmpty,
+        ),
+        const SizedBox(height: AppSpacing.xl),
+      ],
+      _history(
+        l.recentlyPlayed,
+        _library!.recentlyPlayed(),
+        empty: l.recentEmpty,
+      ),
+      if (_chat != null) ...[
+        const SizedBox(height: AppSpacing.xl),
+        ShadCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ShadButton.ghost(
+                  key: const ValueKey('home-open-chat'),
+                  leading: const Icon(AppIcons.chat),
+                  onPressed: _chat!.showChat,
+                  child: Text(l.aiAssistant),
+                ),
+              ),
+              Text(l.aiWelcome, style: ShadTheme.of(context).textTheme.muted),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final suggestion in [
+                    l.aiSuggestMedia,
+                    l.aiSuggestResume,
+                  ])
+                    ShadButton.outline(
+                      height: 0,
+                      onPressed: () => _chat!.suggest(suggestion),
+                      child: Flexible(child: Text(suggestion)),
+                    ),
+                ],
+              ),
+              AiComposer(
+                controller: _chat!,
+                toolsEnabled: () =>
+                    _assistantStore!.loadConfig().toolsSupported,
+                onSettings: _modelSettings,
+              ),
+            ],
+          ),
+        ),
+      ],
+    ],
   );
 
   Widget _history(String title, List<dynamic> rows, {required String empty}) =>
@@ -558,7 +716,8 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                   ),
-                if (_assistant != null) _draggableAssistantButton(),
+                if (_assistant != null && (_destination != 0 || _showPlayer))
+                  _draggableAssistantButton(),
               ],
             ),
             bottomNavigationBar: sidebar || _showPlayer

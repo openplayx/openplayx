@@ -1,3 +1,5 @@
+import '../../app/diagnostics/diagnostics_bootstrap.dart';
+import '../../app/diagnostics/diagnostics_service.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -603,6 +605,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       await action();
     } catch (error, stack) {
+      unawaited(reportDiagnostic(DiagnosticFailure.playbackCommand,
+          DiagnosticRole.player, stack));
       debugPrint('Playback command failed: $error\n$stack');
       if (mounted) {
         setState(() {

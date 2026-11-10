@@ -101,7 +101,8 @@ class SourceCredentialBroker {
     bool rejected = false,
   }) {
     if (config.kind == SourceKind.local ||
-        (config.kind == SourceKind.smb &&
+        config.kind == SourceKind.dlna ||
+        ((config.kind.optionalCredential || config.kind == SourceKind.sftp) &&
             config.username.isEmpty &&
             config.credentialRef == null)) {
       return const SourceCredentialStatus(SourceAuthorization.notRequired);

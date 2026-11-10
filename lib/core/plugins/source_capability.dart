@@ -136,6 +136,11 @@ abstract interface class SourceAttachmentCapability {
   });
 }
 
+/// Newest additions on a media server, for its shelf in the library.
+abstract interface class RecentCapability {
+  Future<List<SourceEntry>> recent(int limit, CallContext context);
+}
+
 /// Explicit search contract; a browse-only source is never advertised as search.
 abstract interface class SearchCapability {
   Future<BrowseResult> search(

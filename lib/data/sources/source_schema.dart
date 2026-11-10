@@ -6,14 +6,12 @@ class SourceSchemas {
   static PluginManifest forKind(SourceKind kind) => PluginManifest(
     'source.${kind.name}',
     kind.label,
-    browseExperience: kind == SourceKind.local || kind == SourceKind.smb
-        ? 'files'
-        : 'library',
+    browseExperience: kind.files ? 'files' : 'library',
     capabilities: [
       'source.browse',
       'source.resolve',
-      'source.attachments',
-      if (kind == SourceKind.jellyfin || kind == SourceKind.plex) ...[
+      if (kind != SourceKind.dlna) 'source.attachments',
+      if (kind.mediaBrowser || kind == SourceKind.plex) ...[
         'metadata.lookup',
         'search.media',
       ],
@@ -35,13 +33,36 @@ class SourceSchemas {
           ConfigField('secret', '密码', type: ConfigFieldType.secret),
           ConfigField('domain', '工作组（可选）'),
         ],
+        SourceKind.webdav || SourceKind.ftp => const [
+          ConfigField('address', '地址', required: true),
+          ConfigField('username', '用户名'),
+          ConfigField('secret', '密码', type: ConfigFieldType.secret),
+        ],
+        SourceKind.sftp => const [
+          ConfigField('address', '地址', required: true),
+          ConfigField('username', '用户名', required: true),
+          ConfigField('secret', '密码', type: ConfigFieldType.secret),
+        ],
+        SourceKind.s3 => const [
+          ConfigField('address', '服务地址', required: true),
+          ConfigField('username', 'Access Key ID'),
+          ConfigField(
+            'secret',
+            'Secret Access Key',
+            type: ConfigFieldType.secret,
+          ),
+          ConfigField('domain', '区域（可选）'),
+        ],
         // Plex uses the account authorization flow, rather than a token form.
         SourceKind.plex => const [
           ConfigField('address', '服务器', required: true),
         ],
-        SourceKind.jellyfin => const [
+        SourceKind.jellyfin || SourceKind.emby => const [
           ConfigField('address', '地址', required: true),
           ConfigField('username', '用户名'),
+        ],
+        SourceKind.dlna => const [
+          ConfigField('address', '设备描述地址', required: true),
         ],
       },
     ),

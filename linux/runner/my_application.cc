@@ -7,6 +7,7 @@
 
 #include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "flutter/generated_plugin_registrant.h"
+#include "resources/app_icon.h"
 
 // Per player window: holds back a native close until Dart stopped playback,
 // then lets the `close` call through.
@@ -174,6 +175,12 @@ static void my_application_startup(GApplication* application) {
   // Perform any actions required at application startup.
 
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
+
+  g_autoptr(GInputStream) icon_stream = g_memory_input_stream_new_from_data(
+      kOpenPlayXAppIcon, sizeof(kOpenPlayXAppIcon), nullptr);
+  g_autoptr(GdkPixbuf) icon =
+      gdk_pixbuf_new_from_stream(icon_stream, nullptr, nullptr);
+  if (icon != nullptr) gtk_window_set_default_icon(icon);
 }
 
 // Implements GApplication::shutdown.

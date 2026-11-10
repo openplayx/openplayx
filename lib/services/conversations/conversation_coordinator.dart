@@ -22,11 +22,22 @@ class ConversationTurn {
   int? tokens;
   String streaming = '';
   String? executingTool;
+  String? executingCallId;
+  String? executingId;
+  String? streamingMessageId;
 }
 
 class PendingConfirmation {
-  PendingConfirmation(this.tool, this.arguments);
+  PendingConfirmation(
+    this.tool,
+    this.arguments, {
+    required this.id,
+    required this.turnId,
+    this.targetLabel,
+  });
+  final String id, turnId;
   final String tool;
+  final String? targetLabel;
   final Map<String, dynamic> arguments;
   final decision = Completer<bool>();
 }
@@ -37,30 +48,84 @@ class ConversationCoordinator extends ChangeNotifier {
     required this.gateway,
     required this.model,
     required this.context,
+    this.confirmationTarget,
     this.maxRequests = 8,
     this.maxCalls = 12,
     this.maxTokens = 32000,
     this.turnTimeout = const Duration(seconds: 120),
     this.requestTimeout = const Duration(seconds: 45),
   }) {
-    for (final row in store.turns()) {
-      turns.add(
-        ConversationTurn(
-          row['id'] as String,
-          (jsonDecode(row['messages'] as String) as List)
-              .map((m) => ModelMessage.fromJson(m as Map<String, dynamic>))
-              .toList(),
-          status: row['status'] as String,
-          error: row['error'] as String?,
-          tokens: row['tokens'] as int?,
-        ),
+    _readTurns();
+  }
+  ConversationTurn _readTurn(Map<String, dynamic> row) => ConversationTurn(
+    row['id'] as String,
+    (jsonDecode(row['messages'] as String) as List).map((value) {
+      final m = ModelMessage.fromJson(value as Map<String, dynamic>);
+      return ModelMessage(
+        m.role,
+        m.text,
+        calls: m.calls,
+        callId: m.callId,
+        id: m.id ?? AssistantStore.newId(),
       );
+    }).toList(),
+    status: row['status'] as String,
+    error: row['error'] as String?,
+    tokens: row['tokens'] as int?,
+  );
+  void _readTurns() {
+    turns.clear();
+    for (final row in store.turns(limit: 40)) {
+      final turn = _readTurn(row);
+      turns.add(turn);
+      _save(turn); // Persist legacy message IDs once, without replaying tools.
     }
   }
+
+  String get conversationId => store.conversationId;
+  ConversationTurn? get currentTurn => _current;
+  bool get hasEarlier => store.hasEarlier(turns.length);
+  void loadEarlier() {
+    final older = store
+        .turns(limit: 40, offset: turns.length)
+        .map(_readTurn)
+        .toList();
+    for (final turn in older) {
+      _save(turn);
+    }
+    turns.insertAll(0, older);
+    _notify();
+  }
+
+  void newConversation() {
+    if (busy) return;
+    store.createConversation();
+    _readTurns();
+    _notify();
+  }
+
+  void selectConversation(String id) {
+    if (busy) return;
+    store.selectConversation(id);
+    _readTurns();
+    _notify();
+  }
+
+  bool canRetry(ConversationTurn turn) =>
+      turn.error != null &&
+      turn.messages.every((m) => m.role != 'tool' && m.calls.isEmpty);
+  Future<void> retry(ConversationTurn turn) async {
+    if (busy || !canRetry(turn)) return;
+    final text = turn.messages.where((m) => m.role == 'user').firstOrNull?.text;
+    if (text != null) await send(text, toolsEnabled: false);
+  }
+
   final AssistantStore store;
   final ToolGateway gateway;
   final Future<TextModelCapability> Function() model;
   final Map<String, dynamic> Function() context;
+  final String? Function(String tool, Map<String, dynamic> arguments)?
+  confirmationTarget;
   final int maxRequests;
   final int maxCalls;
   final int maxTokens;
@@ -71,6 +136,14 @@ class ConversationCoordinator extends ChangeNotifier {
   ConversationTurn? _current;
   Completer<void>? _cancel;
   bool _disposed = false;
+  Timer? _streamRefresh;
+  void _notifyStream() {
+    _streamRefresh ??= Timer(const Duration(milliseconds: 40), () {
+      _streamRefresh = null;
+      _notify();
+    });
+  }
+
   bool get busy => _current != null;
   bool get acceptingActions =>
       !_disposed && _current != null && !(_cancel?.isCompleted ?? true);
@@ -80,9 +153,11 @@ class ConversationCoordinator extends ChangeNotifier {
 
   bool _active(ConversationTurn turn) =>
       !_disposed && identical(_current, turn) && !_cancel!.isCompleted;
-  void decide(bool accepted) {
+  void decide(bool accepted, {String? confirmationId}) {
     final pending = confirmation;
-    if (pending != null && !pending.decision.isCompleted) {
+    if (pending != null &&
+        (confirmationId == null || pending.id == confirmationId) &&
+        !pending.decision.isCompleted) {
       pending.decision.complete(accepted);
     }
   }
@@ -97,7 +172,13 @@ class ConversationCoordinator extends ChangeNotifier {
     _cancel!.future.then<T>((_) => throw const ModelFailure('cancelled')),
   ]);
   Future<bool> _confirm(String name, Map<String, dynamic> args) async {
-    confirmation = PendingConfirmation(name, args);
+    confirmation = PendingConfirmation(
+      name,
+      args,
+      id: _current!.executingId!,
+      turnId: _current!.id,
+      targetLabel: confirmationTarget?.call(name, args),
+    );
     _current!.status = 'waiting';
     _save(_current!);
     _notify();
@@ -120,7 +201,7 @@ class ConversationCoordinator extends ChangeNotifier {
     if (busy || _disposed || text.trim().isEmpty) return;
     if (text.length > 8000) throw const ModelFailure('inputTooLong');
     final turn = ConversationTurn(AssistantStore.newId(), [
-      ModelMessage('user', text.trim()),
+      ModelMessage('user', text.trim(), id: AssistantStore.newId()),
     ]);
     turns.add(turn);
     _current = turn;
@@ -143,14 +224,26 @@ class ConversationCoordinator extends ChangeNotifier {
       final snapshot = jsonEncode(context());
       final history = <ModelMessage>[];
       var chars = 0;
-      // Keep complete turns, preserving every assistant-call/result pair.
-      for (final past in turns.reversed.skip(1)) {
-        if (past.status != 'completed') continue;
-        final size = jsonEncode(past.messages.map((m) => m.toJson()).toList())
-            .length;
-        if (chars + size > 24000) break;
-        chars += size;
-        history.insertAll(0, past.messages);
+      // Context comes from persisted complete turns, independently of how many
+      // messages the user has paged into the visible list.
+      var offset = 0;
+      var withinBudget = true;
+      while (withinBudget) {
+        final page = store.turns(limit: 40, offset: offset);
+        if (page.isEmpty) break;
+        offset += page.length;
+        for (final row in page.reversed) {
+          if (row['id'] == turn.id || row['status'] != 'completed') continue;
+          final past = _readTurn(row);
+          final size = jsonEncode(past.messages.map((m) => m.toJson()).toList())
+              .length;
+          if (chars + size > 24000) {
+            withinBudget = false;
+            break;
+          }
+          chars += size;
+          history.insertAll(0, past.messages);
+        }
       }
       final messages = [
         ModelMessage(
@@ -173,6 +266,7 @@ class ConversationCoordinator extends ChangeNotifier {
             64000) {
           throw const ModelFailure('contextBudget');
         }
+        turn.streamingMessageId = '${turn.id}:response:$round';
         final calls = <ModelToolCall>[];
         ModelCompleted? completed;
         final response = StringBuffer();
@@ -196,7 +290,7 @@ class ConversationCoordinator extends ChangeNotifier {
                         const ModelFailure('outputLimit'),
                       );
                     }
-                    _notify();
+                    _notifyStream();
                   case ModelToolFragment():
                     // Partial JSON is display/progress data, never executable.
                     break;
@@ -213,9 +307,17 @@ class ConversationCoordinator extends ChangeNotifier {
                 if (!streamDone.isCompleted) streamDone.complete();
               },
             );
+        final requestDeadline = Timer(requestTimeout, () {
+          if (!streamDone.isCompleted) {
+            streamDone.completeError(
+              TimeoutException('Model request timed out'),
+            );
+          }
+        });
         try {
-          await _interruptible(streamDone.future.timeout(requestTimeout));
+          await _interruptible(streamDone.future);
         } finally {
+          requestDeadline.cancel();
           unawaited(subscription.cancel());
         }
         if (!_active(turn)) throw const ModelFailure('cancelled');
@@ -231,7 +333,12 @@ class ConversationCoordinator extends ChangeNotifier {
           throw const ModelFailure('invalidCallIds');
         }
         turn.messages.add(
-          ModelMessage('assistant', response.toString(), calls: calls),
+          ModelMessage(
+            'assistant',
+            response.toString(),
+            calls: calls,
+            id: turn.streamingMessageId,
+          ),
         );
         turn.streaming = '';
         _save(turn);
@@ -246,6 +353,8 @@ class ConversationCoordinator extends ChangeNotifier {
           if (!_active(turn)) throw const ModelFailure('cancelled');
           count++;
           turn.executingTool = call.name;
+          turn.executingCallId = call.id;
+          turn.executingId = '${turn.streamingMessageId}:execution:${call.id}';
           _notify();
           final result = await _interruptible(
             gateway.invoke(
@@ -258,7 +367,12 @@ class ConversationCoordinator extends ChangeNotifier {
           );
           if (!_active(turn)) throw const ModelFailure('cancelled');
           turn.messages.add(
-            ModelMessage('tool', jsonEncode(result.toJson()), callId: call.id),
+            ModelMessage(
+              'tool',
+              jsonEncode(result.toJson()),
+              callId: call.id,
+              id: '${turn.streamingMessageId}:tool:${call.id}',
+            ),
           );
           _save(turn);
           _notify();
@@ -273,11 +387,19 @@ class ConversationCoordinator extends ChangeNotifier {
           : 'requestFailed';
       turn.status = turn.error == 'cancelled' ? 'cancelled' : 'failed';
       if (turn.streaming.isNotEmpty) {
-        turn.messages.add(ModelMessage('assistant', turn.streaming));
+        turn.messages.add(
+          ModelMessage(
+            'assistant',
+            turn.streaming,
+            id: turn.streamingMessageId,
+          ),
+        );
         turn.streaming = '';
       }
     } finally {
       deadline.cancel();
+      _streamRefresh?.cancel();
+      _streamRefresh = null;
       // Dispose can close the database while a cancelled transport unwinds.
       if (!_disposed) {
         try {
@@ -298,6 +420,7 @@ class ConversationCoordinator extends ChangeNotifier {
   @override
   void dispose() {
     stop();
+    _streamRefresh?.cancel();
     if (_current != null) {
       _current!.status = 'interrupted';
       _save(_current!);

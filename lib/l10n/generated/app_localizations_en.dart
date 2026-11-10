@@ -1213,4 +1213,151 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get moreActions => 'More actions';
+
+  @override
+  String get aiNewChat => 'New conversation';
+
+  @override
+  String get aiChatHistory => 'Conversations';
+
+  @override
+  String get aiShowMedia => 'Show home content';
+
+  @override
+  String get aiExpandChat => 'Expand on Home';
+
+  @override
+  String get aiLatest => 'Back to latest';
+
+  @override
+  String get aiDraftNext => 'Replying. You can draft your next message.';
+
+  @override
+  String get aiSuggestMedia => 'Help me find a movie';
+
+  @override
+  String get aiSuggestResume => 'Where did I leave off?';
+
+  @override
+  String get aiToolPreparing => 'Preparing';
+
+  @override
+  String get aiToolRunning => 'Running';
+
+  @override
+  String get aiToolWaiting => 'Awaiting confirmation';
+
+  @override
+  String get aiToolSucceeded => 'Completed';
+
+  @override
+  String get aiToolCancelled => 'Not executed or cancelled';
+
+  @override
+  String get aiActionExpired =>
+      'This action is no longer available. Select again.';
+
+  @override
+  String get aiRemoteImageBlocked => 'Remote image not loaded';
+
+  @override
+  String get aiOpenLink => 'Open external link?';
+
+  @override
+  String get aiLinkBlocked => 'This link cannot be opened';
+
+  @override
+  String get aiTaskSubmitted => 'Task submitted';
+
+  @override
+  String get aiPartialFailure => 'Some sources are unavailable';
+
+  @override
+  String get aiMoreResults =>
+      'More results are available. Ask to see another page.';
+
+  @override
+  String get aiNoResults => 'No matching results';
+
+  @override
+  String get aiUntitledChat => 'New conversation';
+
+  @override
+  String get aiHistoryEmpty => 'No conversations yet';
+
+  @override
+  String get aiReplying => 'Replying…';
+
+  @override
+  String get aiToolSummary => 'Actions and results come from local services';
+
+  @override
+  String get aiEarlier => 'Load earlier messages';
+
+  @override
+  String get diagnosticsTitle => 'Send diagnostics';
+
+  @override
+  String get diagnosticsDescription =>
+      'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.';
+
+  @override
+  String get anonymousHelp =>
+      'Leave username and password blank for anonymous access.';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => 'Public buckets need no keys.';
+
+  @override
+  String get s3Region => 'Region (optional, default us-east-1)';
+
+  @override
+  String get s3PathHint => 'bucket/optional-prefix, e.g. media/movies';
+
+  @override
+  String get remotePathHint => 'e.g. media/movies; leave blank for the root';
+
+  @override
+  String get dlnaSearch => 'Search local network';
+
+  @override
+  String get dlnaSearching => 'Searching…';
+
+  @override
+  String get dlnaNoDevices =>
+      'No media servers found. You can enter the device description URL manually.';
+
+  @override
+  String get dlnaDevice => 'Device';
+
+  @override
+  String get dlnaAddress => 'Device description URL';
+
+  @override
+  String get dlnaAddressHelp =>
+      'Filled in when you pick a discovered device; you can also enter it manually.';
+
+  @override
+  String get aiOpenExternal => 'Open link';
+
+  @override
+  String get serverBrowseAll => 'All';
+
+  @override
+  String get serverUnavailable => 'Can\'t reach this server';
+
+  @override
+  String get serverEmpty => 'Nothing here yet';
+
+  @override
+  String get serverLoadMore => 'Load more';
+
+  @override
+  String get localLibrary => 'Local library';
 }

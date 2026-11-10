@@ -47,6 +47,33 @@ class StreamGateway {
     required int length,
     String? filename,
     required Future<RandomAccessFile> Function() open,
+  }) => ranged(
+    length: length,
+    filename: filename,
+    read: (start, end) async* {
+      final file = await open();
+      try {
+        await file.setPosition(start);
+        var remaining = end - start + 1;
+        while (remaining > 0) {
+          final bytes = await file.read(min(remaining, 256 * 1024));
+          if (bytes.isEmpty) throw const FileSystemException('Unexpected EOF');
+          yield bytes;
+          remaining -= bytes.length;
+        }
+      } finally {
+        await file.close();
+      }
+    },
+  );
+
+  /// Serves a file of known [length] with HTTP range support; [read] yields
+  /// the bytes from [start] to [end] (inclusive) and may yield more, which is
+  /// cut off.
+  static Future<PlayableStream> ranged({
+    required int length,
+    String? filename,
+    required Stream<List<int>> Function(int start, int end) read,
   }) => serve((request) async {
     final response = request.response;
     response.headers.set('Accept-Ranges', 'bytes');
@@ -82,20 +109,17 @@ class StreamGateway {
     }
     response.contentLength = length == 0 ? 0 : end - start + 1;
     if (request.method == 'HEAD' || length == 0) return;
-    final file = await open();
-    try {
-      await file.setPosition(start);
-      var remaining = end - start + 1;
-      while (remaining > 0) {
-        final bytes = await file.read(min(remaining, 256 * 1024));
-        if (bytes.isEmpty) throw const FileSystemException('Unexpected EOF');
-        response.add(bytes);
-        await response.flush();
-        remaining -= bytes.length;
-      }
-    } finally {
-      await file.close();
+    var remaining = end - start + 1;
+    await for (final chunk in read(start, end)) {
+      final part = chunk.length > remaining
+          ? chunk.sublist(0, remaining)
+          : chunk;
+      response.add(part);
+      await response.flush();
+      remaining -= part.length;
+      if (remaining <= 0) break;
     }
+    if (remaining > 0) throw const FileSystemException('Unexpected EOF');
   }, filename: filename);
 
   static Future<PlayableStream> http(

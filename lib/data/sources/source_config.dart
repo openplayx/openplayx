@@ -1,11 +1,48 @@
 enum SourceKind {
-  local('本地文件夹'),
-  smb('SMB'),
-  plex('Plex'),
-  jellyfin('Jellyfin');
+  local('本地文件夹', files: true),
+  smb('SMB', files: true, scheme: 'smb', standardPort: 445),
+  webdav('WebDAV', files: true, scheme: 'http'),
+  ftp('FTP', files: true, scheme: 'ftp', standardPort: 21),
+  sftp('SFTP', files: true, scheme: 'sftp', standardPort: 22),
+  s3('S3', files: true, scheme: 'http'),
+  plex('Plex', scheme: 'http', defaultPort: 32400),
+  jellyfin('Jellyfin', scheme: 'http', defaultPort: 8096),
+  emby('Emby', scheme: 'http', defaultPort: 8096),
+  dlna('DLNA', scheme: 'http');
 
-  const SourceKind(this.label);
+  const SourceKind(
+    this.label, {
+    this.files = false,
+    this.scheme,
+    this.standardPort,
+    this.defaultPort,
+  });
   final String label;
+
+  /// Path-addressed file tree that can be scanned into the library.
+  final bool files;
+
+  /// URL scheme of the address; `http` also accepts `https`.
+  final String? scheme;
+
+  /// Protocol port implied when the address has none (never written out).
+  final int? standardPort;
+
+  /// Port filled in for a bare host on an HTTP media server.
+  final int? defaultPort;
+
+  List<String> get schemes => scheme == 'http' ? ['http', 'https'] : [scheme!];
+  bool get isHttp => scheme == 'http';
+
+  /// Media servers that only work with a sign-in token.
+  bool get requiresSecret => this == plex || this == jellyfin || this == emby;
+
+  /// Username/password are optional (anonymous or guest access).
+  bool get optionalCredential =>
+      this == smb || this == webdav || this == ftp || this == s3;
+
+  /// Jellyfin and Emby share the same server API.
+  bool get mediaBrowser => this == jellyfin || this == emby;
 }
 
 enum ScanMode { manual, disabled }
@@ -95,7 +132,16 @@ class SourceConfig {
   /// Name for the connection's own management row: the user's name, or the
   /// type-prefixed default when none was entered.
   String get titleName => name.trim().isEmpty ? displayName : name.trim();
-  bool get isFileSource => kind == SourceKind.local || kind == SourceKind.smb;
+  bool get isFileSource => kind.files;
+
+  /// Decoded root path inside the server ("/" or "/share/movies"); resource ids
+  /// of remote file sources are decoded absolute paths below it.
+  String get rootPath {
+    if (kind == SourceKind.local) return address;
+    final segments = Uri.parse(address).pathSegments.where((s) => s.isNotEmpty);
+    return '/${segments.join('/')}';
+  }
+
   String get effectiveBrowseMode =>
       browseMode ?? (isFileSource ? 'files' : 'library');
   String get pluginId => 'source.${kind.name}';
@@ -289,12 +335,11 @@ class SourceConfig {
       throw const FormatException('地址不能包含相对路径片段。');
     }
     final uri = Uri.tryParse(address);
-    final schemes = kind == SourceKind.smb ? ['smb'] : ['http', 'https'];
     if (uri == null ||
-        !schemes.contains(uri.scheme) ||
+        !kind.schemes.contains(uri.scheme) ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
-        uri.hasQuery ||
+        (uri.hasQuery && kind != SourceKind.dlna) ||
         uri.hasFragment ||
         uri.pathSegments.contains('..')) {
       throw const FormatException('请输入有效的服务器地址，凭据请填在单独字段。');
@@ -302,8 +347,11 @@ class SourceConfig {
     if (kind == SourceKind.smb && uri.hasPort && uri.port != 445) {
       throw const FormatException('SMB 使用标准 445 端口：smb://主机/共享名/可选目录。');
     }
-    if (kind == SourceKind.jellyfin && userId.trim().isEmpty) {
-      throw const FormatException('请填写 Jellyfin 用户 ID。');
+    if (kind.mediaBrowser && userId.trim().isEmpty) {
+      throw FormatException('请填写 ${kind.label} 用户 ID。');
+    }
+    if (kind == SourceKind.sftp && username.trim().isEmpty) {
+      throw const FormatException('请填写 SFTP 用户名。');
     }
   }
 

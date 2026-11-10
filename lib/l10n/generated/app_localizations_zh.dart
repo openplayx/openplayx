@@ -1153,6 +1153,148 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新建对话';
+
+  @override
+  String get aiChatHistory => '会话历史';
+
+  @override
+  String get aiShowMedia => '返回首页内容';
+
+  @override
+  String get aiExpandChat => '在首页展开';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回复，你可以先编辑下一条消息。';
+
+  @override
+  String get aiSuggestMedia => '帮我找一部电影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪里了？';
+
+  @override
+  String get aiToolPreparing => '准备执行';
+
+  @override
+  String get aiToolRunning => '执行中';
+
+  @override
+  String get aiToolWaiting => '等待确认';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未执行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，请重新选择。';
+
+  @override
+  String get aiRemoteImageBlocked => '远程图片未自动加载';
+
+  @override
+  String get aiOpenLink => '打开外部链接？';
+
+  @override
+  String get aiLinkBlocked => '无法打开此链接';
+
+  @override
+  String get aiTaskSubmitted => '已提交任务';
+
+  @override
+  String get aiPartialFailure => '部分来源暂不可用';
+
+  @override
+  String get aiMoreResults => '还有更多结果，可继续提问查看。';
+
+  @override
+  String get aiNoResults => '没有找到匹配内容';
+
+  @override
+  String get aiUntitledChat => '新对话';
+
+  @override
+  String get aiHistoryEmpty => '还没有会话记录';
+
+  @override
+  String get aiReplying => '正在回复…';
+
+  @override
+  String get aiToolSummary => '操作及结果来自本机服务';
+
+  @override
+  String get aiEarlier => '加载更早消息';
+
+  @override
+  String get diagnosticsTitle => '发送诊断信息';
+
+  @override
+  String get diagnosticsDescription =>
+      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
+
+  @override
+  String get anonymousHelp => '匿名访问时，用户名和密码都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公开存储桶可以不填密钥';
+
+  @override
+  String get s3Region => '区域（可选，默认 us-east-1）';
+
+  @override
+  String get s3PathHint => '存储桶/可选前缀，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空为根目录';
+
+  @override
+  String get dlnaSearch => '搜索局域网设备';
+
+  @override
+  String get dlnaSearching => '正在搜索…';
+
+  @override
+  String get dlnaNoDevices => '没有找到媒体服务器，可以手动填写设备描述地址。';
+
+  @override
+  String get dlnaDevice => '设备';
+
+  @override
+  String get dlnaAddress => '设备描述地址';
+
+  @override
+  String get dlnaAddressHelp => '选择搜索到的设备会自动填写，也可以手动填写。';
+
+  @override
+  String get aiOpenExternal => '打开链接';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '无法连接此服务器';
+
+  @override
+  String get serverEmpty => '这里还没有内容';
+
+  @override
+  String get serverLoadMore => '加载更多';
+
+  @override
+  String get localLibrary => '本地媒体库';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2303,6 +2445,148 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新建对话';
+
+  @override
+  String get aiChatHistory => '会话历史';
+
+  @override
+  String get aiShowMedia => '返回首页内容';
+
+  @override
+  String get aiExpandChat => '在首页展开';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回复，你可以先编辑下一条消息。';
+
+  @override
+  String get aiSuggestMedia => '帮我找一部电影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪里了？';
+
+  @override
+  String get aiToolPreparing => '准备执行';
+
+  @override
+  String get aiToolRunning => '执行中';
+
+  @override
+  String get aiToolWaiting => '等待确认';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未执行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，请重新选择。';
+
+  @override
+  String get aiRemoteImageBlocked => '远程图片未自动加载';
+
+  @override
+  String get aiOpenLink => '打开外部链接？';
+
+  @override
+  String get aiLinkBlocked => '无法打开此链接';
+
+  @override
+  String get aiTaskSubmitted => '已提交任务';
+
+  @override
+  String get aiPartialFailure => '部分来源暂不可用';
+
+  @override
+  String get aiMoreResults => '还有更多结果，可继续提问查看。';
+
+  @override
+  String get aiNoResults => '没有找到匹配内容';
+
+  @override
+  String get aiUntitledChat => '新对话';
+
+  @override
+  String get aiHistoryEmpty => '还没有会话记录';
+
+  @override
+  String get aiReplying => '正在回复…';
+
+  @override
+  String get aiToolSummary => '操作及结果来自本机服务';
+
+  @override
+  String get aiEarlier => '加载更早消息';
+
+  @override
+  String get diagnosticsTitle => '发送诊断信息';
+
+  @override
+  String get diagnosticsDescription =>
+      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
+
+  @override
+  String get anonymousHelp => '匿名访问时，用户名和密码都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公开存储桶可以不填密钥';
+
+  @override
+  String get s3Region => '区域（可选，默认 us-east-1）';
+
+  @override
+  String get s3PathHint => '存储桶/可选前缀，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空为根目录';
+
+  @override
+  String get dlnaSearch => '搜索局域网设备';
+
+  @override
+  String get dlnaSearching => '正在搜索…';
+
+  @override
+  String get dlnaNoDevices => '没有找到媒体服务器，可以手动填写设备描述地址。';
+
+  @override
+  String get dlnaDevice => '设备';
+
+  @override
+  String get dlnaAddress => '设备描述地址';
+
+  @override
+  String get dlnaAddressHelp => '选择搜索到的设备会自动填写，也可以手动填写。';
+
+  @override
+  String get aiOpenExternal => '打开链接';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '无法连接此服务器';
+
+  @override
+  String get serverEmpty => '这里还没有内容';
+
+  @override
+  String get serverLoadMore => '加载更多';
+
+  @override
+  String get localLibrary => '本地媒体库';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3453,4 +3737,146 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新增對話';
+
+  @override
+  String get aiChatHistory => '對話紀錄';
+
+  @override
+  String get aiShowMedia => '返回首頁內容';
+
+  @override
+  String get aiExpandChat => '在首頁展開';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回覆，你可以先編輯下一則訊息。';
+
+  @override
+  String get aiSuggestMedia => '幫我找一部電影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪裡了？';
+
+  @override
+  String get aiToolPreparing => '準備執行';
+
+  @override
+  String get aiToolRunning => '執行中';
+
+  @override
+  String get aiToolWaiting => '等待確認';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未執行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，請重新選擇。';
+
+  @override
+  String get aiRemoteImageBlocked => '遠端圖片未自動載入';
+
+  @override
+  String get aiOpenLink => '開啟外部連結？';
+
+  @override
+  String get aiLinkBlocked => '無法開啟此連結';
+
+  @override
+  String get aiTaskSubmitted => '已提交工作';
+
+  @override
+  String get aiPartialFailure => '部分來源暫時無法使用';
+
+  @override
+  String get aiMoreResults => '還有更多結果，可繼續提問查看。';
+
+  @override
+  String get aiNoResults => '沒有找到符合的內容';
+
+  @override
+  String get aiUntitledChat => '新對話';
+
+  @override
+  String get aiHistoryEmpty => '還沒有對話紀錄';
+
+  @override
+  String get aiReplying => '正在回覆…';
+
+  @override
+  String get aiToolSummary => '操作及結果來自本機服務';
+
+  @override
+  String get aiEarlier => '載入較早的訊息';
+
+  @override
+  String get diagnosticsTitle => '傳送診斷資訊';
+
+  @override
+  String get diagnosticsDescription =>
+      '選擇是否向配置的 Sentry 服務傳送應用版本及脫敏錯誤堆疊，不含媒體路徑、憑證或聊天內容。開啟後重啟生效，關閉立即停止所有視窗及背景任務的新上報。暫不收集原生崩潰。';
+
+  @override
+  String get anonymousHelp => '匿名存取時，使用者名稱和密碼都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公開儲存貯體可以不填金鑰';
+
+  @override
+  String get s3Region => '區域（選填，預設 us-east-1）';
+
+  @override
+  String get s3PathHint => '儲存貯體/選填前綴，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空為根目錄';
+
+  @override
+  String get dlnaSearch => '搜尋區域網路裝置';
+
+  @override
+  String get dlnaSearching => '正在搜尋…';
+
+  @override
+  String get dlnaNoDevices => '沒有找到媒體伺服器，可以手動填寫裝置描述位址。';
+
+  @override
+  String get dlnaDevice => '裝置';
+
+  @override
+  String get dlnaAddress => '裝置描述位址';
+
+  @override
+  String get dlnaAddressHelp => '選擇搜尋到的裝置會自動填寫，也可以手動填寫。';
+
+  @override
+  String get aiOpenExternal => '開啟連結';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '無法連線此伺服器';
+
+  @override
+  String get serverEmpty => '這裡還沒有內容';
+
+  @override
+  String get serverLoadMore => '載入更多';
+
+  @override
+  String get localLibrary => '本機媒體庫';
 }

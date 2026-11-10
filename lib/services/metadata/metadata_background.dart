@@ -1,3 +1,5 @@
+import '../../app/diagnostics/diagnostics_bootstrap.dart';
+import '../../app/diagnostics/diagnostics_service.dart';
 import 'dart:async';
 import 'dart:io';
 
@@ -24,6 +26,7 @@ void metadataCallbackDispatcher() {
       if (task != metadataCollectTask && task != metadataOnlineTask) {
         return true;
       }
+      await runWithDiagnostics(DiagnosticRole.background, () async {});
       LibraryService? library;
       SourceManager? sources;
       MetadataQueueRunner? runner;
@@ -40,7 +43,8 @@ void metadataCallbackDispatcher() {
         final online = task == metadataOnlineTask;
         await runner.runBatch(allowOnline: online);
         return !runner.queue.pending(allowOnline: online);
-      } catch (_) {
+      } catch (_, stack) {
+        await reportDiagnostic(DiagnosticFailure.metadataBatch, DiagnosticRole.background, stack);
         // Native retry is bounded by the queue's per-item attempt count. Never
         // put tokens, private paths or provider exception bodies into WorkData.
         return false;

@@ -17,7 +17,9 @@ class SourceConnection {
     final uri = Uri.parse(config.address);
     return SourceConnection(
       host: uri.host,
-      port: config.kind == SourceKind.smb ? 445 : uri.port,
+      port: uri.hasPort
+          ? uri.port
+          : config.kind.standardPort ?? (uri.port == 0 ? 80 : uri.port),
       path: uri.path.replaceFirst(RegExp(r'^/+'), ''),
       https: uri.scheme == 'https',
     );
@@ -35,20 +37,18 @@ class SourceConnection {
     final uri = Uri.tryParse(
       pasted
           ? text
-          : '${kind == SourceKind.smb
-                ? 'smb'
-                : https
-                ? 'https'
-                : 'http'}://$text',
+          : '${kind.isHttp
+                ? https
+                      ? 'https'
+                      : 'http'
+                : kind.scheme}://$text',
     );
     if (uri == null ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
-        uri.hasQuery ||
+        (uri.hasQuery && kind != SourceKind.dlna) ||
         uri.hasFragment ||
-        !(kind == SourceKind.smb ? ['smb'] : ['http', 'https']).contains(
-          uri.scheme,
-        )) {
+        !kind.schemes.contains(uri.scheme)) {
       throw const FormatException('请输入有效的 IP、主机名或服务器地址。');
     }
     final number = port.trim().isEmpty ? null : int.tryParse(port.trim());
@@ -71,25 +71,32 @@ class SourceConnection {
         )) {
       throw const FormatException('路径不能包含 . 或 ..。');
     }
-    final selectedPort =
-        number ??
-        (uri.hasPort
-            ? uri.port
-            : pasted && kind != SourceKind.smb
-            ? uri.port
-            : kind == SourceKind.smb
-            ? null
-            : uri.scheme == 'https'
-            ? 443
-            : kind == SourceKind.jellyfin
-            ? 8096
-            : 32400);
-    return uri
-        .replace(
-          port: kind == SourceKind.smb ? null : selectedPort,
-          path: selectedPath,
-        )
-        .toString()
-        .replaceFirst(RegExp(r'/$'), '');
+    final int? selectedPort;
+    if (!kind.isHttp) {
+      // smb/ftp/sftp: keep the URL clean when the standard port is used.
+      final value = number ?? (uri.hasPort ? uri.port : null);
+      selectedPort = kind == SourceKind.smb || value == kind.standardPort
+          ? null
+          : value;
+    } else {
+      selectedPort =
+          number ??
+          (uri.hasPort || pasted
+              ? uri.port
+              : uri.scheme == 'https'
+              ? 443
+              : kind.defaultPort ?? 80);
+    }
+    // Built from parts: Uri.replace keeps an existing port when given null.
+    final result = Uri(
+      scheme: uri.scheme,
+      host: uri.host,
+      port: selectedPort,
+      path: selectedPath,
+      query: uri.hasQuery ? uri.query : null,
+    ).toString();
+    return kind == SourceKind.dlna
+        ? result
+        : result.replaceFirst(RegExp(r'/$'), '');
   }
 }

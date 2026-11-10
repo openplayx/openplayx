@@ -29,6 +29,7 @@ class MediaTools {
   final bool Function()? canExecute;
   final registry = ToolRegistry();
   final _refs = <String, SourceEntry>{};
+  SourceEntry? entryForReference(String ref) => _refs[ref];
   static const _id = ToolField('string', required: true);
   static const _offset = ToolField('integer', minimum: 0, maximum: 10000);
   static const _limit = ToolField('integer', minimum: 1, maximum: 20);

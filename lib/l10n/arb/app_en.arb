@@ -175,7 +175,13 @@
   "noSubtitleTracks": "No selectable subtitles",
   "subtitleOff": "Subtitles off",
   "numberedSubtitleTrack": "Subtitle {id}",
-  "@numberedSubtitleTrack": {"placeholders": {"id": {"type": "int"}}},
+  "@numberedSubtitleTrack": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "playbackCommandFailed": "Playback failed. Reopen the media file.",
   "openFileFailed": "Could not open the file. Choose again.",
   "stopPlaybackFailed": "Could not stop playback. Try going back again.",
@@ -391,14 +397,32 @@
   "shadSelectAll": "Select all",
   "shadDone": "Done",
   "scanFoundMedia": "{n} media files found",
-  "@scanFoundMedia": {"placeholders": {"n": {"type": "int"}}},
+  "@scanFoundMedia": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "detailOverview": "Overview",
   "detailCast": "Cast",
   "detailDirectors": "Director",
   "seasonLabel": "Season {n}",
-  "@seasonLabel": {"placeholders": {"n": {"type": "int"}}},
+  "@seasonLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "episodeLabel": "Episode {n}",
-  "@episodeLabel": {"placeholders": {"n": {"type": "int"}}},
+  "@episodeLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "detailNoEpisodes": "No episodes yet.",
   "metadata": "Metadata",
   "metadataIdentify": "Identify / rematch",
@@ -538,5 +562,52 @@
   "libraryNoFileSources": "No file sources yet. Add a folder to a connection under Sources.",
   "sourceTabConnections": "Connections",
   "sourceTabFileSources": "File sources",
-  "moreActions": "More actions"
+  "moreActions": "More actions",
+  "aiNewChat": "New conversation",
+  "aiChatHistory": "Conversations",
+  "aiShowMedia": "Show home content",
+  "aiExpandChat": "Expand on Home",
+  "aiLatest": "Back to latest",
+  "aiDraftNext": "Replying. You can draft your next message.",
+  "aiSuggestMedia": "Help me find a movie",
+  "aiSuggestResume": "Where did I leave off?",
+  "aiToolPreparing": "Preparing",
+  "aiToolRunning": "Running",
+  "aiToolWaiting": "Awaiting confirmation",
+  "aiToolSucceeded": "Completed",
+  "aiToolCancelled": "Not executed or cancelled",
+  "aiActionExpired": "This action is no longer available. Select again.",
+  "aiRemoteImageBlocked": "Remote image not loaded",
+  "aiOpenLink": "Open external link?",
+  "aiLinkBlocked": "This link cannot be opened",
+  "aiTaskSubmitted": "Task submitted",
+  "aiPartialFailure": "Some sources are unavailable",
+  "aiMoreResults": "More results are available. Ask to see another page.",
+  "aiNoResults": "No matching results",
+  "aiUntitledChat": "New conversation",
+  "aiHistoryEmpty": "No conversations yet",
+  "aiReplying": "Replying…",
+  "aiToolSummary": "Actions and results come from local services",
+  "aiEarlier": "Load earlier messages",
+  "diagnosticsTitle": "Send diagnostics",
+  "diagnosticsDescription": "Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.",
+  "anonymousHelp": "Leave username and password blank for anonymous access.",
+  "s3AccessKey": "Access Key ID",
+  "s3SecretKey": "Secret Access Key",
+  "s3AnonymousHelp": "Public buckets need no keys.",
+  "s3Region": "Region (optional, default us-east-1)",
+  "s3PathHint": "bucket/optional-prefix, e.g. media/movies",
+  "remotePathHint": "e.g. media/movies; leave blank for the root",
+  "dlnaSearch": "Search local network",
+  "dlnaSearching": "Searching…",
+  "dlnaNoDevices": "No media servers found. You can enter the device description URL manually.",
+  "dlnaDevice": "Device",
+  "dlnaAddress": "Device description URL",
+  "dlnaAddressHelp": "Filled in when you pick a discovered device; you can also enter it manually.",
+  "aiOpenExternal": "Open link",
+  "serverBrowseAll": "All",
+  "serverUnavailable": "Can't reach this server",
+  "serverEmpty": "Nothing here yet",
+  "serverLoadMore": "Load more",
+  "localLibrary": "Local library"
 }

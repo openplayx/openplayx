@@ -434,9 +434,7 @@ class MetadataService {
     final config = sources.configs.firstWhere(
       (c) => c.id == directory.instanceId,
     );
-    var root = config.isFileSource && config.address.startsWith('/')
-        ? config.address
-        : Uri.parse(config.address).path;
+    var root = config.rootPath;
     final bindingRoots = library.db.select(
       '''SELECT b.root FROM bindings b JOIN evidence e ON e.binding_id=b.id
       JOIN resources r ON r.id=e.resource_id WHERE r.media_id=? AND b.source=?''',

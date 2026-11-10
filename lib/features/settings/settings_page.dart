@@ -1,3 +1,4 @@
+import 'diagnostics_section.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -132,6 +133,7 @@ class SettingsPage extends StatelessWidget {
                         ),
                       ],
                     ),
+                  const DiagnosticsSection(),
                   SettingsSection(
                     title: l.about,
                     children: [

@@ -29,12 +29,15 @@ class ModelMessage {
     this.text, {
     this.calls = const [],
     this.callId,
+    this.id,
   });
+  final String? id;
   final String role;
   final String text;
   final List<ModelToolCall> calls;
   final String? callId;
   Map<String, dynamic> toJson() => {
+    if (id != null) 'id': id,
     'role': role,
     'text': text,
     'calls': calls.map((c) => c.toJson()).toList(),
@@ -47,6 +50,7 @@ class ModelMessage {
         .map((c) => ModelToolCall.fromJson(Map<String, dynamic>.from(c as Map)))
         .toList(),
     callId: json['callId'] as String?,
+    id: json['id'] as String?,
   );
 }
 

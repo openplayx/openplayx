@@ -9,9 +9,26 @@ import '../../core/plugins/metadata_capability.dart';
 import '../configuration/source_configuration_service.dart';
 import '../configuration/source_credential_broker.dart';
 import 'file_sources.dart';
+import 'dlna_source.dart';
 import 'media_server_sources.dart';
+import 'network_file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
+
+/// Builds the provider for one configuration snapshot and its secret.
+SourceCapability createSourceProvider(SourceConfig config, String secret) =>
+    switch (config.kind) {
+      SourceKind.local => LocalFolderPlugin(config),
+      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, secret)),
+      SourceKind.webdav => WebDavPlugin(config, secret),
+      SourceKind.ftp => FtpPlugin(config, secret),
+      SourceKind.sftp => SftpPlugin(config, secret),
+      SourceKind.s3 => S3Plugin(config, secret),
+      SourceKind.plex => PlexPlugin(config, SourceHttp(config, secret)),
+      SourceKind.jellyfin ||
+      SourceKind.emby => JellyfinPlugin(config, SourceHttp(config, secret)),
+      SourceKind.dlna => DlnaPlugin(config),
+    };
 
 class SourceSelection {
   const SourceSelection(this.name, this.stream, {this.ref, this.entry});
@@ -119,16 +136,17 @@ class SourceManager {
     }
     String? staged;
     if (config.kind != SourceKind.local &&
+        config.kind != SourceKind.dlna &&
         (secret.isNotEmpty ||
             previous == null &&
-                config.kind == SourceKind.smb &&
+                (config.kind.optionalCredential ||
+                    config.kind == SourceKind.sftp) &&
                 config.username.isNotEmpty)) {
       staged = await _credentials.stage(config.id, secret);
       saved = saved.copyWith(credentialRef: staged);
     }
     try {
-      if (config.kind == SourceKind.plex ||
-          config.kind == SourceKind.jellyfin) {
+      if (config.kind.requiresSecret) {
         if ((await _credentials.readForHost(saved))?.isNotEmpty != true) {
           throw const PluginException('authRequired', '请填写访问令牌。');
         }
@@ -341,26 +359,10 @@ class SourceManager {
     final storedSecret = await _credentials.readForHost(config);
     final secret = storedSecret ?? '';
     if ((config.credentialRef != null && storedSecret == null) ||
-        (config.kind != SourceKind.local &&
-            config.kind != SourceKind.smb &&
-            secret.isEmpty)) {
+        (config.kind.requiresSecret && secret.isEmpty)) {
       throw const PluginException('authRequired', '凭据不可用，请重新登录或更新凭据。');
     }
-    final SourceCapability provider = switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(pluginConfig),
-      SourceKind.smb => SmbPlugin.withAccess(
-        pluginConfig,
-        SmbAccess(pluginConfig, secret),
-      ),
-      SourceKind.plex => PlexPlugin(
-        pluginConfig,
-        SourceHttp(pluginConfig, secret),
-      ),
-      SourceKind.jellyfin => JellyfinPlugin(
-        pluginConfig,
-        SourceHttp(pluginConfig, secret),
-      ),
-    };
+    final provider = createSourceProvider(pluginConfig, secret);
     if (_disposed ||
         !_configs.any(
           (c) =>
@@ -465,6 +467,21 @@ class SourceManager {
     );
   });
 
+  /// Items for a media server's shelf: its newest additions when it can list
+  /// them, otherwise the first entries of its root.
+  Future<List<SourceEntry>> featured(String id, {int limit = 20}) =>
+      _call(id, (runtime) async {
+        final provider = runtime.provider;
+        final context = CallContext.forInstance(id);
+        if (provider is RecentCapability) {
+          return (provider as RecentCapability).recent(limit, context);
+        }
+        return (await provider.browse(
+          BrowseRequest(limit: limit),
+          context,
+        )).entries;
+      });
+
   Future<PlayableStream> resolve(ResourceRef resource) =>
       _call(resource.instanceId, (runtime) async {
         final stream = await runtime.provider.resolve(
@@ -527,16 +544,10 @@ class SourceManager {
         : existing == null
         ? ''
         : await _credentials.readForHost(existing) ?? '';
-    if ([SourceKind.plex, SourceKind.jellyfin].contains(config.kind) &&
-        value.isEmpty) {
+    if (config.kind.requiresSecret && value.isEmpty) {
       throw const PluginException('authRequired', '请填写访问令牌。');
     }
-    final SourceCapability provider = switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(config),
-      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, value)),
-      SourceKind.plex => PlexPlugin(config, SourceHttp(config, value)),
-      SourceKind.jellyfin => JellyfinPlugin(config, SourceHttp(config, value)),
-    };
+    final provider = createSourceProvider(config, value);
     final operation = provider.browse(
       const BrowseRequest(limit: 1),
       CallContext.forInstance(config.id),
@@ -599,9 +610,7 @@ class SourceManager {
                     .replaceFirst(RegExp(r'^/+'), '')
               : entry.ref.id
                     .substring(
-                      Uri.parse(config.address).path
-                          .replaceFirst(RegExp(r'/+$'), '')
-                          .length,
+                      config.rootPath.replaceFirst(RegExp(r'/+$'), '').length,
                     )
                     .replaceFirst(RegExp(r'^/+'), '');
           if (config.excludedFromScan(relative)) continue;
