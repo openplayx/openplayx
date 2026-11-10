@@ -21,7 +21,7 @@ void main() {
     db.execute('PRAGMA user_version=1');
     final library = LibraryService(db);
     try {
-      expect(db.select('PRAGMA user_version').single.values.single, 2);
+      expect(db.select('PRAGMA user_version').single.values.single, 3);
       expect(library.metadata.lockedFields('m'), contains('title'));
       expect(library.metadata.fields('m')['title'], 'My corrected title');
       expect(library.resources('m').single['id'], 'r');

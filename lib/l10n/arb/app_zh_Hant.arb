@@ -372,7 +372,7 @@
   "metadataLanguage": "中繼資料語言",
   "metadataToken": "TMDB 讀取存取權杖",
   "metadataConfigure": "設定 TMDB",
-  "metadataPrivacy": "線上查詢僅向 TMDB 傳送名稱、年份、ID 和語言，不上傳影片或私人路徑。僅在主動操作時連網查詢。",
+  "metadataPrivacy": "加入媒體庫的影視會在背景自動識別，僅向 TMDB 傳送必要的名稱、年份、ID 和語言，不上傳影片或私人路徑。",
   "metadataSaved": "TMDB 設定已儲存",
   "metadataCandidates": "選擇作品",
   "metadataChooseChildren": "選擇季 / 集",
@@ -460,5 +460,25 @@
   },
   "aiAuthenticationFailed": "驗證失敗，請在模型設定中更新 API Key。",
   "aiRateLimited": "已達到供應商速率限制，請稍後重試。",
-  "aiProtocolMismatch": "端點或模型不支援此請求，請檢查連線測試結果。"
+  "aiProtocolMismatch": "端點或模型不支援此請求，請檢查連線測試結果。",
+  "metadataAutomaticQueued": "等待自動識別",
+  "metadataAutomaticWaitingConfig": "背景擷取需要設定有效的 TMDB 讀取權杖，本機 NFO 和播放不受影響。",
+  "metadataAutomaticRetry": "重試未完成的擷取",
+  "metadataAutomaticStatus": "背景擷取：{queued} 待處理 · {running} 處理中 · {waiting} 待確認 · {failed} 失敗",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  }
 }

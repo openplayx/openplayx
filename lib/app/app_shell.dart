@@ -21,6 +21,7 @@ import '../features/player/player_page.dart';
 import '../features/sources/source_defaults_page.dart';
 import '../features/sources/source_page.dart';
 import '../services/library/library_service.dart';
+import '../services/metadata/metadata_runtime.dart';
 import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
 import '../ui/tokens/app_spacing.dart';
@@ -58,6 +59,7 @@ class _AppShellState extends State<AppShell> {
   final _player = GlobalKey<PlayerPageState>();
   final _branches = List.generate(4, (_) => GlobalKey<NavigatorState>());
   LibraryService? _library;
+  MetadataRuntime? _metadataRuntime;
   AssistantStore? _assistantStore;
   ConversationCoordinator? _assistant;
   PlayerBackend? _backend;
@@ -82,6 +84,8 @@ class _AppShellState extends State<AppShell> {
       }
       setState(() {
         _library = library;
+        _metadataRuntime = MetadataRuntime(library, _sources);
+        unawaited(_metadataRuntime!.start());
         _backend =
             widget.backend ??
             (LibVlcBackend.isSupported ? LibVlcBackend() : null);
@@ -101,6 +105,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    unawaited(_metadataRuntime?.dispose());
     _assistant?.dispose();
     _assistantStore?.close();
     _revision.dispose();
@@ -325,27 +330,7 @@ class _AppShellState extends State<AppShell> {
         Text(l.welcome, style: ShadTheme.of(context).textTheme.h3),
         SizedBox(height: 8),
         Text(l.welcomeDescription),
-        SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ShadButton(
-            onPressed: _backend == null
-                ? null
-                : () async {
-                    if (_opening || _exitingPlayer) return;
-                    _opening = true;
-                    try {
-                      await _player.currentState?.openFile();
-                    } finally {
-                      _opening = false;
-                    }
-                  },
-            leading: Icon(AppIcons.openFile),
-            enabled: !(_backend == null),
-            child: Text(l.openFile),
-          ),
-        ),
-        SizedBox(height: 28),
+        SizedBox(height: AppSpacing.xl),
         _history(
           l.continueWatching,
           _library!.continueWatching(),

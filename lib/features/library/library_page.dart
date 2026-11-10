@@ -15,6 +15,7 @@ import '../../ui/icons/app_icons.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
+import '../../data/metadata/metadata_queue.dart';
 import '../../services/metadata/metadata_service.dart';
 import '../../services/artwork/artwork_service.dart';
 import 'metadata_page.dart';
@@ -38,6 +39,7 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   AppLocalizations get l => AppLocalizations.of(context);
   LibraryService? _service;
+  StreamSubscription<void>? _libraryChanges;
   MetadataService? _metadata;
   late final ArtworkService _artwork = ArtworkService(
     widget.sources,
@@ -74,6 +76,9 @@ class _LibraryPageState extends State<LibraryPage> {
       setState(() {
         _service = service;
         _metadata = MetadataService(service, widget.sources);
+        _libraryChanges = service.changes.listen((_) {
+          if (mounted) setState(() {});
+        });
       });
     } catch (_) {
       if (mounted) setState(() => _error = l.libraryLoadFailed);
@@ -83,6 +88,7 @@ class _LibraryPageState extends State<LibraryPage> {
   @override
   void dispose() {
     _scanRefresh?.cancel();
+    _libraryChanges?.cancel();
     _metadata?.dispose();
     _artwork.dispose();
     // Database closure waits for any active scan.
@@ -211,18 +217,6 @@ class _LibraryPageState extends State<LibraryPage> {
     });
     try {
       await _service!.scan(binding, widget.sources);
-      if (mounted) {
-        final library =
-            _service!.db.select('SELECT library_id FROM bindings WHERE id=?', [
-                  binding,
-                ]).firstOrNull?['library_id']
-                as String?;
-        if (library != null &&
-            _service!.libraries.firstWhere((l) => l['id'] == library)['type'] !=
-                'home') {
-          unawaited(_importMetadata(library));
-        }
-      }
     } catch (_) {
       if (mounted) setState(() => _error = l.scanFailedRetained);
     } finally {
@@ -275,6 +269,19 @@ class _LibraryPageState extends State<LibraryPage> {
     } finally {
       if (mounted) setState(() => _metadataBusy = false);
     }
+  }
+
+  String? _metadataStatus(LibraryService service, String media) {
+    final state = MetadataQueue(service.db).item(media)?['state'];
+    return switch (state) {
+      'queued' => l.metadataAutomaticQueued,
+      'running' => l.metadataBusy,
+      'awaitingSelection' => l.metadataAwaiting,
+      'waitingConfiguration' => l.metadataAuth,
+      'failed' => l.metadataFailed,
+      'unmatched' => l.metadataUnmatched,
+      _ => service.metadata.fields(media)['year']?.toString(),
+    };
   }
 
   Future<void> _detail(dynamic media) async {
@@ -1004,6 +1011,57 @@ class _LibraryPageState extends State<LibraryPage> {
                                   ),
                                 ),
                             ],
+                            Builder(
+                              builder: (context) {
+                                final counts = MetadataQueue(service.db).counts;
+                                if (counts.isEmpty) {
+                                  return const SizedBox.shrink();
+                                }
+                                return Padding(
+                                  padding: const EdgeInsets.symmetric(
+                                    horizontal: 16,
+                                    vertical: 8,
+                                  ),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text(
+                                        l.metadataAutomaticStatus(
+                                          counts['queued'] ?? 0,
+                                          counts['running'] ?? 0,
+                                          counts['awaitingSelection'] ?? 0,
+                                          counts['failed'] ?? 0,
+                                        ),
+                                      ),
+                                      if ((counts['waitingConfiguration'] ??
+                                              0) >
+                                          0)
+                                        Text(l.metadataAutomaticWaitingConfig),
+                                      if ((counts['failed'] ?? 0) +
+                                              (counts['unmatched'] ?? 0) >
+                                          0)
+                                        ShadButton.ghost(
+                                          onPressed: () {
+                                            final queue = MetadataQueue(
+                                              service.db,
+                                            );
+                                            for (final row in service.db.select(
+                                              "SELECT media_id FROM metadata_queue WHERE state IN ('failed','unmatched')",
+                                            )) {
+                                              queue.retry(
+                                                row['media_id'] as String,
+                                              );
+                                            }
+                                            service.notifyChanged();
+                                          },
+                                          child: Text(l.metadataAutomaticRetry),
+                                        ),
+                                    ],
+                                  ),
+                                );
+                              },
+                            ),
                             if (_scanning || _metadataBusy) ShadProgress(),
                             if (_metadataBusy)
                               Text(
@@ -1063,7 +1121,7 @@ class _LibraryPageState extends State<LibraryPage> {
                                 return MediaPosterCard(
                                   title: media['title'] as String,
                                   artwork:
-                                      service.metadata.selectedArtwork(
+                                      service.metadata.displayArtwork(
                                             media['id'] as String,
                                           ) ==
                                           null
@@ -1071,10 +1129,14 @@ class _LibraryPageState extends State<LibraryPage> {
                                       : MetadataArtwork(
                                           service: _artwork,
                                           artwork: service.metadata
-                                              .selectedArtwork(
+                                              .displayArtwork(
                                                 media['id'] as String,
                                               )!,
                                         ),
+                                  metadataStatus: _metadataStatus(
+                                    service,
+                                    media['id'] as String,
+                                  ),
                                   favorite: media['favorite'] == 1,
                                   onOpen: _scanning
                                       ? null

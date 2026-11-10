@@ -790,7 +790,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metadataPrivacy =>
-      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+      '入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。';
 
   @override
   String get metadataSaved => 'TMDB 配置已保存';
@@ -1018,6 +1018,26 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自动识别';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。';
+
+  @override
+  String get metadataAutomaticRetry => '重试未完成的刮削';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1805,7 +1825,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get metadataPrivacy =>
-      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+      '入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。';
 
   @override
   String get metadataSaved => 'TMDB 配置已保存';
@@ -2033,6 +2053,26 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自动识别';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。';
+
+  @override
+  String get metadataAutomaticRetry => '重试未完成的刮削';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2820,7 +2860,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get metadataPrivacy =>
-      '線上查詢僅向 TMDB 傳送名稱、年份、ID 和語言，不上傳影片或私人路徑。僅在主動操作時連網查詢。';
+      '加入媒體庫的影視會在背景自動識別，僅向 TMDB 傳送必要的名稱、年份、ID 和語言，不上傳影片或私人路徑。';
 
   @override
   String get metadataSaved => 'TMDB 設定已儲存';
@@ -3048,4 +3088,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aiProtocolMismatch => '端點或模型不支援此請求，請檢查連線測試結果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自動識別';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '背景擷取需要設定有效的 TMDB 讀取權杖，本機 NFO 和播放不受影響。';
+
+  @override
+  String get metadataAutomaticRetry => '重試未完成的擷取';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '背景擷取：$queued 待處理 · $running 處理中 · $waiting 待確認 · $failed 失敗';
+  }
 }

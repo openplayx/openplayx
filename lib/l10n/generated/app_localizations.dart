@@ -1603,7 +1603,7 @@ abstract class AppLocalizations {
   /// No description provided for @metadataPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.'**
+  /// **'Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.'**
   String get metadataPrivacy;
 
   /// No description provided for @metadataSaved.
@@ -2049,6 +2049,35 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'The endpoint or model does not support this request. Check connection tests.'**
   String get aiProtocolMismatch;
+
+  /// No description provided for @metadataAutomaticQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued for identification'**
+  String get metadataAutomaticQueued;
+
+  /// No description provided for @metadataAutomaticWaitingConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.'**
+  String get metadataAutomaticWaitingConfig;
+
+  /// No description provided for @metadataAutomaticRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry unfinished identification'**
+  String get metadataAutomaticRetry;
+
+  /// No description provided for @metadataAutomaticStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Background metadata: {queued} queued · {running} running · {waiting} awaiting selection · {failed} failed'**
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  );
 }
 
 class _AppLocalizationsDelegate

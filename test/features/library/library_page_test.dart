@@ -3,6 +3,8 @@ import '../../app_test_host.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/plugins/metadata_capability.dart';
+import 'package:openplayx/features/library/metadata_artwork.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/features/library/library_page.dart';
@@ -38,6 +40,54 @@ void main() {
   late LibraryService service;
   setUp(() => service = LibraryService(sqlite3.openInMemory()));
   tearDown(() => service.close());
+  testWidgets(
+    'background publication updates the visible title and cover without navigation',
+    (tester) async {
+      final collection = service.create('Movies', type: 'movie');
+      final media = service.register(
+        const SourceEntry(
+          ResourceRef('s', '/raw.mkv'),
+          'raw.mkv',
+          isFolder: false,
+        ),
+      );
+      service.addManual(collection, media);
+      await tester.pumpWidget(
+        TestApp(
+          home: LibraryPage(sources: Sources(), service: service),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('raw.mkv'), findsOneWidget);
+      service.transaction(
+        () => service.metadata.apply(
+          media,
+          const MetadataRecord(
+            ref: MetadataRef('tmdb', MediaKind.movie, '1'),
+            fields: {'title': '刮削后的影片', 'year': 2014},
+            artwork: [
+              ArtworkDescriptor(id: 'background-poster', type: 'poster'),
+            ],
+          ),
+          sourceKey: 'tmdb',
+          authority: 100,
+          expectedRevision: 0,
+          operationId: 'background-visible',
+          select: true,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('raw.mkv'), findsNothing);
+      expect(find.text('刮削后的影片'), findsOneWidget);
+      expect(
+        tester.widget<MetadataArtwork>(find.byType(MetadataArtwork)).artwork.id,
+        'background-poster',
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    },
+  );
   testWidgets(
     'create library, select scope, scan, favorite, search and safely remove',
     (tester) async {

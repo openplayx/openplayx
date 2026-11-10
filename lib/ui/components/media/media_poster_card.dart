@@ -13,7 +13,9 @@ class MediaPosterCard extends StatelessWidget {
     required this.onFavorite,
     this.onOpen,
     this.artwork,
+    this.metadataStatus,
   });
+  final String? metadataStatus;
   final Widget? artwork;
   final String title;
   final bool favorite;
@@ -63,10 +65,22 @@ class MediaPosterCard extends StatelessWidget {
                     onPressed: onOpen,
                     enabled: onOpen != null,
                     padding: const EdgeInsets.all(AppSpacing.xs),
-                    child: Text(
-                      title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          title,
+                          maxLines: metadataStatus == null ? 2 : 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (metadataStatus != null)
+                          Text(
+                            metadataStatus!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.muted.copyWith(fontSize: 11),
+                          ),
+                      ],
                     ),
                   ),
                 ),

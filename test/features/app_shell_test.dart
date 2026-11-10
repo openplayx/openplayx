@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app_shell.dart';
+import 'package:openplayx/features/player/player_page.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -30,7 +31,7 @@ class ShellSources extends Sources {
 void main() {
   for (final cancel in [true, false]) {
     testWidgets(
-      'home opens player only after selecting a file (cancel: $cancel)',
+      'file selection reveals the player only after choosing a file (cancel: $cancel)',
       (tester) async {
         final library = LibraryService(sqlite3.openInMemory());
         final backend = FakeBackend();
@@ -50,11 +51,14 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.text('打开文件'));
+        final player = tester.state<PlayerPageState>(
+          find.byType(PlayerPage, skipOffstage: false),
+        );
+        final opening = player.openFile();
         await tester.pump();
         expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);
         expect(find.byTooltip('返回'), findsNothing);
-        await tester.tap(find.text('打开文件'));
+        await player.openFile();
         await tester.pump();
         expect(pickerCalls, 1);
         selection.complete(
@@ -65,6 +69,7 @@ void main() {
                   'Local video',
                 ),
         );
+        await opening;
         await tester.pumpAndSettle();
         if (cancel) {
           expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);

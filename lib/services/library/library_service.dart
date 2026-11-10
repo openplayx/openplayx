@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
@@ -7,15 +8,20 @@ import 'package:sqlite3/sqlite3.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../core/plugins/metadata_capability.dart';
 import '../../data/metadata/metadata_repository.dart';
+import '../../data/metadata/metadata_queue.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_config.dart';
 
 /// Local business data. Source credentials and resolved playback URLs never enter
 /// this database. Media identity survives membership and binding removal.
 class LibraryService {
-  LibraryService(this.db) {
+  LibraryService(
+    this.db, {
+    bool recoverInterrupted = true,
+    bool watchExternalChanges = false,
+  }) {
     final version = db.select('PRAGMA user_version').first.values.first as int;
-    if (version > 2) throw StateError('媒体库版本较新，请升级应用');
+    if (version > 3) throw StateError('媒体库版本较新，请升级应用');
     db.execute('PRAGMA foreign_keys=ON');
     db.execute('PRAGMA busy_timeout=5000');
     db.execute('''CREATE TABLE IF NOT EXISTS libraries (
@@ -93,9 +99,10 @@ class LibraryService {
     db.execute(
       'CREATE INDEX IF NOT EXISTS source_media_media ON source_media(media_id)',
     );
-    metadata = MetadataRepository(db);
+    metadata = MetadataRepository(db, onChanged: notifyChanged);
     transaction(() {
       metadata.migrate();
+      MetadataQueue.migrate(db);
       if (version < 2) {
         // Existing manual titles from v1 must become locks on first upgrade.
         db.execute(
@@ -105,14 +112,53 @@ class LibraryService {
           AND NOT EXISTS (SELECT 1 FROM source_media s WHERE s.media_id=m.id)''',
         );
       }
-      db.execute('PRAGMA user_version=2');
+      db.execute('PRAGMA user_version=3');
     });
-    metadata.recover();
+    if (recoverInterrupted) metadata.recover();
     // A crashed or interrupted scan must never reconcile missing observations.
-    db.execute(
-      "UPDATE bindings SET status='扫描中断', error='请重新扫描' WHERE status='扫描中'",
-    );
+    if (recoverInterrupted) {
+      db.execute(
+        "UPDATE bindings SET status='扫描中断', error='请重新扫描' WHERE status='扫描中'",
+      );
+    }
+    _dataVersion = db.select('PRAGMA data_version').single.values.single as int;
+    if (watchExternalChanges) {
+      _externalWatch = Timer.periodic(
+        const Duration(seconds: 2),
+        (_) => checkExternalChanges(),
+      );
+    }
   }
+  final _changes = StreamController<void>.broadcast();
+  Stream<void> get changes => _changes.stream;
+  Timer? _externalWatch;
+  int _dataVersion = 0;
+  bool _inTransaction = false;
+  bool _databaseClosed = false;
+  void notifyChanged() {
+    if (_closeRequested || _changes.isClosed) return;
+    if (_inTransaction) return;
+    _changes.add(null);
+  }
+
+  void checkExternalChanges() {
+    if (_closeRequested) return;
+    final version =
+        db.select('PRAGMA data_version').single.values.single as int;
+    if (version != _dataVersion) {
+      _dataVersion = version;
+      notifyChanged();
+    }
+  }
+
+  void _closeDatabase() {
+    if (_databaseClosed) return;
+    _databaseClosed = true;
+    _externalWatch?.cancel();
+    _changes.close();
+    db.close();
+  }
+
   final Database db;
   late final MetadataRepository metadata;
   bool get isClosing => _closeRequested;
@@ -123,21 +169,32 @@ class LibraryService {
 
   void endMetadataWork(String id) {
     _running.remove("metadata:$id");
-    if (_closeRequested && _running.isEmpty) db.close();
+    if (_closeRequested && _running.isEmpty) _closeDatabase();
   }
 
   final Set<String> _running = {};
   bool _closeRequested = false;
   static String _id() =>
       '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}';
-  static Future<LibraryService> open() async {
+  static Future<LibraryService> open({
+    bool recoverInterrupted = true,
+    bool watchExternalChanges = true,
+    String databaseName = 'library.sqlite3',
+  }) async {
+    if (!RegExp(r'^[a-zA-Z0-9_-]+\.sqlite3$').hasMatch(databaseName)) {
+      throw ArgumentError('Invalid library database name');
+    }
     final dir = await getApplicationSupportDirectory();
     await dir.create(recursive: true);
     final db = sqlite3.open(
-      '${dir.path}${Platform.pathSeparator}library.sqlite3',
+      '${dir.path}${Platform.pathSeparator}$databaseName',
     );
     try {
-      return LibraryService(db);
+      return LibraryService(
+        db,
+        recoverInterrupted: recoverInterrupted,
+        watchExternalChanges: watchExternalChanges,
+      );
     } catch (_) {
       db.close();
       rethrow;
@@ -146,12 +203,16 @@ class LibraryService {
 
   T transaction<T>(T Function() action) {
     db.execute('BEGIN IMMEDIATE');
+    _inTransaction = true;
     try {
       final result = action();
       db.execute('COMMIT');
+      _inTransaction = false;
+      notifyChanged();
       return result;
     } catch (_) {
       db.execute('ROLLBACK');
+      _inTransaction = false;
       rethrow;
     }
   }
@@ -173,8 +234,11 @@ class LibraryService {
     ]);
   }
 
-  void delete(String library) =>
-      db.execute('DELETE FROM libraries WHERE id=?', [library]);
+  void delete(String library) {
+    db.execute('DELETE FROM libraries WHERE id=?', [library]);
+    notifyChanged();
+  }
+
   List<Row> bindings(String library) => db.select(
     'SELECT * FROM bindings WHERE library_id=? ORDER BY id',
     [library],
@@ -274,6 +338,7 @@ class LibraryService {
       'INSERT OR IGNORE INTO memberships SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM ignored WHERE library_id=? AND media_id=?)',
       [library, media, DateTime.now().millisecondsSinceEpoch, library, media],
     );
+    MetadataQueue.observe(db, media, refresh: true);
   }
 
   List<Row> children(
@@ -567,7 +632,7 @@ class LibraryService {
       rethrow;
     } finally {
       _running.remove(binding);
-      if (_closeRequested && _running.isEmpty) db.close();
+      if (_closeRequested && _running.isEmpty) _closeDatabase();
     }
   }
 
@@ -585,6 +650,7 @@ class LibraryService {
       media,
       DateTime.now().millisecondsSinceEpoch,
     ]);
+    MetadataQueue.observe(db, media);
   });
   Row? resourceFor(ResourceRef ref) => db.select(
     'SELECT r.id,r.media_id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE l.source=? AND l.item=?',
@@ -677,6 +743,7 @@ class LibraryService {
   void close() {
     if (_closeRequested) return;
     _closeRequested = true;
-    if (_running.isEmpty) db.close();
+    _externalWatch?.cancel();
+    if (_running.isEmpty) _closeDatabase();
   }
 }

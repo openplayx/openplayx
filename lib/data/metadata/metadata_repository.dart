@@ -6,11 +6,13 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
+import 'metadata_queue.dart';
 
 /// Shares the media library database. Projection updates and job commits are a
 /// single transaction; resources and playback progress are never rewritten.
 class MetadataRepository {
-  MetadataRepository(this.db);
+  MetadataRepository(this.db, {this.onChanged});
+  final void Function()? onChanged;
   final Database db;
   void migrate() {
     db.execute(
@@ -93,6 +95,7 @@ class MetadataRepository {
         WHERE media_id=? AND NOT EXISTS (SELECT 1 FROM ignored i WHERE i.library_id=memberships.library_id AND i.media_id=?)''',
         [id, media, id],
       );
+      MetadataQueue.observe(db, id);
       if (parent != null) {
         db.execute(
           'INSERT INTO metadata_relations VALUES (?,?) ON CONFLICT(child_id) DO UPDATE SET parent_id=excluded.parent_id',
@@ -110,7 +113,7 @@ class MetadataRepository {
   }
 
   void recover() => db.execute(
-    "UPDATE metadata_jobs SET stage='cancelled',error_code='interrupted' WHERE stage IN ('queued','collecting','searching','fetching','applying')",
+    "UPDATE metadata_jobs SET stage='cancelled',error_code='interrupted' WHERE stage IN ('queued','collecting','searching','fetching','applying') AND NOT EXISTS(SELECT 1 FROM metadata_queue q WHERE q.media_id=metadata_jobs.media_id AND q.state='running' AND q.lease_until>unixepoch('now')*1000)",
   );
   int get _now => DateTime.now().millisecondsSinceEpoch;
   void ensure(String media) => db.execute(
@@ -360,6 +363,7 @@ class MetadataRepository {
         }
       }
     }
+    onChanged?.call();
   }
 
   void overrideField(
@@ -430,6 +434,11 @@ class MetadataRepository {
         : ArtworkDescriptor.fromJson(jsonDecode(row['descriptor'] as String));
   }
 
+  ArtworkDescriptor? displayArtwork(String media) =>
+      selectedArtwork(media) ??
+      selectedArtwork(media, type: 'thumbnail') ??
+      selectedArtwork(media, type: 'backdrop');
+
   bool artworkLocked(String media, {String type = 'poster'}) =>
       db.select(
         'SELECT locked FROM artwork_selections WHERE media_id=? AND type=?',
@@ -465,6 +474,7 @@ class MetadataRepository {
       [media, artwork.type, jsonEncode(artwork.toJson()), locked ? 1 : 0],
     );
     _bump(media);
+    onChanged?.call();
   }
 
   void reset(
@@ -490,6 +500,7 @@ class MetadataRepository {
     db.execute('DELETE FROM artwork_selections WHERE media_id=? AND locked=0', [
       media,
     ]);
+    MetadataQueue(db).retry(media);
     _bump(media);
     rebuild(media);
   }
@@ -508,10 +519,14 @@ class MetadataRepository {
           ]).firstOrNull?['value']
           as String? ??
       fallback;
-  void setSetting(String key, String value) => db.execute(
-    'INSERT INTO metadata_settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-    [key, value],
-  );
+  void setSetting(String key, String value) {
+    db.execute(
+      'INSERT INTO metadata_settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
+      [key, value],
+    );
+    onChanged?.call();
+  }
+
   String createJob(String media, Map<String, dynamic> input) {
     final id = '${DateTime.now().microsecondsSinceEpoch}-$media';
     db.execute(

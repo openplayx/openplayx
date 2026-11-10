@@ -820,7 +820,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metadataPrivacy =>
-      'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.';
+      'Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.';
 
   @override
   String get metadataSaved => 'TMDB configuration saved';
@@ -1074,4 +1074,24 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiProtocolMismatch =>
       'The endpoint or model does not support this request. Check connection tests.';
+
+  @override
+  String get metadataAutomaticQueued => 'Queued for identification';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      'Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.';
+
+  @override
+  String get metadataAutomaticRetry => 'Retry unfinished identification';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return 'Background metadata: $queued queued · $running running · $waiting awaiting selection · $failed failed';
+  }
 }

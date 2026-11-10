@@ -10,6 +10,13 @@ class MainFlutterWindow: NSWindow {
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    // Let Flutter fill the title area while retaining the native window controls.
+    titleVisibility = .hidden
+    titlebarAppearsTransparent = true
+    styleMask.insert(.fullSizeContentView)
+    if #available(macOS 11.0, *) {
+      titlebarSeparatorStyle = .none
+    }
     // Start with enough space for the media library and connection dialogs,
     // while fitting smaller laptop displays without opening off-screen.
     let visibleFrame = self.screen?.visibleFrame ?? NSScreen.main?.visibleFrame

@@ -192,6 +192,7 @@ abstract interface class MetadataCapability {
 /// Registry owns provider lifecycle; UI and providers cannot write library data.
 class MetadataRegistry {
   final _providers = <String, MetadataCapability>{};
+  bool contains(String instance) => _providers.containsKey(instance);
   void register(String instance, MetadataCapability provider) {
     if (provider is! Plugin || _providers.containsKey(instance)) {
       throw StateError('Invalid or duplicate metadata plugin');

@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -37,6 +38,7 @@ class MetadataPage extends StatefulWidget {
 
 class _MetadataPageState extends State<MetadataPage> {
   AppLocalizations get l => AppLocalizations.of(context);
+  StreamSubscription<void>? _libraryChanges;
   late MetadataService _service;
   late ArtworkService _artwork;
   final _query = TextEditingController(),
@@ -63,6 +65,16 @@ class _MetadataPageState extends State<MetadataPage> {
         ? MediaKind.movie
         : MediaKind.series;
     _job = _service.repository.latestJob(widget.media)?['id'] as String?;
+    _libraryChanges = widget.library.changes.listen((_) {
+      if (mounted) {
+        setState(() {
+          if (!_busy) {
+            _job =
+                _service.repository.latestJob(widget.media)?['id'] as String?;
+          }
+        });
+      }
+    });
     if (widget.service == null) {
       _initialize();
     } else {
@@ -91,6 +103,7 @@ class _MetadataPageState extends State<MetadataPage> {
 
   @override
   void dispose() {
+    _libraryChanges?.cancel();
     _service.cancelActive();
     if (widget.service == null) _service.dispose();
     _artwork.dispose();

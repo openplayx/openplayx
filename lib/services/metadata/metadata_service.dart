@@ -8,14 +8,19 @@ import '../../plugins/metadata_nfo/nfo_metadata_plugin.dart';
 import '../library/library_service.dart';
 import 'media_name_parser.dart';
 
-/// Host policy: file discovery does not authorize online calls. Searches always
-/// await explicit selection; only conflict-free local identities auto-import.
+/// Metadata operations shared by manual editing and the library background queue.
+/// The queue owns automatic matching policy; interactive searches keep candidates.
 class MetadataService {
-  MetadataService(this.library, this.sources, {MetadataRegistry? registry})
-    : registry = registry ?? MetadataRegistry() {
+  MetadataService(
+    this.library,
+    this.sources, {
+    MetadataRegistry? registry,
+    this.canApply,
+  }) : registry = registry ?? MetadataRegistry() {
     this.registry.register('nfo', NfoMetadataPlugin(sources.readAttachment));
     _providerRevision = repository.setting('tmdbRevision');
   }
+  final bool Function(String media)? canApply;
   final LibraryService library;
   final SourceManager sources;
   final MetadataRegistry registry;
@@ -89,6 +94,7 @@ class MetadataService {
       !_disposed &&
       !library.isClosing &&
       !_cancelled.contains(id) &&
+      (canApply?.call(repository.job(id)['media_id'] as String) ?? true) &&
       _snapshotCurrent(id) &&
       repository.job(id)['revision'] ==
           repository.revision(repository.job(id)['media_id'] as String);
@@ -162,6 +168,13 @@ class MetadataService {
               ),
       );
       await _validate(id);
+      final input = jsonDecode(
+        repository.job(id)['input'] as String,
+      ) as Map<String, dynamic>;
+      library.db.execute('UPDATE metadata_jobs SET input=? WHERE id=?', [
+        jsonEncode({...input, 'nextPage': result.nextPage}),
+        id,
+      ]);
       repository.stage(
         id,
         result.records.isEmpty ? 'unmatched' : 'awaitingSelection',
@@ -171,7 +184,11 @@ class MetadataService {
     return id;
   }
 
-  Future<void> confirm(String id, MetadataRef selected) async {
+  Future<void> confirm(
+    String id,
+    MetadataRef selected, {
+    bool userConfirmed = true,
+  }) async {
     final job = repository.job(id);
     if (job['stage'] != 'awaitingSelection') {
       throw const PluginException('conflict', '请重新查询候选');
@@ -207,6 +224,7 @@ class MetadataService {
       final ancestors = await _onlineAncestors(media, selected);
       await _validate(id);
       library.transaction(() {
+        _check(id);
         repository.stage(id, 'applying');
         repository.apply(
           media,
@@ -216,7 +234,7 @@ class MetadataService {
           expectedRevision: job['revision'] as int,
           operationId: id,
           select: true,
-          userConfirmed: true,
+          userConfirmed: userConfirmed,
         );
         library.db.execute('DELETE FROM metadata_relations WHERE child_id=?', [
           media,
@@ -244,6 +262,7 @@ class MetadataService {
       final media = job['media_id'] as String;
       final record = records[index];
       library.transaction(() {
+        _check(id);
         repository.apply(
           media,
           record,
@@ -326,6 +345,7 @@ class MetadataService {
         throw const PluginException('invalidMetadata', '详情身份不匹配');
       }
       library.transaction(() {
+        _check(id);
         repository.stage(id, 'applying');
         repository.apply(
           media,
@@ -718,6 +738,7 @@ class MetadataService {
         }
         _check(id);
         library.transaction(() {
+          _check(id);
           if (selected == null ||
               selected.provider.startsWith('nfo:') &&
                   !repository.confirmed(media)) {

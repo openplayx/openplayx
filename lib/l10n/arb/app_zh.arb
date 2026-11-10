@@ -372,7 +372,7 @@
   "metadataLanguage": "元数据语言",
   "metadataToken": "TMDB 读取访问令牌",
   "metadataConfigure": "配置 TMDB",
-  "metadataPrivacy": "在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。",
+  "metadataPrivacy": "入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。",
   "metadataSaved": "TMDB 配置已保存",
   "metadataCandidates": "选择作品",
   "metadataChooseChildren": "选择季 / 集",
@@ -460,5 +460,25 @@
   },
   "aiAuthenticationFailed": "认证失败，请在模型设置中更新 API Key。",
   "aiRateLimited": "已达到供应商限流，请稍后重试。",
-  "aiProtocolMismatch": "端点或模型不支持此请求，请检查连接测试结果。"
+  "aiProtocolMismatch": "端点或模型不支持此请求，请检查连接测试结果。",
+  "metadataAutomaticQueued": "等待自动识别",
+  "metadataAutomaticWaitingConfig": "后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。",
+  "metadataAutomaticRetry": "重试未完成的刮削",
+  "metadataAutomaticStatus": "后台刮削：{queued} 待处理 · {running} 处理中 · {waiting} 待确认 · {failed} 失败",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  }
 }

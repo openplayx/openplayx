@@ -91,7 +91,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('打开文件'));
+      await tester
+          .state<PlayerPageState>(find.byType(PlayerPage, skipOffstage: false))
+          .openFile();
       await tester.pumpAndSettle();
       final state = tester.state<PlayerPageState>(find.byType(PlayerPage));
       final before = backend.value;

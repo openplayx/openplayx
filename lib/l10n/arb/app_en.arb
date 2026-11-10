@@ -372,7 +372,7 @@
   "metadataLanguage": "Metadata language",
   "metadataToken": "TMDB read access token",
   "metadataConfigure": "Configure TMDB",
-  "metadataPrivacy": "Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.",
+  "metadataPrivacy": "Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.",
   "metadataSaved": "TMDB configuration saved",
   "metadataCandidates": "Choose a work",
   "metadataChooseChildren": "Choose season / episode",
@@ -460,5 +460,25 @@
   },
   "aiAuthenticationFailed": "Authentication failed. Update the API key in model settings.",
   "aiRateLimited": "Provider rate limit reached. Try again later.",
-  "aiProtocolMismatch": "The endpoint or model does not support this request. Check connection tests."
+  "aiProtocolMismatch": "The endpoint or model does not support this request. Check connection tests.",
+  "metadataAutomaticQueued": "Queued for identification",
+  "metadataAutomaticWaitingConfig": "Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.",
+  "metadataAutomaticRetry": "Retry unfinished identification",
+  "metadataAutomaticStatus": "Background metadata: {queued} queued · {running} running · {waiting} awaiting selection · {failed} failed",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  }
 }
