@@ -214,6 +214,17 @@ class MetadataQueue {
     "SELECT 1 FROM metadata_queue WHERE state IN ('queued','running') AND (?=1 OR phase=0) LIMIT 1",
     [allowOnline ? 1 : 0],
   ).isNotEmpty;
+
+  /// Scraping progress for the UI. "Done" is every item the queue has finished
+  /// with, including ones with no match; queued/running items and items blocked
+  /// on configuration are not done. Cancelled (removed) items are not counted.
+  ({int done, int total}) get progress {
+    final row = db.select('''SELECT COUNT(*) AS total,
+      COALESCE(SUM(state NOT IN ('queued','running','waitingConfiguration')),0) AS done
+      FROM metadata_queue WHERE state<>'cancelled' ''').single;
+    return (done: row['done'] as int, total: row['total'] as int);
+  }
+
   Map<String, int> get counts => {
     for (final row in db.select(
       'SELECT state,COUNT(*) AS n FROM metadata_queue GROUP BY state',

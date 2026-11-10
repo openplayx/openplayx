@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openplayx/core/plugins/metadata_capability.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:openplayx/services/metadata/metadata_queue_runner.dart';
-import 'package:openplayx/services/metadata/metadata_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../metadata/metadata_background_test.dart'
@@ -45,7 +45,7 @@ void main() {
       watchExternalChanges: false,
     );
     final lib = library.create('Films');
-    library.transaction(() {
+    {
       for (var i = 0; i < items; i++) {
         final media = library.register(
           SourceEntry(
@@ -56,7 +56,7 @@ void main() {
         );
         library.addManual(lib, media);
       }
-    });
+    }
     sources = OfflineSources();
     provider = TestMetadataProvider();
     artwork = TestArtwork(sources);
@@ -108,13 +108,28 @@ void main() {
         .join('\n');
     expect(plan, contains('memberships_media'));
     final res = library.db
-        .select(
-          'EXPLAIN QUERY PLAN SELECT * FROM resources WHERE media_id=?',
-          ['x'],
-        )
+        .select('EXPLAIN QUERY PLAN SELECT * FROM resources WHERE media_id=?', [
+          'x',
+        ])
         .map((r) => r['detail'] as String)
         .join('\n');
     expect(res, contains('resources_media'));
+    // Composite primary keys that do not lead with media_id: library.query()
+    // checks them per row, and without an index SQLite rebuilds a temporary
+    // automatic index on every call (~600 ms on a 4.6k-item library).
+    final indexes = library.db
+        .select("SELECT name FROM sqlite_master WHERE type='index'")
+        .map((r) => r['name'] as String)
+        .toSet();
+    expect(
+      indexes,
+      containsAll([
+        'memberships_media',
+        'resources_media',
+        'media_evidence_media',
+        'manual_memberships_media',
+      ]),
+    );
   });
 
   test('batch of background work per-item cost', () async {

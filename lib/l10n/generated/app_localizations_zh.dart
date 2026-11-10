@@ -525,6 +525,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noAudioTracks => '此媒体没有可选音轨';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒体没有可选字幕';
+
+  @override
+  String get subtitleOff => '关闭字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失败，请重新打开媒体文件。';
 
   @override
@@ -584,6 +598,16 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分钟';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
   }
 
   @override
@@ -1651,6 +1675,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get noAudioTracks => '此媒体没有可选音轨';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒体没有可选字幕';
+
+  @override
+  String get subtitleOff => '关闭字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失败，请重新打开媒体文件。';
 
   @override
@@ -1710,6 +1748,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分钟';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
   }
 
   @override
@@ -2777,6 +2825,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noAudioTracks => '此媒體沒有可選音軌';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒體沒有可選字幕';
+
+  @override
+  String get subtitleOff => '關閉字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失敗，請重新開啟媒體檔案。';
 
   @override
@@ -2836,6 +2898,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分鐘';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元資料刮削進度：已處理 $done / 共 $total（找不到符合的也算已處理）';
   }
 
   @override

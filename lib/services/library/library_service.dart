@@ -115,6 +115,14 @@ class LibraryService {
     db.execute(
       'CREATE INDEX IF NOT EXISTS memberships_media ON memberships(media_id)',
     );
+    // Same shape: these composite primary keys lead with another column, so the
+    // library list's per-row EXISTS checks would build a temp index every query.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS media_evidence_media ON media_evidence(media_id)',
+    );
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS manual_memberships_media ON manual_memberships(media_id)',
+    );
     db.execute(
       'CREATE INDEX IF NOT EXISTS source_media_parent ON source_media(source,parent_key)',
     );
@@ -178,6 +186,9 @@ class LibraryService {
   }
 
   Timer? _notifyTimer;
+
+  /// Metadata scraping progress (done/total) for the library page header.
+  ({int done, int total}) metadataProgress() => MetadataQueue(db).progress;
   final _priorityRequests = StreamController<void>.broadcast();
 
   /// Fires when a visible item was moved to the front of the metadata queue.

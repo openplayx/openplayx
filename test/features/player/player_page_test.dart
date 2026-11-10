@@ -33,6 +33,22 @@ class FakeBackend extends PlayerBackend {
     audioSelections.add(id);
   }
 
+  final subtitleSelections = <int?>[];
+  @override
+  Future<List<PlayerSubtitleTrack>> getSubtitleTracks() async => const [
+    PlayerSubtitleTrack(id: 2, name: '简体中文', language: 'zh'),
+    PlayerSubtitleTrack(id: 5, name: 'English', language: 'en'),
+  ];
+  @override
+  Future<void> setSubtitleTrack(int id) async {
+    subtitleSelections.add(id);
+  }
+
+  @override
+  Future<void> disableSubtitle() async {
+    subtitleSelections.add(null);
+  }
+
   bool released = false;
   bool fail = false;
   @override
@@ -296,6 +312,17 @@ void main() {
     await tester.tap(find.text('English'));
     await tester.pumpAndSettle();
     expect(backend.audioSelections, [7]);
+    // Subtitles: pick an embedded track, then switch them off.
+    await tester.tap(find.byTooltip('字幕'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('简体中文'));
+    await tester.pumpAndSettle();
+    expect(backend.subtitleSelections, [2]);
+    await tester.tap(find.byTooltip('字幕'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('关闭字幕'));
+    await tester.pumpAndSettle();
+    expect(backend.subtitleSelections, [2, null]);
   });
 
   testWidgets('backgrounding restores speed and pauses active playback', (
@@ -374,6 +401,7 @@ void main() {
     });
     await openPlayer(tester, FakeBackend());
     expect(find.byTooltip('音轨'), findsNothing);
+    expect(find.byTooltip('字幕'), findsNothing);
     expect(find.byKey(const Key('playback-volume')), findsNothing);
     await tester.tap(find.byTooltip('更多播放设置'));
     await tester.pumpAndSettle();

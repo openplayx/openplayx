@@ -202,6 +202,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   double _speed = 1;
   double _brightness = 1;
   int? _selectedAudioTrack;
+  // null: the media's default; -1: subtitles switched off by the user.
+  int? _selectedSubtitleTrack;
   Future<void> _speedCommands = Future.value();
 
   final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
@@ -465,6 +467,71 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _showSubtitleTracks() async {
+    List<PlayerSubtitleTrack> tracks = [];
+    if (!await _adjust(() async {
+      tracks = await _backend.getSubtitleTracks();
+    })) {
+      return;
+    }
+    if (!mounted || !_enabled) return;
+    _panelOpened();
+    final id = await showShadSheet<int>(
+      context: context,
+      builder: (context) => ShadTheme(
+        data: AppTheme.dark,
+        child: ShadSheet(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ContentRow(title: Text(l.subtitleTrack)),
+                  if (tracks.isEmpty)
+                    ContentRow(title: Text(l.noSubtitleTracks))
+                  else ...[
+                    ContentRow(
+                      title: Text(l.subtitleOff),
+                      trailing: _selectedSubtitleTrack == -1
+                          ? Icon(AppIcons.check)
+                          : null,
+                      onTap: () => Navigator.pop(context, -1),
+                    ),
+                    for (final track in tracks)
+                      ContentRow(
+                        title: Text(
+                          track.name.isEmpty
+                              ? l.numberedSubtitleTrack(track.id)
+                              : track.name,
+                        ),
+                        subtitle: track.language == null
+                            ? null
+                            : Text(track.language!),
+                        trailing: _selectedSubtitleTrack == track.id
+                            ? Icon(AppIcons.check)
+                            : null,
+                        onTap: () => Navigator.pop(context, track.id),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    _panelClosed();
+    if (id != null &&
+        _enabled &&
+        await _adjust(
+          () => id < 0
+              ? _backend.disableSubtitle()
+              : _backend.setSubtitleTrack(id),
+        )) {
+      if (mounted) setState(() => _selectedSubtitleTrack = id);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -565,6 +632,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _error = null;
         _drag = null;
         _selectedAudioTrack = null;
+        _selectedSubtitleTrack = null;
       });
       await _command(() async {
         await _backend.open(media.uri);
@@ -740,6 +808,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _error = null;
         _drag = null;
         _selectedAudioTrack = null;
+        _selectedSubtitleTrack = null;
       });
       await _command(() async {
         await _backend.open(selection.stream.uri);
@@ -1078,6 +1147,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         for (final item in {
                           'display': _displayLabel,
                           'audio': l.audioTrack,
+                          'subtitle': l.subtitleTrack,
                           'brightness': l.brightness,
                           'lock': l.lockControls,
                         }.entries)
@@ -1099,6 +1169,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 await _showDisplayOptions();
               case 'audio':
                 await _showAudioTracks();
+              case 'subtitle':
+                await _showSubtitleTracks();
               case 'brightness':
                 await _showLevel(false);
               case 'lock':
@@ -1203,6 +1275,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         l.audioTrack,
                         AppIcons.audio,
                         _enabled ? _showAudioTracks : null,
+                      ),
+                      _icon(
+                        l.subtitleTrack,
+                        AppIcons.captions,
+                        _enabled ? _showSubtitleTracks : null,
                       ),
                       _icon(
                         l.lockControls,

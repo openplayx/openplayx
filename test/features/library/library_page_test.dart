@@ -137,6 +137,50 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
+  testWidgets('header shows scraping progress, unmatched counts as done', (
+    tester,
+  ) async {
+    final collection = service.create('Movies', type: 'movie');
+    final ids = [
+      for (final name in ['a', 'b', 'c'])
+        service.register(
+          SourceEntry(
+            ResourceRef('s', '/$name.mkv'),
+            '$name.mkv',
+            isFolder: false,
+          ),
+        ),
+    ];
+    for (final id in ids) {
+      service.addManual(collection, id);
+    }
+    await tester.pumpWidget(
+      TestApp(
+        home: LibraryPage(sources: Sources(), service: service),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('刮削 0/3'), findsOneWidget);
+    // One matched and one "not found" item are both finished work.
+    service.db.execute(
+      "UPDATE metadata_queue SET state='completed' WHERE media_id=?",
+      [ids[0]],
+    );
+    service.db.execute(
+      "UPDATE metadata_queue SET state='unmatched' WHERE media_id=?",
+      [ids[1]],
+    );
+    service.notifyChanged();
+    await tester.pumpAndSettle();
+    expect(find.text('刮削 2/3'), findsOneWidget);
+    service.db.execute(
+      "UPDATE metadata_queue SET state='unmatched' WHERE media_id=?",
+      [ids[2]],
+    );
+    service.notifyChanged();
+    await tester.pumpAndSettle();
+    expect(find.textContaining('刮削 '), findsNothing);
+  });
   testWidgets(
     'poster wall follows file sources, then favorite, search and safely hide',
     (tester) async {

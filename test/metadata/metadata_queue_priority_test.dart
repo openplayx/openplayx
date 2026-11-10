@@ -81,4 +81,21 @@ void main() {
     expect(events, 1);
     await sub.cancel();
   });
+
+  test('progress counts finished states, not queued, blocked or removed', () {
+    final queue = MetadataQueue(library.db);
+    expect(queue.progress, (done: 0, total: 4));
+    void set(int i, String state) => library.db.execute(
+      'UPDATE metadata_queue SET state=? WHERE media_id=?',
+      [state, media[i]],
+    );
+    set(0, 'completed');
+    set(1, 'unmatched');
+    set(2, 'waitingConfiguration');
+    expect(queue.progress, (done: 2, total: 4));
+    set(3, 'cancelled');
+    expect(queue.progress, (done: 2, total: 3));
+    set(2, 'failed');
+    expect(queue.progress, (done: 3, total: 3));
+  });
 }

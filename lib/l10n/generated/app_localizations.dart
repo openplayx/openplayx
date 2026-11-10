@@ -1126,6 +1126,30 @@ abstract class AppLocalizations {
   /// **'No selectable audio tracks'**
   String get noAudioTracks;
 
+  /// No description provided for @subtitleTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get subtitleTrack;
+
+  /// No description provided for @noSubtitleTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No selectable subtitles'**
+  String get noSubtitleTracks;
+
+  /// No description provided for @subtitleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles off'**
+  String get subtitleOff;
+
+  /// No description provided for @numberedSubtitleTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle {id}'**
+  String numberedSubtitleTrack(int id);
+
   /// No description provided for @playbackCommandFailed.
   ///
   /// In en, this message translates to:
@@ -1245,6 +1269,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Watched {position} / {duration} min'**
   String watchProgress(int position, int duration);
+
+  /// No description provided for @metadataProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping {done}/{total}'**
+  String metadataProgressLabel(int done, int total);
+
+  /// No description provided for @metadataProgressTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata scraping progress: {done} of {total} processed (items with no match count as processed)'**
+  String metadataProgressTooltip(int done, int total);
 
   /// No description provided for @watchedMinutes.
   ///

@@ -171,6 +171,10 @@
   "adjustFailed": "調整失敗，請重試。",
   "audioTrack": "音軌",
   "noAudioTracks": "此媒體沒有可選音軌",
+  "subtitleTrack": "字幕",
+  "noSubtitleTracks": "此媒體沒有可選字幕",
+  "subtitleOff": "關閉字幕",
+  "numberedSubtitleTrack": "字幕 {id}",
   "playbackCommandFailed": "播放操作失敗，請重新開啟媒體檔案。",
   "openFileFailed": "無法開啟檔案，請重新選擇。",
   "stopPlaybackFailed": "停止播放失敗，請重試返回",
@@ -197,6 +201,28 @@
         "type": "int"
       },
       "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressLabel": "刮削 {done}/{total}",
+  "@metadataProgressLabel": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressTooltip": "元資料刮削進度：已處理 {done} / 共 {total}（找不到符合的也算已處理）",
+  "@metadataProgressTooltip": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }

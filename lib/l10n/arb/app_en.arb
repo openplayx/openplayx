@@ -171,6 +171,11 @@
   "adjustFailed": "Adjustment failed. Try again.",
   "audioTrack": "Audio track",
   "noAudioTracks": "No selectable audio tracks",
+  "subtitleTrack": "Subtitles",
+  "noSubtitleTracks": "No selectable subtitles",
+  "subtitleOff": "Subtitles off",
+  "numberedSubtitleTrack": "Subtitle {id}",
+  "@numberedSubtitleTrack": {"placeholders": {"id": {"type": "int"}}},
   "playbackCommandFailed": "Playback failed. Reopen the media file.",
   "openFileFailed": "Could not open the file. Choose again.",
   "stopPlaybackFailed": "Could not stop playback. Try going back again.",
@@ -197,6 +202,28 @@
         "type": "int"
       },
       "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressLabel": "Scraping {done}/{total}",
+  "@metadataProgressLabel": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressTooltip": "Metadata scraping progress: {done} of {total} processed (items with no match count as processed)",
+  "@metadataProgressTooltip": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }

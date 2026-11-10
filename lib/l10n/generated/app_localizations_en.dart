@@ -552,6 +552,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAudioTracks => 'No selectable audio tracks';
 
   @override
+  String get subtitleTrack => 'Subtitles';
+
+  @override
+  String get noSubtitleTracks => 'No selectable subtitles';
+
+  @override
+  String get subtitleOff => 'Subtitles off';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return 'Subtitle $id';
+  }
+
+  @override
   String get playbackCommandFailed => 'Playback failed. Reopen the media file.';
 
   @override
@@ -613,6 +627,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String watchProgress(int position, int duration) {
     return 'Watched $position / $duration min';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return 'Scraping $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return 'Metadata scraping progress: $done of $total processed (items with no match count as processed)';
   }
 
   @override
