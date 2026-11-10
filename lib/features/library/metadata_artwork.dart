@@ -24,17 +24,20 @@ class MetadataArtwork extends StatefulWidget {
 
 class _MetadataArtworkState extends State<MetadataArtwork> {
   late Future<File> _file;
+  late String _cacheKey;
   @override
   void initState() {
     super.initState();
+    _cacheKey = widget.service.cacheKey(widget.artwork);
     _file = widget.service.load(widget.artwork);
   }
 
   @override
   void didUpdateWidget(covariant MetadataArtwork oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.artwork.id != widget.artwork.id ||
-        oldWidget.service != widget.service) {
+    final nextKey = widget.service.cacheKey(widget.artwork);
+    if (nextKey != _cacheKey || oldWidget.service != widget.service) {
+      _cacheKey = nextKey;
       _file = widget.service.load(widget.artwork);
     }
   }

@@ -1053,11 +1053,7 @@ class _LibraryPageState extends State<LibraryPage> {
                               gridDelegate:
                                   SliverGridDelegateWithMaxCrossAxisExtent(
                                     maxCrossAxisExtent: 220,
-                                    mainAxisExtent:
-                                        240 +
-                                        MediaQuery.textScalerOf(context)
-                                                .scale(20) *
-                                            2,
+                                    childAspectRatio: 0.5,
                                     crossAxisSpacing: 12,
                                     mainAxisSpacing: 12,
                                   ),

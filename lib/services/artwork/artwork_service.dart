@@ -37,18 +37,30 @@ class ArtworkService {
     '${(await getApplicationCacheDirectory()).path}/artwork',
   );
   Future<File> load(ArtworkDescriptor artwork) {
-    final key = _key(artwork);
+    final key = cacheKey(artwork);
     return _pending[key] ??= _load(key, artwork).whenComplete(() {
       _pending.remove(key);
     });
   }
 
-  String _key(ArtworkDescriptor artwork) {
+  String cacheKey(ArtworkDescriptor artwork) {
     final revision = sources.configs
         .where((c) => c.id == artwork.source?.instanceId)
         .firstOrNull
         ?.revision;
-    return sha256.convert(utf8.encode('${artwork.id}:$revision')).toString();
+    return sha256
+        .convert(
+          utf8.encode(
+            jsonEncode([
+              artwork.id,
+              revision,
+              artwork.remote?.toString(),
+              artwork.source?.instanceId,
+              artwork.source?.id,
+            ]),
+          ),
+        )
+        .toString();
   }
 
   Future<void> _makeRoom(Directory directory, int incoming) async {
@@ -61,7 +73,7 @@ class ArtworkService {
       entries.add((file, stat.size, stat.modified));
     }
     if (_closed) throw const PluginException('cancelled', '图片加载已取消');
-    final retained = (retainedArtwork?.call() ?? []).map(_key).toSet();
+    final retained = (retainedArtwork?.call() ?? []).map(cacheKey).toSet();
     entries.sort((a, b) => a.$3.compareTo(b.$3));
     for (final entry in entries) {
       if (total + incoming <= cacheQuotaBytes) break;

@@ -4,6 +4,13 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../ui/tokens/app_metrics.dart';
 
 abstract final class AppTheme {
+  static const _fontFallback = [
+    'PingFang SC',
+    'PingFang TC',
+    'Microsoft YaHei',
+    'Noto Sans CJK SC',
+    'sans-serif',
+  ];
   static ShadThemeData build(Brightness brightness) {
     final dark = brightness == Brightness.dark;
     final colors = dark
@@ -25,17 +32,12 @@ abstract final class AppTheme {
           .apply(
             displayColor: colors.foreground,
             bodyColor: colors.foreground,
-            fontFamilyFallback: const [
-              'PingFang SC',
-              'PingFang TC',
-              'Microsoft YaHei',
-              'Noto Sans CJK SC',
-              'sans-serif',
-            ],
+            fontFamilyFallback: _fontFallback,
           )
           .copyWith(
             muted: ShadTextTheme().muted.copyWith(
               color: colors.mutedForeground,
+              fontFamilyFallback: _fontFallback,
             ),
           ),
       primaryButtonTheme: const ShadButtonTheme(height: AppMetrics.touchTarget),

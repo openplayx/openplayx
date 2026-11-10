@@ -301,11 +301,12 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
               ?.cast<String>() ??
           [];
       if (base == null || sizes.isEmpty) return;
-      final size = sizes.contains('w500')
-          ? 'w500'
-          : sizes.contains('w780')
-          ? 'w780'
-          : sizes.first;
+      final preferred = type == 'thumbnail'
+          ? ['w300', 'w185', 'w92']
+          : type == 'backdrop'
+          ? ['w780', 'w1280', 'w300']
+          : ['w500', 'w342', 'w780', 'w185'];
+      final size = preferred.where(sizes.contains).firstOrNull ?? sizes.first;
       final uri = Uri.tryParse('$base$size$file');
       if (uri?.scheme != 'https' || uri!.host != 'image.tmdb.org') return;
       final id = 'tmdb:$type:$file';

@@ -48,3 +48,23 @@ flutter test --no-pub test/metadata/metadata_preview_test.dart \
 新增测试覆盖安全 XML、受限附件、同名/目录级冲突、重复导入、字段/图片锁定、过期查询、来源修订、任务幂等、播放数据保留、季集 ID/本地层级、服务器实例命名空间、图片缓存配额和宽窄屏编辑。线上测试使用模拟响应，不读取个人媒体或个人凭据。真实 TMDB、SMB、Jellyfin/Plex 服务器的联调需使用相应测试账号，未将单元测试结果视为线上服务验收。
 
 TMDB 原始文档：[查询](https://developer.themoviedb.org/docs/search-and-query-for-details)、[图片配置](https://developer.themoviedb.org/docs/image-basics)、[署名](https://developer.themoviedb.org/docs/faq)。标志来自 [官方品牌页](https://www.themoviedb.org/about/logos-attribution)，SVG 仅将 CSS class 的 fill 内联以适配 Flutter SVG，路径、渐变、颜色和比例不变。
+
+## 2026-11-10 真实 TMDB 联调
+
+新增显式启用的 `test/metadata/tmdb_live_test.dart`：运行时读取本地 `.env` 的 `TMDB_READ_ACCESS_TOKEN`，使用生产 `TmdbTransport`、`MetadataService` 和 `ArtworkService`，验证搜索、确认、文字信息、真实 CDN 图片解码、季集层级与锁定后刷新。令牌不进入 dart-define、应用资源、数据库、报告或截图；普通 `flutter test` 跳过该联网测试。
+
+```sh
+flutter test --no-pub test/metadata/tmdb_live_test.dart \
+  --dart-define=OPENPLAYX_TMDB_LIVE_DIR=/tmp/openplayx-tmdb-live
+
+# 已有真实联调结果时，仅重绘界面，不重复请求线上服务。
+flutter test --no-pub test/metadata/tmdb_live_test.dart \
+  --dart-define=OPENPLAYX_TMDB_LIVE_DIR=/tmp/openplayx-tmdb-live \
+  --dart-define=OPENPLAYX_TMDB_SCREENSHOTS_ONLY=true
+```
+
+用《星际穿越》《盗梦空间》《千与千寻》《沙丘》《蝙蝠侠：黑暗骑士》验证了中文标题/简介、500×750 海报和 780×439 背景图；用《绝命毒师》S01E01 验证了剧集 → 季 → 集及 300×169 缩略图。测试采用隔离的临时媒体库和虚拟资源定位，不访问用户的真实视频目录，不把联网测试结果写入用户媒体库。
+
+此次验证补齐了详情页已选海报与背景图展示，媒体库改为适合竖版封面的卡片比例，图片候选先加载 12 张并支持继续加载。按图片类型选择 CDN 尺寸：单集优先 300px，海报优先 500px，背景优先 780px；缓存键包含实际图片地址和来源修订，避免同一候选的不同尺寸或来源变化复用旧图。统一主题的弱化文字也保留中文字体回退。
+
+联网测试生成 `report.json`、无凭据的测试数据库和桌面/窄屏的媒体库、详情、海报选择截图。渲染断言检查已解码的 `RawImage`，并非只检查图片 Widget 或占位图是否存在。开发截图文件与下载缓存保留在显式指定的输出目录，不作为仓库资源提交。

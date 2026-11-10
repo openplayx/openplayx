@@ -1,4 +1,7 @@
 # Miscellaneous
+# Local credentials
+.env
+
 *.class
 *.log
 *.pyc

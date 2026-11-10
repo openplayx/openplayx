@@ -196,7 +196,14 @@ void main() {
       final paths = <String>[];
       final plugin = TmdbMetadataPlugin((path, query) async {
         paths.add(path);
-        if (path == '/configuration') return {'images': {}};
+        if (path == '/configuration') {
+          return {
+            'images': {
+              'secure_base_url': 'https://image.tmdb.org/t/p/',
+              'still_sizes': ['w92', 'w185', 'w300', 'original'],
+            },
+          };
+        }
         if (path == '/tv/10') {
           return {
             'id': 10,
@@ -224,6 +231,7 @@ void main() {
         return {
           'id': 30,
           'name': 'Episode 2',
+          'still_path': '/episode.jpg',
           'season_number': 1,
           'episode_number': 2,
         };
@@ -250,7 +258,7 @@ void main() {
       final episodeRef = season.children.single.ref;
       expect(episodeRef.id, '30');
       expect(episodeRef.seriesId, '10');
-      await plugin.lookup(
+      final episodeResult = await plugin.lookup(
         MetadataRequest(
           action: MetadataAction.details,
           kind: MediaKind.episode,
@@ -259,6 +267,10 @@ void main() {
         CallContext.forInstance('tmdb'),
       );
       expect(paths, contains('/tv/10/season/1/episode/2'));
+      expect(
+        episodeResult.records.single.artwork.single.remote!.path,
+        '/t/p/w300/episode.jpg',
+      );
     });
     test('artwork selection locks survive refreshed provider candidates and cache reset', () {
       const first = ArtworkDescriptor(

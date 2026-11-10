@@ -46,6 +46,7 @@ class _MetadataPageState extends State<MetadataPage> {
   bool _busy = false, _configured = false;
   String? _error;
   String? _job;
+  int _artworkLimit = 12;
   @override
   void initState() {
     super.initState();
@@ -325,6 +326,9 @@ class _MetadataPageState extends State<MetadataPage> {
     final selected = repo.association(widget.media);
     final evidence = _service.evidence(widget.media);
     final target = evidence.kind;
+    final poster = repo.selectedArtwork(widget.media);
+    final backdrop = repo.selectedArtwork(widget.media, type: 'backdrop');
+    final artworkCandidates = repo.artworkCandidates(widget.media);
     return AppPage(
       title: Text(l.metadata),
       body: SingleChildScrollView(
@@ -335,24 +339,71 @@ class _MetadataPageState extends State<MetadataPage> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                Text(
-                  fields['title'] as String? ?? evidence.title,
-                  style: ShadTheme.of(context).textTheme.h3,
-                ),
-                Text(
-                  _status(
-                    selected == null && job?['stage'] == 'completed'
-                        ? null
-                        : job?['stage'] as String? ??
-                              (selected != null ? 'completed' : null),
+                if (backdrop != null) ...[
+                  ClipRRect(
+                    borderRadius: BorderRadius.circular(12),
+                    child: SizedBox(
+                      height: 160,
+                      width: double.infinity,
+                      child: MetadataArtwork(
+                        service: _artwork,
+                        artwork: backdrop,
+                      ),
+                    ),
                   ),
+                  const SizedBox(height: 16),
+                ],
+                Row(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    if (poster != null) ...[
+                      ClipRRect(
+                        borderRadius: BorderRadius.circular(8),
+                        child: MetadataArtwork(
+                          service: _artwork,
+                          artwork: poster,
+                          width: 110,
+                          height: 165,
+                        ),
+                      ),
+                      const SizedBox(width: 16),
+                    ],
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            fields['title'] as String? ?? evidence.title,
+                            style: ShadTheme.of(context).textTheme.h3,
+                          ),
+                          Text(
+                            _status(
+                              selected == null && job?['stage'] == 'completed'
+                                  ? null
+                                  : job?['stage'] as String? ??
+                                        (selected != null ? 'completed' : null),
+                            ),
+                          ),
+                          if (selected != null)
+                            Text(
+                              '${selected.provider} · ${selected.kind.name} · ${selected.id}',
+                            ),
+                          if (evidence.evidence.isNotEmpty)
+                            Text(evidence.evidence.join(' · ')),
+                          if (fields['overview'] is String)
+                            Padding(
+                              padding: const EdgeInsets.only(top: 8),
+                              child: Text(
+                                fields['overview'] as String,
+                                maxLines: 4,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                        ],
+                      ),
+                    ),
+                  ],
                 ),
-                if (selected != null)
-                  Text(
-                    '${selected.provider} · ${selected.kind.name} · ${selected.id}',
-                  ),
-                if (evidence.evidence.isNotEmpty)
-                  Text(evidence.evidence.join(' · ')),
                 if (_busy) const ShadProgress(),
                 if (_busy)
                   ShadButton.ghost(
@@ -622,16 +673,16 @@ class _MetadataPageState extends State<MetadataPage> {
                   spacing: 8,
                   runSpacing: 8,
                   children: [
-                    for (final artwork in repo.artworkCandidates(widget.media))
+                    for (final artwork in artworkCandidates.take(_artworkLimit))
                       SizedBox(
-                        width: 150,
+                        width: artwork.type == 'poster' ? 150 : 240,
                         child: Column(
                           children: [
                             MetadataArtwork(
                               service: _artwork,
                               artwork: artwork,
-                              width: 150,
-                              height: 180,
+                              width: artwork.type == 'poster' ? 150 : 240,
+                              height: artwork.type == 'poster' ? 225 : 135,
                             ),
                             Text(
                               '${artwork.type} · ${artwork.language ?? 'und'}',
@@ -666,6 +717,11 @@ class _MetadataPageState extends State<MetadataPage> {
                       ),
                   ],
                 ),
+                if (artworkCandidates.length > _artworkLimit)
+                  ShadButton.ghost(
+                    onPressed: () => setState(() => _artworkLimit += 12),
+                    child: Text(l.loadMore),
+                  ),
                 Wrap(
                   spacing: 8,
                   children: [

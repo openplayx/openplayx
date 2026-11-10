@@ -49,3 +49,12 @@ flutter test test/features/player/player_page_test.dart
 - 需要真实 libVLC、原生插件或平台构建环境的测试放在 [`integration_test/`](../integration_test/README.md)。
 - 从应用外部模拟完整用户流程的端到端测试、跨平台系统验收和回归报告，放在独立的 `openplayx-test` 仓库。
 - Widget 测试通过只能说明被覆盖的页面逻辑正确，不能据此认定真实音视频已经正常输出。
+
+真实 TMDB 联调为显式启用的测试，运行时读取被 Git 忽略的 `.env` 中的 `TMDB_READ_ACCESS_TOKEN`，不通过编译参数携带令牌：
+
+```sh
+flutter test --no-pub test/metadata/tmdb_live_test.dart \
+  --dart-define=OPENPLAYX_TMDB_LIVE_DIR=/tmp/openplayx-tmdb-live
+```
+
+输出真实图片解码报告、隔离的测试数据库和宽窄屏截图；不修改用户的媒体库或读取私人视频。默认测试套件不会联网运行此项。

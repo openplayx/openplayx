@@ -65,6 +65,65 @@ void main() {
       });
     },
   );
+  testWidgets(
+    'one candidate with different source variants uses different cache entries',
+    (tester) async {
+      await tester.runAsync(() async {
+        final root = await Directory.systemTemp.createTemp(
+          'openplayx-art-variants-',
+        );
+        final bytes = base64Decode(
+          'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9Wl6zX8AAAAASUVORK5CYII=',
+        );
+        final a = await File('${root.path}/a.png').writeAsBytes(bytes);
+        final b = await File('${root.path}/b.png').writeAsBytes(bytes);
+        final service = ArtworkService(
+          FixtureSources(root),
+          directory: Directory('${root.path}/cache'),
+        );
+        try {
+          final first = await service.load(
+            ArtworkDescriptor(
+              id: 'same-candidate',
+              type: 'poster',
+              source: ResourceRef('files', a.path),
+            ),
+          );
+          final second = await service.load(
+            ArtworkDescriptor(
+              id: 'same-candidate',
+              type: 'poster',
+              source: ResourceRef('files', b.path),
+            ),
+          );
+          expect(first.path, isNot(second.path));
+          expect(await first.exists(), isTrue);
+          expect(await second.exists(), isTrue);
+          expect(
+            service.cacheKey(
+              ArtworkDescriptor(
+                id: 'same',
+                type: 'thumbnail',
+                remote: Uri.parse('https://image.tmdb.org/t/p/w92/a.jpg'),
+              ),
+            ),
+            isNot(
+              service.cacheKey(
+                ArtworkDescriptor(
+                  id: 'same',
+                  type: 'thumbnail',
+                  remote: Uri.parse('https://image.tmdb.org/t/p/w300/a.jpg'),
+                ),
+              ),
+            ),
+          );
+        } finally {
+          service.dispose();
+          await root.delete(recursive: true);
+        }
+      });
+    },
+  );
   test(
     'invalid attachment bytes never become a published image cache file',
     () async {
