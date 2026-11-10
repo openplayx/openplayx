@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'tmdb_credentials.dart';
 
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
@@ -29,7 +29,7 @@ class MetadataQueueRunner {
        _registry = registry,
        _credentials =
            credentials ??
-           (() => const FlutterSecureStorage().read(
+           (() => tmdbCredentialStorage.read(
              key: 'openplayx.metadata.tmdb.token',
            )),
        artwork =
@@ -55,33 +55,35 @@ class MetadataQueueRunner {
     await sources.load();
     if (library.isClosing || _stopped) return 0;
     final inputs = <String, String>{};
-    for (final row in library.db.select(
-      'SELECT DISTINCT media_id FROM memberships',
+    // Load everything in three queries instead of two per media; this runs on
+    // the UI isolate, so per-media round trips scale badly with library size.
+    final resourcesByMedia = <String, List<List<Object?>>>{};
+    final revisions = {for (final c in sources.configs) c.id: c.revision};
+    for (final r in library.db.select(
+      'SELECT r.media_id,r.id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id ORDER BY r.media_id,r.id,l.source,l.item',
     )) {
-      final media = row['media_id'] as String;
-      final resources = library.resources(media);
-      final kinds = library.db.select(
-        'SELECT l.type FROM memberships m JOIN libraries l ON l.id=m.library_id WHERE m.media_id=? ORDER BY l.id',
-        [media],
-      );
+      (resourcesByMedia[r['media_id'] as String] ??= []).add([
+        r['id'],
+        r['source'],
+        r['item'],
+        r['name'],
+        revisions[r['source']],
+      ]);
+    }
+    final kindsByMedia = <String, List<Object?>>{};
+    for (final r in library.db.select(
+      'SELECT m.media_id,l.type FROM memberships m JOIN libraries l ON l.id=m.library_id ORDER BY m.media_id,l.id',
+    )) {
+      (kindsByMedia[r['media_id'] as String] ??= []).add(r['type']);
+    }
+    final language = library.metadata.setting('language');
+    final tmdbRevision = library.metadata.setting('tmdbRevision');
+    for (final media in kindsByMedia.keys) {
       inputs[media] = MetadataQueue.fingerprint([
-        resources
-            .map(
-              (r) => [
-                r['id'],
-                r['source'],
-                r['item'],
-                r['name'],
-                sources.configs
-                    .where((c) => c.id == r['source'])
-                    .firstOrNull
-                    ?.revision,
-              ],
-            )
-            .toList(),
-        kinds.map((r) => r['type']).toList(),
-        library.metadata.setting('language'),
-        library.metadata.setting('tmdbRevision'),
+        resourcesByMedia[media] ?? const <List<Object?>>[],
+        kindsByMedia[media]!,
+        language,
+        tmdbRevision,
       ]);
     }
     return queue.reconcile(inputs);

@@ -11,6 +11,55 @@ import 'package:openplayx/features/library/library_page.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+class SeriesSources extends Sources {
+  @override
+  Future<BrowseResult> browse(String id, BrowseRequest request) async {
+    const series = SourceMediaInfo(id: 'show', title: 'Show', kind: 'series');
+    const season = SourceMediaInfo(
+      id: 'season',
+      title: 'Season 1',
+      kind: 'season',
+      parentId: 'show',
+    );
+    const episode = SourceMediaInfo(
+      id: 'episode',
+      title: 'Pilot',
+      kind: 'episode',
+      parentId: 'season',
+      season: 1,
+      episode: 1,
+    );
+    if (request.node == null) {
+      return const BrowseResult([
+        SourceEntry(
+          ResourceRef('s', 'show'),
+          'Show',
+          isFolder: true,
+          media: series,
+        ),
+      ]);
+    }
+    if (request.node!.id == 'show') {
+      return const BrowseResult([
+        SourceEntry(
+          ResourceRef('s', 'season'),
+          'Season',
+          isFolder: true,
+          media: season,
+        ),
+      ]);
+    }
+    return const BrowseResult([
+      SourceEntry(
+        ResourceRef('s', 'one.mp4'),
+        'one.mp4',
+        isFolder: false,
+        media: episode,
+      ),
+    ]);
+  }
+}
+
 class Sources extends SourceManager {
   @override
   List<SourceConfig> get configs => [
@@ -89,7 +138,7 @@ void main() {
     },
   );
   testWidgets(
-    'create library, select scope, scan, favorite, search and safely remove',
+    'poster wall follows file sources, then favorite, search and safely hide',
     (tester) async {
       await tester.pumpWidget(
         TestApp(
@@ -97,44 +146,46 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('创建第一个媒体库'));
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byType(EditableText), 'Movies');
-      await tester.tap(find.text('保存'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('电影'));
-      await tester.pumpAndSettle();
-      final library = service.libraries.single['id'] as String;
-      expect(service.libraries.single['type'], 'movie');
-      await tester.tap(find.byTooltip('添加来源范围'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('NAS'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('确认扫描此范围'));
+      expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
+      final binding = service.bind(
+        service.defaultLibrary(),
+        's',
+        name: 'Movies',
+      );
+      await service.scan(binding, Sources());
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsOneWidget);
-      await tester.ensureVisible(find.byTooltip('收藏'));
+      // Disabling a file source hides its media; enabling brings it back.
+      service.setBindingEnabled(binding, false);
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('收藏'));
+      expect(find.text('Film.mp4'), findsNothing);
+      service.setBindingEnabled(binding, true);
       await tester.pumpAndSettle();
-      expect(service.query(library, favorites: true), hasLength(1));
-      await tester.ensureVisible(find.byType(EditableText));
+      expect(find.text('Film.mp4'), findsOneWidget);
+      // Favourites are hidden for now.
+      expect(find.byTooltip('收藏'), findsNothing);
+      // Search is a top-right icon that opens an input dialog.
+      expect(find.byType(EditableText), findsNothing);
+      await tester.tap(find.byTooltip('搜索库内媒体'));
       await tester.pumpAndSettle();
       await tester.enterText(find.byType(EditableText), 'missing');
       await tester.pumpAndSettle();
+      await tester.tap(find.text('关闭'));
+      await tester.pumpAndSettle();
       expect(find.text('没有符合条件的媒体'), findsOneWidget);
-      await tester.enterText(find.byType(EditableText), '');
+      await tester.tap(find.byTooltip('搜索库内媒体'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.text('Film.mp4'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Film.mp4'));
       await tester.pumpAndSettle();
-      final remove = find.text('从当前库移除（保留原文件和媒体记录）');
-      await tester.ensureVisible(remove);
+      // A plain video opens the movie page, with a play action.
+      expect(find.text('播放'), findsOneWidget);
+      await tester.tap(find.byTooltip('从当前库移除（保留原文件和媒体记录）'));
       await tester.pumpAndSettle();
-      await tester.tap(remove);
-      await tester.pumpAndSettle();
-      expect(service.query(library), isEmpty);
+      expect(service.query(null), isEmpty);
       expect(service.db.select('SELECT * FROM resources'), hasLength(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -175,6 +226,27 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+  testWidgets('a series opens the episode page, a movie the movie page', (
+    tester,
+  ) async {
+    final sources = SeriesSources();
+    final binding = service.bind(service.defaultLibrary(), 's', name: 'TV');
+    await service.scan(binding, sources);
+    await tester.pumpWidget(
+      TestApp(
+        home: LibraryPage(sources: sources, service: service),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Show'));
+    await tester.pumpAndSettle();
+    // Series page: episodes are listed, there is no movie play button.
+    expect(find.textContaining('Pilot'), findsOneWidget);
+    expect(find.text('播放'), findsNothing);
+    expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });

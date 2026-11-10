@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../../ui/components/media/source_kind_icon.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -187,12 +188,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
 
   SourceConfig _draft() {
     final address = _connectionAddress();
-    final defaultName = _kind == SourceKind.local
-        ? Directory(address).uri.pathSegments
-                  .where((s) => s.isNotEmpty)
-                  .lastOrNull ??
-              l.localFolder
-        : _server?.name ?? Uri.parse(address).host;
+    // A blank name stays blank: it displays as "type · address". Only a server
+    // the user picked from sign-in discovery brings its own name.
+    final defaultName = _server?.name ?? '';
     final config =
         widget.initial ??
         SourceConfig(id: _id, kind: _kind, name: '', address: '');
@@ -338,6 +336,16 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     }
   }
 
+  /// Kind name with its recognisable mark.
+  Widget _kindLabel(SourceKind kind) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SourceKindIcon(kind, size: 24),
+      const SizedBox(width: 8),
+      Text(kind == SourceKind.local ? l.localFolder : kind.label),
+    ],
+  );
+
   Widget _field(
     TextEditingController c,
     String label, {
@@ -465,7 +473,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         ContentRow(
           contentPadding: EdgeInsets.zero,
           leading: Icon(AppIcons.server),
-          title: Text(widget.initial!.name),
+          title: Text(widget.initial!.titleName),
           subtitle: Text(Uri.parse(widget.initial!.address).host),
         ),
       ShadButton(
@@ -587,18 +595,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               onChanged: _busy || widget.initial != null
                   ? null
                   : (kind) => _changeKind(kind!),
-              selectedOptionBuilder: (_, kind) =>
-                  Text(kind == SourceKind.local ? l.localFolder : kind.label),
+              selectedOptionBuilder: (_, kind) => _kindLabel(kind),
               key: ValueKey('kind-${_kind.name}'),
               placeholder: Text(l.type),
               options: SourceKind.values
                   .map(
-                    (kind) => ShadOption(
-                      value: kind,
-                      child: Text(
-                        kind == SourceKind.local ? l.localFolder : kind.label,
-                      ),
-                    ),
+                    (kind) => ShadOption(value: kind, child: _kindLabel(kind)),
                   )
                   .toList(),
               maxWidth: 520,

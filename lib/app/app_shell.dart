@@ -9,7 +9,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../ui/components/states/content_state.dart';
 import '../ui/adaptive/app_page.dart';
-import '../ui/icons/app_icons.dart';
 
 import 'package:openplayx_playback/playback.dart';
 
@@ -20,10 +19,14 @@ import '../features/library/library_page.dart';
 import '../features/player/player_page.dart';
 import '../features/sources/source_defaults_page.dart';
 import '../features/sources/source_page.dart';
+import '../features/library/metadata_artwork.dart';
+import '../ui/components/media/media_poster_card.dart';
+import '../services/artwork/artwork_service.dart';
 import '../services/library/library_service.dart';
 import '../services/metadata/metadata_runtime.dart';
 import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
+import 'player_window.dart';
 import '../ui/tokens/app_spacing.dart';
 
 import '../core/models/text_model.dart';
@@ -60,9 +63,14 @@ class _AppShellState extends State<AppShell> {
   final _branches = List.generate(4, (_) => GlobalKey<NavigatorState>());
   LibraryService? _library;
   MetadataRuntime? _metadataRuntime;
+  ArtworkService? _artwork;
   AssistantStore? _assistantStore;
   ConversationCoordinator? _assistant;
   PlayerBackend? _backend;
+  // Desktop playback opens in its own window; tests inject a backend and keep
+  // the embedded player.
+  late final PlayerWindows? _playerWindows =
+      widget.backend == null && supportsPlayerWindow ? PlayerWindows() : null;
   int _destination = 0;
   bool _showPlayer = false;
   bool _opening = false;
@@ -84,6 +92,10 @@ class _AppShellState extends State<AppShell> {
       }
       setState(() {
         _library = library;
+        _artwork = ArtworkService(
+          _sources,
+          retainedArtwork: () => library.metadata.retainedArtwork,
+        );
         _metadataRuntime = MetadataRuntime(library, _sources);
         unawaited(_metadataRuntime!.start());
         _backend =
@@ -106,6 +118,7 @@ class _AppShellState extends State<AppShell> {
   @override
   void dispose() {
     unawaited(_metadataRuntime?.dispose());
+    _artwork?.dispose();
     _assistant?.dispose();
     _assistantStore?.close();
     _revision.dispose();
@@ -244,6 +257,42 @@ class _AppShellState extends State<AppShell> {
     );
   }
 
+  // Distance of the floating button from the bottom-right corner; draggable.
+  Offset _fabInset = const Offset(16, 16);
+
+  Widget _draggableAssistantButton() => Positioned.fill(
+    child: LayoutBuilder(
+      builder: (context, box) {
+        const size = 40.0;
+        final maxX = (box.maxWidth - size).clamp(0.0, double.infinity);
+        final maxY = (box.maxHeight - size).clamp(0.0, double.infinity);
+        final right = _fabInset.dx.clamp(0.0, maxX);
+        final bottom = _fabInset.dy.clamp(0.0, maxY);
+        return Stack(
+          children: [
+            Positioned(
+              right: right,
+              bottom: bottom,
+              child: GestureDetector(
+                onPanUpdate: (d) => setState(
+                  () => _fabInset = Offset(
+                    (right - d.delta.dx).clamp(0.0, maxX),
+                    (bottom - d.delta.dy).clamp(0.0, maxY),
+                  ),
+                ),
+                child: FloatingActionButton.small(
+                  tooltip: l.aiAssistant,
+                  onPressed: _openAssistant,
+                  child: const Icon(LucideIcons.sparkles),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
+
   Future<void> _exitPlayer() async {
     if (_exitingPlayer) return;
     _exitingPlayer = true;
@@ -258,6 +307,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _play(SourceSelection selection) async {
+    if (_playerWindows != null && !_opening && !_exitingPlayer) {
+      _opening = true;
+      try {
+        if (await _playerWindows.open(selection)) return;
+      } finally {
+        _opening = false;
+      }
+    }
     if (_opening || _exitingPlayer || _backend == null) {
       await selection.stream.release();
       if (mounted && _backend == null) _message(l.platformUnsupported);
@@ -327,16 +384,6 @@ class _AppShellState extends State<AppShell> {
       key: PageStorageKey('home'),
       padding: AppSpacing.page(context),
       children: [
-        Text(l.welcome, style: ShadTheme.of(context).textTheme.h3),
-        SizedBox(height: 8),
-        Text(l.welcomeDescription),
-        SizedBox(height: AppSpacing.xl),
-        _history(
-          l.continueWatching,
-          _library!.continueWatching(),
-          empty: l.continueEmpty,
-        ),
-        SizedBox(height: 28),
         _history(
           l.recentlyPlayed,
           _library!.recentlyPlayed(),
@@ -364,7 +411,8 @@ class _AppShellState extends State<AppShell> {
             )
           else
             SizedBox(
-              height: 184 + MediaQuery.textScalerOf(context).scale(14) * 2,
+              // Same poster card as the library, plus a thin progress bar.
+              height: 280 + MediaQuery.textScalerOf(context).scale(14) * 2,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: rows.length,
@@ -373,44 +421,26 @@ class _AppShellState extends State<AppShell> {
                   final row = rows[index];
                   final position = row['position'] as int;
                   final duration = row['duration'] as int;
+                  final id = row['id'] as String;
+                  final artwork = _library!.metadata.displayArtwork(id);
                   return SizedBox(
-                    width: 256,
-                    child: ShadCard(
-                      padding: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => _playHistory(row),
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(AppIcons.playMedia),
-                              SizedBox(height: 8),
-                              Text(
-                                row['title'] as String,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Spacer(),
-                              Text(
-                                row['completed'] == 1
-                                    ? l.rewatch
-                                    : l.watchProgress(
-                                        position ~/ 60000,
-                                        duration ~/ 60000,
-                                      ),
-                              ),
-                              SizedBox(height: 8),
-                              ShadProgress(
-                                value: duration > 0
-                                    ? (position / duration).clamp(0, 1)
-                                    : 0,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    width: 150,
+                    child: MediaPosterCard(
+                      title: row['title'] as String,
+                      artwork: artwork == null || _artwork == null
+                          ? null
+                          : MetadataArtwork(
+                              service: _artwork!,
+                              artwork: artwork,
+                            ),
+                      progress: row['completed'] == 1
+                          ? 1
+                          : duration > 0
+                          ? position / duration
+                          : 0,
+                      favorite: false,
+                      onFavorite: () {},
+                      onOpen: () => _playHistory(row),
                     ),
                   );
                 },
@@ -420,6 +450,8 @@ class _AppShellState extends State<AppShell> {
       );
 
   Widget _settings() => SettingsPage(
+    library: _library,
+    sources: _sources,
     onModelSettings: _assistantStore == null ? null : _modelSettings,
     onSourceDefaults: () => _branches[3].currentState!.push(
       MaterialPageRoute<void>(
@@ -434,7 +466,7 @@ class _AppShellState extends State<AppShell> {
       builder: (_) => switch (index) {
         0 => _home(),
         1 => LibraryPage(sources: _sources, service: _library, onPlay: _play),
-        2 => SourcePage(manager: _sources, onPlay: _play),
+        2 => SourcePage(manager: _sources, library: _library, onPlay: _play),
         _ => _settings(),
       },
     ),
@@ -526,15 +558,9 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                   ),
+                if (_assistant != null) _draggableAssistantButton(),
               ],
             ),
-            floatingActionButton: _assistant == null
-                ? null
-                : FloatingActionButton.small(
-                    tooltip: l.aiAssistant,
-                    onPressed: _openAssistant,
-                    child: const Icon(LucideIcons.sparkles),
-                  ),
             bottomNavigationBar: sidebar || _showPlayer
                 ? null
                 : AppBottomBar(selected: _destination, onSelected: _select),

@@ -23,7 +23,7 @@ class MetadataRuntime with WidgetsBindingObserver {
   final MetadataScheduler scheduler;
   final MetadataQueueRunner Function() _runnerFactory;
   MetadataQueueRunner? _runner;
-  StreamSubscription<void>? _changes;
+  StreamSubscription<void>? _changes, _priority;
   Timer? _debounce, _poll;
   Future<void>? _draining;
   bool _closed = false,
@@ -36,6 +36,9 @@ class MetadataRuntime with WidgetsBindingObserver {
     _started = true;
     WidgetsBinding.instance.addObserver(this);
     _changes = library.changes.listen((_) => _scheduleRefresh());
+    // Boosts are picked up by the running batch's next claim; this only wakes
+    // an idle runtime so a boosted item does not wait for the 15s poll.
+    _priority = library.priorityRequests.listen((_) => _scheduleRefresh());
     _poll = Timer.periodic(
       const Duration(seconds: 15),
       (_) => _scheduleRefresh(),
@@ -51,6 +54,9 @@ class MetadataRuntime with WidgetsBindingObserver {
 
   void _scheduleRefresh() {
     if (_closed || library.isClosing) return;
+    // The running batch emits a change per item; a full reconcile after each
+    // one is O(library) on the UI isolate. The batch end schedules one instead.
+    if (_draining != null) return;
     _debounce?.cancel();
     _debounce = Timer(
       const Duration(milliseconds: 200),
@@ -85,6 +91,7 @@ class MetadataRuntime with WidgetsBindingObserver {
         final runner = _runner!;
         _draining = runner.runBatch().whenComplete(() {
           _draining = null;
+          _scheduleRefresh();
         });
         unawaited(_draining!.catchError((Object _) {}));
       }
@@ -111,6 +118,7 @@ class MetadataRuntime with WidgetsBindingObserver {
     _poll?.cancel();
     WidgetsBinding.instance.removeObserver(this);
     await _changes?.cancel();
+    await _priority?.cancel();
     await _runner?.dispose();
   }
 }

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:math';
 
 import 'package:crypto/crypto.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -12,12 +13,22 @@ class MetadataQueue {
   final DateTime Function() _clock;
   int get now => _clock().millisecondsSinceEpoch;
   static void migrate(Database db) {
-    db.execute('''CREATE TABLE IF NOT EXISTS metadata_queue (
+    db.execute(
+      '''CREATE TABLE IF NOT EXISTS metadata_queue (
       media_id TEXT PRIMARY KEY REFERENCES media(id), input_key TEXT NOT NULL DEFAULT '',
       state TEXT NOT NULL DEFAULT 'queued', phase INTEGER NOT NULL DEFAULT 0,
       attempts INTEGER NOT NULL DEFAULT 0, next_at INTEGER NOT NULL DEFAULT 0,
       lease_owner TEXT, lease_until INTEGER, job_id TEXT, error_code TEXT,
-      updated_at INTEGER NOT NULL DEFAULT 0)''');
+      updated_at INTEGER NOT NULL DEFAULT 0, priority INTEGER NOT NULL DEFAULT 0)''',
+    );
+    // Older databases predate user-driven prioritisation.
+    if (!db
+        .select('PRAGMA table_info(metadata_queue)')
+        .any((c) => c['name'] == 'priority')) {
+      db.execute(
+        'ALTER TABLE metadata_queue ADD COLUMN priority INTEGER NOT NULL DEFAULT 0',
+      );
+    }
     db.execute(
       'CREATE INDEX IF NOT EXISTS metadata_queue_due ON metadata_queue(state,next_at,phase)',
     );
@@ -115,7 +126,7 @@ class MetadataQueue {
       [now],
     );
     final row = db.select(
-      "SELECT * FROM metadata_queue q WHERE state='queued' AND next_at<=? AND (?=1 OR phase=0) AND EXISTS(SELECT 1 FROM memberships m WHERE m.media_id=q.media_id) ORDER BY updated_at,media_id LIMIT 1",
+      "SELECT * FROM metadata_queue q WHERE state='queued' AND next_at<=? AND (?=1 OR phase=0) AND EXISTS(SELECT 1 FROM memberships m WHERE m.media_id=q.media_id) ORDER BY priority DESC,updated_at,media_id LIMIT 1",
       [now, allowOnline ? 1 : 0],
     ).firstOrNull;
     if (row == null) return null;
@@ -127,6 +138,26 @@ class MetadataQueue {
       row['media_id'],
     ]).single;
   });
+  static int _lastBoost = 0;
+
+  /// Marks not-yet-processed items as user-visible so [claim] serves them
+  /// first. Earlier ids in [mediaIds] win, and later boosts beat earlier ones.
+  /// Items that are running, finished or waiting on configuration are left
+  /// alone, and retry back-off (`next_at`) is still honoured.
+  int boost(List<String> mediaIds) {
+    // Strictly increasing so two boosts inside one millisecond still order.
+    final base = _lastBoost = max(now * 1000, _lastBoost + 1000);
+    var changed = 0;
+    for (var i = 0; i < mediaIds.length; i++) {
+      db.execute(
+        "UPDATE metadata_queue SET priority=? WHERE media_id=? AND state='queued'",
+        [base + mediaIds.length - i, mediaIds[i]],
+      );
+      changed += db.updatedRows;
+    }
+    return changed;
+  }
+
   bool owns(String media, String owner) => db.select(
     "SELECT 1 FROM metadata_queue q WHERE media_id=? AND state='running' AND lease_owner=? AND lease_until>? AND EXISTS(SELECT 1 FROM memberships m WHERE m.media_id=q.media_id)",
     [media, owner, now],
@@ -147,17 +178,20 @@ class MetadataQueue {
     ]).single;
     final attempts = (row['attempts'] as int) + (retryable ? 1 : 0);
     final failed = retryable && attempts >= 5;
+    final finalState = failed ? 'failed' : state;
     db.execute(
       '''UPDATE metadata_queue SET state=?,phase=?,attempts=?,next_at=?,lease_owner=NULL,
-      lease_until=NULL,error_code=?,job_id=COALESCE(?,job_id),updated_at=? WHERE media_id=? AND lease_owner=?''',
+      lease_until=NULL,error_code=?,job_id=COALESCE(?,job_id),updated_at=?,priority=? WHERE media_id=? AND lease_owner=?''',
       [
-        failed ? 'failed' : state,
+        finalState,
         phase ?? row['phase'],
         attempts,
         now + delay.inMilliseconds,
         error,
         job,
         now,
+        // A later phase of a boosted item stays ahead; finished items reset.
+        finalState == 'queued' ? row['priority'] : 0,
         media,
         owner,
       ],

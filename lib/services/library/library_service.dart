@@ -21,7 +21,7 @@ class LibraryService {
     bool watchExternalChanges = false,
   }) {
     final version = db.select('PRAGMA user_version').first.values.first as int;
-    if (version > 3) throw StateError('媒体库版本较新，请升级应用');
+    if (version > 4) throw StateError('媒体库版本较新，请升级应用');
     db.execute('PRAGMA foreign_keys=ON');
     db.execute('PRAGMA busy_timeout=5000');
     db.execute('''CREATE TABLE IF NOT EXISTS libraries (
@@ -39,6 +39,20 @@ class LibraryService {
       id TEXT PRIMARY KEY, library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
       source TEXT NOT NULL, root TEXT, status TEXT NOT NULL DEFAULT '待扫描', error TEXT)''',
     );
+    // v4: a binding is a user-facing "file source" (a connection plus one
+    // chosen folder). It carries a display name and an enable switch.
+    final bindingColumns = db
+        .select('PRAGMA table_info(bindings)')
+        .map((r) => r['name'])
+        .toSet();
+    if (!bindingColumns.contains('name')) {
+      db.execute('ALTER TABLE bindings ADD COLUMN name TEXT');
+    }
+    if (!bindingColumns.contains('enabled')) {
+      db.execute(
+        'ALTER TABLE bindings ADD COLUMN enabled INTEGER NOT NULL DEFAULT 1',
+      );
+    }
     db.execute('''CREATE TABLE IF NOT EXISTS memberships (
       library_id TEXT NOT NULL REFERENCES libraries(id) ON DELETE CASCADE,
       media_id TEXT NOT NULL REFERENCES media(id), added_at INTEGER NOT NULL,
@@ -94,6 +108,14 @@ class LibraryService {
       'CREATE INDEX IF NOT EXISTS locator_resource ON resource_locators(resource_id)',
     );
     db.execute(
+      'CREATE INDEX IF NOT EXISTS resources_media ON resources(media_id)',
+    );
+    // The memberships primary key leads with library_id; the metadata queue's
+    // EXISTS(... WHERE media_id=?) checks would otherwise scan the whole table.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS memberships_media ON memberships(media_id)',
+    );
+    db.execute(
       'CREATE INDEX IF NOT EXISTS source_media_parent ON source_media(source,parent_key)',
     );
     db.execute(
@@ -112,7 +134,7 @@ class LibraryService {
           AND NOT EXISTS (SELECT 1 FROM source_media s WHERE s.media_id=m.id)''',
         );
       }
-      db.execute('PRAGMA user_version=3');
+      db.execute('PRAGMA user_version=4');
     });
     if (recoverInterrupted) metadata.recover();
     // A crashed or interrupted scan must never reconcile missing observations.
@@ -138,8 +160,41 @@ class LibraryService {
   void notifyChanged() {
     if (_closeRequested || _changes.isClosed) return;
     if (_inTransaction) return;
+    // Leading + trailing throttle while background metadata work runs; it emits several
+    // changes per item and every listener rebuilds with synchronous queries.
+    if (_notifyTimer != null) {
+      _notifyPending = true;
+      return;
+    }
     _changes.add(null);
+    if (_running.isEmpty) return;
+    _notifyTimer = Timer(const Duration(milliseconds: 300), () {
+      _notifyTimer = null;
+      if (_notifyPending) {
+        _notifyPending = false;
+        notifyChanged();
+      }
+    });
   }
+
+  Timer? _notifyTimer;
+  final _priorityRequests = StreamController<void>.broadcast();
+
+  /// Fires when a visible item was moved to the front of the metadata queue.
+  Stream<void> get priorityRequests => _priorityRequests.stream;
+
+  /// Raises metadata priority for items the user is looking at (recent list,
+  /// detail page, visible library entries). Already-processed items are no-ops.
+  void prioritizeMetadata(Iterable<String> mediaIds) {
+    if (_closeRequested || _databaseClosed) return;
+    final ids = mediaIds.toSet().toList();
+    if (ids.isEmpty) return;
+    if (MetadataQueue(db).boost(ids) > 0 && !_priorityRequests.isClosed) {
+      _priorityRequests.add(null);
+    }
+  }
+
+  bool _notifyPending = false;
 
   void checkExternalChanges() {
     if (_closeRequested) return;
@@ -155,6 +210,8 @@ class LibraryService {
     if (_databaseClosed) return;
     _databaseClosed = true;
     _externalWatch?.cancel();
+    _notifyTimer?.cancel();
+    _priorityRequests.close();
     _changes.close();
     db.close();
   }
@@ -239,20 +296,51 @@ class LibraryService {
     notifyChanged();
   }
 
+  /// The single implicit library behind the "all file sources" poster wall.
+  /// Created lazily so an unused database stays empty.
+  static const defaultLibraryId = 'default';
+  String defaultLibrary() {
+    db.execute('INSERT OR IGNORE INTO libraries VALUES (?,?,?)', [
+      defaultLibraryId,
+      '媒体库',
+      'mixed',
+    ]);
+    return defaultLibraryId;
+  }
+
   List<Row> bindings(String library) => db.select(
     'SELECT * FROM bindings WHERE library_id=? ORDER BY id',
     [library],
   );
+
+  /// File sources: every binding, regardless of the library it belongs to.
+  List<Row> fileSources() => db.select('SELECT * FROM bindings ORDER BY id');
+
+  void setBindingEnabled(String binding, bool enabled) {
+    db.execute('UPDATE bindings SET enabled=? WHERE id=?', [
+      enabled ? 1 : 0,
+      binding,
+    ]);
+    notifyChanged();
+  }
+
+  void renameBinding(String binding, String name) {
+    if (name.trim().isEmpty) throw ArgumentError('请输入名称');
+    db.execute('UPDATE bindings SET name=? WHERE id=?', [name.trim(), binding]);
+    notifyChanged();
+  }
+
   String bind(
     String library,
     String source, {
     String? root,
+    String? name,
     SourceEntry? rootEntry,
   }) {
     final id = _id();
     db.execute(
-      'INSERT INTO bindings(id,library_id,source,root) VALUES (?,?,?,?)',
-      [id, library, source, root],
+      'INSERT INTO bindings(id,library_id,source,root,name) VALUES (?,?,?,?,?)',
+      [id, library, source, root, name?.trim().isEmpty == true ? null : name],
     );
     if (rootEntry?.media != null) {
       final media = register(rootEntry!);
@@ -407,6 +495,9 @@ class LibraryService {
     }
     return media;
   });
+
+  /// Media whose files are all hidden dot files (macOS `._movie.mp4` sidecars,
+  /// kept from scans before those were filtered) never show in the library.
   List<Row> query(
     String? library, {
     String search = '',
@@ -422,6 +513,11 @@ class LibraryService {
     return db.select(
       '''SELECT m.*, lm.added_at FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
       WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
+      AND NOT (EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id)
+        AND NOT EXISTS (SELECT 1 FROM media_evidence e JOIN bindings b ON b.id=e.binding_id WHERE e.media_id=m.id AND b.enabled=1)
+        AND NOT EXISTS (SELECT 1 FROM manual_memberships mm WHERE mm.media_id=m.id))
+      AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
+        AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id AND (? IS NULL OR pm.library_id=?)))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
@@ -492,6 +588,19 @@ class LibraryService {
   void clearIgnored(String library) =>
       db.execute('DELETE FROM ignored WHERE library_id=?', [library]);
 
+  /// Hide a title from the whole poster wall: remove it from every library it
+  /// belongs to. Files, media records and progress are untouched.
+  void hide(String media) => transaction(() {
+    db.execute(
+      'INSERT OR IGNORE INTO ignored SELECT library_id,media_id FROM memberships WHERE media_id=?',
+      [media],
+    );
+    db.execute('DELETE FROM manual_memberships WHERE media_id=?', [media]);
+    db.execute('DELETE FROM memberships WHERE media_id=?', [media]);
+  });
+  void clearAllIgnored() =>
+      transaction(() => db.execute('DELETE FROM ignored'));
+
   /// Browse explicitly selected scope, preserving source identities. Only a fully
   /// successful traversal marks old observations unavailable; failures retain data.
   Future<void> scan(String binding, SourceManager sources) async {
@@ -499,6 +608,7 @@ class LibraryService {
     var batch = _id();
     try {
       final b = db.select('SELECT * FROM bindings WHERE id=?', [binding]).first;
+      if (b['enabled'] == 0) throw StateError('文件源已停用');
       await sources.load();
       final source = b['source'] as String;
       final config = sources.configs.firstWhere((c) => c.id == source);
@@ -587,10 +697,7 @@ class LibraryService {
             continue;
           }
           if (config.isFileSource &&
-              !RegExp(
-                r'\.(mp4|mkv|avi|mov|webm|m4v|ts|m2ts|wmv|mp3|flac|m4a|wav|ogg)$',
-                caseSensitive: false,
-              ).hasMatch(entry.name)) {
+              !matchesScanExtension(entry.name, sources.scanExtensions)) {
             continue;
           }
           final media = register(
@@ -635,6 +742,14 @@ class LibraryService {
       if (_closeRequested && _running.isEmpty) _closeDatabase();
     }
   }
+
+  /// Valid media files the running scan of [binding] has found so far.
+  int scannedMediaCount(String binding) =>
+      db.select(
+            'SELECT COUNT(*) AS n FROM evidence e JOIN scan_tasks t ON t.binding_id=e.binding_id AND t.batch=e.seen WHERE e.binding_id=?',
+            [binding],
+          ).first['n']
+          as int;
 
   void addManual(String library, String media) => transaction(() {
     db.execute('DELETE FROM ignored WHERE library_id=? AND media_id=?', [

@@ -3,6 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+
+import '../../services/metadata/tmdb_credentials.dart';
+
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/plugins/metadata_capability.dart';
@@ -25,7 +28,7 @@ class MetadataPage extends StatefulWidget {
     required this.sources,
     required this.media,
     this.service,
-    this.credentials = const FlutterSecureStorage(),
+    this.credentials = tmdbCredentialStorage,
   });
   final LibraryService library;
   final SourceManager sources;

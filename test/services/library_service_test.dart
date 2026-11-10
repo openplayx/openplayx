@@ -44,6 +44,68 @@ void main() {
   });
   tearDown(() => service.close());
   test(
+    'file sources are named, can be disabled and hide only their own media',
+    () async {
+      final library = service.defaultLibrary();
+      expect(
+        service.defaultLibrary(),
+        library,
+        reason: 'implicit library is stable',
+      );
+      final a = service.bind(library, 's', root: '/a', name: 'Movies');
+      final b = service.bind(library, 's', root: '/b');
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/a/one.mp4'),
+          'One.mp4',
+          isFolder: false,
+        ),
+      ];
+      await service.scan(a, sources);
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/b/two.mp4'),
+          'Two.mp4',
+          isFolder: false,
+        ),
+      ];
+      await service.scan(b, sources);
+      expect(service.fileSources().map((r) => r['name']), ['Movies', null]);
+      expect(service.query(null), hasLength(2));
+      service.setBindingEnabled(a, false);
+      expect(service.query(null).single['title'], 'Two.mp4');
+      expect(
+        () => service.scan(a, sources),
+        throwsA(isA<StateError>()),
+        reason: 'disabled sources are not scanned',
+      );
+      // Manually kept titles stay visible even if their source is disabled.
+      final one =
+          service.db
+                  .select("SELECT id FROM media WHERE title='One.mp4'")
+                  .single['id']
+              as String;
+      service.addManual(library, one);
+      expect(service.query(null), hasLength(2));
+      service.setBindingEnabled(a, true);
+      service.renameBinding(b, '  Shows ');
+      expect(service.fileSources().last['name'], 'Shows');
+      expect(() => service.renameBinding(b, ' '), throwsArgumentError);
+    },
+  );
+  test('hide removes a title from every library and can be restored', () {
+    final first = service.create('First');
+    final second = service.create('Second');
+    final media = service.register(sources.entries.first);
+    service.addManual(first, media);
+    service.addManual(second, media);
+    service.hide(media);
+    expect(service.query(null), isEmpty);
+    expect(service.db.select('SELECT * FROM resources'), hasLength(1));
+    service.clearAllIgnored();
+    expect(service.db.select('SELECT * FROM ignored'), isEmpty);
+  });
+  test(
     'all libraries deduplicate shared media and exclude unfiled playback',
     () {
       final first = service.create('First');
@@ -397,5 +459,47 @@ void main() {
       throwsA(isA<PluginException>()),
     );
     expect(service.db.select('SELECT * FROM media'), hasLength(1));
+  });
+  test('a running scan reports the valid media files found so far', () async {
+    final library = service.create('Movies');
+    final binding = service.bind(library, 's');
+    final seen = <int>[];
+    sources.handler = (request) async {
+      if (request.node == null) {
+        return const BrowseResult([
+          SourceEntry(ResourceRef('s', 'dir'), 'dir', isFolder: true),
+          SourceEntry(ResourceRef('s', 'a.mp4'), 'a.mp4', isFolder: false),
+          SourceEntry(ResourceRef('s', 'b.mp4'), 'b.mp4', isFolder: false),
+        ]);
+      }
+      // Asked while the second directory is being read.
+      seen.add(service.scannedMediaCount(binding));
+      return const BrowseResult([
+        SourceEntry(ResourceRef('s', 'dir/c.mp4'), 'c.mp4', isFolder: false),
+      ]);
+    };
+    await service.scan(binding, sources);
+    expect(seen, [2]);
+    expect(service.scannedMediaCount(binding), 0, reason: 'scan finished');
+  });
+  test('media that are only hidden dot files never show in the library', () {
+    final library = service.create('Movies');
+    final sidecar = service.register(
+      const SourceEntry(
+        ResourceRef('s', '/._Film.mp4'),
+        '._Film.mp4',
+        isFolder: false,
+      ),
+    );
+    final film = service.register(
+      const SourceEntry(
+        ResourceRef('s', '/Film.mp4'),
+        'Film.mp4',
+        isFolder: false,
+      ),
+    );
+    service.addManual(library, sidecar);
+    service.addManual(library, film);
+    expect(service.query(library).map((m) => m['id']), [film]);
   });
 }

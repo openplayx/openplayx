@@ -4,6 +4,7 @@ import '../../l10n/generated/app_localizations.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../ui/components/media/source_kind_icon.dart';
 import '../../ui/tokens/app_spacing.dart';
 
 import '../../ui/adaptive/app_page.dart';
@@ -85,34 +86,49 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
                       : l.defaultResolve,
                 ),
                 SizedBox(height: 8),
-                ShadSelect<String>(
-                  key: ValueKey(
-                    '$capability-${widget.manager.bindings.defaults[capability]}',
+                // Align loosens the stretched (tight) width, so the select's own
+                // maxWidth no longer conflicts with the column's minimum.
+                Align(
+                  alignment: Alignment.centerLeft,
+                  child: ShadSelect<String>(
+                    key: ValueKey(
+                      '$capability-${widget.manager.bindings.defaults[capability]}',
+                    ),
+                    initialValue: _selected(capability),
+                    onChanged: _busy
+                        ? null
+                        : (value) =>
+                              _save(capability, value == '' ? null : value),
+                    options: [
+                      ShadOption(value: '', child: Text(l.chooseEachTime)),
+                      for (final config in widget.manager.configs.where(
+                        (c) =>
+                            c.enabled &&
+                            SourceSchemas.forKind(c.kind).capabilities
+                                .contains(capability),
+                      ))
+                        ShadOption(
+                          value: config.id,
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              SourceKindIcon(config.kind, size: 24),
+                              const SizedBox(width: 8),
+                              Text(config.displayName),
+                            ],
+                          ),
+                        ),
+                    ],
+                    selectedOptionBuilder: (_, id) => Text(
+                      id.isEmpty
+                          ? l.chooseEachTime
+                          : widget.manager.configs
+                                .firstWhere((c) => c.id == id)
+                                .displayName,
+                    ),
+                    enabled: !_busy,
+                    maxWidth: 640,
                   ),
-                  initialValue: _selected(capability),
-                  onChanged: _busy
-                      ? null
-                      : (value) =>
-                            _save(capability, value == '' ? null : value),
-                  options: [
-                    ShadOption(value: '', child: Text(l.chooseEachTime)),
-                    for (final config in widget.manager.configs.where(
-                      (c) =>
-                          c.enabled &&
-                          SourceSchemas.forKind(c.kind).capabilities
-                              .contains(capability),
-                    ))
-                      ShadOption(value: config.id, child: Text(config.name)),
-                  ],
-                  selectedOptionBuilder: (_, id) => Text(
-                    id.isEmpty
-                        ? l.chooseEachTime
-                        : widget.manager.configs
-                              .firstWhere((c) => c.id == id)
-                              .name,
-                  ),
-                  enabled: !_busy,
-                  maxWidth: 640,
                 ),
               ],
             ),
@@ -137,7 +153,7 @@ class _SourceDefaultsPageState extends State<SourceDefaultsPage> {
                 source.id,
               ),
               enabled: !_busy,
-              label: Text(source.name),
+              label: Text(source.displayName),
               onChanged: (value) => _searchScope(source.id, value),
             ),
           ),

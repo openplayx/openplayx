@@ -113,7 +113,7 @@ void main() {
       expect(backend.value.status, before.status);
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      expect(find.text('Welcome to OpenPlayX'), findsOneWidget);
+      expect(find.text('Recently played'), findsOneWidget);
       final context = tester.element(find.byType(AppSidebar));
       expect(ShadTheme.of(context).brightness, Brightness.dark);
       await tester.pumpWidget(const SizedBox());

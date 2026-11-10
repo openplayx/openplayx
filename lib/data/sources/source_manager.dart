@@ -43,11 +43,12 @@ class SourceManager {
     FlutterSecureStorage? credentials,
     SourceConfigurationService? configuration,
   }) : _configuration = configuration,
-       _ownsConfiguration = configuration == null,
-       _credentials = SourceCredentialBroker(credentials);
+       _ownsConfiguration = configuration == null {
+    _credentials = SourceCredentialBroker(() => _configuration!, credentials);
+  }
   SourceConfigurationService? _configuration;
   final bool _ownsConfiguration;
-  final SourceCredentialBroker _credentials;
+  late final SourceCredentialBroker _credentials;
   bool _hasBookmarks = false;
   bool _disposed = false;
   final _configs = <SourceConfig>[];
@@ -218,6 +219,19 @@ class SourceManager {
     SourceApplicationStatus.initialized => '已初始化 · 待连接验证',
     SourceApplicationStatus.saved => '已保存 · 下次访问生效',
   };
+
+  /// Global suffix filter shared by preview scans and library scans.
+  List<String> get scanExtensions =>
+      _configuration?.scanExtensions() ?? defaultScanExtensions;
+
+  Future<void> setScanExtensions(List<String> extensions) async {
+    await load();
+    if (extensions.length > 100 ||
+        extensions.any((e) => !RegExp(r'^[a-z0-9]{1,16}$').hasMatch(e))) {
+      throw const PluginException('invalidInput', '文件后缀只能包含字母和数字，最多 100 个。');
+    }
+    _configuration!.saveScanExtensions(extensions);
+  }
 
   Future<void> setDefault(String capability, String? id) async {
     await load();
@@ -594,6 +608,7 @@ class SourceManager {
           if (entry.isFolder) {
             if (visited.add(entry.ref.id)) queue.add(entry.ref);
           } else {
+            if (!matchesScanExtension(entry.name, scanExtensions)) continue;
             yield entry;
             if (++emitted >= limit) return;
           }

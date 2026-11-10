@@ -389,6 +389,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get serverPathHint => '例如 jellyfin，没有则留空';
 
   @override
+  String get scanExtensions => '扫描的文件后缀';
+
+  @override
+  String get scanExtensionsHelp =>
+      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
+
+  @override
   String get optionalDomain => '工作组（可选）';
 
   @override
@@ -756,6 +763,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已发现 $n 个媒体文件';
+  }
+
+  @override
+  String get detailOverview => '简介';
+
+  @override
+  String get detailCast => '演员';
+
+  @override
+  String get detailDirectors => '导演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '还没有可播放的剧集。';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -890,6 +924,12 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metadataForgetToken => '移除 TMDB 凭据';
+
+  @override
+  String get metadataTokenSaved => '已在本机保存 TMDB 令牌。';
+
+  @override
+  String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
 
   @override
   String get metadataSearch => '搜索 TMDB';
@@ -1038,6 +1078,57 @@ class AppLocalizationsZh extends AppLocalizations {
   ) {
     return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
   }
+
+  @override
+  String get fileSources => '文件源';
+
+  @override
+  String get addFileSource => '添加文件源';
+
+  @override
+  String get nameFileSource => '为文件源命名';
+
+  @override
+  String get fileSourceEnable => '启用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新扫描全部文件源';
+
+  @override
+  String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
+
+  @override
+  String get removeFileSource => '删除文件源';
+
+  @override
+  String get removeFileSourceConfirm => '删除此文件源？';
+
+  @override
+  String get libraryEmptyNoMedia => '文件源中暂无可识别的媒体，请重新扫描或检查文件命名';
+
+  @override
+  String get chooseFolderDescription => '进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。';
+
+  @override
+  String get confirmFolder => '使用此文件夹';
+
+  @override
+  String get libraryNoFileSources => '还没有文件源。请在「来源」中为连接添加文件夹';
+
+  @override
+  String get sourceTabConnections => '连接';
+
+  @override
+  String get sourceTabFileSources => '文件源';
+
+  @override
+  String get moreActions => '更多操作';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1424,6 +1515,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get serverPathHint => '例如 jellyfin，没有则留空';
 
   @override
+  String get scanExtensions => '扫描的文件后缀';
+
+  @override
+  String get scanExtensionsHelp =>
+      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
+
+  @override
   String get optionalDomain => '工作组（可选）';
 
   @override
@@ -1791,6 +1889,33 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已发现 $n 个媒体文件';
+  }
+
+  @override
+  String get detailOverview => '简介';
+
+  @override
+  String get detailCast => '演员';
+
+  @override
+  String get detailDirectors => '导演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '还没有可播放的剧集。';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -1925,6 +2050,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get metadataForgetToken => '移除 TMDB 凭据';
+
+  @override
+  String get metadataTokenSaved => '已在本机保存 TMDB 令牌。';
+
+  @override
+  String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
 
   @override
   String get metadataSearch => '搜索 TMDB';
@@ -2073,6 +2204,57 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   ) {
     return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
   }
+
+  @override
+  String get fileSources => '文件源';
+
+  @override
+  String get addFileSource => '添加文件源';
+
+  @override
+  String get nameFileSource => '为文件源命名';
+
+  @override
+  String get fileSourceEnable => '启用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新扫描全部文件源';
+
+  @override
+  String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
+
+  @override
+  String get removeFileSource => '删除文件源';
+
+  @override
+  String get removeFileSourceConfirm => '删除此文件源？';
+
+  @override
+  String get libraryEmptyNoMedia => '文件源中暂无可识别的媒体，请重新扫描或检查文件命名';
+
+  @override
+  String get chooseFolderDescription => '进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。';
+
+  @override
+  String get confirmFolder => '使用此文件夹';
+
+  @override
+  String get libraryNoFileSources => '还没有文件源。请在「来源」中为连接添加文件夹';
+
+  @override
+  String get sourceTabConnections => '连接';
+
+  @override
+  String get sourceTabFileSources => '文件源';
+
+  @override
+  String get moreActions => '更多操作';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2459,6 +2641,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get serverPathHint => '例如 jellyfin，無則留空';
 
   @override
+  String get scanExtensions => '掃描的檔案副檔名';
+
+  @override
+  String get scanExtensionsHelp =>
+      '以逗號分隔。預覽與入庫只保留這些副檔名的檔案，留空則保留所有檔案。以點開頭的隱藏檔案一律忽略。';
+
+  @override
   String get optionalDomain => '工作群組（選填）';
 
   @override
@@ -2826,6 +3015,33 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已發現 $n 個媒體檔案';
+  }
+
+  @override
+  String get detailOverview => '簡介';
+
+  @override
+  String get detailCast => '演員';
+
+  @override
+  String get detailDirectors => '導演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '還沒有可播放的劇集。';
+
+  @override
   String get metadata => '影視資訊';
 
   @override
@@ -2960,6 +3176,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get metadataForgetToken => '移除 TMDB 憑證';
+
+  @override
+  String get metadataTokenSaved => '已在本機儲存 TMDB 權杖。';
+
+  @override
+  String get metadataTokenMissing => '尚未設定 TMDB 權杖。';
 
   @override
   String get metadataSearch => '搜尋 TMDB';
@@ -3108,4 +3330,55 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   ) {
     return '背景擷取：$queued 待處理 · $running 處理中 · $waiting 待確認 · $failed 失敗';
   }
+
+  @override
+  String get fileSources => '檔案來源';
+
+  @override
+  String get addFileSource => '新增檔案來源';
+
+  @override
+  String get nameFileSource => '為檔案來源命名';
+
+  @override
+  String get fileSourceEnable => '啟用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新掃描全部檔案來源';
+
+  @override
+  String get noFileSources => '尚無檔案來源，新增一個資料夾開始建立媒體庫';
+
+  @override
+  String get removeFileSource => '刪除檔案來源';
+
+  @override
+  String get removeFileSourceConfirm => '刪除此檔案來源？';
+
+  @override
+  String get libraryEmptyNoMedia => '檔案來源中尚無可辨識的媒體，請重新掃描或檢查檔名';
+
+  @override
+  String get chooseFolderDescription => '進入目錄並確認作為檔案來源。僅索引其中的媒體，不下載影片。';
+
+  @override
+  String get confirmFolder => '使用此資料夾';
+
+  @override
+  String get libraryNoFileSources => '尚無檔案來源。請在「來源」中為連線新增資料夾';
+
+  @override
+  String get sourceTabConnections => '連線';
+
+  @override
+  String get sourceTabFileSources => '檔案來源';
+
+  @override
+  String get moreActions => '更多操作';
 }

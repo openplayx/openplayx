@@ -12,6 +12,29 @@ enum ScanMode { manual, disabled }
 
 /// Host-owned immutable instance snapshot. Secrets are represented by a scoped
 /// credential reference; permissions and live authorization aren't booleans here.
+const defaultScanExtensions = [
+  'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'wmv', //
+  'mp3', 'flac', 'm4a', 'wav', 'ogg',
+];
+
+/// Parses user input such as "mp4, .MKV；avi" into normalized suffixes.
+List<String> parseScanExtensions(String text) => text
+    .split(RegExp(r'[\s,;，；、]+'))
+    .map((e) => e.replaceFirst(RegExp(r'^\*?\.'), '').toLowerCase())
+    .where((e) => e.isNotEmpty)
+    .toSet()
+    .toList();
+
+/// Whether a scan keeps a file with this name. Hidden files (leading dot, such
+/// as macOS `._movie.mp4` or `.DS_Store`) are always dropped; empty
+/// [extensions] keeps every other file.
+bool matchesScanExtension(String name, List<String> extensions) {
+  if (name.startsWith('.')) return false;
+  if (extensions.isEmpty) return true;
+  final dot = name.lastIndexOf('.');
+  return dot >= 0 && extensions.contains(name.substring(dot + 1).toLowerCase());
+}
+
 class SourceConfig {
   const SourceConfig({
     required this.id,
@@ -59,8 +82,19 @@ class SourceConfig {
   final int maxConcurrentRequests;
   final List<String> allowedPaths;
   final List<String> scanExclusions;
+
   final ScanMode scanMode;
   final bool backgroundIndexing;
+
+  /// Name shown when the connection appears in another place (pickers,
+  /// filters, file source rows): always prefixed with the type. A blank name
+  /// falls back to the address, so the default is "type + address".
+  String get displayName =>
+      '${kind.label} · ${name.trim().isEmpty ? address : name.trim()}';
+
+  /// Name for the connection's own management row: the user's name, or the
+  /// type-prefixed default when none was entered.
+  String get titleName => name.trim().isEmpty ? displayName : name.trim();
   bool get isFileSource => kind == SourceKind.local || kind == SourceKind.smb;
   String get effectiveBrowseMode =>
       browseMode ?? (isFileSource ? 'files' : 'library');
@@ -165,6 +199,7 @@ class SourceConfig {
       'maxConcurrentRequests',
       'allowedPaths',
       'scanExclusions',
+      'scanExtensions', // legacy per-source value, now a global setting
       'scanMode',
       'backgroundIndexing',
     };
@@ -206,8 +241,8 @@ class SourceConfig {
 
   void validate() {
     if (configVersion != 2) throw const FormatException('配置版本不兼容，不能覆盖保存。');
-    if (id.isEmpty || name.trim().isEmpty || address.trim().isEmpty) {
-      throw const FormatException('请填写名称和地址。');
+    if (id.isEmpty || address.trim().isEmpty) {
+      throw const FormatException('请填写地址。');
     }
     if (requestTimeoutSeconds < 1 ||
         requestTimeoutSeconds > 120 ||
@@ -279,6 +314,7 @@ class SourceConfig {
         relative.startsWith('$root/') ||
         (directory && (relative.isEmpty || root.startsWith('$relative/'))),
   );
+
   bool excludedFromScan(String relative) => scanExclusions.any((pattern) {
     if (pattern.endsWith('/**') &&
         relative == pattern.substring(0, pattern.length - 3)) {

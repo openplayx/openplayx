@@ -856,6 +856,18 @@ abstract class AppLocalizations {
   /// **'For example jellyfin; otherwise leave blank.'**
   String get serverPathHint;
 
+  /// No description provided for @scanExtensions.
+  ///
+  /// In en, this message translates to:
+  /// **'File extensions to scan'**
+  String get scanExtensions;
+
+  /// No description provided for @scanExtensionsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.'**
+  String get scanExtensionsHelp;
+
   /// No description provided for @optionalDomain.
   ///
   /// In en, this message translates to:
@@ -1534,6 +1546,48 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get shadDone;
 
+  /// No description provided for @scanFoundMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} media files found'**
+  String scanFoundMedia(int n);
+
+  /// No description provided for @detailOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get detailOverview;
+
+  /// No description provided for @detailCast.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast'**
+  String get detailCast;
+
+  /// No description provided for @detailDirectors.
+  ///
+  /// In en, this message translates to:
+  /// **'Director'**
+  String get detailDirectors;
+
+  /// No description provided for @seasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Season {n}'**
+  String seasonLabel(int n);
+
+  /// No description provided for @episodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode {n}'**
+  String episodeLabel(int n);
+
+  /// No description provided for @detailNoEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'No episodes yet.'**
+  String get detailNoEpisodes;
+
   /// No description provided for @metadata.
   ///
   /// In en, this message translates to:
@@ -1803,6 +1857,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove TMDB credential'**
   String get metadataForgetToken;
+
+  /// No description provided for @metadataTokenSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB token saved on this device.'**
+  String get metadataTokenSaved;
+
+  /// No description provided for @metadataTokenMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No TMDB token configured.'**
+  String get metadataTokenMissing;
 
   /// No description provided for @metadataSearch.
   ///
@@ -2078,6 +2144,108 @@ abstract class AppLocalizations {
     int waiting,
     int failed,
   );
+
+  /// No description provided for @fileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'File sources'**
+  String get fileSources;
+
+  /// No description provided for @addFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Add file source'**
+  String get addFileSource;
+
+  /// No description provided for @nameFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Name this file source'**
+  String get nameFileSource;
+
+  /// No description provided for @fileSourceEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get fileSourceEnable;
+
+  /// No description provided for @fileSourceDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get fileSourceDisable;
+
+  /// No description provided for @fileSourceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get fileSourceDisabled;
+
+  /// No description provided for @rescanAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan all file sources'**
+  String get rescanAll;
+
+  /// No description provided for @noFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'No file sources yet. Add a folder to build your library.'**
+  String get noFileSources;
+
+  /// No description provided for @removeFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file source'**
+  String get removeFileSource;
+
+  /// No description provided for @removeFileSourceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this file source?'**
+  String get removeFileSourceConfirm;
+
+  /// No description provided for @libraryEmptyNoMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'No media found in your file sources. Rescan or check the folder naming.'**
+  String get libraryEmptyNoMedia;
+
+  /// No description provided for @chooseFolderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.'**
+  String get chooseFolderDescription;
+
+  /// No description provided for @confirmFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this folder'**
+  String get confirmFolder;
+
+  /// No description provided for @libraryNoFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'No file sources yet. Add a folder to a connection under Sources.'**
+  String get libraryNoFileSources;
+
+  /// No description provided for @sourceTabConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get sourceTabConnections;
+
+  /// No description provided for @sourceTabFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'File sources'**
+  String get sourceTabFileSources;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActions;
 }
 
 class _AppLocalizationsDelegate

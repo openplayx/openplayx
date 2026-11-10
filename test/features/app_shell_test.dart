@@ -56,7 +56,7 @@ void main() {
         );
         final opening = player.openFile();
         await tester.pump();
-        expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);
+        expect(find.text('最近播放'), findsOneWidget);
         expect(find.byTooltip('返回'), findsNothing);
         await player.openFile();
         await tester.pump();
@@ -72,15 +72,15 @@ void main() {
         await opening;
         await tester.pumpAndSettle();
         if (cancel) {
-          expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);
+          expect(find.text('最近播放'), findsOneWidget);
           expect(find.byTooltip('返回'), findsNothing);
           expect(backend.opened, isEmpty);
           expect(backend.value.status, PlaybackStatus.idle);
           await tester.tap(find.byKey(const ValueKey('nav-library')));
           await tester.pumpAndSettle();
-          expect(find.text('创建第一个媒体库'), findsOneWidget);
+          expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
         } else {
-          expect(find.text('欢迎使用 OpenPlayX'), findsNothing);
+          expect(find.text('最近播放'), findsNothing);
           expect(find.byTooltip('返回'), findsOneWidget);
           expect(backend.opened, [Uri.parse('https://example.test/local.mp4')]);
         }
@@ -113,11 +113,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AppSidebar), findsOneWidget);
-      expect(find.text('继续观看'), findsOneWidget);
+      expect(find.text('最近播放'), findsOneWidget);
       expect(find.text('最近播放'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-library')));
       await tester.pumpAndSettle();
-      expect(find.text('全部媒体库'), findsOneWidget);
+      expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       expect(find.text('NAS'), findsOneWidget);

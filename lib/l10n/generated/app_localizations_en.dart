@@ -409,6 +409,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get serverPathHint => 'For example jellyfin; otherwise leave blank.';
 
   @override
+  String get scanExtensions => 'File extensions to scan';
+
+  @override
+  String get scanExtensionsHelp =>
+      'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.';
+
+  @override
   String get optionalDomain => 'Workgroup (optional)';
 
   @override
@@ -786,6 +793,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shadDone => 'Done';
 
   @override
+  String scanFoundMedia(int n) {
+    return '$n media files found';
+  }
+
+  @override
+  String get detailOverview => 'Overview';
+
+  @override
+  String get detailCast => 'Cast';
+
+  @override
+  String get detailDirectors => 'Director';
+
+  @override
+  String seasonLabel(int n) {
+    return 'Season $n';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return 'Episode $n';
+  }
+
+  @override
+  String get detailNoEpisodes => 'No episodes yet.';
+
+  @override
   String get metadata => 'Metadata';
 
   @override
@@ -931,6 +965,12 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metadataForgetToken => 'Remove TMDB credential';
+
+  @override
+  String get metadataTokenSaved => 'TMDB token saved on this device.';
+
+  @override
+  String get metadataTokenMissing => 'No TMDB token configured.';
 
   @override
   String get metadataSearch => 'Search TMDB';
@@ -1094,4 +1134,59 @@ class AppLocalizationsEn extends AppLocalizations {
   ) {
     return 'Background metadata: $queued queued · $running running · $waiting awaiting selection · $failed failed';
   }
+
+  @override
+  String get fileSources => 'File sources';
+
+  @override
+  String get addFileSource => 'Add file source';
+
+  @override
+  String get nameFileSource => 'Name this file source';
+
+  @override
+  String get fileSourceEnable => 'Enable';
+
+  @override
+  String get fileSourceDisable => 'Disable';
+
+  @override
+  String get fileSourceDisabled => 'Disabled';
+
+  @override
+  String get rescanAll => 'Rescan all file sources';
+
+  @override
+  String get noFileSources =>
+      'No file sources yet. Add a folder to build your library.';
+
+  @override
+  String get removeFileSource => 'Delete file source';
+
+  @override
+  String get removeFileSourceConfirm => 'Delete this file source?';
+
+  @override
+  String get libraryEmptyNoMedia =>
+      'No media found in your file sources. Rescan or check the folder naming.';
+
+  @override
+  String get chooseFolderDescription =>
+      'Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.';
+
+  @override
+  String get confirmFolder => 'Use this folder';
+
+  @override
+  String get libraryNoFileSources =>
+      'No file sources yet. Add a folder to a connection under Sources.';
+
+  @override
+  String get sourceTabConnections => 'Connections';
+
+  @override
+  String get sourceTabFileSources => 'File sources';
+
+  @override
+  String get moreActions => 'More actions';
 }

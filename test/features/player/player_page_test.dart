@@ -197,7 +197,7 @@ void main() {
         canSeek: true,
       );
       await tester.pump();
-      expect(find.text('剩余 00:02'), findsOneWidget);
+      expect(find.textContaining('剩余'), findsNothing);
       await tester.tap(find.byTooltip('快进 10 秒'));
       await tester.pumpAndSettle();
       expect(backend.seeks.last, const Duration(seconds: 60));
@@ -386,7 +386,7 @@ void main() {
   ) async {
     final backend = FakeBackend();
     await openPlayer(tester, backend);
-    expect(find.text('读取 -- MB/s'), findsOneWidget);
+    expect(find.text('-- MB/s'), findsOneWidget);
     backend.value = const PlayerSnapshot(
       status: PlaybackStatus.playing,
       readSpeedMBps: 12.345,
@@ -394,12 +394,12 @@ void main() {
       canSeek: true,
     );
     await tester.pump();
-    expect(find.text('读取 12.35 MB/s'), findsOneWidget);
+    expect(find.text('12.35 MB/s'), findsOneWidget);
     backend.value = const PlayerSnapshot(
       status: PlaybackStatus.paused,
       readSpeedMBps: 0,
     );
     await tester.pump();
-    expect(find.text('读取 0.00 MB/s'), findsOneWidget);
+    expect(find.text('0.00 MB/s'), findsOneWidget);
   });
 }

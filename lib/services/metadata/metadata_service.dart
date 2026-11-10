@@ -765,15 +765,15 @@ class MetadataService {
   /// Explicit batch command. Each item commits independently and retries remain
   /// bounded by provider transport; home video libraries are excluded by caller.
   Future<Map<String, int>> importLibrary(
-    String libraryId, {
+    String? libraryId, {
     void Function(int, int)? onProgress,
   }) async {
     final lease = 'batch:${DateTime.now().microsecondsSinceEpoch}';
     library.beginMetadataWork(lease);
     try {
       final rows = library.db.select(
-        'SELECT media_id FROM memberships WHERE library_id=?',
-        [libraryId],
+        'SELECT DISTINCT media_id FROM memberships WHERE (? IS NULL OR library_id=?)',
+        [libraryId, libraryId],
       );
       _stopBatch = false;
       var completed = 0, failed = 0, waiting = 0, unmatched = 0;
