@@ -3,7 +3,6 @@ import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/services/ai_tools/media_tools.dart';
@@ -25,9 +24,6 @@ class SearchSources extends SourceManager {
         address: 'https://private.test/?token=SECRET',
       ),
   ];
-  @override
-  SourceBindings get bindings =>
-      const SourceBindings(searchInstances: ['1', '2', '3', '4', '5']);
   @override
   Future<void> load() async {}
   @override

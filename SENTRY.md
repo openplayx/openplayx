@@ -4,8 +4,10 @@ Dependencies are pinned to sentry_flutter 10.3.0 and sentry_dart_plugin 3.4.0.
 
 ## Build and enable
 
-Configure your own Sentry project and region. No project or DSN is shipped here.
-Build with values matching the actual artifact, for example:
+The project DSN (US region) is built in as the default in
+`lib/app/diagnostics/diagnostics_bootstrap.dart`. Override it with
+`--dart-define=SENTRY_DSN=...`, or pass `--dart-define=SENTRY_DSN=` to build
+without diagnostics. Build with values matching the actual artifact, for example:
 
 ```sh
 flutter build macos --release \

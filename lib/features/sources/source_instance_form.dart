@@ -10,6 +10,7 @@ import '../../ui/components/media/source_kind_icon.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../ui/components/media/content_row.dart';
+import '../../ui/adaptive/form_page.dart';
 import '../../ui/icons/app_icons.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -636,7 +637,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             options: _devices!
                 .map((d) => ShadOption(value: d, child: Text(d.name)))
                 .toList(),
-            maxWidth: 520,
+            maxWidth: 560,
             enabled: !_busy,
           ),
         ),
@@ -692,7 +693,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             options: _servers
                 .map((s) => ShadOption(value: s, child: Text(s.name)))
                 .toList(),
-            maxWidth: 520,
+            maxWidth: 560,
             enabled: !(_busy),
           ),
         ),
@@ -797,9 +798,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     RemoteConnectionMode.remoteOnly => l.remoteRemoteOnly,
   };
   @override
-  Widget build(BuildContext context) => ShadDialog(
-    closeIcon: SizedBox.shrink(),
-    constraints: BoxConstraints(maxWidth: 568),
+  Widget build(BuildContext context) => FormPage(
+    // Leaving mid-save would orphan the request; Plex sign-in can be abandoned.
+    canPop: !(_busy && !_authorizing),
     title: Text(widget.initial == null ? l.addSource : l.editSource),
     actions: [
       ShadButton.ghost(
@@ -829,72 +830,61 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         child: Text(widget.initial == null ? l.add : l.save),
       ),
     ],
-    child: SizedBox(
-      width: 520,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            ShadSelect<SourceKind>(
-              initialValue: _kind,
-              onChanged: _busy || widget.initial != null
-                  ? null
-                  : (kind) => _changeKind(kind!),
-              selectedOptionBuilder: (_, kind) => _kindLabel(kind),
-              key: ValueKey('kind-${_kind.name}'),
-              placeholder: Text(l.type),
-              options: SourceKind.values
-                  .map(
-                    (kind) => ShadOption(value: kind, child: _kindLabel(kind)),
-                  )
-                  .toList(),
-              maxWidth: 520,
-              enabled: !(_busy || widget.initial != null),
-            ),
-            _field(_name, l.optionalName),
-            if (_kind == SourceKind.local) ...[
-              SizedBox(height: 12),
-              ShadButton.outline(
-                onPressed: _busy ? null : _pickDirectory,
-                leading: Icon(AppIcons.openFolder),
-                enabled: !(_busy),
-                child: Text(l.chooseFolder),
-              ),
-              if (_address.text.isNotEmpty)
-                Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(
-                    _address.text,
-                    maxLines: 3,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              if (Platform.isAndroid || Platform.isIOS)
-                Padding(
-                  padding: EdgeInsets.only(top: 8),
-                  child: Text(l.folderAccessHelp),
-                ),
-            ] else if (_kind == SourceKind.plex)
-              _plexFields()
-            else if (_kind == SourceKind.dlna)
-              _dlnaFields()
-            else
-              _networkFields(),
-            if (_kind.mediaBrowser ||
-                _kind == SourceKind.plex ||
-                _kind == SourceKind.smb)
-              _remoteFields(),
-            if (_error != null)
-              Padding(
-                padding: EdgeInsets.only(top: 12),
-                child: ShadAlert.destructive(title: Text(_error!)),
-              ),
-            if (_busy)
-              Padding(padding: EdgeInsets.only(top: 12), child: ShadProgress()),
-          ],
-        ),
+    children: [
+      ShadSelect<SourceKind>(
+        initialValue: _kind,
+        onChanged: _busy || widget.initial != null
+            ? null
+            : (kind) => _changeKind(kind!),
+        selectedOptionBuilder: (_, kind) => _kindLabel(kind),
+        key: ValueKey('kind-${_kind.name}'),
+        placeholder: Text(l.type),
+        options: SourceKind.values
+            .map((kind) => ShadOption(value: kind, child: _kindLabel(kind)))
+            .toList(),
+        maxWidth: 560,
+        enabled: !(_busy || widget.initial != null),
       ),
-    ),
+      _field(_name, l.optionalName),
+      if (_kind == SourceKind.local) ...[
+        SizedBox(height: 12),
+        ShadButton.outline(
+          onPressed: _busy ? null : _pickDirectory,
+          leading: Icon(AppIcons.openFolder),
+          enabled: !(_busy),
+          child: Text(l.chooseFolder),
+        ),
+        if (_address.text.isNotEmpty)
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(
+              _address.text,
+              maxLines: 3,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+        if (Platform.isAndroid || Platform.isIOS)
+          Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text(l.folderAccessHelp),
+          ),
+      ] else if (_kind == SourceKind.plex)
+        _plexFields()
+      else if (_kind == SourceKind.dlna)
+        _dlnaFields()
+      else
+        _networkFields(),
+      if (_kind.mediaBrowser ||
+          _kind == SourceKind.plex ||
+          _kind == SourceKind.smb)
+        _remoteFields(),
+      if (_error != null)
+        Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: ShadAlert.destructive(title: Text(_error!)),
+        ),
+      if (_busy)
+        Padding(padding: EdgeInsets.only(top: 12), child: ShadProgress()),
+    ],
   );
 }

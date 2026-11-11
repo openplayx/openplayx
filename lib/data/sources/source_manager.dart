@@ -46,16 +46,9 @@ class SourceSelection {
 }
 
 class SourceInstanceImpact {
-  const SourceInstanceImpact({
-    this.playing = 0,
-    this.running = 0,
-    this.defaultCapabilities = const [],
-    this.inSearch = false,
-  });
+  const SourceInstanceImpact({this.playing = 0, this.running = 0});
   final int playing;
   final int running;
-  final List<String> defaultCapabilities;
-  final bool inSearch;
 }
 
 /// Plugin Manager is the sole UI entry point. Configuration/credentials are host
@@ -287,11 +280,6 @@ class SourceManager {
     return SourceInstanceImpact(
       playing: runtimes.fold(0, (sum, r) => sum + r.streams),
       running: runtimes.fold(0, (sum, r) => sum + r.active),
-      defaultCapabilities: bindings.defaults.entries
-          .where((e) => e.value == id)
-          .map((e) => e.key)
-          .toList(),
-      inSearch: bindings.searchInstances.contains(id),
     );
   }
 
@@ -368,63 +356,6 @@ class SourceManager {
       throw const PluginException('invalidInput', '文件后缀只能包含字母和数字，最多 100 个。');
     }
     _configuration!.saveScanExtensions(extensions);
-  }
-
-  Future<void> setDefault(String capability, String? id) async {
-    await load();
-    if (id != null) {
-      final config = _config(id);
-      if (!config.enabled ||
-          !SourceSchemas.forKind(config.kind).capabilities
-              .contains(capability)) {
-        throw const PluginException('unsupported', '此实例未启用或不支持该能力。');
-      }
-    } else if (!['source.browse', 'source.resolve'].contains(capability)) {
-      throw const PluginException('unsupported', '该能力尚未注册。');
-    }
-    final current = bindings;
-    final defaults = Map.of(current.defaults);
-    if (id == null) {
-      defaults.remove(capability);
-    } else {
-      defaults[capability] = id;
-    }
-    _configuration!.saveBindings(
-      SourceBindings(
-        defaults: defaults,
-        searchInstances: current.searchInstances,
-      ),
-      expectedRevision: current.revision,
-    );
-  }
-
-  Future<void> setSearchInstances(List<String> ids) async {
-    await load();
-    for (final id in ids.toSet()) {
-      final config = _config(id);
-      if (!config.enabled ||
-          !SourceSchemas.forKind(config.kind).capabilities
-              .contains('search.media')) {
-        throw const PluginException('unsupported', '此实例没有搜索能力，不能纳入聚合。');
-      }
-    }
-    final current = bindings;
-    _configuration!.saveBindings(
-      SourceBindings(
-        defaults: current.defaults,
-        searchInstances: ids.toSet().toList(),
-      ),
-      expectedRevision: current.revision,
-    );
-  }
-
-  /// Caller may use an explicit instance or a configured default. Never silently
-  /// falls back to a different account when a default is unavailable.
-  Future<BrowseResult> browseDefault(BrowseRequest request) async {
-    await load();
-    final id = bindings.defaults['source.browse'];
-    if (id == null) throw const PluginException('invalidInput', '请先选择默认浏览实例。');
-    return browse(id, request);
   }
 
   Future<_SourceRuntime> _runtime(String id) async {

@@ -502,4 +502,75 @@ void main() {
     service.addManual(library, film);
     expect(service.query(library).map((m) => m['id']), [film]);
   });
+
+  test(
+    'episode lists and versions skip hidden dot files kept from old scans',
+    () {
+      const series = SourceMediaInfo(
+        id: 'show',
+        title: 'Series',
+        kind: 'series',
+      );
+      const season = SourceMediaInfo(
+        id: 'season',
+        title: 'Season 1',
+        kind: 'season',
+        parentId: 'show',
+      );
+      SourceMediaInfo episode(String id) => SourceMediaInfo(
+        id: id,
+        title: 'Pilot',
+        kind: 'episode',
+        parentId: 'season',
+        season: 1,
+        episode: 1,
+      );
+      final show = service.register(
+        const SourceEntry(
+          ResourceRef('s', 'show'),
+          'Series',
+          isFolder: true,
+          media: series,
+        ),
+      );
+      service.register(
+        const SourceEntry(
+          ResourceRef('s', 'season'),
+          'Season',
+          isFolder: true,
+          media: season,
+        ),
+      );
+      // A macOS sidecar registered as its own episode (the duplicate row bug).
+      service.register(
+        SourceEntry(
+          const ResourceRef('s', '/._S01E01.mkv'),
+          '._S01E01.mkv',
+          isFolder: false,
+          media: episode('sidecar'),
+        ),
+      );
+      final real = service.register(
+        SourceEntry(
+          const ResourceRef('s', '/S01E01.mkv'),
+          'S01E01.mkv',
+          isFolder: false,
+          media: episode('real'),
+        ),
+      );
+      // A sidecar attached to the real episode is not offered as a version.
+      service.register(
+        SourceEntry(
+          const ResourceRef('s', '/._S01E01.v2.mkv'),
+          '._S01E01.v2.mkv',
+          isFolder: false,
+          media: episode('real'),
+        ),
+      );
+      final seasonRow = service.children(show).single;
+      final episodes = service.children(seasonRow['id'] as String);
+      expect(episodes.map((e) => e['id']), [real]);
+      expect(service.resources(real).map((r) => r['name']), ['S01E01.mkv']);
+    },
+  );
 }

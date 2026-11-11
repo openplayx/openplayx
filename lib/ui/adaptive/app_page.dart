@@ -11,9 +11,13 @@ class AppPage extends StatelessWidget {
     required this.title,
     required this.body,
     this.actions = const [],
+    this.trailing = const [],
   });
   final Widget title, body;
   final List<Widget> actions;
+
+  /// Right-aligned header controls, placed just left of the assistant button.
+  final List<Widget> trailing;
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
@@ -23,57 +27,71 @@ class AppPage extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              padding: EdgeInsets.symmetric(
-                horizontal: AppSpacing.page(context).left,
-                vertical: AppSpacing.md,
+              // The top-right corner is reserved for the app-wide assistant
+              // button (40pt) overlaid by the shell.
+              padding: EdgeInsets.fromLTRB(
+                AppSpacing.page(context).left,
+                AppSpacing.md,
+                AppSpacing.page(context).right + 40 + AppSpacing.sm,
+                AppSpacing.md,
               ),
               decoration: BoxDecoration(
                 border: Border(
                   bottom: BorderSide(color: theme.colorScheme.border),
                 ),
               ),
-              child: LayoutBuilder(
-                builder: (context, box) => Wrap(
-                  spacing: AppSpacing.lg,
-                  runSpacing: AppSpacing.sm,
-                  crossAxisAlignment: WrapCrossAlignment.center,
-                  children: [
-                    Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        if (Navigator.of(context).canPop())
-                          Tooltip(
-                            message: MaterialLocalizations.of(context)
-                                .backButtonTooltip,
-                            child: Semantics(
-                              label: MaterialLocalizations.of(context)
-                                  .backButtonTooltip,
-                              button: true,
-                              child: ShadIconButton.ghost(
-                                icon: const Icon(AppIcons.back),
-                                onPressed: () =>
-                                    Navigator.of(context).maybePop(),
+              child: Row(
+                children: [
+                  Expanded(
+                    child: LayoutBuilder(
+                      builder: (context, box) => Wrap(
+                        spacing: AppSpacing.lg,
+                        runSpacing: AppSpacing.sm,
+                        crossAxisAlignment: WrapCrossAlignment.center,
+                        children: [
+                          Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              if (Navigator.of(context).canPop())
+                                Tooltip(
+                                  message: MaterialLocalizations.of(context)
+                                      .backButtonTooltip,
+                                  child: Semantics(
+                                    label: MaterialLocalizations.of(context)
+                                        .backButtonTooltip,
+                                    button: true,
+                                    child: ShadIconButton.ghost(
+                                      icon: const Icon(AppIcons.back),
+                                      onPressed: () =>
+                                          Navigator.of(context).maybePop(),
+                                    ),
+                                  ),
+                                ),
+                              Flexible(
+                                child: DefaultTextStyle(
+                                  style: theme.textTheme.h4.copyWith(
+                                    color: theme.colorScheme.foreground,
+                                  ),
+                                  child: title,
+                                ),
                               ),
-                            ),
+                            ],
                           ),
-                        Flexible(
-                          child: DefaultTextStyle(
-                            style: theme.textTheme.h4.copyWith(
-                              color: theme.colorScheme.foreground,
+                          if (actions.isNotEmpty)
+                            Wrap(
+                              spacing: AppSpacing.xs,
+                              runSpacing: AppSpacing.xs,
+                              children: actions,
                             ),
-                            child: title,
-                          ),
-                        ),
-                      ],
-                    ),
-                    if (actions.isNotEmpty)
-                      Wrap(
-                        spacing: AppSpacing.xs,
-                        runSpacing: AppSpacing.xs,
-                        children: actions,
+                        ],
                       ),
+                    ),
+                  ),
+                  for (final widget in trailing) ...[
+                    const SizedBox(width: AppSpacing.xs),
+                    widget,
                   ],
-                ),
+                ],
               ),
             ),
             Expanded(child: body),

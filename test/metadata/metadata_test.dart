@@ -535,6 +535,96 @@ void main() {
       expect(library.metadata.association(media), isNull);
       await changingService.dispose();
     });
+    test(
+      'clearing scraped metadata keeps files, progress and manual edits',
+      () async {
+        // A TMDB match on the movie, plus a user edit and playback progress.
+        library.transaction(
+          () => library.metadata.apply(
+            media,
+            MetadataRecord(
+              ref: const MetadataRef('tmdb', MediaKind.movie, '1'),
+              fields: const {'title': 'Scraped Film', 'overview': 'Plot'},
+            ),
+            sourceKey: 'tmdb',
+            authority: 100,
+            expectedRevision: 0,
+            operationId: 'op',
+            select: true,
+          ),
+        );
+        library.metadata.overrideField(
+          media,
+          'year',
+          1999,
+          expectedRevision: library.metadata.revision(media),
+        );
+        final resource = library.resources(media).single['id'] as String;
+        library.saveProgress(
+          resource,
+          library.beginSession(resource),
+          const Duration(minutes: 5),
+          const Duration(minutes: 90),
+        );
+        // A TV NFO import builds a series/season group around an episode.
+        final show = await Directory('${root.path}/Show').create();
+        final season = await Directory('${show.path}/Season 01').create();
+        await File('${show.path}/tvshow.nfo').writeAsString(
+          '<tvshow><title>Example Show</title><uniqueid type="tmdb">10</uniqueid></tvshow>',
+        );
+        final file = await File('${season.path}/Example.Show.S01E02.mkv')
+            .writeAsString('video');
+        await File('${season.path}/Example.Show.S01E02.nfo').writeAsString(
+          '<episodedetails><title>Second episode</title><season>1</season><episode>2</episode></episodedetails>',
+        );
+        final episode = library.register(
+          SourceEntry(
+            ResourceRef('files', file.path),
+            'Example.Show.S01E02.mkv',
+            isFolder: false,
+          ),
+        );
+        final lib = library.libraries.single['id'] as String;
+        library.addManual(lib, episode);
+        await service.importSidecars(episode);
+        expect(library.query(lib, contentType: 'series'), hasLength(1));
+        final before = library.metadata.scrapedStats();
+        expect(before.media, greaterThanOrEqualTo(2));
+        expect(before.bytes, greaterThan(0));
+        final resources = library.db.select('SELECT * FROM resources').length;
+
+        library.metadata.clearScraped();
+
+        expect(library.metadata.scrapedStats(), (media: 0, bytes: 0));
+        // Scraped fields and the TMDB match are gone; the user edit stays.
+        final fields = library.metadata.fields(media);
+        expect(fields['title'], isNot('Scraped Film'));
+        expect(fields['overview'], isNull);
+        expect(fields['year'], 1999);
+        expect(library.metadata.association(media), isNull);
+        // The series group is removed; the episode is a plain item again.
+        expect(library.query(lib, contentType: 'series'), isEmpty);
+        expect(library.query(lib).map((m) => m['id']), contains(episode));
+        expect(
+          library.db.select("SELECT * FROM media WHERE id LIKE 'metadata:%'"),
+          isEmpty,
+        );
+        // Files and playback progress are untouched.
+        expect(
+          library.db.select('SELECT * FROM resources'),
+          hasLength(resources),
+        );
+        expect(library.db.select('SELECT * FROM progress'), hasLength(1));
+        expect(library.db.select('PRAGMA foreign_key_check'), isEmpty);
+        // Everything is queued for scraping again.
+        expect(
+          library.db.select(
+            "SELECT * FROM metadata_queue WHERE state<>'queued'",
+          ),
+          isEmpty,
+        );
+      },
+    );
     test('atomic commit operation IDs are idempotent and stale revisions roll back', () {
       final record = MetadataRecord(
         ref: const MetadataRef('tmdb', MediaKind.movie, '1'),

@@ -363,8 +363,12 @@ class MetadataRepository {
         }
       }
     }
-    onChanged?.call();
+    if (!_bulk) onChanged?.call();
   }
+
+  /// Set while [clearScraped] rebuilds every item, so listeners get one
+  /// notification at the end instead of one per item.
+  bool _bulk = false;
 
   void overrideField(
     String media,
@@ -511,6 +515,100 @@ class MetadataRepository {
       [media, sourceKey],
     );
     rebuild(media);
+  }
+
+  // Scraped data is everything fetched from TMDB or NFO files. Data that came
+  // from a media server scan (`server:` keys) and user overrides are kept.
+  static const _scraped = "source_key NOT LIKE 'server:%'";
+
+  /// What [clearScraped] would remove: the number of media with scraped data
+  /// and the approximate bytes of scraped records stored in the database.
+  ({int media, int bytes}) scrapedStats() {
+    final row = db.select(
+      '''SELECT
+      (SELECT COUNT(DISTINCT media_id) FROM metadata_observations WHERE $_scraped) AS media,
+      COALESCE((SELECT SUM(length(record)) FROM metadata_observations WHERE $_scraped),0)
+      + COALESCE((SELECT SUM(length(input)+length(candidates)) FROM metadata_jobs),0)
+      + COALESCE((SELECT SUM(COALESCE(length(previous),0)+COALESCE(length(current),0)) FROM metadata_history),0)
+      + COALESCE((SELECT SUM(length(descriptor)) FROM artwork_selections
+          WHERE json_extract(descriptor,'\$.id') NOT LIKE 'server:%'),0) AS bytes''',
+    ).single;
+    return (media: row['media'] as int, bytes: row['bytes'] as int);
+  }
+
+  /// Returns every item to its unscraped state: scraped observations, matches,
+  /// jobs, history, scraped artwork choices and the series/season groups built
+  /// from TMDB are removed, and every item is queued for scraping again.
+  /// Files, playback progress, server metadata and manual edits are untouched.
+  void clearScraped() {
+    db.execute('BEGIN IMMEDIATE');
+    try {
+      // Series/season rows that exist only because TMDB grouped episodes.
+      db.execute(
+        'CREATE TEMP TABLE IF NOT EXISTS cleared_containers(id TEXT PRIMARY KEY)',
+      );
+      db.execute('DELETE FROM cleared_containers');
+      db.execute(
+        '''INSERT OR IGNORE INTO cleared_containers
+        SELECT media_id FROM metadata_containers c
+        WHERE NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=c.media_id)
+          AND NOT EXISTS (SELECT 1 FROM source_media s WHERE s.media_id=c.media_id)''',
+      );
+      db.execute('DELETE FROM metadata_relations');
+      db.execute('DELETE FROM metadata_containers');
+      for (final table in const [
+        'memberships',
+        'ignored',
+        'manual_memberships',
+        'media_evidence',
+        'metadata_queue',
+        'metadata_observations',
+        'metadata_overrides',
+        'metadata_projection',
+        'metadata_jobs',
+        'metadata_history',
+        'artwork_selections',
+        'metadata_state',
+      ]) {
+        db.execute(
+          'DELETE FROM $table WHERE media_id IN (SELECT id FROM cleared_containers)',
+        );
+      }
+      db.execute(
+        'DELETE FROM media WHERE id IN (SELECT id FROM cleared_containers)',
+      );
+      db.execute('DROP TABLE cleared_containers');
+
+      db.execute('DELETE FROM metadata_jobs');
+      db.execute('DELETE FROM metadata_history');
+      db.execute('DELETE FROM metadata_observations WHERE $_scraped');
+      db.execute(
+        "DELETE FROM artwork_selections WHERE json_extract(descriptor,'\$.id') NOT LIKE 'server:%'",
+      );
+      db.execute(
+        "UPDATE metadata_state SET association=NULL,confirmed=0 WHERE association IS NOT NULL AND json_extract(association,'\$.provider') NOT LIKE 'server:%'",
+      );
+      // Invalidates any job still in flight: its commit fails the revision check.
+      db.execute('UPDATE metadata_state SET revision=revision+1');
+      db.execute(
+        "UPDATE metadata_queue SET state='queued',phase=0,attempts=0,next_at=0,error_code=NULL,job_id=NULL,lease_owner=NULL,lease_until=NULL,input_key=''",
+      );
+      _bulk = true;
+      for (final row in db.select('SELECT media_id FROM metadata_state')) {
+        rebuild(row['media_id'] as String);
+      }
+      db.execute('COMMIT');
+    } catch (_) {
+      db.execute('ROLLBACK');
+      rethrow;
+    } finally {
+      _bulk = false;
+    }
+    // Reclaims the freed pages; the file only shrinks after a VACUUM.
+    try {
+      db.execute('VACUUM');
+    } catch (_) {}
+    onChanged?.call();
   }
 
   String setting(String key, {String fallback = ''}) =>

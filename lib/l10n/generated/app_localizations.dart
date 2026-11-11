@@ -178,18 +178,6 @@ abstract class AppLocalizations {
   /// **'Your choice is active. Select it again to retry saving.'**
   String get preferenceSaveRetry;
 
-  /// No description provided for @sourceDefaults.
-  ///
-  /// In en, this message translates to:
-  /// **'Source defaults'**
-  String get sourceDefaults;
-
-  /// No description provided for @sourceDefaultsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Manage default sources for browsing, search and scans'**
-  String get sourceDefaultsDescription;
-
   /// No description provided for @manage.
   ///
   /// In en, this message translates to:
@@ -496,12 +484,6 @@ abstract class AppLocalizations {
   /// **'Edit title'**
   String get correctTitle;
 
-  /// No description provided for @removeFromLibrary.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from this library (keep files and media records)'**
-  String get removeFromLibrary;
-
   /// No description provided for @continueIncludingHistory.
   ///
   /// In en, this message translates to:
@@ -676,12 +658,6 @@ abstract class AppLocalizations {
   /// **'Choose scan scope'**
   String get chooseScanScope;
 
-  /// No description provided for @defaultSaveFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not save the default source.'**
-  String get defaultSaveFailed;
-
   /// No description provided for @defaultDescription.
   ///
   /// In en, this message translates to:
@@ -699,36 +675,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Default resolution source'**
   String get defaultResolve;
-
-  /// No description provided for @chooseEachTime.
-  ///
-  /// In en, this message translates to:
-  /// **'Choose each time'**
-  String get chooseEachTime;
-
-  /// No description provided for @defaultUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'A default source is unavailable. Choose again; no other account was substituted.'**
-  String get defaultUnavailable;
-
-  /// No description provided for @searchScope.
-  ///
-  /// In en, this message translates to:
-  /// **'Multi-source search scope'**
-  String get searchScope;
-
-  /// No description provided for @searchScopeDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.'**
-  String get searchScopeDescription;
-
-  /// No description provided for @sourceDefaultsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Default sources and search scope'**
-  String get sourceDefaultsTitle;
 
   /// No description provided for @localFolder.
   ///
@@ -982,24 +928,6 @@ abstract class AppLocalizations {
   /// **'Could not play this file.'**
   String get filePlayFailed;
 
-  /// No description provided for @previewLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview limit of 500 files reached; results are incomplete.'**
-  String get previewLimit;
-
-  /// No description provided for @previewDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Access scopes and scan exclusions apply. This preview does not update the library or create a background index.'**
-  String get previewDescription;
-
-  /// No description provided for @scanFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan failed.'**
-  String get scanFailed;
-
   /// No description provided for @backToParent.
   ///
   /// In en, this message translates to:
@@ -1030,29 +958,11 @@ abstract class AppLocalizations {
   /// **'Could not change source status. Try again.'**
   String get toggleSourceFailed;
 
-  /// No description provided for @verifyConnection.
-  ///
-  /// In en, this message translates to:
-  /// **'Test connection'**
-  String get verifyConnection;
-
   /// No description provided for @connectionFailed.
   ///
   /// In en, this message translates to:
   /// **'Connection failed.'**
   String get connectionFailed;
-
-  /// No description provided for @previewScan.
-  ///
-  /// In en, this message translates to:
-  /// **'Preview scan'**
-  String get previewScan;
-
-  /// No description provided for @deleteSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete media source'**
-  String get deleteSource;
 
   /// No description provided for @deleteSourceFailed.
   ///
@@ -1065,30 +975,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'No browsable media in this folder.'**
   String get folderEmpty;
-
-  /// No description provided for @reloadConfiguration.
-  ///
-  /// In en, this message translates to:
-  /// **'Reload configuration'**
-  String get reloadConfiguration;
-
-  /// No description provided for @defaultBrowseUnavailable.
-  ///
-  /// In en, this message translates to:
-  /// **'Default source unavailable. Choose again; no other account was substituted.'**
-  String get defaultBrowseUnavailable;
-
-  /// No description provided for @browseDefault.
-  ///
-  /// In en, this message translates to:
-  /// **'Browse default'**
-  String get browseDefault;
-
-  /// No description provided for @capabilityDefaults.
-  ///
-  /// In en, this message translates to:
-  /// **'Default sources'**
-  String get capabilityDefaults;
 
   /// No description provided for @addSourceShort.
   ///
@@ -1276,12 +1162,6 @@ abstract class AppLocalizations {
   /// **'Scraping {done}/{total}'**
   String metadataProgressLabel(int done, int total);
 
-  /// No description provided for @metadataProgressTooltip.
-  ///
-  /// In en, this message translates to:
-  /// **'Metadata scraping progress: {done} of {total} processed (items with no match count as processed)'**
-  String metadataProgressTooltip(int done, int total);
-
   /// No description provided for @watchedMinutes.
   ///
   /// In en, this message translates to:
@@ -1315,26 +1195,14 @@ abstract class AppLocalizations {
   /// No description provided for @disableSourceDescription.
   ///
   /// In en, this message translates to:
-  /// **'{playing} playing, {running} requests, {defaults} default bindings. New requests will be rejected and defaults cleared. Current playback can finish. Configuration and favorites are kept.'**
-  String disableSourceDescription(int playing, int running, int defaults);
+  /// **'{playing} playing, {running} requests. New requests will be rejected. Current playback can finish. Configuration and favorites are kept.'**
+  String disableSourceDescription(int playing, int running);
 
   /// No description provided for @deleteSourceDescription.
   ///
   /// In en, this message translates to:
-  /// **'Remove this source configuration and credential reference. Files and favorites are kept. {defaults} default bindings and search-scope bindings will be cleared. {playing} playing items and {running} requests can finish before connections are released.'**
-  String deleteSourceDescription(int defaults, int playing, int running);
-
-  /// No description provided for @previewTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Scan preview: {name}'**
-  String previewTitle(String name);
-
-  /// No description provided for @filesFound.
-  ///
-  /// In en, this message translates to:
-  /// **'{count} files found.'**
-  String filesFound(int count);
+  /// **'Remove this source configuration and credential reference. Files and favorites are kept. {playing} playing items and {running} requests can finish before connections are released.'**
+  String deleteSourceDescription(int playing, int running);
 
   /// No description provided for @deleteNamedSource.
   ///
@@ -2187,12 +2055,6 @@ abstract class AppLocalizations {
   /// **'File sources'**
   String get fileSources;
 
-  /// No description provided for @addFileSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Add file source'**
-  String get addFileSource;
-
   /// No description provided for @nameFileSource.
   ///
   /// In en, this message translates to:
@@ -2217,23 +2079,11 @@ abstract class AppLocalizations {
   /// **'Disabled'**
   String get fileSourceDisabled;
 
-  /// No description provided for @rescanAll.
-  ///
-  /// In en, this message translates to:
-  /// **'Rescan all file sources'**
-  String get rescanAll;
-
   /// No description provided for @noFileSources.
   ///
   /// In en, this message translates to:
   /// **'No file sources yet. Add a folder to build your library.'**
   String get noFileSources;
-
-  /// No description provided for @removeFileSource.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete file source'**
-  String get removeFileSource;
 
   /// No description provided for @removeFileSourceConfirm.
   ///
@@ -2276,12 +2126,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'File sources'**
   String get sourceTabFileSources;
-
-  /// No description provided for @moreActions.
-  ///
-  /// In en, this message translates to:
-  /// **'More actions'**
-  String get moreActions;
 
   /// No description provided for @aiNewChat.
   ///
@@ -2624,6 +2468,120 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remote only'**
   String get remoteRemoteOnly;
+
+  /// No description provided for @developerMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Developer mode'**
+  String get developerMode;
+
+  /// No description provided for @developerModeDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Shows debugging entry points, such as the metadata button on the media detail page.'**
+  String get developerModeDescription;
+
+  /// No description provided for @metadataConfigureInSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a read access token in Settings → TMDB to search.'**
+  String get metadataConfigureInSettings;
+
+  /// No description provided for @scrapeManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraped metadata'**
+  String get scrapeManagement;
+
+  /// No description provided for @scrapedCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraped items'**
+  String get scrapedCount;
+
+  /// No description provided for @scrapedCountValue.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} items'**
+  String scrapedCountValue(int count);
+
+  /// No description provided for @scrapeStorage.
+  ///
+  /// In en, this message translates to:
+  /// **'Storage used'**
+  String get scrapeStorage;
+
+  /// No description provided for @scrapeStorageDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Database {database} · Image cache {artwork}'**
+  String scrapeStorageDetail(String database, String artwork);
+
+  /// No description provided for @scrapeLoading.
+  ///
+  /// In en, this message translates to:
+  /// **'Calculating…'**
+  String get scrapeLoading;
+
+  /// No description provided for @scrapeClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all scraped metadata'**
+  String get scrapeClear;
+
+  /// No description provided for @scrapeClearHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Deletes metadata fetched from TMDB and NFO files, and cached posters.'**
+  String get scrapeClearHint;
+
+  /// No description provided for @scrapeClearTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear all scraped metadata?'**
+  String get scrapeClearTitle;
+
+  /// No description provided for @scrapeClearDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata fetched from TMDB and NFO files, matches and downloaded posters will be deleted. This cannot be undone. Video files, playback progress, media server metadata and your manual edits are kept. If TMDB is configured, scraping starts again in the background.'**
+  String get scrapeClearDescription;
+
+  /// No description provided for @scrapeCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'All scraped metadata was cleared.'**
+  String get scrapeCleared;
+
+  /// No description provided for @scrapeClearFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not clear. Try again later.'**
+  String get scrapeClearFailed;
+
+  /// No description provided for @metadataProgressDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping done'**
+  String get metadataProgressDone;
+
+  /// No description provided for @edit.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit'**
+  String get edit;
+
+  /// No description provided for @refresh.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh'**
+  String get refresh;
+
+  /// No description provided for @addFileSourceShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Add folder'**
+  String get addFileSourceShort;
 }
 
 class _AppLocalizationsDelegate

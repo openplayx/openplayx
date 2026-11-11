@@ -150,4 +150,24 @@ void main() {
       }
     },
   );
+
+  test(
+    'cache size counts downloaded files and drops to zero on clear',
+    () async {
+      final root = await Directory.systemTemp.createTemp('artwork-size');
+      addTearDown(() async {
+        if (await root.exists()) await root.delete(recursive: true);
+      });
+      final cache = Directory('${root.path}/cache');
+      final service = ArtworkService(FixtureSources(root), directory: cache);
+      addTearDown(service.dispose);
+      expect(await service.cacheBytes(), 0);
+      await Directory('${cache.path}/nested').create(recursive: true);
+      await File('${cache.path}/a').writeAsBytes(List.filled(1000, 1));
+      await File('${cache.path}/nested/b').writeAsBytes(List.filled(24, 1));
+      expect(await service.cacheBytes(), 1024);
+      await service.clear();
+      expect(await service.cacheBytes(), 0);
+    },
+  );
 }

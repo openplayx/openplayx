@@ -13,20 +13,19 @@ import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
 import '../../data/sources/source_manager.dart';
 import 'scan_extensions_row.dart';
+import 'scrape_management_section.dart';
 import 'tmdb_settings_section.dart';
 import 'remote_access_settings_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
     super.key,
-    required this.onSourceDefaults,
     this.onModelSettings,
     this.library,
     this.sources,
   });
   final LibraryService? library;
   final SourceManager? sources;
-  final VoidCallback onSourceDefaults;
   final VoidCallback? onModelSettings;
   @override
   Widget build(BuildContext context) {
@@ -106,20 +105,11 @@ class SettingsPage extends StatelessWidget {
                         ),
                     ],
                   ),
-                  SettingsSection(
-                    title: l.sources,
-                    children: [
-                      SettingsRow(
-                        title: l.sourceDefaults,
-                        description: l.sourceDefaultsDescription,
-                        control: ShadButton.outline(
-                          onPressed: onSourceDefaults,
-                          child: Text(l.manage),
-                        ),
-                      ),
-                      if (sources != null) ScanExtensionsRow(sources: sources!),
-                    ],
-                  ),
+                  if (sources != null)
+                    SettingsSection(
+                      title: l.sources,
+                      children: [ScanExtensionsRow(sources: sources!)],
+                    ),
                   if (sources != null)
                     SettingsSection(
                       title: '远程访问',
@@ -141,6 +131,11 @@ class SettingsPage extends StatelessWidget {
                       ],
                     ),
                   if (library != null) TmdbSettingsSection(library: library!),
+                  if (library != null && sources != null)
+                    ScrapeManagementSection(
+                      library: library!,
+                      sources: sources!,
+                    ),
                   if (onModelSettings != null)
                     SettingsSection(
                       title: l.aiAssistant,
@@ -156,6 +151,20 @@ class SettingsPage extends StatelessWidget {
                       ],
                     ),
                   const DiagnosticsSection(),
+                  SettingsSection(
+                    title: l.developerMode,
+                    children: [
+                      SettingsRow(
+                        title: l.developerMode,
+                        description: l.developerModeDescription,
+                        control: ShadSwitch(
+                          key: const ValueKey('developer-mode'),
+                          value: appearance.developerMode,
+                          onChanged: appearance.setDeveloperMode,
+                        ),
+                      ),
+                    ],
+                  ),
                   SettingsSection(
                     title: l.about,
                     children: [

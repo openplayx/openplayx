@@ -164,78 +164,6 @@ class _MetadataPageState extends State<MetadataPage> {
     }
   }
 
-  Future<void> _configure() async {
-    var token = '';
-    var language = _service.language;
-    final saved = await showShadDialog<bool>(
-      context: context,
-      builder: (c) => ShadDialog(
-        title: Text(l.metadataConfigure),
-        actions: [
-          ShadButton.ghost(
-            onPressed: () => Navigator.pop(c),
-            child: Text(l.cancel),
-          ),
-          ShadButton(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l.save),
-          ),
-        ],
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 480),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text(l.metadataPrivacy),
-              const SizedBox(height: 16),
-              ShadInput(
-                obscureText: true,
-                placeholder: Text(l.metadataToken),
-                onChanged: (v) => token = v,
-              ),
-              const SizedBox(height: 12),
-              ShadInput(
-                initialValue: language,
-                placeholder: Text(l.metadataLanguage),
-                onChanged: (v) => language = v,
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-    if (saved != true || !mounted) return;
-    await _run(() async {
-      if (!RegExp(r'^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$').hasMatch(language)) {
-        throw const PluginException('invalidInput', '语言无效');
-      }
-      if (token.trim().isNotEmpty) {
-        await widget.credentials.write(
-          key: 'openplayx.metadata.tmdb.token',
-          value: token.trim(),
-        );
-      }
-      if (!mounted) return;
-      _service.repository.setSetting('language', language);
-      if (token.trim().isNotEmpty) {
-        _service.repository.setSetting(
-          'tmdbRevision',
-          '${DateTime.now().microsecondsSinceEpoch}',
-        );
-        await _service.dispose();
-        if (!mounted) return;
-        _service = MetadataService(widget.library, widget.sources);
-        final transport = TmdbTransport(token.trim());
-        _service.registry.register(
-          'tmdb',
-          TmdbMetadataPlugin(transport.get, onDispose: transport.close),
-        );
-        _configured = true;
-      }
-    });
-  }
-
   Future<void> _confirm(MetadataRecord candidate, int index) async {
     final current = _service.repository.fields(widget.media);
     final yes = await showShadDialog<bool>(
@@ -447,33 +375,6 @@ class _MetadataPageState extends State<MetadataPage> {
                           _run(() => _service.refresh(widget.media)),
                       child: Text(l.metadataRefresh),
                     ),
-                    ShadButton.ghost(
-                      enabled: !_busy,
-                      onPressed: _configure,
-                      child: Text(l.metadataConfigure),
-                    ),
-                    if (_configured)
-                      ShadButton.ghost(
-                        enabled: !_busy,
-                        onPressed: () => _run(() async {
-                          await widget.credentials.delete(
-                            key: 'openplayx.metadata.tmdb.token',
-                          );
-                          if (!mounted) return;
-                          _service.repository.setSetting(
-                            'tmdbRevision',
-                            '${DateTime.now().microsecondsSinceEpoch}',
-                          );
-                          await _service.dispose();
-                          if (!mounted) return;
-                          _service = MetadataService(
-                            widget.library,
-                            widget.sources,
-                          );
-                          _configured = false;
-                        }),
-                        child: Text(l.metadataForgetToken),
-                      ),
                   ],
                 ),
                 const SizedBox(height: 24),
@@ -482,6 +383,15 @@ class _MetadataPageState extends State<MetadataPage> {
                   style: ShadTheme.of(context).textTheme.h4,
                 ),
                 Text(l.metadataPrivacy),
+                // The token is managed only in Settings → TMDB.
+                if (!_configured)
+                  Padding(
+                    padding: const EdgeInsets.only(top: 8),
+                    child: ShadAlert(
+                      title: Text(l.metadataTokenMissing),
+                      description: Text(l.metadataConfigureInSettings),
+                    ),
+                  ),
                 const SizedBox(height: 12),
                 ShadInput(
                   controller: _query,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../app/theme/app_theme_controller.dart';
 import '../../data/sources/source_manager.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/artwork/artwork_service.dart';
@@ -117,11 +118,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     if (mounted) setState(() {});
   }
 
-  void _remove() {
-    service.hide(_id);
-    Navigator.pop(context);
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
@@ -131,20 +127,16 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     return AppPage(
       title: Text(title, maxLines: 1, overflow: TextOverflow.ellipsis),
       actions: [
-        Tooltip(
-          message: l.metadata,
-          child: ShadIconButton.ghost(
-            icon: Icon(AppIcons.info),
-            onPressed: _openMetadata,
+        // Raw metadata editing is a debugging tool, hidden unless enabled.
+        if (AppAppearance.maybeOf(context)?.developerMode ?? false)
+          Tooltip(
+            message: l.metadata,
+            child: ShadIconButton.ghost(
+              key: const ValueKey('media-metadata'),
+              icon: Icon(AppIcons.info),
+              onPressed: _openMetadata,
+            ),
           ),
-        ),
-        Tooltip(
-          message: l.removeFromLibrary,
-          child: ShadIconButton.ghost(
-            icon: Icon(AppIcons.remove),
-            onPressed: _remove,
-          ),
-        ),
       ],
       body: ListView(
         padding: AppSpacing.page(context),

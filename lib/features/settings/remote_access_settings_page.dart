@@ -7,6 +7,7 @@ import '../../data/remote_access/remote_transport.dart';
 import '../../data/sources/source_config.dart';
 import '../../data/sources/source_manager.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/adaptive/form_page.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/tokens/app_spacing.dart';
 
@@ -74,11 +75,12 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   );
   Future<void> _edit(SourceConfig source, {bool backup = false}) async {
     final current = _draft!.bindings[source.id];
-    final result = await showShadDialog<RemoteAccessConfig>(
-      context: context,
-      builder: (_) => _RemoteEditor(
-        source: source,
-        initial: backup ? null : current?.primary,
+    final result = await Navigator.of(context).push<RemoteAccessConfig>(
+      MaterialPageRoute(
+        builder: (_) => _RemoteEditor(
+          source: source,
+          initial: backup ? null : current?.primary,
+        ),
       ),
     );
     if (result == null || !mounted) return;
@@ -585,9 +587,10 @@ class _RemoteEditorState extends State<_RemoteEditor> {
   }
 
   @override
-  Widget build(BuildContext context) => ShadDialog(
+  Widget build(BuildContext context) => FormPage(
+    canPop: !_busy,
+    crossAxisAlignment: CrossAxisAlignment.stretch,
     title: const Text('远程连接设置'),
-    constraints: const BoxConstraints(maxWidth: 580),
     actions: [
       ShadButton.ghost(
         onPressed: _busy ? null : () => Navigator.pop(context),
@@ -595,62 +598,53 @@ class _RemoteEditorState extends State<_RemoteEditor> {
       ),
       ShadButton(onPressed: _busy ? null : _save, child: const Text('更新草稿')),
     ],
-    child: SizedBox(
-      width: 530,
-      child: SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            const Text(
-              '通过可信渠道导入配对，确认局域网与远程入口属于同一媒体服务。同一线路 ID 的公开代理参数会一起更新。编辑这里只更新草稿，返回后保存并应用。',
-            ),
-            field('pairing', '可选：Relay 配对 JSON', multiline: true),
-            ShadButton.outline(
-              onPressed: _busy ? null : _import,
-              child: const Text('导入配对并填充表单'),
-            ),
-            field('lineId', '稳定线路 ID'),
-            field('homeId', '家庭 ID'),
-            field('serviceId', '服务 ID'),
-            field('host', 'Relay 地址'),
-            field('port', '代理端口'),
-            field('serverName', '代理 TLS 服务名称'),
-            field('uuid', 'VLESS UUID（留空保留已有机密）', secret: true),
-            field('ca', '可选代理 CA（公开证书）', multiline: true),
-            field('remoteAddress', '媒体服务逻辑端点'),
-            field('remotePort', 'Relay 分配的映射端口'),
-            const SizedBox(height: 12),
-            ShadSelect<RemoteConnectionMode>(
-              initialValue: _mode,
-              selectedOptionBuilder: (_, v) => Text(v.name),
-              onChanged: (v) => setState(() => _mode = v!),
-              options:
-                  (widget.source.kind == SourceKind.smb
-                          ? [RemoteConnectionMode.remoteOnly]
-                          : RemoteConnectionMode.values)
-                      .map(
-                        (v) => ShadOption(
-                          value: v,
-                          child: Text(switch (v) {
-                            RemoteConnectionMode.automatic => '自动：验证局域网，否则远程',
-                            RemoteConnectionMode.localOnly => '仅局域网',
-                            RemoteConnectionMode.remoteOnly => '仅远程',
-                          }),
-                        ),
-                      )
-                      .toList(),
-            ),
-            if (_mode != RemoteConnectionMode.remoteOnly) ...[
-              field('localAddress', '已配对的局域网 HTTPS 地址'),
-              field('fingerprint', '通过可信途径确认的证书 SHA-256（64 位）'),
-            ],
-            if (_extra['tls'] is Map &&
-                (_extra['tls'] as Map)['reality'] != null)
-              const Text('已保留导入的 REALITY 协议参数；更换协议请重新导入可信配对。'),
-            if (_error != null) ShadAlert.destructive(title: Text(_error!)),
-          ],
-        ),
+    children: [
+      const Text(
+        '通过可信渠道导入配对，确认局域网与远程入口属于同一媒体服务。同一线路 ID 的公开代理参数会一起更新。编辑这里只更新草稿，返回后保存并应用。',
       ),
-    ),
+      field('pairing', '可选：Relay 配对 JSON', multiline: true),
+      ShadButton.outline(
+        onPressed: _busy ? null : _import,
+        child: const Text('导入配对并填充表单'),
+      ),
+      field('lineId', '稳定线路 ID'),
+      field('homeId', '家庭 ID'),
+      field('serviceId', '服务 ID'),
+      field('host', 'Relay 地址'),
+      field('port', '代理端口'),
+      field('serverName', '代理 TLS 服务名称'),
+      field('uuid', 'VLESS UUID（留空保留已有机密）', secret: true),
+      field('ca', '可选代理 CA（公开证书）', multiline: true),
+      field('remoteAddress', '媒体服务逻辑端点'),
+      field('remotePort', 'Relay 分配的映射端口'),
+      const SizedBox(height: 12),
+      ShadSelect<RemoteConnectionMode>(
+        initialValue: _mode,
+        selectedOptionBuilder: (_, v) => Text(v.name),
+        onChanged: (v) => setState(() => _mode = v!),
+        options:
+            (widget.source.kind == SourceKind.smb
+                    ? [RemoteConnectionMode.remoteOnly]
+                    : RemoteConnectionMode.values)
+                .map(
+                  (v) => ShadOption(
+                    value: v,
+                    child: Text(switch (v) {
+                      RemoteConnectionMode.automatic => '自动：验证局域网，否则远程',
+                      RemoteConnectionMode.localOnly => '仅局域网',
+                      RemoteConnectionMode.remoteOnly => '仅远程',
+                    }),
+                  ),
+                )
+                .toList(),
+      ),
+      if (_mode != RemoteConnectionMode.remoteOnly) ...[
+        field('localAddress', '已配对的局域网 HTTPS 地址'),
+        field('fingerprint', '通过可信途径确认的证书 SHA-256（64 位）'),
+      ],
+      if (_extra['tls'] is Map && (_extra['tls'] as Map)['reality'] != null)
+        const Text('已保留导入的 REALITY 协议参数；更换协议请重新导入可信配对。'),
+      if (_error != null) ShadAlert.destructive(title: Text(_error!)),
+    ],
   );
 }

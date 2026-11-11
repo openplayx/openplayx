@@ -225,6 +225,20 @@ class MetadataQueue {
     return (done: row['done'] as int, total: row['total'] as int);
   }
 
+  /// [progress] limited to the media one file source (binding) found.
+  ({int done, int total}) progressFor(String binding) {
+    final row = db
+        .select(
+          '''SELECT COUNT(*) AS total,
+      COALESCE(SUM(q.state NOT IN ('queued','running','waitingConfiguration')),0) AS done
+      FROM metadata_queue q JOIN media_evidence e ON e.media_id=q.media_id
+      WHERE e.binding_id=? AND q.state<>'cancelled' ''',
+          [binding],
+        )
+        .single;
+    return (done: row['done'] as int, total: row['total'] as int);
+  }
+
   Map<String, int> get counts => {
     for (final row in db.select(
       'SELECT state,COUNT(*) AS n FROM metadata_queue GROUP BY state',

@@ -10,6 +10,7 @@ import '../../ui/tokens/app_spacing.dart';
 
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/media/content_row.dart';
+import '../../ui/components/swipe_reveal.dart';
 import '../../ui/icons/app_icons.dart';
 
 import '../../core/plugins/source_capability.dart';
@@ -19,7 +20,6 @@ import '../../services/library/library_service.dart';
 import '../../ui/components/media/source_kind_icon.dart';
 import 'file_source_actions.dart';
 import 'source_instance_form.dart';
-import 'source_defaults_page.dart';
 import 'source_presentation.dart';
 
 class SourcePage extends StatefulWidget {
@@ -53,10 +53,8 @@ class _SourcePageState extends State<SourcePage> {
   int? _next;
   String? _error;
   bool _busy = true;
-  StreamIterator<SourceEntry>? _scanIterator;
   @override
   void dispose() {
-    unawaited(_scanIterator?.cancel());
     unawaited(_libraryChanges?.cancel());
     _files?.dispose();
     super.dispose();
@@ -159,74 +157,12 @@ class _SourcePageState extends State<SourcePage> {
 
   String _deletionMessage(String id) {
     final impact = widget.manager.impact(id);
-    return l.deleteSourceDescription(
-      impact.defaultCapabilities.length,
-      impact.playing,
-      impact.running,
-    );
-  }
-
-  Future<void> _scan(SourceConfig config) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final entries = <SourceEntry>[];
-      final iterator = StreamIterator(widget.manager.scan(config.id));
-      _scanIterator = iterator;
-      try {
-        while (await iterator.moveNext()) {
-          entries.add(iterator.current);
-        }
-      } finally {
-        await iterator.cancel();
-        _scanIterator = null;
-      }
-      if (!mounted) return;
-      await showShadDialog<void>(
-        context: context,
-        builder: (context) => ShadDialog(
-          title: Text(l.previewTitle(config.titleName)),
-          actions: [
-            ShadButton.ghost(
-              onPressed: () => Navigator.pop(context),
-              child: Text(l.close),
-            ),
-          ],
-          child: SizedBox(
-            width: 480,
-            height: 320,
-            child: ListView(
-              children: [
-                Text(
-                  entries.length >= 500
-                      ? l.previewLimit
-                      : l.filesFound(entries.length),
-                ),
-                Text(l.previewDescription),
-                for (final entry in entries)
-                  ContentRow(title: Text(entry.name)),
-              ],
-            ),
-          ),
-        ),
-      );
-    } catch (error) {
-      if (mounted) {
-        _error = error is PluginException ? error.message : l.scanFailed;
-      }
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    return l.deleteSourceDescription(impact.playing, impact.running);
   }
 
   Future<void> _toggle(SourceConfig source, bool enabled) async {
     final impact = widget.manager.impact(source.id);
-    if (!enabled &&
-        (impact.playing > 0 ||
-            impact.running > 0 ||
-            impact.defaultCapabilities.isNotEmpty)) {
+    if (!enabled && (impact.playing > 0 || impact.running > 0)) {
       final accepted = await showShadDialog<bool>(
         context: context,
         builder: (context) => ShadDialog(
@@ -242,11 +178,7 @@ class _SourcePageState extends State<SourcePage> {
             ),
           ],
           child: Text(
-            l.disableSourceDescription(
-              impact.playing,
-              impact.running,
-              impact.defaultCapabilities.length,
-            ),
+            l.disableSourceDescription(impact.playing, impact.running),
           ),
         ),
       );
@@ -268,29 +200,12 @@ class _SourcePageState extends State<SourcePage> {
     }
   }
 
-  Future<void> _verify(SourceConfig source) async {
-    setState(() => _busy = true);
-    try {
-      await widget.manager.testConnection(source.id);
-      await _load();
-    } catch (error) {
-      if (mounted) {
-        setState(() {
-          _busy = false;
-          _error = error is PluginException
-              ? error.message
-              : l.connectionFailed;
-        });
-      }
-    }
-  }
-
   Future<void> _edit(SourceConfig source) async {
-    await showShadDialog<bool>(
-      context: context,
-      barrierDismissible: false,
-      builder: (_) =>
-          SourceInstanceForm(manager: widget.manager, initial: source),
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) =>
+            SourceInstanceForm(manager: widget.manager, initial: source),
+      ),
     );
     if (mounted) await _load();
   }
@@ -328,124 +243,23 @@ class _SourcePageState extends State<SourcePage> {
     }
   }
 
-  /// Connection-tab actions, kept inside the tab body next to the list they act
-  /// on (like the file sources tab) instead of in the page header.
-  Widget _connectionToolbar() {
-    final browseDefault = widget.manager.bindings.defaults['source.browse'];
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 8, 8, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            children: [
-              Expanded(
-                child: ShadButton(
-                  onPressed: _busy
-                      ? null
-                      : () async {
-                          await showShadDialog<bool>(
-                            context: context,
-                            barrierDismissible: false,
-                            builder: (_) =>
-                                SourceInstanceForm(manager: widget.manager),
-                          );
-                          if (mounted) await _load();
-                        },
-                  leading: Icon(AppIcons.add),
-                  enabled: !_busy,
-                  child: Text(l.addSourceShort),
-                ),
+  /// Header button (top right, next to the assistant) that adds a connection.
+  Widget _addSourceButton() => ShadButton.ghost(
+    key: const ValueKey('add-source'),
+    onPressed: _busy
+        ? null
+        : () async {
+            await Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => SourceInstanceForm(manager: widget.manager),
               ),
-              if (_files != null)
-                Tooltip(
-                  message: l.rescanAll,
-                  child: Semantics(
-                    button: true,
-                    label: l.rescanAll,
-                    child: Builder(
-                      builder: (context) {
-                        final files = _files!;
-                        final enabled = [
-                          for (final b in files.service.fileSources())
-                            if (b['enabled'] == 1) b['id'] as String,
-                        ];
-                        final disabled = files.scanning || enabled.isEmpty;
-                        return ShadIconButton.ghost(
-                          icon: Icon(AppIcons.refresh),
-                          onPressed: disabled
-                              ? null
-                              : () => files.scan(enabled, l.scanFailedRetained),
-                          enabled: !disabled,
-                          width: 48,
-                          height: 48,
-                        );
-                      },
-                    ),
-                  ),
-                ),
-              Tooltip(
-                message: l.reloadConfiguration,
-                child: Semantics(
-                  button: true,
-                  label: l.reloadConfiguration,
-                  child: ShadIconButton.ghost(
-                    icon: Icon(AppIcons.refresh),
-                    onPressed: _busy ? null : () => _load(),
-                    enabled: !_busy,
-                    width: 48,
-                    height: 48,
-                  ),
-                ),
-              ),
-              Tooltip(
-                message: l.capabilityDefaults,
-                child: Semantics(
-                  button: true,
-                  label: l.capabilityDefaults,
-                  child: ShadIconButton.ghost(
-                    icon: Icon(AppIcons.preferences),
-                    onPressed: _busy
-                        ? null
-                        : () async {
-                            await Navigator.of(context).push(
-                              MaterialPageRoute<void>(
-                                builder: (_) =>
-                                    SourceDefaultsPage(manager: widget.manager),
-                              ),
-                            );
-                            if (mounted) await _load();
-                          },
-                    enabled: !_busy,
-                    width: 48,
-                    height: 48,
-                  ),
-                ),
-              ),
-            ],
-          ),
-          if (browseDefault != null)
-            ShadButton.ghost(
-              onPressed: _busy
-                  ? null
-                  : () {
-                      final config = widget.manager.configs
-                          .where((c) => c.id == browseDefault && c.enabled)
-                          .firstOrNull;
-                      if (config == null) {
-                        setState(() => _error = l.defaultBrowseUnavailable);
-                        return;
-                      }
-                      _source = config;
-                      _load();
-                    },
-              enabled: !_busy,
-              child: Text(l.browseDefault),
-            ),
-        ],
-      ),
-    );
-  }
+            );
+            if (mounted) await _load();
+          },
+    leading: Icon(AppIcons.add),
+    enabled: !_busy,
+    child: Text(l.addSourceShort),
+  );
 
   /// A connection with its file sources nested below it: a two-level tree.
   Widget _connectionCard(SourceConfig source) {
@@ -461,6 +275,27 @@ class _SourcePageState extends State<SourcePage> {
                   connection: source,
                 ),
           ];
+    final actions = [
+      if (files != null)
+        SwipeAction(
+          key: ValueKey('source-add-file-${source.id}'),
+          label: l.addFileSourceShort,
+          onPressed: source.enabled && !files.scanning
+              ? () => files.add(context, source.id)
+              : null,
+        ),
+      SwipeAction(
+        key: ValueKey('source-edit-${source.id}'),
+        label: l.edit,
+        onPressed: () => _edit(source),
+      ),
+      SwipeAction(
+        key: ValueKey('source-delete-${source.id}'),
+        label: l.delete,
+        destructive: true,
+        onPressed: () => _delete(source),
+      ),
+    ];
     return Padding(
       padding: const EdgeInsets.only(bottom: AppSpacing.md),
       child: ShadCard(
@@ -468,71 +303,64 @@ class _SourcePageState extends State<SourcePage> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            ContentRow(
-              leading: SourceKindIcon(source.kind),
-              title: Text(source.titleName),
-              subtitle: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    l.sourceVersion(
-                      source.kind == SourceKind.local
-                          ? l.localSource
-                          : source.kind.label,
-                      source.pluginVersion,
-                      source.configVersion,
-                      source.revision,
+            // Swiping left reveals add file source, edit and delete.
+            SwipeReveal(
+              key: ValueKey('source-${source.id}'),
+              enabled: !_busy,
+              actionWidth: SwipeActionBar.width * actions.length + 4,
+              trailingInset: AppSpacing.md,
+              action: (close) => SwipeActionBar(actions: actions, close: close),
+              child: ContentRow(
+                leading: SourceKindIcon(source.kind),
+                title: Text(source.titleName),
+                subtitle: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      l.sourceVersion(
+                        source.kind == SourceKind.local
+                            ? l.localSource
+                            : source.kind.label,
+                        source.pluginVersion,
+                        source.configVersion,
+                        source.revision,
+                      ),
                     ),
-                  ),
-                  Text(
-                    SourcePresentation.application(
-                      l,
-                      widget.manager.applicationStatus(source.id),
+                    Text(
+                      SourcePresentation.application(
+                        l,
+                        widget.manager.applicationStatus(source.id),
+                      ),
                     ),
-                  ),
-                  Text(
-                    SourcePresentation.credential(
-                      l,
-                      widget.manager.credentialStatus(source.id).authorization,
+                    Text(
+                      SourcePresentation.credential(
+                        l,
+                        widget.manager
+                            .credentialStatus(source.id)
+                            .authorization,
+                      ),
                     ),
+                  ],
+                ),
+                trailing: Semantics(
+                  label: source.titleName,
+                  child: ShadSwitch(
+                    value: source.enabled,
+                    onChanged: _busy
+                        ? null
+                        : (enabled) => _toggle(source, enabled),
+                    enabled: !_busy,
                   ),
-                ],
+                ),
+                onTap: _busy || !source.enabled
+                    ? null
+                    : () {
+                        _source = source;
+                        _load();
+                      },
               ),
-              trailing: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Semantics(
-                    label: source.titleName,
-                    child: ShadSwitch(
-                      value: source.enabled,
-                      onChanged: _busy
-                          ? null
-                          : (enabled) => _toggle(source, enabled),
-                      enabled: !_busy,
-                    ),
-                  ),
-                  _SourceMenu(
-                    busy: _busy,
-                    canVerify: source.enabled,
-                    canPreview:
-                        source.isFileSource &&
-                        source.enabled &&
-                        source.scanMode != ScanMode.disabled,
-                    onVerify: () => _verify(source),
-                    onPreview: () => _scan(source),
-                    onEdit: () => _edit(source),
-                    onDelete: () => _delete(source),
-                  ),
-                ],
-              ),
-              onTap: _busy || !source.enabled
-                  ? null
-                  : () {
-                      _source = source;
-                      _load();
-                    },
             ),
-            if (files != null)
+            if (children.isNotEmpty)
               Container(
                 margin: const EdgeInsets.only(left: 28, bottom: 4),
                 padding: const EdgeInsets.only(left: 8),
@@ -545,18 +373,7 @@ class _SourcePageState extends State<SourcePage> {
                 ),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [
-                    ...children,
-                    if (source.enabled)
-                      ContentRow(
-                        dense: true,
-                        leading: Icon(AppIcons.addFolder),
-                        title: Text(l.addFileSource),
-                        onTap: files.scanning
-                            ? null
-                            : () => files.add(context, source.id),
-                      ),
-                  ],
+                  children: [...children],
                 ),
               ),
           ],
@@ -603,10 +420,10 @@ class _SourcePageState extends State<SourcePage> {
       if (!didPop && _source != null && !_busy) _back();
     },
     child: AppPage(
+      trailing: [if (_source == null) _addSourceButton()],
       body: Column(
         children: [
           ...[
-            if (_source == null) _connectionToolbar(),
             if (_source != null)
               ContentRow(
                 leading: Icon(AppIcons.parent),
@@ -690,73 +507,3 @@ class _SourcePageState extends State<SourcePage> {
 
 /// The secondary actions of one connection, collapsed into a "more" menu so the
 /// row keeps a single line of controls (enable switch + menu).
-class _SourceMenu extends StatefulWidget {
-  const _SourceMenu({
-    required this.busy,
-    required this.canVerify,
-    required this.canPreview,
-    required this.onVerify,
-    required this.onPreview,
-    required this.onEdit,
-    required this.onDelete,
-  });
-  final bool busy, canVerify, canPreview;
-  final VoidCallback onVerify, onPreview, onEdit, onDelete;
-  @override
-  State<_SourceMenu> createState() => _SourceMenuState();
-}
-
-class _SourceMenuState extends State<_SourceMenu> {
-  final _controller = ShadContextMenuController();
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    return ShadContextMenu(
-      controller: _controller,
-      items: [
-        ShadContextMenuItem(
-          leading: Icon(AppIcons.connection, size: 16),
-          enabled: widget.canVerify,
-          onPressed: widget.onVerify,
-          child: Text(l.verifyConnection),
-        ),
-        ShadContextMenuItem(
-          leading: Icon(AppIcons.scan, size: 16),
-          enabled: widget.canPreview,
-          onPressed: widget.onPreview,
-          child: Text(l.previewScan),
-        ),
-        ShadContextMenuItem(
-          leading: Icon(AppIcons.edit, size: 16),
-          onPressed: widget.onEdit,
-          child: Text(l.editSource),
-        ),
-        ShadContextMenuItem(
-          leading: Icon(AppIcons.delete, size: 16),
-          onPressed: widget.onDelete,
-          child: Text(l.deleteSource),
-        ),
-      ],
-      child: Tooltip(
-        message: l.moreActions,
-        child: Semantics(
-          button: true,
-          label: l.moreActions,
-          child: ShadIconButton.ghost(
-            icon: Icon(AppIcons.more),
-            onPressed: widget.busy ? null : _controller.toggle,
-            enabled: !widget.busy,
-            width: 48,
-            height: 48,
-          ),
-        ),
-      ),
-    );
-  }
-}

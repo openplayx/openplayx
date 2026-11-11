@@ -23,11 +23,12 @@ Future<void> openForm(
       home: Builder(
         builder: (context) => Center(
           child: ShadButton(
-            onPressed: () => showShadDialog<bool>(
-              context: context,
-              builder: (_) => SourceInstanceForm(
-                manager: sources,
-                discoverDlna: discover,
+            onPressed: () => Navigator.of(context).push<bool>(
+              MaterialPageRoute(
+                builder: (_) => SourceInstanceForm(
+                  manager: sources,
+                  discoverDlna: discover,
+                ),
               ),
             ),
             child: const Text('open'),

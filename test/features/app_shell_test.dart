@@ -129,7 +129,7 @@ void main() {
       expect(find.byType(SegmentedButton<bool>), findsNothing);
       await tester.tap(find.byKey(const ValueKey('nav-settings')));
       await tester.pumpAndSettle();
-      expect(find.text('来源默认配置'), findsOneWidget);
+      expect(find.text('扫描的文件后缀'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

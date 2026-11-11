@@ -49,12 +49,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get preferenceSaveRetry => '当前选择已生效，请重新选择以重试保存。';
 
   @override
-  String get sourceDefaults => '来源默认配置';
-
-  @override
-  String get sourceDefaultsDescription => '管理浏览、搜索与扫描使用的默认来源';
-
-  @override
   String get manage => '管理';
 
   @override
@@ -208,9 +202,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get correctTitle => '修正标题';
 
   @override
-  String get removeFromLibrary => '从当前库移除（保留原文件和媒体记录）';
-
-  @override
   String get continueIncludingHistory => '继续观看（包括未入库的播放记录）';
 
   @override
@@ -298,9 +289,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get chooseScanScope => '选择扫描范围';
 
   @override
-  String get defaultSaveFailed => '默认实例保存失败。';
-
-  @override
   String get defaultDescription => '默认实例只用于未显式选择来源的操作。已有资源始终由原实例解析，不自动切换账号。';
 
   @override
@@ -308,22 +296,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get defaultResolve => '默认资源解析实例';
-
-  @override
-  String get chooseEachTime => '每次选择';
-
-  @override
-  String get defaultUnavailable => '存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。';
-
-  @override
-  String get searchScope => '多源搜索范围';
-
-  @override
-  String get searchScopeDescription =>
-      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
-
-  @override
-  String get sourceDefaultsTitle => '能力默认实例与搜索范围';
 
   @override
   String get localFolder => '本地文件夹';
@@ -453,15 +425,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get filePlayFailed => '无法播放此文件。';
 
   @override
-  String get previewLimit => '已达到预览上限 500 个文件，结果不完整。';
-
-  @override
-  String get previewDescription => '已应用访问范围和扫描排除项；此操作不写入媒体库、不创建后台索引。';
-
-  @override
-  String get scanFailed => '扫描失败。';
-
-  @override
   String get backToParent => '返回上一级';
 
   @override
@@ -477,34 +440,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get toggleSourceFailed => '启停失败，请重试。';
 
   @override
-  String get verifyConnection => '验证连接';
-
-  @override
   String get connectionFailed => '连接失败。';
-
-  @override
-  String get previewScan => '预览扫描';
-
-  @override
-  String get deleteSource => '删除媒体源';
 
   @override
   String get deleteSourceFailed => '删除源失败，请重试。';
 
   @override
   String get folderEmpty => '此目录没有可浏览的媒体。';
-
-  @override
-  String get reloadConfiguration => '重新加载配置';
-
-  @override
-  String get defaultBrowseUnavailable => '默认实例不可用，请重新选择，未自动切换其他账号。';
-
-  @override
-  String get browseDefault => '默认浏览';
-
-  @override
-  String get capabilityDefaults => '能力默认实例';
 
   @override
   String get addSourceShort => '添加源';
@@ -606,11 +548,6 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String metadataProgressTooltip(int done, int total) {
-    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
-  }
-
-  @override
   String watchedMinutes(int minutes) {
     return ' · 已看 $minutes 分钟';
   }
@@ -636,23 +573,13 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String disableSourceDescription(int playing, int running, int defaults) {
-    return '当前播放 $playing 个，进行中请求 $running 个，默认能力绑定 $defaults 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。';
+  String disableSourceDescription(int playing, int running) {
+    return '当前播放 $playing 个，进行中请求 $running 个。禁用后拒绝新请求；当前播放可继续，结束后释放连接。配置、收藏和产物保留。';
   }
 
   @override
-  String deleteSourceDescription(int defaults, int playing, int running) {
-    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。默认能力绑定 $defaults 项和搜索范围绑定将被清除。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
-  }
-
-  @override
-  String previewTitle(String name) {
-    return '扫描预览：$name';
-  }
-
-  @override
-  String filesFound(int count) {
-    return '发现 $count 个文件。';
+  String deleteSourceDescription(int playing, int running) {
+    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
   }
 
   @override
@@ -1107,9 +1034,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileSources => '文件源';
 
   @override
-  String get addFileSource => '添加文件源';
-
-  @override
   String get nameFileSource => '为文件源命名';
 
   @override
@@ -1122,13 +1046,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get fileSourceDisabled => '已停用';
 
   @override
-  String get rescanAll => '重新扫描全部文件源';
-
-  @override
   String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
-
-  @override
-  String get removeFileSource => '删除文件源';
 
   @override
   String get removeFileSourceConfirm => '删除此文件源？';
@@ -1150,9 +1068,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get sourceTabFileSources => '文件源';
-
-  @override
-  String get moreActions => '更多操作';
 
   @override
   String get aiNewChat => '新建对话';
@@ -1326,6 +1241,68 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remoteRemoteOnly => '仅远程';
+
+  @override
+  String get developerMode => '开发调试';
+
+  @override
+  String get developerModeDescription => '开启后显示调试入口，例如媒体详情页右上角的“影视信息”按钮。';
+
+  @override
+  String get metadataConfigureInSettings => '请在“设置 → TMDB”中配置读取访问令牌后再搜索。';
+
+  @override
+  String get scrapeManagement => '刮削管理';
+
+  @override
+  String get scrapedCount => '已刮削条目';
+
+  @override
+  String scrapedCountValue(int count) {
+    return '$count 条';
+  }
+
+  @override
+  String get scrapeStorage => '占用空间';
+
+  @override
+  String scrapeStorageDetail(String database, String artwork) {
+    return '数据库 $database · 图片缓存 $artwork';
+  }
+
+  @override
+  String get scrapeLoading => '正在统计…';
+
+  @override
+  String get scrapeClear => '清除全部刮削信息';
+
+  @override
+  String get scrapeClearHint => '删除从 TMDB 和 NFO 获取的影视信息及海报缓存。';
+
+  @override
+  String get scrapeClearTitle => '清除全部刮削信息？';
+
+  @override
+  String get scrapeClearDescription =>
+      '将删除从 TMDB 和 NFO 获取的影视信息、匹配结果和已下载的海报，无法撤销。视频文件、播放进度、媒体服务器提供的信息和你手动修改的内容都会保留。如果已配置 TMDB，后台会重新开始刮削。';
+
+  @override
+  String get scrapeCleared => '已清除全部刮削信息。';
+
+  @override
+  String get scrapeClearFailed => '清除失败，请稍后重试。';
+
+  @override
+  String get metadataProgressDone => '刮削完成';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get addFileSourceShort => '添加文件源';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1372,12 +1349,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get preferenceSaveRetry => '当前选择已生效，请重新选择以重试保存。';
 
   @override
-  String get sourceDefaults => '来源默认配置';
-
-  @override
-  String get sourceDefaultsDescription => '管理浏览、搜索与扫描使用的默认来源';
-
-  @override
   String get manage => '管理';
 
   @override
@@ -1531,9 +1502,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get correctTitle => '修正标题';
 
   @override
-  String get removeFromLibrary => '从当前库移除（保留原文件和媒体记录）';
-
-  @override
   String get continueIncludingHistory => '继续观看（包括未入库的播放记录）';
 
   @override
@@ -1621,9 +1589,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get chooseScanScope => '选择扫描范围';
 
   @override
-  String get defaultSaveFailed => '默认实例保存失败。';
-
-  @override
   String get defaultDescription => '默认实例只用于未显式选择来源的操作。已有资源始终由原实例解析，不自动切换账号。';
 
   @override
@@ -1631,22 +1596,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get defaultResolve => '默认资源解析实例';
-
-  @override
-  String get chooseEachTime => '每次选择';
-
-  @override
-  String get defaultUnavailable => '存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。';
-
-  @override
-  String get searchScope => '多源搜索范围';
-
-  @override
-  String get searchScopeDescription =>
-      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
-
-  @override
-  String get sourceDefaultsTitle => '能力默认实例与搜索范围';
 
   @override
   String get localFolder => '本地文件夹';
@@ -1776,15 +1725,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get filePlayFailed => '无法播放此文件。';
 
   @override
-  String get previewLimit => '已达到预览上限 500 个文件，结果不完整。';
-
-  @override
-  String get previewDescription => '已应用访问范围和扫描排除项；此操作不写入媒体库、不创建后台索引。';
-
-  @override
-  String get scanFailed => '扫描失败。';
-
-  @override
   String get backToParent => '返回上一级';
 
   @override
@@ -1800,34 +1740,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get toggleSourceFailed => '启停失败，请重试。';
 
   @override
-  String get verifyConnection => '验证连接';
-
-  @override
   String get connectionFailed => '连接失败。';
-
-  @override
-  String get previewScan => '预览扫描';
-
-  @override
-  String get deleteSource => '删除媒体源';
 
   @override
   String get deleteSourceFailed => '删除源失败，请重试。';
 
   @override
   String get folderEmpty => '此目录没有可浏览的媒体。';
-
-  @override
-  String get reloadConfiguration => '重新加载配置';
-
-  @override
-  String get defaultBrowseUnavailable => '默认实例不可用，请重新选择，未自动切换其他账号。';
-
-  @override
-  String get browseDefault => '默认浏览';
-
-  @override
-  String get capabilityDefaults => '能力默认实例';
 
   @override
   String get addSourceShort => '添加源';
@@ -1929,11 +1848,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String metadataProgressTooltip(int done, int total) {
-    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
-  }
-
-  @override
   String watchedMinutes(int minutes) {
     return ' · 已看 $minutes 分钟';
   }
@@ -1959,23 +1873,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String disableSourceDescription(int playing, int running, int defaults) {
-    return '当前播放 $playing 个，进行中请求 $running 个，默认能力绑定 $defaults 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。';
+  String disableSourceDescription(int playing, int running) {
+    return '当前播放 $playing 个，进行中请求 $running 个。禁用后拒绝新请求；当前播放可继续，结束后释放连接。配置、收藏和产物保留。';
   }
 
   @override
-  String deleteSourceDescription(int defaults, int playing, int running) {
-    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。默认能力绑定 $defaults 项和搜索范围绑定将被清除。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
-  }
-
-  @override
-  String previewTitle(String name) {
-    return '扫描预览：$name';
-  }
-
-  @override
-  String filesFound(int count) {
-    return '发现 $count 个文件。';
+  String deleteSourceDescription(int playing, int running) {
+    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
   }
 
   @override
@@ -2430,9 +2334,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get fileSources => '文件源';
 
   @override
-  String get addFileSource => '添加文件源';
-
-  @override
   String get nameFileSource => '为文件源命名';
 
   @override
@@ -2445,13 +2346,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get fileSourceDisabled => '已停用';
 
   @override
-  String get rescanAll => '重新扫描全部文件源';
-
-  @override
   String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
-
-  @override
-  String get removeFileSource => '删除文件源';
 
   @override
   String get removeFileSourceConfirm => '删除此文件源？';
@@ -2473,9 +2368,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get sourceTabFileSources => '文件源';
-
-  @override
-  String get moreActions => '更多操作';
 
   @override
   String get aiNewChat => '新建对话';
@@ -2649,6 +2541,68 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get remoteRemoteOnly => '仅远程';
+
+  @override
+  String get developerMode => '开发调试';
+
+  @override
+  String get developerModeDescription => '开启后显示调试入口，例如媒体详情页右上角的“影视信息”按钮。';
+
+  @override
+  String get metadataConfigureInSettings => '请在“设置 → TMDB”中配置读取访问令牌后再搜索。';
+
+  @override
+  String get scrapeManagement => '刮削管理';
+
+  @override
+  String get scrapedCount => '已刮削条目';
+
+  @override
+  String scrapedCountValue(int count) {
+    return '$count 条';
+  }
+
+  @override
+  String get scrapeStorage => '占用空间';
+
+  @override
+  String scrapeStorageDetail(String database, String artwork) {
+    return '数据库 $database · 图片缓存 $artwork';
+  }
+
+  @override
+  String get scrapeLoading => '正在统计…';
+
+  @override
+  String get scrapeClear => '清除全部刮削信息';
+
+  @override
+  String get scrapeClearHint => '删除从 TMDB 和 NFO 获取的影视信息及海报缓存。';
+
+  @override
+  String get scrapeClearTitle => '清除全部刮削信息？';
+
+  @override
+  String get scrapeClearDescription =>
+      '将删除从 TMDB 和 NFO 获取的影视信息、匹配结果和已下载的海报，无法撤销。视频文件、播放进度、媒体服务器提供的信息和你手动修改的内容都会保留。如果已配置 TMDB，后台会重新开始刮削。';
+
+  @override
+  String get scrapeCleared => '已清除全部刮削信息。';
+
+  @override
+  String get scrapeClearFailed => '清除失败，请稍后重试。';
+
+  @override
+  String get metadataProgressDone => '刮削完成';
+
+  @override
+  String get edit => '编辑';
+
+  @override
+  String get refresh => '刷新';
+
+  @override
+  String get addFileSourceShort => '添加文件源';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2693,12 +2647,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get preferenceSaveRetry => '目前選擇已生效，請重新選擇以重試儲存。';
-
-  @override
-  String get sourceDefaults => '來源預設設定';
-
-  @override
-  String get sourceDefaultsDescription => '管理瀏覽、搜尋及掃描使用的預設來源';
 
   @override
   String get manage => '管理';
@@ -2854,9 +2802,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get correctTitle => '修正標題';
 
   @override
-  String get removeFromLibrary => '從目前媒體庫移除（保留原檔案和媒體紀錄）';
-
-  @override
   String get continueIncludingHistory => '繼續觀看（包括未入庫的播放紀錄）';
 
   @override
@@ -2944,9 +2889,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get chooseScanScope => '選擇掃描範圍';
 
   @override
-  String get defaultSaveFailed => '預設實例儲存失敗。';
-
-  @override
   String get defaultDescription => '預設實例僅用於未明確選擇來源的操作。已有資源始終由原實例解析，不自動切換帳號。';
 
   @override
@@ -2954,22 +2896,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get defaultResolve => '預設資源解析實例';
-
-  @override
-  String get chooseEachTime => '每次選擇';
-
-  @override
-  String get defaultUnavailable => '存在無法使用的預設實例綁定，請重新選擇；未自動替換為其他帳號。';
-
-  @override
-  String get searchScope => '多來源搜尋範圍';
-
-  @override
-  String get searchScopeDescription =>
-      '選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。';
-
-  @override
-  String get sourceDefaultsTitle => '能力預設實例及搜尋範圍';
 
   @override
   String get localFolder => '本機資料夾';
@@ -3099,15 +3025,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get filePlayFailed => '無法播放此檔案。';
 
   @override
-  String get previewLimit => '已達預覽上限 500 個檔案，結果不完整。';
-
-  @override
-  String get previewDescription => '已套用存取範圍及掃描排除項目；此操作不寫入媒體庫、不建立背景索引。';
-
-  @override
-  String get scanFailed => '掃描失敗。';
-
-  @override
   String get backToParent => '返回上一層';
 
   @override
@@ -3123,34 +3040,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get toggleSourceFailed => '啟停失敗，請重試。';
 
   @override
-  String get verifyConnection => '驗證連線';
-
-  @override
   String get connectionFailed => '連線失敗。';
-
-  @override
-  String get previewScan => '預覽掃描';
-
-  @override
-  String get deleteSource => '刪除媒體來源';
 
   @override
   String get deleteSourceFailed => '刪除來源失敗，請重試。';
 
   @override
   String get folderEmpty => '此目錄沒有可瀏覽的媒體。';
-
-  @override
-  String get reloadConfiguration => '重新載入設定';
-
-  @override
-  String get defaultBrowseUnavailable => '預設實例無法使用，請重新選擇，未自動切換其他帳號。';
-
-  @override
-  String get browseDefault => '預設瀏覽';
-
-  @override
-  String get capabilityDefaults => '能力預設實例';
 
   @override
   String get addSourceShort => '新增來源';
@@ -3252,11 +3148,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String metadataProgressTooltip(int done, int total) {
-    return '元資料刮削進度：已處理 $done / 共 $total（找不到符合的也算已處理）';
-  }
-
-  @override
   String watchedMinutes(int minutes) {
     return ' · 已看 $minutes 分鐘';
   }
@@ -3282,23 +3173,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String disableSourceDescription(int playing, int running, int defaults) {
-    return '目前播放 $playing 個，進行中請求 $running 個，預設能力綁定 $defaults 項。停用後拒絕新請求並清除預設綁定；目前播放可繼續，結束後釋放連線。設定、收藏和產物保留。';
+  String disableSourceDescription(int playing, int running) {
+    return '目前播放 $playing 個，進行中請求 $running 個。停用後拒絕新請求；目前播放可繼續，結束後釋放連線。設定、收藏和產物保留。';
   }
 
   @override
-  String deleteSourceDescription(int defaults, int playing, int running) {
-    return '僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。預設能力綁定 $defaults 項及搜尋範圍綁定將被清除。目前播放 $playing 個、進行中請求 $running 個可完成，之後釋放連線。';
-  }
-
-  @override
-  String previewTitle(String name) {
-    return '掃描預覽：$name';
-  }
-
-  @override
-  String filesFound(int count) {
-    return '找到 $count 個檔案。';
+  String deleteSourceDescription(int playing, int running) {
+    return '僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。目前播放 $playing 個、進行中請求 $running 個可完成，之後釋放連線。';
   }
 
   @override
@@ -3753,9 +3634,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get fileSources => '檔案來源';
 
   @override
-  String get addFileSource => '新增檔案來源';
-
-  @override
   String get nameFileSource => '為檔案來源命名';
 
   @override
@@ -3768,13 +3646,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get fileSourceDisabled => '已停用';
 
   @override
-  String get rescanAll => '重新掃描全部檔案來源';
-
-  @override
   String get noFileSources => '尚無檔案來源，新增一個資料夾開始建立媒體庫';
-
-  @override
-  String get removeFileSource => '刪除檔案來源';
 
   @override
   String get removeFileSourceConfirm => '刪除此檔案來源？';
@@ -3796,9 +3668,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get sourceTabFileSources => '檔案來源';
-
-  @override
-  String get moreActions => '更多操作';
 
   @override
   String get aiNewChat => '新增對話';
@@ -3972,4 +3841,66 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteRemoteOnly => '僅遠端';
+
+  @override
+  String get developerMode => '開發偵錯';
+
+  @override
+  String get developerModeDescription => '開啟後顯示偵錯入口，例如媒體詳情頁右上角的「影視資訊」按鈕。';
+
+  @override
+  String get metadataConfigureInSettings => '請在「設定 → TMDB」中設定讀取存取權杖後再搜尋。';
+
+  @override
+  String get scrapeManagement => '刮削管理';
+
+  @override
+  String get scrapedCount => '已刮削項目';
+
+  @override
+  String scrapedCountValue(int count) {
+    return '$count 筆';
+  }
+
+  @override
+  String get scrapeStorage => '佔用空間';
+
+  @override
+  String scrapeStorageDetail(String database, String artwork) {
+    return '資料庫 $database · 圖片快取 $artwork';
+  }
+
+  @override
+  String get scrapeLoading => '正在統計…';
+
+  @override
+  String get scrapeClear => '清除全部刮削資訊';
+
+  @override
+  String get scrapeClearHint => '刪除從 TMDB 及 NFO 取得的影視資訊與海報快取。';
+
+  @override
+  String get scrapeClearTitle => '清除全部刮削資訊？';
+
+  @override
+  String get scrapeClearDescription =>
+      '將刪除從 TMDB 及 NFO 取得的影視資訊、配對結果與已下載的海報，無法復原。影片檔案、播放進度、媒體伺服器提供的資訊及你手動修改的內容都會保留。若已設定 TMDB，背景會重新開始刮削。';
+
+  @override
+  String get scrapeCleared => '已清除全部刮削資訊。';
+
+  @override
+  String get scrapeClearFailed => '清除失敗，請稍後再試。';
+
+  @override
+  String get metadataProgressDone => '刮削完成';
+
+  @override
+  String get edit => '編輯';
+
+  @override
+  String get refresh => '重新整理';
+
+  @override
+  String get addFileSourceShort => '新增檔案來源';
 }

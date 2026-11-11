@@ -20,7 +20,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   testWidgets(
-    'narrow source management shows version, confirms disable and preserves credentials',
+    'narrow source management shows version, disables an idle source and preserves credentials',
     (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
@@ -39,7 +39,6 @@ void main() {
         ),
         'safe-token',
       );
-      await manager.setDefault('source.browse', 'plex');
       addTearDown(() async {
         await manager.dispose();
         service.close();
@@ -52,17 +51,9 @@ void main() {
       await tester.ensureVisible(find.byType(ShadSwitch));
       await tester.tap(find.byType(ShadSwitch));
       await tester.pumpAndSettle();
-      expect(find.text('禁用媒体源？'), findsOneWidget);
-      await tester.tap(find.text('取消'));
-      await tester.pumpAndSettle();
-      expect(manager.configs.single.enabled, isTrue);
-      await tester.ensureVisible(find.byType(ShadSwitch));
-      await tester.tap(find.byType(ShadSwitch));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('禁用'));
-      await tester.pumpAndSettle();
+      // Nothing is playing or loading, so no confirmation is needed.
+      expect(find.text('禁用媒体源？'), findsNothing);
       expect(manager.configs.single.enabled, isFalse);
-      expect(manager.bindings.defaults, isEmpty);
       expect(service.readSecret('source.plex'), isNull);
       expect(
         service.readSecret(manager.configs.single.credentialRef!),
@@ -143,12 +134,13 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) => SourceInstanceForm(
-                    manager: manager,
-                    initial: config,
-                    signIn: signIn,
+                onPressed: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => SourceInstanceForm(
+                      manager: manager,
+                      initial: config,
+                      signIn: signIn,
+                    ),
                   ),
                 ),
                 child: const Text('Open'),
@@ -202,10 +194,11 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) =>
-                      SourceInstanceForm(manager: manager, signIn: signIn),
+                onPressed: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SourceInstanceForm(manager: manager, signIn: signIn),
+                  ),
                 ),
                 child: const Text('Open'),
               ),
@@ -245,9 +238,10 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) => SourceInstanceForm(manager: manager),
+                onPressed: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => SourceInstanceForm(manager: manager),
+                  ),
                 ),
                 child: const Text('Open'),
               ),
@@ -294,15 +288,16 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) => SourceInstanceForm(
-                    manager: manager,
-                    signIn: signIn,
-                    openBrowser: (uri) async {
-                      opened = uri;
-                      return true;
-                    },
+                onPressed: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) => SourceInstanceForm(
+                      manager: manager,
+                      signIn: signIn,
+                      openBrowser: (uri) async {
+                        opened = uri;
+                        return true;
+                      },
+                    ),
                   ),
                 ),
                 child: const Text('Open'),
@@ -341,10 +336,11 @@ void main() {
           home: Scaffold(
             body: Builder(
               builder: (context) => TextButton(
-                onPressed: () => showDialog<bool>(
-                  context: context,
-                  builder: (_) =>
-                      SourceInstanceForm(manager: manager, signIn: signIn),
+                onPressed: () => Navigator.of(context).push<bool>(
+                  MaterialPageRoute(
+                    builder: (_) =>
+                        SourceInstanceForm(manager: manager, signIn: signIn),
+                  ),
                 ),
                 child: const Text('Open'),
               ),
@@ -419,11 +415,12 @@ void main() {
         home: Scaffold(
           body: Builder(
             builder: (context) => TextButton(
-              onPressed: () => showDialog<bool>(
-                context: context,
-                builder: (_) => SourceInstanceForm(
-                  manager: manager,
-                  chooseDirectory: () async => '/tmp/Movies',
+              onPressed: () => Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) => SourceInstanceForm(
+                    manager: manager,
+                    chooseDirectory: () async => '/tmp/Movies',
+                  ),
                 ),
               ),
               child: const Text('Open'),

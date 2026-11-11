@@ -8,15 +8,21 @@ class AppThemeController extends ChangeNotifier {
     this._configuration,
     ThemeMode initialMode = ThemeMode.system,
     String initialLanguage = 'system',
+    bool initialDeveloperMode = false,
   }) : _mode = initialMode,
-       _language = initialLanguage;
+       _language = initialLanguage,
+       _developerMode = initialDeveloperMode;
   SourceConfigurationService? _configuration;
   bool _ownsConfiguration = false;
   ThemeMode _mode;
   String _language;
+  bool _developerMode;
   String? _saveError;
   ThemeMode get mode => _mode;
   String get language => _language;
+
+  /// Shows developer/debug entry points (e.g. the raw metadata page).
+  bool get developerMode => _developerMode;
   String? get saveError => _saveError;
   Locale? get locale => switch (_language) {
     'en' => const Locale('en'),
@@ -41,6 +47,7 @@ class AppThemeController extends ChangeNotifier {
           ThemeMode.values.where((m) => m.name == value).firstOrNull ??
           ThemeMode.system;
       _language = _configuration!.appearance('language') ?? 'system';
+      _developerMode = _configuration!.appearance('developerMode') == 'true';
     } catch (_) {
       // An unreadable preference must not prevent application startup.
     }
@@ -72,6 +79,12 @@ class AppThemeController extends ChangeNotifier {
     await _save('language', value);
   }
 
+  Future<void> setDeveloperMode(bool value) async {
+    _developerMode = value;
+    notifyListeners();
+    await _save('developerMode', '$value');
+  }
+
   @override
   void dispose() {
     if (_ownsConfiguration) _configuration?.close();
@@ -87,4 +100,6 @@ class AppAppearance extends InheritedNotifier<AppThemeController> {
   }) : super(notifier: controller);
   static AppThemeController of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AppAppearance>()!.notifier!;
+  static AppThemeController? maybeOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<AppAppearance>()?.notifier;
 }

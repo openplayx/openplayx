@@ -9,16 +9,21 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test('missing DSN starts normally without initializing Sentry', () async {
     var starts = 0;
-    await runWithDiagnostics(DiagnosticRole.main, () async { starts++; });
+    await runWithDiagnostics(DiagnosticRole.main, () async {
+      starts++;
+    });
     expect(starts, 1);
     expect(Sentry.isEnabled, false);
   });
   test('application failures propagate without a second startup', () async {
     var starts = 0;
-    await expectLater(runWithDiagnostics(DiagnosticRole.player, () async {
-      starts++;
-      throw StateError('startup');
-    }), throwsStateError);
+    await expectLater(
+      runWithDiagnostics(DiagnosticRole.player, () async {
+        starts++;
+        throw StateError('startup');
+      }),
+      throwsStateError,
+    );
     expect(starts, 1);
   });
   test(

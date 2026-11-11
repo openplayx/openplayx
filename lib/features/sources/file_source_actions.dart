@@ -11,7 +11,9 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../services/library/library_service.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/media/content_row.dart';
+import '../../ui/components/swipe_reveal.dart';
 import '../../ui/icons/app_icons.dart';
+import '../../ui/tokens/app_spacing.dart';
 import 'file_source_browser_page.dart';
 
 Future<String?> _promptText(
@@ -187,76 +189,96 @@ class FileSourceRow extends StatelessWidget {
         connection?.displayName ??
         l.sourceNeedsSetup;
     final scanning = enabled && binding['status'] == '扫描中';
+    // Scraping follows the scan, so its progress is shown right after it.
+    final scrape = enabled && !scanning
+        ? service.metadataProgressFor(id)
+        : (done: 0, total: 0);
+    final scraping = scrape.total > 0 && scrape.done < scrape.total;
+    final scrapeStatus = scrape.total == 0
+        ? ''
+        : ' · ${scraping ? l.metadataProgressLabel(scrape.done, scrape.total) : l.metadataProgressDone}';
     final status = enabled
-        ? '${binding['status']}${scanning ? ' · ${l.scanFoundMedia(service.scannedMediaCount(id))}' : ''}'
+        ? '${binding['status']}${scanning ? ' · ${l.scanFoundMedia(service.scannedMediaCount(id))}' : scrapeStatus}'
         : l.fileSourceDisabled;
     final root = binding['root'] as String? ?? '';
-    Widget action(String tip, IconData icon, VoidCallback? onPressed) =>
-        Tooltip(
-          message: tip,
-          child: Semantics(
-            button: true,
-            label: tip,
-            child: ShadIconButton.ghost(
-              onPressed: onPressed,
-              icon: Icon(icon),
-              enabled: onPressed != null,
-              width: 48,
-              height: 48,
-            ),
-          ),
-        );
-    return ContentRow(
-      dense: true,
-      leading: Icon(AppIcons.folder),
-      title: Text(title),
-      // Tapping a file source browses its folders.
-      onTap: !enabled || connection == null || !connection!.enabled
-          ? null
-          : () => Navigator.of(context).push<void>(
-              MaterialPageRoute(
-                builder: (_) => FileSourceBrowserPage(
-                  manager: controller.sources,
-                  sourceId: connection!.id,
-                  title: title,
-                  root: root.isEmpty ? null : ResourceRef(connection!.id, root),
-                  onPlay: controller.onPlay,
+    // Swiping left reveals edit, rescan and delete (delete is confirmed).
+    final actions = [
+      SwipeAction(
+        key: ValueKey('file-source-edit-$id'),
+        label: l.edit,
+        onPressed: () => controller.rename(context, id, title),
+      ),
+      SwipeAction(
+        key: ValueKey('file-source-rescan-$id'),
+        label: l.refresh,
+        onPressed: enabled
+            ? () => controller.scan([id], l.scanFailedRetained)
+            : null,
+      ),
+      SwipeAction(
+        key: ValueKey('file-source-delete-$id'),
+        label: l.delete,
+        destructive: true,
+        onPressed: () => controller.remove(context, id),
+      ),
+    ];
+    return SwipeReveal(
+      key: ValueKey('file-source-$id'),
+      enabled: !busy,
+      actionWidth: SwipeActionBar.width * actions.length + 4,
+      trailingInset: AppSpacing.md,
+      action: (close) => SwipeActionBar(actions: actions, close: close),
+      child: ContentRow(
+        dense: true,
+        leading: Icon(AppIcons.folder),
+        title: Text(title),
+        // Tapping a file source browses its folders.
+        onTap: !enabled || connection == null || !connection!.enabled
+            ? null
+            : () => Navigator.of(context).push<void>(
+                MaterialPageRoute(
+                  builder: (_) => FileSourceBrowserPage(
+                    manager: controller.sources,
+                    sourceId: connection!.id,
+                    title: title,
+                    root: root.isEmpty
+                        ? null
+                        : ResourceRef(connection!.id, root),
+                    onPlay: controller.onPlay,
+                  ),
                 ),
               ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$status${binding['error'] == null ? '' : ' · ${binding['error']}'}',
+              key: ValueKey('file-source-status-$id'),
             ),
-      subtitle: Text(
-        '$status${binding['error'] == null ? '' : ' · ${binding['error']}'}',
-      ),
-      trailing: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Tooltip(
-            message: enabled ? l.fileSourceDisable : l.fileSourceEnable,
-            child: ShadSwitch(
-              value: enabled,
-              onChanged: busy
-                  ? null
-                  : (value) => service.setBindingEnabled(id, value),
-            ),
-          ),
-          action(
-            l.rescan,
-            AppIcons.refresh,
-            busy || !enabled
+            if (scraping)
+              Padding(
+                padding: const EdgeInsets.only(top: 4),
+                child: SizedBox(
+                  width: 160,
+                  child: LinearProgressIndicator(
+                    value: scrape.done / scrape.total,
+                    minHeight: 4,
+                    borderRadius: BorderRadius.circular(2),
+                  ),
+                ),
+              ),
+          ],
+        ),
+        trailing: Tooltip(
+          message: enabled ? l.fileSourceDisable : l.fileSourceEnable,
+          child: ShadSwitch(
+            value: enabled,
+            onChanged: busy
                 ? null
-                : () => controller.scan([id], l.scanFailedRetained),
+                : (value) => service.setBindingEnabled(id, value),
           ),
-          action(
-            l.renameLibrary,
-            AppIcons.rename,
-            busy ? null : () => controller.rename(context, id, title),
-          ),
-          action(
-            l.removeFileSource,
-            AppIcons.delete,
-            busy ? null : () => controller.remove(context, id),
-          ),
-        ],
+        ),
       ),
     );
   }

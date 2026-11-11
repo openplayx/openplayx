@@ -207,6 +207,17 @@ class ArtworkService {
     }
   }
 
+  /// Bytes the downloaded artwork currently takes on disk.
+  Future<int> cacheBytes() async {
+    final dir = await _root();
+    if (!await dir.exists()) return 0;
+    var total = 0;
+    await for (final entry in dir.list(recursive: true, followLinks: false)) {
+      if (entry is File) total += await entry.length();
+    }
+    return total;
+  }
+
   Future<void> clear() async {
     // Caller disables clearing while loads are active. The DB retains choices.
     if (_pending.isNotEmpty) {

@@ -13,8 +13,6 @@
   "language": "Language",
   "preferenceSaveFailed": "Could not save preferences",
   "preferenceSaveRetry": "Your choice is active. Select it again to retry saving.",
-  "sourceDefaults": "Source defaults",
-  "sourceDefaultsDescription": "Manage default sources for browsing, search and scans",
   "manage": "Manage",
   "about": "About OpenPlayX",
   "aboutDescription": "Your media. A quieter place to play.",
@@ -66,7 +64,6 @@
   "addToLibrary": "Add to another library",
   "chooseLibrary": "Choose library",
   "correctTitle": "Edit title",
-  "removeFromLibrary": "Remove from this library (keep files and media records)",
   "continueIncludingHistory": "Continue watching (including items outside your library)",
   "allLibraries": "All libraries",
   "renameLibrary": "Rename library",
@@ -96,15 +93,9 @@
   "rootFolder": "Root folder",
   "confirmScanScope": "Scan this scope",
   "chooseScanScope": "Choose scan scope",
-  "defaultSaveFailed": "Could not save the default source.",
   "defaultDescription": "Defaults apply when no source is selected. Existing resources keep their original source and account.",
   "defaultBrowse": "Default browsing source",
   "defaultResolve": "Default resolution source",
-  "chooseEachTime": "Choose each time",
-  "defaultUnavailable": "A default source is unavailable. Choose again; no other account was substituted.",
-  "searchScope": "Multi-source search scope",
-  "searchScopeDescription": "Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.",
-  "sourceDefaultsTitle": "Default sources and search scope",
   "localFolder": "Local folder",
   "pickFolderFailed": "Could not choose a folder. Try again.",
   "openBrowserFailed": "Could not open the browser. Use the sign-in link to retry.",
@@ -147,24 +138,14 @@
   "folderAccessHelp": "Choose a folder this app is allowed to access.",
   "loadSourcesFailed": "Could not load sources. Try again.",
   "filePlayFailed": "Could not play this file.",
-  "previewLimit": "Preview limit of 500 files reached; results are incomplete.",
-  "previewDescription": "Access scopes and scan exclusions apply. This preview does not update the library or create a background index.",
-  "scanFailed": "Scan failed.",
   "backToParent": "Back to parent folder",
   "sourcesEmpty": "Add a local folder, SMB, Jellyfin or Plex source.",
   "disableSourceConfirm": "Disable media source?",
   "disable": "Disable",
   "toggleSourceFailed": "Could not change source status. Try again.",
-  "verifyConnection": "Test connection",
   "connectionFailed": "Connection failed.",
-  "previewScan": "Preview scan",
-  "deleteSource": "Delete media source",
   "deleteSourceFailed": "Could not delete the source. Try again.",
   "folderEmpty": "No browsable media in this folder.",
-  "reloadConfiguration": "Reload configuration",
-  "defaultBrowseUnavailable": "Default source unavailable. Choose again; no other account was substituted.",
-  "browseDefault": "Browse default",
-  "capabilityDefaults": "Default sources",
   "addSourceShort": "Add source",
   "playerClosed": "Player is closed",
   "historySaveFailed": "Could not save history. Playback can continue.",
@@ -223,17 +204,6 @@
       }
     }
   },
-  "metadataProgressTooltip": "Metadata scraping progress: {done} of {total} processed (items with no match count as processed)",
-  "@metadataProgressTooltip": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
   "watchedMinutes": " · Watched {minutes} min",
   "@watchedMinutes": {
     "placeholders": {
@@ -283,7 +253,7 @@
       }
     }
   },
-  "disableSourceDescription": "{playing} playing, {running} requests, {defaults} default bindings. New requests will be rejected and defaults cleared. Current playback can finish. Configuration and favorites are kept.",
+  "disableSourceDescription": "{playing} playing, {running} requests. New requests will be rejected. Current playback can finish. Configuration and favorites are kept.",
   "@disableSourceDescription": {
     "placeholders": {
       "playing": {
@@ -291,38 +261,16 @@
       },
       "running": {
         "type": "int"
-      },
-      "defaults": {
-        "type": "int"
       }
     }
   },
-  "deleteSourceDescription": "Remove this source configuration and credential reference. Files and favorites are kept. {defaults} default bindings and search-scope bindings will be cleared. {playing} playing items and {running} requests can finish before connections are released.",
+  "deleteSourceDescription": "Remove this source configuration and credential reference. Files and favorites are kept. {playing} playing items and {running} requests can finish before connections are released.",
   "@deleteSourceDescription": {
     "placeholders": {
-      "defaults": {
-        "type": "int"
-      },
       "playing": {
         "type": "int"
       },
       "running": {
-        "type": "int"
-      }
-    }
-  },
-  "previewTitle": "Scan preview: {name}",
-  "@previewTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "filesFound": "{count} files found.",
-  "@filesFound": {
-    "placeholders": {
-      "count": {
         "type": "int"
       }
     }
@@ -547,14 +495,11 @@
     }
   },
   "fileSources": "File sources",
-  "addFileSource": "Add file source",
   "nameFileSource": "Name this file source",
   "fileSourceEnable": "Enable",
   "fileSourceDisable": "Disable",
   "fileSourceDisabled": "Disabled",
-  "rescanAll": "Rescan all file sources",
   "noFileSources": "No file sources yet. Add a folder to build your library.",
-  "removeFileSource": "Delete file source",
   "removeFileSourceConfirm": "Delete this file source?",
   "libraryEmptyNoMedia": "No media found in your file sources. Rescan or check the folder naming.",
   "chooseFolderDescription": "Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.",
@@ -562,7 +507,6 @@
   "libraryNoFileSources": "No file sources yet. Add a folder to a connection under Sources.",
   "sourceTabConnections": "Connections",
   "sourceTabFileSources": "File sources",
-  "moreActions": "More actions",
   "aiNewChat": "New conversation",
   "aiChatHistory": "Conversations",
   "aiShowMedia": "Show home content",
@@ -619,5 +563,41 @@
   "remoteLanIdentityHelp": "Confirm the 64-digit hexadecimal fingerprint through a trusted channel. The certificate must also pass system trust checks.",
   "remoteAutomatic": "Automatic: verified LAN, otherwise remote",
   "remoteLocalOnly": "LAN only",
-  "remoteRemoteOnly": "Remote only"
+  "remoteRemoteOnly": "Remote only",
+  "developerMode": "Developer mode",
+  "developerModeDescription": "Shows debugging entry points, such as the metadata button on the media detail page.",
+  "metadataConfigureInSettings": "Add a read access token in Settings → TMDB to search.",
+  "scrapeManagement": "Scraped metadata",
+  "scrapedCount": "Scraped items",
+  "scrapedCountValue": "{count} items",
+  "scrapeStorage": "Storage used",
+  "scrapeStorageDetail": "Database {database} · Image cache {artwork}",
+  "scrapeLoading": "Calculating…",
+  "scrapeClear": "Clear all scraped metadata",
+  "scrapeClearHint": "Deletes metadata fetched from TMDB and NFO files, and cached posters.",
+  "scrapeClearTitle": "Clear all scraped metadata?",
+  "scrapeClearDescription": "Metadata fetched from TMDB and NFO files, matches and downloaded posters will be deleted. This cannot be undone. Video files, playback progress, media server metadata and your manual edits are kept. If TMDB is configured, scraping starts again in the background.",
+  "scrapeCleared": "All scraped metadata was cleared.",
+  "scrapeClearFailed": "Could not clear. Try again later.",
+  "@scrapedCountValue": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "@scrapeStorageDetail": {
+    "placeholders": {
+      "database": {
+        "type": "String"
+      },
+      "artwork": {
+        "type": "String"
+      }
+    }
+  },
+  "metadataProgressDone": "Scraping done",
+  "edit": "Edit",
+  "refresh": "Refresh",
+  "addFileSourceShort": "Add folder"
 }

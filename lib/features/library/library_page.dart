@@ -77,37 +77,6 @@ class _LibraryPageState extends State<LibraryPage> {
     });
   }
 
-  /// Header badge: "Scraping 464/4651". Hidden when nothing is queued or
-  /// everything is processed.
-  Widget _scrapeProgress(LibraryService service) {
-    final p = service.metadataProgress();
-    if (p.total == 0 || p.done >= p.total) return const SizedBox.shrink();
-    final theme = ShadTheme.of(context);
-    return Tooltip(
-      message: l.metadataProgressTooltip(p.done, p.total),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Text(
-            l.metadataProgressLabel(p.done, p.total),
-            style: theme.textTheme.small.copyWith(
-              fontFeatures: const [FontFeature.tabularFigures()],
-            ),
-          ),
-          const SizedBox(width: 8),
-          SizedBox(
-            width: 56,
-            child: LinearProgressIndicator(
-              value: p.done / p.total,
-              minHeight: 4,
-              borderRadius: BorderRadius.circular(2),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
   Future<void> _load() async {
     try {
       final service = widget.service ?? await LibraryService.open();
@@ -324,7 +293,6 @@ class _LibraryPageState extends State<LibraryPage> {
       canPop: !_scanning,
       child: AppPage(
         actions: [
-          if (service != null) _scrapeProgress(service),
           if (service != null)
             Tooltip(
               message: l.searchLibrary,

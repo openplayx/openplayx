@@ -175,14 +175,11 @@ void main() {
     );
   });
 
-  test('disabled instances preserve data, reject calls and clear only affected capability bindings', () async {
+  test('disabled instances preserve data and reject calls', () async {
     final host = manager();
     await host.save(plex, 'secret');
-    await host.setDefault('source.browse', 'one');
-    expect(host.bindings.defaults['source.browse'], 'one');
     await host.setEnabled('one', false);
     expect(host.configs.single.enabled, isFalse);
-    expect(host.bindings.defaults, isEmpty);
     expect(
       await SourceCredentialBroker(() => service)
           .readForHost(host.configs.single),
@@ -191,14 +188,6 @@ void main() {
     await expectLater(
       host.browse('one', const BrowseRequest()),
       throwsA(isA<PluginException>().having((e) => e.code, 'code', 'disabled')),
-    );
-    await expectLater(
-      host.setDefault('source.resolve', 'one'),
-      throwsA(isA<PluginException>()),
-    );
-    await expectLater(
-      host.setSearchInstances(['one']),
-      throwsA(isA<PluginException>()),
     );
     await host.setEnabled('one', true);
     expect(host.configs.single.enabled, isTrue);

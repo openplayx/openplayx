@@ -15,7 +15,7 @@ import '../features/player/player_page_test.dart' show FakeBackend;
 void main() {
   setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   testWidgets(
-    'home and floating panel use the same conversation and model settings route',
+    'top-right assistant button is on every page and keeps one conversation',
     (tester) async {
       final library = LibraryService(sqlite3.openInMemory());
       await tester.pumpWidget(
@@ -28,29 +28,27 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.byTooltip('AI 助手'), findsNothing);
-      await tester.tap(find.byKey(const ValueKey('home-open-chat')));
+      // Home no longer embeds the assistant; the corner button opens it.
+      expect(find.byType(AssistantView), findsNothing);
+      await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
-      final homeView = tester.widget<AssistantView>(find.byType(AssistantView));
+      final first = tester.widget<AssistantView>(find.byType(AssistantView));
+      expect(find.byTooltip('在首页展开'), findsNothing);
       final composer = find.descendant(
         of: find.byKey(const ValueKey('ai-composer-input')),
         matching: find.byType(EditableText),
       );
       await tester.enterText(composer, '保留这个草稿');
+      Navigator.of(tester.element(find.byType(AssistantView))).pop();
+      await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('媒体库').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
-      final panelView = tester.widget<AssistantView>(
-        find.byType(AssistantView).last,
-      );
-      expect(identical(panelView.coordinator, homeView.coordinator), true);
-      expect(identical(panelView.controller, homeView.controller), true);
+      final second = tester.widget<AssistantView>(find.byType(AssistantView));
+      expect(identical(second.coordinator, first.coordinator), true);
+      expect(identical(second.controller, first.controller), true);
       expect(find.text('保留这个草稿'), findsOneWidget);
-      await tester.tap(find.byTooltip('在首页展开'));
-      await tester.pumpAndSettle();
-      expect(find.text('保留这个草稿'), findsOneWidget);
-      expect(find.byTooltip('AI 助手'), findsNothing);
       await tester.tap(find.byTooltip('模型设置'));
       await tester.pumpAndSettle();
       expect(find.byType(AssistantSettingsPage), findsOneWidget);
@@ -61,37 +59,39 @@ void main() {
       library.close();
     },
   );
-  testWidgets(
-    'home suggestions and composer fit a narrow screen with large text',
-    (tester) async {
-      tester.view.physicalSize = const Size(320, 1000);
-      tester.view.devicePixelRatio = 1;
-      addTearDown(tester.view.resetPhysicalSize);
-      addTearDown(tester.view.resetDevicePixelRatio);
-      final library = LibraryService(sqlite3.openInMemory());
-      await tester.pumpWidget(
-        TestApp(
-          home: MediaQuery(
-            data: const MediaQueryData(
-              size: Size(320, 1000),
-              textScaler: TextScaler.linear(2),
-            ),
-            child: AppShell(
-              library: library,
-              sources: Sources(),
-              backend: FakeBackend(),
-            ),
+  testWidgets('top-right button fits a narrow screen with large text', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(320, 1000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final library = LibraryService(sqlite3.openInMemory());
+    await tester.pumpWidget(
+      TestApp(
+        home: MediaQuery(
+          data: const MediaQueryData(
+            size: Size(320, 1000),
+            textScaler: TextScaler.linear(2),
+          ),
+          child: AppShell(
+            library: library,
+            sources: Sources(),
+            backend: FakeBackend(),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byKey(const ValueKey('home-open-chat')));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-      library.close();
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    final button = tester.getRect(find.byTooltip('AI 助手'));
+    expect(button.right, lessThanOrEqualTo(320));
+    expect(button.top, lessThan(40));
+    final title = tester.getRect(find.text('首页').first);
+    expect(title.overlaps(button), false);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    library.close();
+  });
   for (final width in [320.0, 1200.0]) {
     testWidgets(
       'model settings fit width $width and large text; secret is obscured',

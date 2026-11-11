@@ -1,6 +1,8 @@
 import '../../app_test_host.dart';
 
 import 'package:flutter/material.dart';
+import 'package:openplayx/app/app.dart';
+import 'package:openplayx/app/theme/app_theme_controller.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/core/plugins/metadata_capability.dart';
@@ -137,52 +139,8 @@ void main() {
       await tester.pumpAndSettle();
     },
   );
-  testWidgets('header shows scraping progress, unmatched counts as done', (
-    tester,
-  ) async {
-    final collection = service.create('Movies', type: 'movie');
-    final ids = [
-      for (final name in ['a', 'b', 'c'])
-        service.register(
-          SourceEntry(
-            ResourceRef('s', '/$name.mkv'),
-            '$name.mkv',
-            isFolder: false,
-          ),
-        ),
-    ];
-    for (final id in ids) {
-      service.addManual(collection, id);
-    }
-    await tester.pumpWidget(
-      TestApp(
-        home: LibraryPage(sources: Sources(), service: service),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('刮削 0/3'), findsOneWidget);
-    // One matched and one "not found" item are both finished work.
-    service.db.execute(
-      "UPDATE metadata_queue SET state='completed' WHERE media_id=?",
-      [ids[0]],
-    );
-    service.db.execute(
-      "UPDATE metadata_queue SET state='unmatched' WHERE media_id=?",
-      [ids[1]],
-    );
-    service.notifyChanged();
-    await tester.pumpAndSettle();
-    expect(find.text('刮削 2/3'), findsOneWidget);
-    service.db.execute(
-      "UPDATE metadata_queue SET state='unmatched' WHERE media_id=?",
-      [ids[2]],
-    );
-    service.notifyChanged();
-    await tester.pumpAndSettle();
-    expect(find.textContaining('刮削 '), findsNothing);
-  });
   testWidgets(
-    'poster wall follows file sources, then favorite, search and safely hide',
+    'poster wall follows file sources, then favorite, search and open a movie',
     (tester) async {
       await tester.pumpWidget(
         TestApp(
@@ -231,10 +189,6 @@ void main() {
       await tester.pumpAndSettle();
       // A plain video opens the movie page, with a play action.
       expect(find.text('播放'), findsOneWidget);
-      await tester.tap(find.byTooltip('从当前库移除（保留原文件和媒体记录）'));
-      await tester.pumpAndSettle();
-      expect(service.query(null), isEmpty);
-      expect(service.db.select('SELECT * FROM resources'), hasLength(1));
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
@@ -298,4 +252,35 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
   });
+
+  for (final developer in [false, true]) {
+    testWidgets('metadata button only shows in developer mode ($developer)', (
+      tester,
+    ) async {
+      final sources = SeriesSources();
+      final binding = service.bind(service.defaultLibrary(), 's', name: 'TV');
+      await service.scan(binding, sources);
+      final appearance = AppThemeController(
+        initialLanguage: 'zh-Hans',
+        initialDeveloperMode: developer,
+      );
+      addTearDown(appearance.dispose);
+      await tester.pumpWidget(
+        OpenPlayXApp(
+          appearance: appearance,
+          home: LibraryPage(sources: sources, service: service),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Show'));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('media-metadata')),
+        developer ? findsOneWidget : findsNothing,
+      );
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    });
+  }
 }

@@ -1,5 +1,6 @@
 import '../../app/diagnostics/diagnostics_bootstrap.dart';
 import '../../app/diagnostics/diagnostics_service.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -44,7 +45,11 @@ void metadataCallbackDispatcher() {
         await runner.runBatch(allowOnline: online);
         return !runner.queue.pending(allowOnline: online);
       } catch (_, stack) {
-        await reportDiagnostic(DiagnosticFailure.metadataBatch, DiagnosticRole.background, stack);
+        await reportDiagnostic(
+          DiagnosticFailure.metadataBatch,
+          DiagnosticRole.background,
+          stack,
+        );
         // Native retry is bounded by the queue's per-item attempt count. Never
         // put tokens, private paths or provider exception bodies into WorkData.
         return false;

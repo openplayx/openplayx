@@ -13,8 +13,6 @@
   "language": "介面語言",
   "preferenceSaveFailed": "偏好儲存失敗",
   "preferenceSaveRetry": "目前選擇已生效，請重新選擇以重試儲存。",
-  "sourceDefaults": "來源預設設定",
-  "sourceDefaultsDescription": "管理瀏覽、搜尋及掃描使用的預設來源",
   "manage": "管理",
   "about": "關於 OpenPlayX",
   "aboutDescription": "你的媒體，一個安靜的播放空間。",
@@ -66,7 +64,6 @@
   "addToLibrary": "加入其他媒體庫",
   "chooseLibrary": "選擇媒體庫",
   "correctTitle": "修正標題",
-  "removeFromLibrary": "從目前媒體庫移除（保留原檔案和媒體紀錄）",
   "continueIncludingHistory": "繼續觀看（包括未入庫的播放紀錄）",
   "allLibraries": "全部媒體庫",
   "renameLibrary": "重新命名媒體庫",
@@ -96,15 +93,9 @@
   "rootFolder": "根目錄",
   "confirmScanScope": "確認掃描此範圍",
   "chooseScanScope": "選擇掃描範圍",
-  "defaultSaveFailed": "預設實例儲存失敗。",
   "defaultDescription": "預設實例僅用於未明確選擇來源的操作。已有資源始終由原實例解析，不自動切換帳號。",
   "defaultBrowse": "預設瀏覽實例",
   "defaultResolve": "預設資源解析實例",
-  "chooseEachTime": "每次選擇",
-  "defaultUnavailable": "存在無法使用的預設實例綁定，請重新選擇；未自動替換為其他帳號。",
-  "searchScope": "多來源搜尋範圍",
-  "searchScopeDescription": "選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。",
-  "sourceDefaultsTitle": "能力預設實例及搜尋範圍",
   "localFolder": "本機資料夾",
   "pickFolderFailed": "無法選擇資料夾，請重試。",
   "openBrowserFailed": "無法開啟瀏覽器，請點選登入連結重試。",
@@ -147,24 +138,14 @@
   "folderAccessHelp": "請選擇系統允許應用程式存取的資料夾。",
   "loadSourcesFailed": "載入媒體來源失敗，請重試。",
   "filePlayFailed": "無法播放此檔案。",
-  "previewLimit": "已達預覽上限 500 個檔案，結果不完整。",
-  "previewDescription": "已套用存取範圍及掃描排除項目；此操作不寫入媒體庫、不建立背景索引。",
-  "scanFailed": "掃描失敗。",
   "backToParent": "返回上一層",
   "sourcesEmpty": "新增本機資料夾、SMB、Jellyfin 或 Plex 來源。",
   "disableSourceConfirm": "停用媒體來源？",
   "disable": "停用",
   "toggleSourceFailed": "啟停失敗，請重試。",
-  "verifyConnection": "驗證連線",
   "connectionFailed": "連線失敗。",
-  "previewScan": "預覽掃描",
-  "deleteSource": "刪除媒體來源",
   "deleteSourceFailed": "刪除來源失敗，請重試。",
   "folderEmpty": "此目錄沒有可瀏覽的媒體。",
-  "reloadConfiguration": "重新載入設定",
-  "defaultBrowseUnavailable": "預設實例無法使用，請重新選擇，未自動切換其他帳號。",
-  "browseDefault": "預設瀏覽",
-  "capabilityDefaults": "能力預設實例",
   "addSourceShort": "新增來源",
   "playerClosed": "播放器已關閉",
   "historySaveFailed": "觀看紀錄暫時無法儲存，仍可繼續播放",
@@ -207,17 +188,6 @@
   },
   "metadataProgressLabel": "刮削 {done}/{total}",
   "@metadataProgressLabel": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "metadataProgressTooltip": "元資料刮削進度：已處理 {done} / 共 {total}（找不到符合的也算已處理）",
-  "@metadataProgressTooltip": {
     "placeholders": {
       "done": {
         "type": "int"
@@ -276,7 +246,7 @@
       }
     }
   },
-  "disableSourceDescription": "目前播放 {playing} 個，進行中請求 {running} 個，預設能力綁定 {defaults} 項。停用後拒絕新請求並清除預設綁定；目前播放可繼續，結束後釋放連線。設定、收藏和產物保留。",
+  "disableSourceDescription": "目前播放 {playing} 個，進行中請求 {running} 個。停用後拒絕新請求；目前播放可繼續，結束後釋放連線。設定、收藏和產物保留。",
   "@disableSourceDescription": {
     "placeholders": {
       "playing": {
@@ -284,38 +254,16 @@
       },
       "running": {
         "type": "int"
-      },
-      "defaults": {
-        "type": "int"
       }
     }
   },
-  "deleteSourceDescription": "僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。預設能力綁定 {defaults} 項及搜尋範圍綁定將被清除。目前播放 {playing} 個、進行中請求 {running} 個可完成，之後釋放連線。",
+  "deleteSourceDescription": "僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。目前播放 {playing} 個、進行中請求 {running} 個可完成，之後釋放連線。",
   "@deleteSourceDescription": {
     "placeholders": {
-      "defaults": {
-        "type": "int"
-      },
       "playing": {
         "type": "int"
       },
       "running": {
-        "type": "int"
-      }
-    }
-  },
-  "previewTitle": "掃描預覽：{name}",
-  "@previewTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "filesFound": "找到 {count} 個檔案。",
-  "@filesFound": {
-    "placeholders": {
-      "count": {
         "type": "int"
       }
     }
@@ -519,14 +467,11 @@
     }
   },
   "fileSources": "檔案來源",
-  "addFileSource": "新增檔案來源",
   "nameFileSource": "為檔案來源命名",
   "fileSourceEnable": "啟用",
   "fileSourceDisable": "停用",
   "fileSourceDisabled": "已停用",
-  "rescanAll": "重新掃描全部檔案來源",
   "noFileSources": "尚無檔案來源，新增一個資料夾開始建立媒體庫",
-  "removeFileSource": "刪除檔案來源",
   "removeFileSourceConfirm": "刪除此檔案來源？",
   "libraryEmptyNoMedia": "檔案來源中尚無可辨識的媒體，請重新掃描或檢查檔名",
   "chooseFolderDescription": "進入目錄並確認作為檔案來源。僅索引其中的媒體，不下載影片。",
@@ -534,7 +479,6 @@
   "libraryNoFileSources": "尚無檔案來源。請在「來源」中為連線新增資料夾",
   "sourceTabConnections": "連線",
   "sourceTabFileSources": "檔案來源",
-  "moreActions": "更多操作",
   "aiNewChat": "新增對話",
   "aiChatHistory": "對話紀錄",
   "aiShowMedia": "返回首頁內容",
@@ -591,5 +535,24 @@
   "remoteLanIdentityHelp": "透過可信管道確認的 64 位十六進位指紋；服務憑證還須通過系統信任驗證。",
   "remoteAutomatic": "自動：驗證區域網路後使用，否則走遠端",
   "remoteLocalOnly": "僅區域網路",
-  "remoteRemoteOnly": "僅遠端"
+  "remoteRemoteOnly": "僅遠端",
+  "developerMode": "開發偵錯",
+  "developerModeDescription": "開啟後顯示偵錯入口，例如媒體詳情頁右上角的「影視資訊」按鈕。",
+  "metadataConfigureInSettings": "請在「設定 → TMDB」中設定讀取存取權杖後再搜尋。",
+  "scrapeManagement": "刮削管理",
+  "scrapedCount": "已刮削項目",
+  "scrapedCountValue": "{count} 筆",
+  "scrapeStorage": "佔用空間",
+  "scrapeStorageDetail": "資料庫 {database} · 圖片快取 {artwork}",
+  "scrapeLoading": "正在統計…",
+  "scrapeClear": "清除全部刮削資訊",
+  "scrapeClearHint": "刪除從 TMDB 及 NFO 取得的影視資訊與海報快取。",
+  "scrapeClearTitle": "清除全部刮削資訊？",
+  "scrapeClearDescription": "將刪除從 TMDB 及 NFO 取得的影視資訊、配對結果與已下載的海報，無法復原。影片檔案、播放進度、媒體伺服器提供的資訊及你手動修改的內容都會保留。若已設定 TMDB，背景會重新開始刮削。",
+  "scrapeCleared": "已清除全部刮削資訊。",
+  "scrapeClearFailed": "清除失敗，請稍後再試。",
+  "metadataProgressDone": "刮削完成",
+  "edit": "編輯",
+  "refresh": "重新整理",
+  "addFileSourceShort": "新增檔案來源"
 }

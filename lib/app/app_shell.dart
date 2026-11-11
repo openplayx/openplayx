@@ -17,7 +17,6 @@ import '../data/files/local_media_picker.dart';
 import '../data/sources/source_manager.dart';
 import '../features/library/library_page.dart';
 import '../features/player/player_page.dart';
-import '../features/sources/source_defaults_page.dart';
 import '../features/sources/source_page.dart';
 import '../features/library/metadata_artwork.dart';
 import '../ui/components/media/media_poster_card.dart';
@@ -28,6 +27,7 @@ import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
 import 'player_window.dart';
 import '../ui/tokens/app_spacing.dart';
+import 'theme/app_theme.dart';
 
 import '../core/models/text_model.dart';
 import '../plugins/model_langchain/langchain_model.dart';
@@ -38,7 +38,6 @@ import '../services/conversations/conversation_coordinator.dart';
 import '../features/ai_assistant/assistant_page.dart';
 import '../features/ai_assistant/ai_chat_controller.dart';
 import '../features/ai_assistant/ai_chat_panel.dart';
-import '../features/ai_assistant/widgets/ai_composer.dart';
 import '../ui/icons/app_icons.dart';
 import '../features/ai_assistant/assistant_settings_page.dart';
 
@@ -247,7 +246,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<void> _modelSettings() async {
     if (_assistantStore == null || (_assistant?.busy ?? false)) return;
-    await Navigator.of(context).push(
+    // Open inside the settings tab like other settings sub-pages, so the
+    // navigation stays visible. The chat sheet (root route) closes first,
+    // otherwise it would sit on top of the page.
+    Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
+    if (_destination != 3) _select(3);
+    await _branches[3].currentState!.push(
       MaterialPageRoute<void>(
         builder: (_) => AssistantSettingsPage(store: _assistantStore!),
       ),
@@ -255,33 +259,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
-  Widget _assistantView({bool panel = false, BuildContext? panelContext}) =>
-      AssistantView(
-        coordinator: _assistant!,
-        controller: _chat,
-        toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
-        onSettings: _modelSettings,
-        onShowContent: panel ? null : _chat!.showContent,
-        onExpand: !panel
-            ? null
-            : () {
-                Navigator.of(panelContext!).pop();
-                _chat!.showChat();
-                _select(0);
-              },
-        onOpenMedia: _openChatMedia,
-        onFavorite: (id) async {
-          final rows = _library!.db.select(
-            'SELECT favorite FROM media WHERE id=?',
-            [id],
-          );
-          if (rows.isEmpty) throw StateError('Media unavailable');
-          final favorite = rows.first['favorite'] != 1;
-          _library!.favorite(id, favorite);
-          _revision.value++;
-          return favorite;
-        },
+  Widget _assistantView() => AssistantView(
+    coordinator: _assistant!,
+    controller: _chat,
+    toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
+    onSettings: _modelSettings,
+    onOpenMedia: _openChatMedia,
+    onFavorite: (id) async {
+      final rows = _library!.db.select(
+        'SELECT favorite FROM media WHERE id=?',
+        [id],
       );
+      if (rows.isEmpty) throw StateError('Media unavailable');
+      final favorite = rows.first['favorite'] != 1;
+      _library!.favorite(id, favorite);
+      _revision.value++;
+      return favorite;
+    },
+  );
 
   Future<void> _openChatMedia(Map<String, dynamic> item) async {
     SourceEntry? entry;
@@ -358,50 +353,31 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Future<void> _openAssistant() => showAiChatPanel(
     context,
     playing: _showPlayer,
-    builder: (panelContext) =>
-        _assistantView(panel: true, panelContext: panelContext),
+    builder: (_) => _assistantView(),
   );
 
-  // Distance of the floating button from the bottom-right corner; draggable.
-  Offset _fabInset = const Offset(16, 16);
-
-  Widget _draggableAssistantButton() => Positioned.fill(
-    child: LayoutBuilder(
-      builder: (context, box) {
-        const size = 48.0;
-        final maxX = (box.maxWidth - size).clamp(0.0, double.infinity);
-        final maxY = (box.maxHeight - size).clamp(0.0, double.infinity);
-        final right = _fabInset.dx.clamp(0.0, maxX);
-        final bottom = _fabInset.dy.clamp(0.0, maxY);
-        return Stack(
-          children: [
-            Positioned(
-              right: right,
-              bottom: bottom,
-              child: GestureDetector(
-                onPanUpdate: (d) => setState(
-                  () => _fabInset = Offset(
-                    (right - d.delta.dx).clamp(0.0, maxX),
-                    (bottom - d.delta.dy).clamp(0.0, maxY),
-                  ),
-                ),
-                child: Tooltip(
-                  message: l.aiAssistant,
-                  child: Semantics(
-                    label: l.aiAssistant,
-                    button: true,
-                    child: ShadIconButton(
-                      icon: const Icon(AppIcons.assistant),
-                      onPressed: _openAssistant,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        );
-      },
+  // Pinned to the top-right corner, aligned with the page header row. Page
+  // headers and the player top bar keep that corner free for it.
+  Widget _assistantButton(BuildContext context) => Positioned(
+    top: MediaQuery.paddingOf(context).top + AppSpacing.md,
+    right: AppSpacing.page(context).right,
+    child: Tooltip(
+      message: l.aiAssistant,
+      child: Semantics(
+        label: l.aiAssistant,
+        button: true,
+        // Plain icon, no filled background. Over the (black) player it uses
+        // the dark theme so the icon stays visible.
+        child: _showPlayer
+            ? ShadTheme(data: AppTheme.dark, child: _assistantIcon())
+            : _assistantIcon(),
+      ),
     ),
+  );
+
+  Widget _assistantIcon() => ShadIconButton.ghost(
+    icon: const Icon(AppIcons.assistant),
+    onPressed: _openAssistant,
   );
 
   Future<void> _exitPlayer() async {
@@ -490,16 +466,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     builder: (_, _, _) => _homeContent(),
   );
 
-  Widget _homeContent() => AppPage(
-    title: Text(l.home),
-    body: _chat == null
-        ? _homeMedia()
-        : ListenableBuilder(
-            listenable: _chat!,
-            builder: (context, _) =>
-                _chat!.showConversation ? _assistantView() : _homeMedia(),
-          ),
-  );
+  Widget _homeContent() => AppPage(title: Text(l.home), body: _homeMedia());
 
   Widget _homeMedia() => ListView(
     key: const PageStorageKey('home'),
@@ -518,48 +485,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         _library!.recentlyPlayed(),
         empty: l.recentEmpty,
       ),
-      if (_chat != null) ...[
-        const SizedBox(height: AppSpacing.xl),
-        ShadCard(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: ShadButton.ghost(
-                  key: const ValueKey('home-open-chat'),
-                  leading: const Icon(AppIcons.chat),
-                  onPressed: _chat!.showChat,
-                  child: Text(l.aiAssistant),
-                ),
-              ),
-              Text(l.aiWelcome, style: ShadTheme.of(context).textTheme.muted),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  for (final suggestion in [
-                    l.aiSuggestMedia,
-                    l.aiSuggestResume,
-                  ])
-                    ShadButton.outline(
-                      height: 0,
-                      onPressed: () => _chat!.suggest(suggestion),
-                      child: Flexible(child: Text(suggestion)),
-                    ),
-                ],
-              ),
-              AiComposer(
-                controller: _chat!,
-                toolsEnabled: () =>
-                    _assistantStore!.loadConfig().toolsSupported,
-                onSettings: _modelSettings,
-              ),
-            ],
-          ),
-        ),
-      ],
     ],
   );
 
@@ -618,11 +543,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     library: _library,
     sources: _sources,
     onModelSettings: _assistantStore == null ? null : _modelSettings,
-    onSourceDefaults: () => _branches[3].currentState!.push(
-      MaterialPageRoute<void>(
-        builder: (_) => SourceDefaultsPage(manager: _sources),
-      ),
-    ),
   );
 
   Widget _branch(int index) => Navigator(
@@ -723,8 +643,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                if (_assistant != null && (_destination != 0 || _showPlayer))
-                  _draggableAssistantButton(),
+                if (_assistant != null) _assistantButton(context),
               ],
             ),
             bottomNavigationBar: sidebar || _showPlayer

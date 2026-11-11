@@ -68,7 +68,8 @@ void main() {
       expect(find.byType(SegmentedButton<bool>), findsNothing);
       expect(keychain.reads, 0);
 
-      await tester.tap(find.byTooltip('重新加载配置'));
+      // Reloading configuration (the page's own refresh path) reads nothing.
+      await manager.reload();
       await tester.pumpAndSettle();
       await tester.pumpWidget(TestApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();

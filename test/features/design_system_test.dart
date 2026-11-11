@@ -51,6 +51,20 @@ void main() {
     configuration.close();
   });
 
+  test('developer mode defaults off and persists', () async {
+    final configuration = SourceConfigurationService(sqlite3.openInMemory());
+    final first = AppThemeController(configuration: configuration);
+    await first.load();
+    expect(first.developerMode, isFalse);
+    await first.setDeveloperMode(true);
+    final restarted = AppThemeController(configuration: configuration);
+    await restarted.load();
+    expect(restarted.developerMode, isTrue);
+    restarted.dispose();
+    first.dispose();
+    configuration.close();
+  });
+
   test(
     'unreadable preferences do not block startup or hide save failure',
     () async {

@@ -20,6 +20,8 @@ class LibraryRepository {
   T transaction<T>(T Function() action) =>
       LibraryDatabase.transaction(db, action);
   ({int done, int total}) metadataProgress() => MetadataQueue(db).progress;
+  ({int done, int total}) metadataProgressFor(String binding) =>
+      MetadataQueue(db).progressFor(binding);
   int prioritizeMetadata(List<String> ids) => MetadataQueue(db).boost(ids);
   void queueMetadata(String media, {bool refresh = false}) =>
       MetadataQueue.observe(db, media, refresh: refresh);
@@ -171,6 +173,7 @@ class LibraryRepository {
         [library, media, timestamp, library, media],
       );
 
+  /// Like [query], children whose files are all hidden dot files are skipped.
   ResultSet children(String media, String? library, int limit, int offset) =>
       db.select(
         '''WITH children AS (
@@ -183,6 +186,8 @@ class LibraryRepository {
       LEFT JOIN metadata_projection mp ON mp.media_id=m.id
       LEFT JOIN source_media sm ON sm.media_id=m.id
       WHERE (? IS NULL OR EXISTS (SELECT 1 FROM memberships lm WHERE lm.media_id=m.id AND lm.library_id=?))
+      AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
+        AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
       GROUP BY m.id ORDER BY season,episode,m.id LIMIT ? OFFSET ?''',
         [media, media, library, library, limit, offset],
       );
@@ -224,8 +229,10 @@ class LibraryRepository {
   void insertLocalIdentity(String path, String resource) =>
       db.execute('INSERT INTO local_identity VALUES (?,?)', [path, resource]);
 
+  /// Hidden dot files (macOS `._movie.mkv` sidecars kept from scans before
+  /// they were filtered) are never offered for playback.
   ResultSet resources(String media) => db.select(
-    'SELECT r.id,r.media_id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? ORDER BY r.id,l.source,l.item',
+    "SELECT r.id,r.media_id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? AND substr(r.name,1,1)<>'.' ORDER BY r.id,l.source,l.item",
     [media],
   );
 

@@ -80,16 +80,13 @@ void main() {
         jellyfinToken ?? sourceServiceSecret(kind, defines),
       );
       debugPrint('Source integration: ${kind.name} saved');
-      await manager.setDefault('source.browse', config.id);
       // Test bounded pages and traverse the actual media library to a playable leaf.
       Future<SourceEntry?> findVideo(ResourceRef? node, int depth) async {
         if (depth > 5) return null;
         int? offset = 0;
         while (offset != null) {
           final request = BrowseRequest(node: node, offset: offset, limit: 10);
-          final page = node == null
-              ? await manager.browseDefault(request)
-              : await manager.browse(config.id, request);
+          final page = await manager.browse(config.id, request);
           for (final entry in page.entries) {
             if (!entry.isFolder) return entry;
             final child = await findVideo(entry.ref, depth + 1);

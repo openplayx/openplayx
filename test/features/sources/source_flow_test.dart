@@ -92,9 +92,14 @@ void main() {
       await tester.pumpAndSettle();
       expect(sources.saved.single.kind, SourceKind.smb);
       expect(sources.secrets.single, 'password');
-      await tester.tap(find.byTooltip('更多操作'));
+      // Swiping the connection left reveals its edit button.
+      final id = sources.saved.single.id;
+      await tester.drag(
+        find.byKey(ValueKey('source-$id')),
+        const Offset(-300, 0),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('编辑媒体源'));
+      await tester.tap(find.byKey(ValueKey('source-edit-$id')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(EditableText).first,
@@ -152,16 +157,22 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('更多操作'));
+      await tester.drag(
+        find.byKey(const ValueKey('source-nas')),
+        const Offset(-300, 0),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('删除媒体源'));
+      await tester.tap(find.byKey(const ValueKey('source-delete-nas')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(sources.saved, hasLength(1));
-      await tester.tap(find.byTooltip('更多操作'));
+      await tester.drag(
+        find.byKey(const ValueKey('source-nas')),
+        const Offset(-300, 0),
+      );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('删除媒体源'));
+      await tester.tap(find.byKey(const ValueKey('source-delete-nas')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除'));
       await tester.pumpAndSettle();

@@ -6,7 +6,12 @@ import 'package:sentry_flutter/sentry_flutter.dart';
 
 import 'diagnostics_service.dart';
 
-const _dsn = String.fromEnvironment('SENTRY_DSN');
+// Sentry DSNs are public client keys; --dart-define=SENTRY_DSN=... overrides
+// this default (pass an empty value to build without diagnostics).
+const _dsn = String.fromEnvironment(
+  'SENTRY_DSN',
+  defaultValue: 'https://df1d46e6b16ecec16b8ae4144bdbbb08@o4509140630962176.ingest.us.sentry.io/4512412742385664',
+);
 const _environment = String.fromEnvironment(
   'SENTRY_ENVIRONMENT',
   defaultValue: kReleaseMode ? 'production' : 'development',

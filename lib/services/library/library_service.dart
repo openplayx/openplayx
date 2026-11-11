@@ -64,6 +64,10 @@ class LibraryService {
 
   /// Metadata scraping progress (done/total) for the library page header.
   ({int done, int total}) metadataProgress() => repository.metadataProgress();
+
+  /// Scraping progress of the media found by one file source.
+  ({int done, int total}) metadataProgressFor(String binding) =>
+      repository.metadataProgressFor(binding);
   final _priorityRequests = StreamController<void>.broadcast();
 
   /// Fires when a visible item was moved to the front of the metadata queue.

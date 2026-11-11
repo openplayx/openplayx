@@ -12,12 +12,16 @@ class ContentRow extends StatelessWidget {
     this.leading,
     this.trailing,
     this.onTap,
+    this.onLongPress,
     this.contentPadding,
     this.dense = false,
   });
   final Widget title;
   final Widget? subtitle, leading, trailing;
   final VoidCallback? onTap;
+
+  /// Secondary action, e.g. editing; long press (or long click on desktop).
+  final VoidCallback? onLongPress;
   final EdgeInsetsGeometry? contentPadding;
   final bool dense;
   @override
@@ -54,12 +58,13 @@ class ContentRow extends StatelessWidget {
       child: LayoutBuilder(
         builder: (context, box) {
           final primary = Semantics(
-            button: onTap != null,
+            button: onTap != null || onLongPress != null,
             child: Material(
               color: theme.colorScheme.card,
               borderRadius: theme.radius,
               child: InkWell(
                 onTap: onTap,
+                onLongPress: onLongPress,
                 borderRadius: theme.radius,
                 hoverColor: theme.colorScheme.accent,
                 focusColor: theme.colorScheme.accent,

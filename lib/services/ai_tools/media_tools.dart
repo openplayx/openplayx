@@ -104,9 +104,8 @@ class MediaTools {
                 'source_id': s.id,
                 'name': safeText(s.name),
                 'kind': s.kind.name,
-                'search_enabled': sources.bindings.searchInstances.contains(
-                  s.id,
-                ),
+                'searchable': SourceSchemas.forKind(s.kind).capabilities
+                    .contains('search.media'),
               },
           ],
         };
@@ -235,7 +234,6 @@ class MediaTools {
             .where(
               (s) =>
                   s.enabled &&
-                  sources.bindings.searchInstances.contains(s.id) &&
                   SourceSchemas.forKind(s.kind).capabilities
                       .contains('search.media'),
             )

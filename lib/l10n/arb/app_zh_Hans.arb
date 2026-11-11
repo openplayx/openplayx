@@ -13,8 +13,6 @@
   "language": "界面语言",
   "preferenceSaveFailed": "偏好保存失败",
   "preferenceSaveRetry": "当前选择已生效，请重新选择以重试保存。",
-  "sourceDefaults": "来源默认配置",
-  "sourceDefaultsDescription": "管理浏览、搜索与扫描使用的默认来源",
   "manage": "管理",
   "about": "关于 OpenPlayX",
   "aboutDescription": "你的媒体，一个安静的播放空间。",
@@ -66,7 +64,6 @@
   "addToLibrary": "加入其他媒体库",
   "chooseLibrary": "选择媒体库",
   "correctTitle": "修正标题",
-  "removeFromLibrary": "从当前库移除（保留原文件和媒体记录）",
   "continueIncludingHistory": "继续观看（包括未入库的播放记录）",
   "allLibraries": "全部媒体库",
   "renameLibrary": "重命名媒体库",
@@ -96,15 +93,9 @@
   "rootFolder": "根目录",
   "confirmScanScope": "确认扫描此范围",
   "chooseScanScope": "选择扫描范围",
-  "defaultSaveFailed": "默认实例保存失败。",
   "defaultDescription": "默认实例只用于未显式选择来源的操作。已有资源始终由原实例解析，不自动切换账号。",
   "defaultBrowse": "默认浏览实例",
   "defaultResolve": "默认资源解析实例",
-  "chooseEachTime": "每次选择",
-  "defaultUnavailable": "存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。",
-  "searchScope": "多源搜索范围",
-  "searchScopeDescription": "选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。",
-  "sourceDefaultsTitle": "能力默认实例与搜索范围",
   "localFolder": "本地文件夹",
   "pickFolderFailed": "无法选择文件夹，请重试。",
   "openBrowserFailed": "无法打开浏览器，请点击登录链接重试。",
@@ -147,24 +138,14 @@
   "folderAccessHelp": "请选择系统允许应用访问的文件夹。",
   "loadSourcesFailed": "加载媒体源失败，请重试。",
   "filePlayFailed": "无法播放此文件。",
-  "previewLimit": "已达到预览上限 500 个文件，结果不完整。",
-  "previewDescription": "已应用访问范围和扫描排除项；此操作不写入媒体库、不创建后台索引。",
-  "scanFailed": "扫描失败。",
   "backToParent": "返回上一级",
   "sourcesEmpty": "添加本地文件夹、SMB、Jellyfin 或 Plex 来源。",
   "disableSourceConfirm": "禁用媒体源？",
   "disable": "禁用",
   "toggleSourceFailed": "启停失败，请重试。",
-  "verifyConnection": "验证连接",
   "connectionFailed": "连接失败。",
-  "previewScan": "预览扫描",
-  "deleteSource": "删除媒体源",
   "deleteSourceFailed": "删除源失败，请重试。",
   "folderEmpty": "此目录没有可浏览的媒体。",
-  "reloadConfiguration": "重新加载配置",
-  "defaultBrowseUnavailable": "默认实例不可用，请重新选择，未自动切换其他账号。",
-  "browseDefault": "默认浏览",
-  "capabilityDefaults": "能力默认实例",
   "addSourceShort": "添加源",
   "playerClosed": "播放器已关闭",
   "historySaveFailed": "观看记录暂时无法保存，仍可继续播放",
@@ -207,17 +188,6 @@
   },
   "metadataProgressLabel": "刮削 {done}/{total}",
   "@metadataProgressLabel": {
-    "placeholders": {
-      "done": {
-        "type": "int"
-      },
-      "total": {
-        "type": "int"
-      }
-    }
-  },
-  "metadataProgressTooltip": "元数据刮削进度：已处理 {done} / 共 {total}（找不到匹配的也算已处理）",
-  "@metadataProgressTooltip": {
     "placeholders": {
       "done": {
         "type": "int"
@@ -276,7 +246,7 @@
       }
     }
   },
-  "disableSourceDescription": "当前播放 {playing} 个，进行中请求 {running} 个，默认能力绑定 {defaults} 项。禁用后拒绝新请求并清除默认绑定；当前播放可继续，结束后释放连接。配置、收藏和产物保留。",
+  "disableSourceDescription": "当前播放 {playing} 个，进行中请求 {running} 个。禁用后拒绝新请求；当前播放可继续，结束后释放连接。配置、收藏和产物保留。",
   "@disableSourceDescription": {
     "placeholders": {
       "playing": {
@@ -284,38 +254,16 @@
       },
       "running": {
         "type": "int"
-      },
-      "defaults": {
-        "type": "int"
       }
     }
   },
-  "deleteSourceDescription": "仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。默认能力绑定 {defaults} 项和搜索范围绑定将被清除。当前播放 {playing} 个、进行中请求 {running} 个可完成，之后释放连接。",
+  "deleteSourceDescription": "仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。当前播放 {playing} 个、进行中请求 {running} 个可完成，之后释放连接。",
   "@deleteSourceDescription": {
     "placeholders": {
-      "defaults": {
-        "type": "int"
-      },
       "playing": {
         "type": "int"
       },
       "running": {
-        "type": "int"
-      }
-    }
-  },
-  "previewTitle": "扫描预览：{name}",
-  "@previewTitle": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "filesFound": "发现 {count} 个文件。",
-  "@filesFound": {
-    "placeholders": {
-      "count": {
         "type": "int"
       }
     }
@@ -519,14 +467,11 @@
     }
   },
   "fileSources": "文件源",
-  "addFileSource": "添加文件源",
   "nameFileSource": "为文件源命名",
   "fileSourceEnable": "启用",
   "fileSourceDisable": "停用",
   "fileSourceDisabled": "已停用",
-  "rescanAll": "重新扫描全部文件源",
   "noFileSources": "还没有文件源，添加一个文件夹开始建立媒体库",
-  "removeFileSource": "删除文件源",
   "removeFileSourceConfirm": "删除此文件源？",
   "libraryEmptyNoMedia": "文件源中暂无可识别的媒体，请重新扫描或检查文件命名",
   "chooseFolderDescription": "进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。",
@@ -534,7 +479,6 @@
   "libraryNoFileSources": "还没有文件源。请在「来源」中为连接添加文件夹",
   "sourceTabConnections": "连接",
   "sourceTabFileSources": "文件源",
-  "moreActions": "更多操作",
   "aiNewChat": "新建对话",
   "aiChatHistory": "会话历史",
   "aiShowMedia": "返回首页内容",
@@ -591,5 +535,24 @@
   "remoteLanIdentityHelp": "通过可信途径确认的 64 位十六进制指纹；服务证书还须通过系统信任校验。",
   "remoteAutomatic": "自动：验证局域网后使用，否则走远程",
   "remoteLocalOnly": "仅局域网",
-  "remoteRemoteOnly": "仅远程"
+  "remoteRemoteOnly": "仅远程",
+  "developerMode": "开发调试",
+  "developerModeDescription": "开启后显示调试入口，例如媒体详情页右上角的“影视信息”按钮。",
+  "metadataConfigureInSettings": "请在“设置 → TMDB”中配置读取访问令牌后再搜索。",
+  "scrapeManagement": "刮削管理",
+  "scrapedCount": "已刮削条目",
+  "scrapedCountValue": "{count} 条",
+  "scrapeStorage": "占用空间",
+  "scrapeStorageDetail": "数据库 {database} · 图片缓存 {artwork}",
+  "scrapeLoading": "正在统计…",
+  "scrapeClear": "清除全部刮削信息",
+  "scrapeClearHint": "删除从 TMDB 和 NFO 获取的影视信息及海报缓存。",
+  "scrapeClearTitle": "清除全部刮削信息？",
+  "scrapeClearDescription": "将删除从 TMDB 和 NFO 获取的影视信息、匹配结果和已下载的海报，无法撤销。视频文件、播放进度、媒体服务器提供的信息和你手动修改的内容都会保留。如果已配置 TMDB，后台会重新开始刮削。",
+  "scrapeCleared": "已清除全部刮削信息。",
+  "scrapeClearFailed": "清除失败，请稍后重试。",
+  "metadataProgressDone": "刮削完成",
+  "edit": "编辑",
+  "refresh": "刷新",
+  "addFileSourceShort": "添加文件源"
 }

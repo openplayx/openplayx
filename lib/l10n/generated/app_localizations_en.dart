@@ -50,13 +50,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Your choice is active. Select it again to retry saving.';
 
   @override
-  String get sourceDefaults => 'Source defaults';
-
-  @override
-  String get sourceDefaultsDescription =>
-      'Manage default sources for browsing, search and scans';
-
-  @override
   String get manage => 'Manage';
 
   @override
@@ -220,10 +213,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get correctTitle => 'Edit title';
 
   @override
-  String get removeFromLibrary =>
-      'Remove from this library (keep files and media records)';
-
-  @override
   String get continueIncludingHistory =>
       'Continue watching (including items outside your library)';
 
@@ -314,9 +303,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get chooseScanScope => 'Choose scan scope';
 
   @override
-  String get defaultSaveFailed => 'Could not save the default source.';
-
-  @override
   String get defaultDescription =>
       'Defaults apply when no source is selected. Existing resources keep their original source and account.';
 
@@ -325,23 +311,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get defaultResolve => 'Default resolution source';
-
-  @override
-  String get chooseEachTime => 'Choose each time';
-
-  @override
-  String get defaultUnavailable =>
-      'A default source is unavailable. Choose again; no other account was substituted.';
-
-  @override
-  String get searchScope => 'Multi-source search scope';
-
-  @override
-  String get searchScopeDescription =>
-      'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.';
-
-  @override
-  String get sourceDefaultsTitle => 'Default sources and search scope';
 
   @override
   String get localFolder => 'Local folder';
@@ -475,17 +444,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get filePlayFailed => 'Could not play this file.';
 
   @override
-  String get previewLimit =>
-      'Preview limit of 500 files reached; results are incomplete.';
-
-  @override
-  String get previewDescription =>
-      'Access scopes and scan exclusions apply. This preview does not update the library or create a background index.';
-
-  @override
-  String get scanFailed => 'Scan failed.';
-
-  @override
   String get backToParent => 'Back to parent folder';
 
   @override
@@ -502,35 +460,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get toggleSourceFailed => 'Could not change source status. Try again.';
 
   @override
-  String get verifyConnection => 'Test connection';
-
-  @override
   String get connectionFailed => 'Connection failed.';
-
-  @override
-  String get previewScan => 'Preview scan';
-
-  @override
-  String get deleteSource => 'Delete media source';
 
   @override
   String get deleteSourceFailed => 'Could not delete the source. Try again.';
 
   @override
   String get folderEmpty => 'No browsable media in this folder.';
-
-  @override
-  String get reloadConfiguration => 'Reload configuration';
-
-  @override
-  String get defaultBrowseUnavailable =>
-      'Default source unavailable. Choose again; no other account was substituted.';
-
-  @override
-  String get browseDefault => 'Browse default';
-
-  @override
-  String get capabilityDefaults => 'Default sources';
 
   @override
   String get addSourceShort => 'Add source';
@@ -635,11 +571,6 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String metadataProgressTooltip(int done, int total) {
-    return 'Metadata scraping progress: $done of $total processed (items with no match count as processed)';
-  }
-
-  @override
   String watchedMinutes(int minutes) {
     return ' · Watched $minutes min';
   }
@@ -665,23 +596,13 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String disableSourceDescription(int playing, int running, int defaults) {
-    return '$playing playing, $running requests, $defaults default bindings. New requests will be rejected and defaults cleared. Current playback can finish. Configuration and favorites are kept.';
+  String disableSourceDescription(int playing, int running) {
+    return '$playing playing, $running requests. New requests will be rejected. Current playback can finish. Configuration and favorites are kept.';
   }
 
   @override
-  String deleteSourceDescription(int defaults, int playing, int running) {
-    return 'Remove this source configuration and credential reference. Files and favorites are kept. $defaults default bindings and search-scope bindings will be cleared. $playing playing items and $running requests can finish before connections are released.';
-  }
-
-  @override
-  String previewTitle(String name) {
-    return 'Scan preview: $name';
-  }
-
-  @override
-  String filesFound(int count) {
-    return '$count files found.';
+  String deleteSourceDescription(int playing, int running) {
+    return 'Remove this source configuration and credential reference. Files and favorites are kept. $playing playing items and $running requests can finish before connections are released.';
   }
 
   @override
@@ -1163,9 +1084,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileSources => 'File sources';
 
   @override
-  String get addFileSource => 'Add file source';
-
-  @override
   String get nameFileSource => 'Name this file source';
 
   @override
@@ -1178,14 +1096,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get fileSourceDisabled => 'Disabled';
 
   @override
-  String get rescanAll => 'Rescan all file sources';
-
-  @override
   String get noFileSources =>
       'No file sources yet. Add a folder to build your library.';
-
-  @override
-  String get removeFileSource => 'Delete file source';
 
   @override
   String get removeFileSourceConfirm => 'Delete this file source?';
@@ -1210,9 +1122,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get sourceTabFileSources => 'File sources';
-
-  @override
-  String get moreActions => 'More actions';
 
   @override
   String get aiNewChat => 'New conversation';
@@ -1393,4 +1302,69 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remoteRemoteOnly => 'Remote only';
+
+  @override
+  String get developerMode => 'Developer mode';
+
+  @override
+  String get developerModeDescription =>
+      'Shows debugging entry points, such as the metadata button on the media detail page.';
+
+  @override
+  String get metadataConfigureInSettings =>
+      'Add a read access token in Settings → TMDB to search.';
+
+  @override
+  String get scrapeManagement => 'Scraped metadata';
+
+  @override
+  String get scrapedCount => 'Scraped items';
+
+  @override
+  String scrapedCountValue(int count) {
+    return '$count items';
+  }
+
+  @override
+  String get scrapeStorage => 'Storage used';
+
+  @override
+  String scrapeStorageDetail(String database, String artwork) {
+    return 'Database $database · Image cache $artwork';
+  }
+
+  @override
+  String get scrapeLoading => 'Calculating…';
+
+  @override
+  String get scrapeClear => 'Clear all scraped metadata';
+
+  @override
+  String get scrapeClearHint =>
+      'Deletes metadata fetched from TMDB and NFO files, and cached posters.';
+
+  @override
+  String get scrapeClearTitle => 'Clear all scraped metadata?';
+
+  @override
+  String get scrapeClearDescription =>
+      'Metadata fetched from TMDB and NFO files, matches and downloaded posters will be deleted. This cannot be undone. Video files, playback progress, media server metadata and your manual edits are kept. If TMDB is configured, scraping starts again in the background.';
+
+  @override
+  String get scrapeCleared => 'All scraped metadata was cleared.';
+
+  @override
+  String get scrapeClearFailed => 'Could not clear. Try again later.';
+
+  @override
+  String get metadataProgressDone => 'Scraping done';
+
+  @override
+  String get edit => 'Edit';
+
+  @override
+  String get refresh => 'Refresh';
+
+  @override
+  String get addFileSourceShort => 'Add folder';
 }

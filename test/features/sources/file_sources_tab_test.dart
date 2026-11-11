@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/features/sources/file_source_browser_page.dart';
 import 'package:openplayx/features/sources/source_page.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -61,6 +62,33 @@ void main() {
   setUp(() => service = LibraryService(sqlite3.openInMemory()));
   tearDown(() => service.close());
 
+  testWidgets('scraping progress follows the scan status of a file source', (
+    tester,
+  ) async {
+    final binding = service.bind(service.defaultLibrary(), 's', name: 'Movies');
+    await service.scan(binding, _Sources());
+    await tester.pumpWidget(
+      TestApp(
+        home: SourcePage(manager: _Sources(), library: service),
+      ),
+    );
+    await tester.pumpAndSettle();
+    Text status() => tester.widget<Text>(
+      find.byKey(ValueKey('file-source-status-$binding')),
+    );
+    expect(status().data, '扫描完成 · 刮削 0/1');
+    expect(find.byType(LinearProgressIndicator), findsOneWidget);
+    // "Not found" is finished work too.
+    service.db.execute("UPDATE metadata_queue SET state='unmatched'");
+    service.notifyChanged();
+    await tester.pumpAndSettle();
+    expect(status().data, '扫描完成 · 刮削完成');
+    expect(find.byType(LinearProgressIndicator), findsNothing);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
+
   testWidgets('file sources are children of their connection in one tree', (
     tester,
   ) async {
@@ -73,9 +101,17 @@ void main() {
     // No tabs any more: the connection is the parent, its folders the children.
     expect(find.text('连接'), findsNothing);
     expect(find.text('NAS'), findsOneWidget);
-    expect(find.byTooltip('重新扫描全部文件源'), findsOneWidget);
+    expect(find.byTooltip('重新扫描全部文件源'), findsNothing);
+    expect(find.byTooltip('重新加载配置'), findsNothing);
 
-    await tester.tap(find.text('添加文件源'));
+    // Adding a file source lives behind the connection's swipe actions.
+    expect(find.text('添加文件源'), findsNothing);
+    await tester.drag(
+      find.byKey(const ValueKey('source-s')),
+      const Offset(-400, 0),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('source-add-file-s')));
     await tester.pumpAndSettle();
     // The connection is already known, so the flow goes straight to a folder.
     await tester.tap(find.text('确认扫描此范围'));
@@ -110,8 +146,52 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.query(null), hasLength(1));
 
+    // No pencil or trash icons on the row any more.
+    expect(find.byTooltip('重命名媒体库'), findsNothing);
+    expect(find.byTooltip('删除文件源'), findsNothing);
+
+    // Swipe left, then "edit" renames.
+    final id = service.fileSources().single['id'] as String;
+    await tester.drag(find.text('Movies'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('file-source-edit-$id')));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.descendant(
+        of: find.byType(ShadDialog),
+        matching: find.byType(EditableText),
+      ),
+      'Films',
+    );
+    await tester.tap(find.text('保存'));
+    await tester.pumpAndSettle();
+    expect(service.fileSources().single['name'], 'Films');
+
+    // Swiping left reveals delete; a short swipe snaps back closed.
+    await tester.drag(find.text('Films'), const Offset(-20, 0));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('file-source-delete-$id')), findsNothing);
+    await tester.drag(find.text('Films'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    // Tapping the row while open only closes it.
+    await tester.tap(find.byKey(ValueKey('file-source-$id')));
+    await tester.pumpAndSettle();
+    expect(find.byKey(ValueKey('file-source-delete-$id')), findsNothing);
+    expect(find.byType(FileSourceBrowserPage), findsNothing);
+
+    // Delete asks first; cancelling keeps the source.
+    await tester.drag(find.text('Films'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('file-source-delete-$id')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(service.fileSources(), hasLength(1));
+
     // Delete keeps resources, only drops automatic membership.
-    await tester.tap(find.byTooltip('删除文件源'));
+    await tester.drag(find.text('Films'), const Offset(-400, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(ValueKey('file-source-delete-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('移除'));
     await tester.pumpAndSettle();

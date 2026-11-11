@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -73,4 +74,33 @@ void main() {
       },
     );
   }
+
+  testWidgets(
+    'without a token the page points to Settings, not its own TMDB buttons',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final library = LibraryService(sqlite3.openInMemory());
+      final sources = OfflineSources();
+      final media = library.register(
+        const SourceEntry(
+          ResourceRef('@local', '/film.mkv'),
+          'Film.2014.mkv',
+          isFolder: false,
+        ),
+      );
+      await tester.pumpWidget(
+        TestApp(
+          home: MetadataPage(library: library, sources: sources, media: media),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('配置 TMDB'), findsNothing);
+      expect(find.text('移除 TMDB 凭据'), findsNothing);
+      expect(find.text('尚未配置 TMDB 令牌。'), findsOneWidget);
+      expect(find.textContaining('设置 → TMDB'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+    },
+  );
 }
