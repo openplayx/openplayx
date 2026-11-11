@@ -66,6 +66,12 @@ class MainFlutterWindow: NSWindow {
     self.contentMinSize = NSSize(width: min(960, contentSize.width), height: min(640, contentSize.height))
     self.center()
 
+    // Start the engine before registering plugins. Otherwise it only starts in
+    // viewWillAppear, and desktop_multi_window's registration sends
+    // `onWindowsChanged` to a not-yet-running engine ("Invalid engine handle").
+    if !flutterViewController.engine.run(withEntrypoint: nil) {
+      NSLog("openplayx: failed to start the main Flutter engine")
+    }
     RegisterGeneratedPlugins(registry: flutterViewController)
 
     // Playback opens in its own window with its own Flutter engine. Each one
