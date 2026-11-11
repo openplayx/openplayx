@@ -100,6 +100,9 @@ class SourceConfig {
     this.scanMode = ScanMode.manual,
     this.backgroundIndexing = false,
     this.remoteAccess,
+    this.remoteManaged = false,
+    this.remoteRuntimePolicy,
+    this.remoteRequiredRevision = 0,
   });
   final String id;
   final SourceKind kind;
@@ -126,6 +129,9 @@ class SourceConfig {
   final ScanMode scanMode;
   final bool backgroundIndexing;
   final RemoteAccessConfig? remoteAccess;
+  final bool remoteManaged;
+  final RemoteRuntimePolicy? remoteRuntimePolicy;
+  final int remoteRequiredRevision;
 
   /// Name shown when the connection appears in another place (pickers,
   /// filters, file source rows): always prefixed with the type. A blank name
@@ -175,6 +181,9 @@ class SourceConfig {
     bool? backgroundIndexing,
     RemoteAccessConfig? remoteAccess,
     bool clearRemoteAccess = false,
+    bool? remoteManaged,
+    RemoteRuntimePolicy? remoteRuntimePolicy,
+    int? remoteRequiredRevision,
   }) => SourceConfig(
     id: id,
     kind: kind,
@@ -202,9 +211,13 @@ class SourceConfig {
     scanMode: scanMode ?? this.scanMode,
     backgroundIndexing: backgroundIndexing ?? this.backgroundIndexing,
     remoteAccess: clearRemoteAccess ? null : remoteAccess ?? this.remoteAccess,
+    remoteManaged: remoteManaged ?? this.remoteManaged,
+    remoteRuntimePolicy: remoteRuntimePolicy ?? this.remoteRuntimePolicy,
+    remoteRequiredRevision:
+        remoteRequiredRevision ?? this.remoteRequiredRevision,
   );
 
-  Map<String, dynamic> toJson() => {
+  Map<String, dynamic> toJson({bool includeRemoteAccess = true}) => {
     'id': id,
     'kind': kind.name,
     'name': name,
@@ -228,7 +241,11 @@ class SourceConfig {
     'scanExclusions': scanExclusions,
     'scanMode': scanMode.name,
     'backgroundIndexing': backgroundIndexing,
-    if (remoteAccess != null) 'remoteAccess': remoteAccess!.toJson(),
+    if (includeRemoteAccess && remoteAccess != null)
+      'remoteAccess': remoteAccess!.toJson(),
+    if (remoteManaged) 'remoteManaged': true,
+    if (remoteRequiredRevision != 0)
+      'remoteRequiredRevision': remoteRequiredRevision,
   };
   factory SourceConfig.fromJson(Map<String, dynamic> j) {
     const keys = {
@@ -257,6 +274,8 @@ class SourceConfig {
       'scanMode',
       'backgroundIndexing',
       'remoteAccess',
+      'remoteManaged',
+      'remoteRequiredRevision',
     };
     if (j.keys.any((key) => !keys.contains(key))) {
       throw const FormatException('配置包含未知字段，原始配置必须保留。');
@@ -291,6 +310,8 @@ class SourceConfig {
       ),
       scanMode: ScanMode.values.byName(j['scanMode'] as String? ?? 'manual'),
       backgroundIndexing: j['backgroundIndexing'] as bool? ?? false,
+      remoteManaged: j['remoteManaged'] as bool? ?? false,
+      remoteRequiredRevision: j['remoteRequiredRevision'] as int? ?? 0,
       remoteAccess: j['remoteAccess'] == null
           ? null
           : RemoteAccessConfig.fromJson(
@@ -300,6 +321,7 @@ class SourceConfig {
   }
 
   void validate() {
+    if (remoteRequiredRevision < 0) throw const FormatException('远程生效修订无效。');
     if (remoteAccess != null) {
       if (!kind.mediaBrowser &&
           kind != SourceKind.plex &&

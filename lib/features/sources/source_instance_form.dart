@@ -326,10 +326,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         }
         final ref = pair == null
             ? previous!.credentialRef
-            : (stagedRemote = await RemoteCredentialStore.stage(
-                _id,
-                pair.outbound,
-              ));
+            : (stagedRemote = await RemoteCredentialStore.stage(_id, {
+                'uuid': pair.outbound['uuid'],
+              }));
         final j = pair?.data ?? previous!.toJson();
         _preparedRemote = RemoteAccessConfig(
           lineId: j['lineId'] as String,
@@ -341,6 +340,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
           mode: _connectionMode,
           localAddress: _localEndpoint.text.trim(),
           localTlsSha256: _localFingerprint.text.trim(),
+          outboundOptions: pair == null
+              ? previous?.outboundOptions
+              : ({...pair.outbound}..remove('uuid')),
         );
         _preparedRemote!.validate();
         if (_address.text.trim().isEmpty) {
@@ -420,7 +422,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       }
     } finally {
       if (stagedRemote != null && !savedRemote) {
-        await RemoteCredentialStore.delete(_id, stagedRemote);
+        await widget.manager.discardRemoteSecret(_id, stagedRemote);
       }
       if (mounted) setState(() => _busy = false);
     }

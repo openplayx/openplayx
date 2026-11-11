@@ -198,3 +198,5 @@ flutter test integration_test/source_storage_test.dart -d macos
 感谢 [Flutter](https://github.com/flutter/flutter)、[VideoLAN / VLC](https://www.videolan.org/vlc/)、[vlc_player](https://pub.dev/packages/vlc_player)、[flutter-shadcn-ui](https://github.com/nank1ro/flutter-shadcn-ui) 和 [Lucide](https://github.com/lucide-icons/lucide) 等项目。各依赖保留各自许可证；发布含 VLC/VLCKit 的构建时，还需遵循对应运行库的分发要求。
 
 家庭远程访问的配置、构建、验证与待验收边界见 [sing-box + frp 实现记录](docs/implement/remote_access_singbox_frp.md)。
+
+三端配置入口：App“设置 → 远程访问”、Relay/Home 本机 Web 管理页；配置分别保存为 remote_access.json、relay.json、home.json。详见 [三端配置管理](docs/implement/remote_access_configuration.md)。

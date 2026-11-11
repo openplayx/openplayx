@@ -252,4 +252,44 @@ void main() {
     path.close();
     await server.close();
   });
+  test(
+    'network policy is rechecked before opening any replacement TCP socket',
+    () async {
+      var checks = 0;
+      final lease = RemotePathLease(
+        Uri.parse('smb://nas.invalid/Media'),
+        loopbackPort: 1,
+        beforeConnect: () async {
+          checks++;
+          throw const SocketException('policy fixture');
+        },
+      );
+      await expectLater(
+        lease.runWithTcp(
+          () => Socket.connect('nas.invalid', 445),
+          logicalHost: 'nas.invalid',
+          logicalPort: 445,
+        ),
+        throwsA(isA<SocketException>()),
+      );
+      expect(checks, 1);
+      lease.close();
+    },
+  );
+  test('empty optional LAN fields do not turn an unrelated source edit into a route change', () {
+    final primary = RemoteAccessConfig(
+      lineId: 'line',
+      homeId: 'home',
+      serviceId: 'media',
+      remoteAddress: 'http://nas.invalid:8096',
+      remotePort: 18096,
+      credentialRef: 'remote.source.key',
+    );
+    final equivalent = RemoteAccessConfig.fromJson({
+      ...primary.toJson(),
+      'localAddress': '',
+      'localTlsSha256': '',
+    });
+    expect(equivalent.toJson(), primary.toJson());
+  });
 }

@@ -406,7 +406,7 @@ void main() {
       final secret = await const FlutterSecureStorage().read(
         key: saved.remoteAccess!.credentialRef,
       );
-      expect(jsonDecode(secret!), outbound);
+      expect(jsonDecode(secret!), {'uuid': outbound['uuid']});
       expect(manager.secrets.single, 'automatic-session-token');
     },
   );
