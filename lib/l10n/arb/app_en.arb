@@ -609,5 +609,15 @@
   "serverUnavailable": "Can't reach this server",
   "serverEmpty": "Nothing here yet",
   "serverLoadMore": "Load more",
-  "localLibrary": "Local library"
+  "localLibrary": "Local library",
+  "remoteHomeAccess": "Home remote access",
+  "remotePairingHelp": "Paste the App pairing configuration for this service from your relay. Importing confirms that this remote entry and this source refer to the same service.",
+  "remotePairingJson": "Service pairing JSON",
+  "remoteKeepCredentials": "Leave empty to keep the saved connection credentials",
+  "remoteLanAddress": "Paired LAN HTTPS address",
+  "remoteLanFingerprint": "LAN service certificate SHA-256",
+  "remoteLanIdentityHelp": "Confirm the 64-digit hexadecimal fingerprint through a trusted channel. The certificate must also pass system trust checks.",
+  "remoteAutomatic": "Automatic: verified LAN, otherwise remote",
+  "remoteLocalOnly": "LAN only",
+  "remoteRemoteOnly": "Remote only"
 }

@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../core/plugins/source_capability.dart';
 import 'source_config.dart';
+import '../remote_access/remote_transport.dart';
 
 class JellyfinSession {
   const JellyfinSession(this.userId, this.token);
@@ -52,11 +53,12 @@ class SourceSignIn {
   Future<Object?> _json(
     Uri uri, {
     String method = 'GET',
+    HttpClient? client,
     Map<String, String> headers = const {},
     Object? body,
   }) async {
     try {
-      final request = await _client.openUrl(method, uri);
+      final request = await (client ?? _client).openUrl(method, uri);
       request.followRedirects = false;
       headers.forEach(request.headers.set);
       if (body != null) {
@@ -104,14 +106,39 @@ class SourceSignIn {
   }
 
   Future<JellyfinSession> jellyfin(SourceConfig config, String password) async {
+    if (config.remoteAccess == null) return _authenticate(config, password);
+    final lease = await RemoteTransport.acquire(config);
+    final client = HttpClient()
+      ..connectionTimeout = const Duration(seconds: 15);
+    lease.configure(client);
+    try {
+      return await _authenticate(
+        config,
+        password,
+        client: client,
+        address: lease.address,
+      );
+    } finally {
+      client.close(force: true);
+      lease.close();
+    }
+  }
+
+  Future<JellyfinSession> _authenticate(
+    SourceConfig config,
+    String password, {
+    HttpClient? client,
+    Uri? address,
+  }) async {
     if (config.username.trim().isEmpty) {
       throw PluginException('invalidInput', '请填写 ${config.kind.label} 用户名。');
     }
     final base = Uri.parse(
-      '${config.address.replaceFirst(RegExp(r'/+$'), '')}/',
+      '${(address?.toString() ?? config.address).replaceFirst(RegExp(r'/+$'), '')}/',
     );
     final data = await _json(
       base.resolve('Users/AuthenticateByName'),
+      client: client,
       method: 'POST',
       headers: {
         'Authorization':

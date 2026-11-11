@@ -1,3 +1,5 @@
+import 'dart:convert';
+
 import '../../app_test_host.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -164,7 +166,12 @@ void main() {
       );
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
-      expect(tester.widget<ShadSwitch>(find.byType(ShadSwitch)).value, isTrue);
+      expect(
+        tester
+            .widget<ShadSwitch>(find.widgetWithText(ShadSwitch, 'HTTPS'))
+            .value,
+        isTrue,
+      );
       expect(
         tester.widget<ShadInput>(find.byKey(ValueKey('端口'))).controller!.text,
         '8443',
@@ -257,8 +264,8 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.byType(ShadSwitch));
-      await tester.tap(find.byType(ShadSwitch));
+      await tester.ensureVisible(find.widgetWithText(ShadSwitch, '手动连接服务器'));
+      await tester.tap(find.widgetWithText(ShadSwitch, '手动连接服务器'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(ValueKey('服务器地址')),
@@ -320,6 +327,87 @@ void main() {
       expect(manager.saved.single.name, 'Home Plex');
       expect(manager.saved.single.address, 'http://127.0.0.1:32400');
       expect(manager.secrets.single, 'selected-server-token');
+    },
+  );
+  testWidgets(
+    'imports a service pairing and keeps outbound credentials in secure storage',
+    (tester) async {
+      FlutterSecureStorage.setMockInitialValues({});
+      final manager = MemorySources();
+      final signIn = _FakeSignIn();
+      addTearDown(signIn.close);
+      await tester.pumpWidget(
+        TestApp(
+          home: Scaffold(
+            body: Builder(
+              builder: (context) => TextButton(
+                onPressed: () => showDialog<bool>(
+                  context: context,
+                  builder: (_) =>
+                      SourceInstanceForm(manager: manager, signIn: signIn),
+                ),
+                child: const Text('Open'),
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Open'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Jellyfin').last);
+      await tester.pumpAndSettle();
+      await tester.enterText(find.byKey(const ValueKey('用户名')), 'viewer');
+      await tester.enterText(
+        find.byKey(const ValueKey('密码')),
+        'media-password',
+      );
+      final toggle = find.widgetWithText(ShadSwitch, '家庭远程访问');
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('家庭远程访问'));
+      await tester.pumpAndSettle();
+      final outbound = {
+        'type': 'vless',
+        'server': 'relay.example',
+        'server_port': 443,
+        'uuid': '11111111-1111-4111-8111-111111111111',
+        'tls': {'enabled': true, 'server_name': 'relay.example'},
+      };
+      final pair = {
+        'version': 1,
+        'lineId': 'stable-line',
+        'homeId': 'stable-home',
+        'serviceId': 'jellyfin',
+        'remoteAddress': 'http://jellyfin.home.invalid:8096',
+        'remotePort': 18096,
+        'outbound': outbound,
+      };
+      await tester.enterText(
+        find.byKey(const ValueKey('remote-pairing')),
+        jsonEncode(pair),
+      );
+      await tester.tap(find.text('添加'));
+      await tester.pumpAndSettle();
+      expect(manager.saved, hasLength(1));
+      final saved = manager.saved.single;
+      expect(saved.address, 'http://jellyfin.home.invalid:8096');
+      expect(saved.remoteAccess!.serviceId, 'jellyfin');
+      expect(
+        saved.remoteAccess!.credentialRef,
+        startsWith('remote.${saved.id}.'),
+      );
+      expect(
+        jsonEncode(saved.toJson()),
+        isNot(contains(outbound['uuid'] as String)),
+      );
+      final secret = await const FlutterSecureStorage().read(
+        key: saved.remoteAccess!.credentialRef,
+      );
+      expect(jsonDecode(secret!), outbound);
+      expect(manager.secrets.single, 'automatic-session-token');
     },
   );
   testWidgets('local source chooses a folder and generates its display name', (

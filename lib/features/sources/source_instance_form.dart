@@ -16,6 +16,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_config.dart';
+import '../../data/remote_access/remote_config.dart';
+import '../../data/remote_access/remote_transport.dart';
 import '../../data/sources/dlna_source.dart';
 import '../../data/sources/source_connection.dart';
 import '../../data/sources/source_manager.dart';
@@ -55,6 +57,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   final _path = TextEditingController();
   final _domain = TextEditingController();
   final _manualToken = TextEditingController();
+  final _pairing = TextEditingController();
+  final _localEndpoint = TextEditingController();
+  final _localFingerprint = TextEditingController();
+  bool _remoteEnabled = false;
+  RemoteConnectionMode _connectionMode = RemoteConnectionMode.remoteOnly;
+  RemoteAccessConfig? _preparedRemote;
   bool _https = false;
   bool _busy = false;
   bool _authorizing = false;
@@ -78,6 +86,11 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _kind = initial?.kind ?? SourceKind.local;
     _signIn = widget.signIn ?? SourceSignIn();
     _name.text = initial?.name ?? '';
+    _preparedRemote = initial?.remoteAccess;
+    _remoteEnabled = _preparedRemote != null;
+    _connectionMode = _preparedRemote?.mode ?? RemoteConnectionMode.remoteOnly;
+    _localEndpoint.text = _preparedRemote?.localAddress ?? '';
+    _localFingerprint.text = _preparedRemote?.localTlsSha256 ?? '';
     if (initial != null) _fillConnection(initial);
     _advancedController.addListener(() {
       if (_advancedController.value.isNotEmpty && mounted) {
@@ -122,6 +135,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _path,
       _domain,
       _manualToken,
+      _pairing,
+      _localEndpoint,
+      _localFingerprint,
     ]) {
       c.dispose();
     }
@@ -135,6 +151,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _error = null;
       _advancedController.value = [];
       _manualPlex = false;
+      _remoteEnabled = false;
+      _preparedRemote = null;
+      _connectionMode = RemoteConnectionMode.remoteOnly;
       _server = null;
       _servers = [];
       _plexToken = null;
@@ -150,6 +169,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         _path,
         _domain,
         _manualToken,
+        _pairing,
+        _localEndpoint,
+        _localFingerprint,
       ]) {
         c.clear();
       }
@@ -216,6 +238,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       address: address,
       username: _username.text.trim(),
       domain: _domain.text.trim(),
+      remoteAccess: _preparedRemote,
+      clearRemoteAccess: !_remoteEnabled,
     );
   }
 
@@ -289,7 +313,47 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _busy = true;
       _error = null;
     });
+    String? stagedRemote;
+    var savedRemote = false;
     try {
+      if (_remoteEnabled) {
+        final pair = _pairing.text.trim().isEmpty
+            ? null
+            : RemotePairing.parse(_pairing.text);
+        final previous = widget.initial?.remoteAccess;
+        if (pair == null && previous == null) {
+          throw const FormatException('请粘贴 relay 生成的服务配对配置。');
+        }
+        final ref = pair == null
+            ? previous!.credentialRef
+            : (stagedRemote = await RemoteCredentialStore.stage(
+                _id,
+                pair.outbound,
+              ));
+        final j = pair?.data ?? previous!.toJson();
+        _preparedRemote = RemoteAccessConfig(
+          lineId: j['lineId'] as String,
+          homeId: j['homeId'] as String,
+          serviceId: j['serviceId'] as String,
+          remoteAddress: j['remoteAddress'] as String,
+          remotePort: j['remotePort'] as int,
+          credentialRef: ref,
+          mode: _connectionMode,
+          localAddress: _localEndpoint.text.trim(),
+          localTlsSha256: _localFingerprint.text.trim(),
+        );
+        _preparedRemote!.validate();
+        if (_address.text.trim().isEmpty) {
+          _fillConnection(
+            SourceConfig(
+              id: _id,
+              kind: _kind,
+              name: '',
+              address: _preparedRemote!.remoteAddress,
+            ),
+          );
+        }
+      }
       var secret = '';
       if (_kind == SourceKind.plex && !_manualPlex && _server != null) {
         final address = await _signIn.connectPlex(_id, _server!);
@@ -323,7 +387,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               initial == null ||
               _password.text.isNotEmpty ||
               draft.username != initial.username ||
-              draft.address != initial.address;
+              draft.address != initial.address ||
+              stagedRemote != null;
           if (reauthenticate) {
             final session = await _signIn.jellyfin(draft, _password.text);
             draft = draft.copyWith(userId: session.userId, clearExpiry: true);
@@ -341,6 +406,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       }
       if (!mounted) return;
       await widget.manager.save(draft, secret);
+      savedRemote = true;
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
@@ -353,6 +419,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         );
       }
     } finally {
+      if (stagedRemote != null && !savedRemote) {
+        await RemoteCredentialStore.delete(_id, stagedRemote);
+      }
       if (mounted) setState(() => _busy = false);
     }
   }
@@ -665,6 +734,66 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       ),
     ],
   );
+  Widget _remoteFields() => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    children: [
+      const SizedBox(height: 16),
+      ShadSwitch(
+        value: _remoteEnabled,
+        enabled: !_busy,
+        label: Text(l.remoteHomeAccess),
+        onChanged: (v) => setState(() => _remoteEnabled = v),
+      ),
+      if (_remoteEnabled) ...[
+        const SizedBox(height: 12),
+        Text(l.remotePairingHelp),
+        const SizedBox(height: 8),
+        ShadInput(
+          key: const ValueKey('remote-pairing'),
+          controller: _pairing,
+          maxLines: 6,
+          enabled: !_busy,
+          placeholder: Text(
+            widget.initial?.remoteAccess == null
+                ? l.remotePairingJson
+                : l.remoteKeepCredentials,
+          ),
+          autocorrect: false,
+          enableSuggestions: false,
+        ),
+        const SizedBox(height: 12),
+        ShadSelect<RemoteConnectionMode>(
+          initialValue: _connectionMode,
+          enabled: !_busy,
+          onChanged: (v) => setState(() => _connectionMode = v!),
+          selectedOptionBuilder: (_, v) => Text(_modeLabel(v)),
+          options:
+              (_kind == SourceKind.smb
+                      ? [RemoteConnectionMode.remoteOnly]
+                      : RemoteConnectionMode.values)
+                  .map((v) => ShadOption(value: v, child: Text(_modeLabel(v))))
+                  .toList(),
+        ),
+        if (_connectionMode != RemoteConnectionMode.remoteOnly) ...[
+          _field(
+            _localEndpoint,
+            l.remoteLanAddress,
+            hint: 'https://nas.example.com:8920',
+          ),
+          _field(
+            _localFingerprint,
+            l.remoteLanFingerprint,
+            help: l.remoteLanIdentityHelp,
+          ),
+        ],
+      ],
+    ],
+  );
+  String _modeLabel(RemoteConnectionMode mode) => switch (mode) {
+    RemoteConnectionMode.automatic => l.remoteAutomatic,
+    RemoteConnectionMode.localOnly => l.remoteLocalOnly,
+    RemoteConnectionMode.remoteOnly => l.remoteRemoteOnly,
+  };
   @override
   Widget build(BuildContext context) => ShadDialog(
     closeIcon: SizedBox.shrink(),
@@ -750,6 +879,10 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               _dlnaFields()
             else
               _networkFields(),
+            if (_kind.mediaBrowser ||
+                _kind == SourceKind.plex ||
+                _kind == SourceKind.smb)
+              _remoteFields(),
             if (_error != null)
               Padding(
                 padding: EdgeInsets.only(top: 12),

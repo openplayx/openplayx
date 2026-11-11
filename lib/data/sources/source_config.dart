@@ -1,3 +1,5 @@
+import '../remote_access/remote_config.dart';
+
 enum SourceKind {
   local('本地文件夹', files: true),
   smb('SMB', files: true, scheme: 'smb', standardPort: 445),
@@ -97,6 +99,7 @@ class SourceConfig {
     this.scanExclusions = const [],
     this.scanMode = ScanMode.manual,
     this.backgroundIndexing = false,
+    this.remoteAccess,
   });
   final String id;
   final SourceKind kind;
@@ -122,6 +125,7 @@ class SourceConfig {
 
   final ScanMode scanMode;
   final bool backgroundIndexing;
+  final RemoteAccessConfig? remoteAccess;
 
   /// Name shown when the connection appears in another place (pickers,
   /// filters, file source rows): always prefixed with the type. A blank name
@@ -169,6 +173,8 @@ class SourceConfig {
     List<String>? scanExclusions,
     ScanMode? scanMode,
     bool? backgroundIndexing,
+    RemoteAccessConfig? remoteAccess,
+    bool clearRemoteAccess = false,
   }) => SourceConfig(
     id: id,
     kind: kind,
@@ -195,6 +201,7 @@ class SourceConfig {
     scanExclusions: List.unmodifiable(scanExclusions ?? this.scanExclusions),
     scanMode: scanMode ?? this.scanMode,
     backgroundIndexing: backgroundIndexing ?? this.backgroundIndexing,
+    remoteAccess: clearRemoteAccess ? null : remoteAccess ?? this.remoteAccess,
   );
 
   Map<String, dynamic> toJson() => {
@@ -221,6 +228,7 @@ class SourceConfig {
     'scanExclusions': scanExclusions,
     'scanMode': scanMode.name,
     'backgroundIndexing': backgroundIndexing,
+    if (remoteAccess != null) 'remoteAccess': remoteAccess!.toJson(),
   };
   factory SourceConfig.fromJson(Map<String, dynamic> j) {
     const keys = {
@@ -248,6 +256,7 @@ class SourceConfig {
       'scanExtensions', // legacy per-source value, now a global setting
       'scanMode',
       'backgroundIndexing',
+      'remoteAccess',
     };
     if (j.keys.any((key) => !keys.contains(key))) {
       throw const FormatException('配置包含未知字段，原始配置必须保留。');
@@ -282,10 +291,32 @@ class SourceConfig {
       ),
       scanMode: ScanMode.values.byName(j['scanMode'] as String? ?? 'manual'),
       backgroundIndexing: j['backgroundIndexing'] as bool? ?? false,
+      remoteAccess: j['remoteAccess'] == null
+          ? null
+          : RemoteAccessConfig.fromJson(
+              j['remoteAccess'] as Map<String, dynamic>,
+            ),
     );
   }
 
   void validate() {
+    if (remoteAccess != null) {
+      if (!kind.mediaBrowser &&
+          kind != SourceKind.plex &&
+          kind != SourceKind.smb) {
+        throw const FormatException('当前远程访问支持 Jellyfin、Emby、Plex 和 SMB。');
+      }
+      remoteAccess!.validate();
+      final remoteUri = Uri.parse(remoteAccess!.remoteAddress);
+      if (!kind.schemes.contains(remoteUri.scheme) ||
+          (kind == SourceKind.smb &&
+              remoteAccess!.mode != RemoteConnectionMode.remoteOnly)) {
+        throw const FormatException('远程服务协议不匹配；SMB 当前仅支持远程模式。');
+      }
+      if (!remoteAccess!.credentialRef.startsWith('remote.$id.')) {
+        throw const FormatException('远程凭据引用不属于此来源。');
+      }
+    }
     if (configVersion != 2) throw const FormatException('配置版本不兼容，不能覆盖保存。');
     if (id.isEmpty || address.trim().isEmpty) {
       throw const FormatException('请填写地址。');

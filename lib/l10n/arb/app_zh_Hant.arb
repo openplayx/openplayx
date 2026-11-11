@@ -581,5 +581,15 @@
   "serverUnavailable": "無法連線此伺服器",
   "serverEmpty": "這裡還沒有內容",
   "serverLoadMore": "載入更多",
-  "localLibrary": "本機媒體庫"
+  "localLibrary": "本機媒體庫",
+  "remoteHomeAccess": "家庭遠端存取",
+  "remotePairingHelp": "貼上 relay 為此服務產生的 App 配對設定。匯入表示確認此遠端入口與目前來源屬於同一服務。",
+  "remotePairingJson": "服務配對 JSON",
+  "remoteKeepCredentials": "留空保留已儲存的連線憑證",
+  "remoteLanAddress": "已配對的區域網路 HTTPS 位址",
+  "remoteLanFingerprint": "區域網路服務憑證 SHA-256",
+  "remoteLanIdentityHelp": "透過可信管道確認的 64 位十六進位指紋；服務憑證還須通過系統信任驗證。",
+  "remoteAutomatic": "自動：驗證區域網路後使用，否則走遠端",
+  "remoteLocalOnly": "僅區域網路",
+  "remoteRemoteOnly": "僅遠端"
 }

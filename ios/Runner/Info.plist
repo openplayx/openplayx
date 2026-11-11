@@ -73,5 +73,7 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+<key>NSLocalNetworkUsageDescription</key>
+<string>验证已配对的家庭媒体服务并在局域网播放。</string>
 </dict>
 </plist>

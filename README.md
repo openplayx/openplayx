@@ -26,6 +26,7 @@ OpenPlayX 将媒体来源接入、媒体库管理和播放体验组合在一个�
 | 媒体库 | 创建与管理库、绑定来源范围、扫描、搜索、筛选、收藏、详情与资源版本选择 |
 | 影视信息 | NFO 与邻近图片导入、TMDB 候选识别、季集关系、字段与海报锁定、服务端信息刷新 |
 | AI 助手 | 云模型配置、流式对话、共享会话、受控媒体查询与基础播放工具、Plex/Jellyfin 聚合搜索 |
+| 家庭远程访问 | 内嵌 sing-box；配套 relay/home；Jellyfin、Emby、Plex 与 SMB 远程访问，HTTP 媒体服务支持已配对 HTTPS 局域网优先 |
 | 观看记录 | 本机进度保存、续播、继续观看与最近播放 |
 | 来源配置 | 实例启停、连接编辑、默认来源、SQLite 持久化；密码和令牌单独存入系统安全存储 |
 
@@ -62,6 +63,7 @@ OpenPlayX 将媒体来源接入、媒体库管理和播放体验组合在一个�
 
 - Flutter SDK，所带 Dart 需满足 `pubspec.yaml` 的 `^3.13.7` 约束；已有实现记录使用 Flutter 3.47.9 / Dart 3.13.7。
 - Xcode、macOS 开发工具和 CocoaPods。
+- Go 1.24+ 与 C 工具链，用于构建内嵌 sing-box；Android 需要 Flutter 固定的 NDK。
 - 首次构建需能下载 Flutter 包及 VLCKit 原生依赖。
 
 ### 获取代码并运行
@@ -194,3 +196,5 @@ flutter test integration_test/source_storage_test.dart -d macos
 当前仓库尚未提供主项目 `LICENSE` 文件，主项目授权范围有待维护者明确；不能据依赖的许可证推定本项目的许可证。
 
 感谢 [Flutter](https://github.com/flutter/flutter)、[VideoLAN / VLC](https://www.videolan.org/vlc/)、[vlc_player](https://pub.dev/packages/vlc_player)、[flutter-shadcn-ui](https://github.com/nank1ro/flutter-shadcn-ui) 和 [Lucide](https://github.com/lucide-icons/lucide) 等项目。各依赖保留各自许可证；发布含 VLC/VLCKit 的构建时，还需遵循对应运行库的分发要求。
+
+家庭远程访问的配置、构建、验证与待验收边界见 [sing-box + frp 实现记录](docs/implement/remote_access_singbox_frp.md)。

@@ -106,3 +106,6 @@ install(DIRECTORY "${PROJECT_BUILD_DIR}/${FLUTTER_ASSET_DIR_NAME}"
 install(FILES "${AOT_LIBRARY}" DESTINATION "${INSTALL_BUNDLE_DATA_DIR}"
   CONFIGURATIONS Profile;Release
   COMPONENT Runtime)
+
+# Go c-shared requires a MinGW-w64 C compiler (set CC when building).
+include("${CMAKE_CURRENT_SOURCE_DIR}/../native/remote_access/desktop.cmake")

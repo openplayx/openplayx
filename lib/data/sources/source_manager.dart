@@ -13,6 +13,7 @@ import 'dlna_source.dart';
 import 'media_server_sources.dart';
 import 'network_file_sources.dart';
 import 'source_config.dart';
+import '../remote_access/remote_transport.dart';
 import 'source_schema.dart';
 
 /// Builds the provider for one configuration snapshot and its secret.
@@ -163,6 +164,16 @@ class SourceManager {
       _configs[index] = saved;
     }
     await _retire(saved.id);
+    if (previous?.remoteAccess != null &&
+        previous!.remoteAccess!.credentialRef !=
+            saved.remoteAccess?.credentialRef) {
+      try {
+        await RemoteCredentialStore.delete(
+          saved.id,
+          previous.remoteAccess!.credentialRef,
+        );
+      } catch (_) {}
+    }
     if (staged != null && previous?.credentialRef != null) {
       // A committed configuration stays committed if old-key cleanup fails.
       try {
@@ -197,6 +208,12 @@ class SourceManager {
     await _retire(id);
     try {
       await _credentials.delete(id, config.credentialRef);
+      if (config.remoteAccess != null) {
+        await RemoteCredentialStore.delete(
+          id,
+          config.remoteAccess!.credentialRef,
+        );
+      }
     } catch (_) {}
   }
 
@@ -527,6 +544,8 @@ class SourceManager {
       maxBytes: maxBytes,
     );
   });
+
+  void networkChanged() => RemoteTransport.selector.networkChanged();
 
   Future<void> testConnection(String id) async {
     await browse(id, const BrowseRequest(limit: 1));
