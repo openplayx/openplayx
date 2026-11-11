@@ -15,11 +15,10 @@ import 'package:openplayx_playback/playback.dart';
 import '../core/plugins/source_capability.dart';
 import '../data/files/local_media_picker.dart';
 import '../data/sources/source_manager.dart';
-import '../features/library/library_page.dart';
+import '../features/library/home_page.dart';
+import 'app_destination.dart';
 import '../features/player/player_page.dart';
 import '../features/sources/source_page.dart';
-import '../features/library/metadata_artwork.dart';
-import '../ui/components/media/media_poster_card.dart';
 import '../services/artwork/artwork_service.dart';
 import '../services/library/library_service.dart';
 import '../services/metadata/metadata_runtime.dart';
@@ -63,7 +62,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final _sources = widget.sources ?? SourceManager();
   final _revision = ValueNotifier(0);
   final _player = GlobalKey<PlayerPageState>();
-  final _branches = List.generate(4, (_) => GlobalKey<NavigatorState>());
+  final _branches = List.generate(
+    AppDestination.values.length,
+    (_) => GlobalKey<NavigatorState>(),
+  );
   LibraryService? _library;
   MetadataRuntime? _metadataRuntime;
   ArtworkService? _artwork;
@@ -143,7 +145,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Map<String, dynamic> _aiContext() => {
     'page': _showPlayer
         ? 'player'
-        : ['home', 'library', 'sources', 'settings'][_destination],
+        : AppDestination.values[_destination].name,
     'playback': _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
   };
 
@@ -250,8 +252,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // navigation stays visible. The chat sheet (root route) closes first,
     // otherwise it would sit on top of the page.
     Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
-    if (_destination != 3) _select(3);
-    await _branches[3].currentState!.push(
+    final settings = AppDestination.settings.index;
+    if (_destination != settings) _select(settings);
+    await _branches[settings].currentState!.push(
       MaterialPageRoute<void>(
         builder: (_) => AssistantSettingsPage(store: _assistantStore!),
       ),
@@ -468,76 +471,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Widget _homeContent() => AppPage(title: Text(l.home), body: _homeMedia());
 
-  Widget _homeMedia() => ListView(
-    key: const PageStorageKey('home'),
-    padding: AppSpacing.page(context),
-    children: [
-      if (_library!.continueWatching().isNotEmpty) ...[
-        _history(
-          l.continueWatching,
-          _library!.continueWatching(),
-          empty: l.continueEmpty,
-        ),
-        const SizedBox(height: AppSpacing.xl),
-      ],
-      _history(
-        l.recentlyPlayed,
-        _library!.recentlyPlayed(),
-        empty: l.recentEmpty,
-      ),
-    ],
+  Widget _homeMedia() => HomePage(
+    sources: _sources,
+    service: _library!,
+    onPlay: _play,
+    onResume: _playHistory,
   );
-
-  Widget _history(String title, List<dynamic> rows, {required String empty}) =>
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(title, style: ShadTheme.of(context).textTheme.h4),
-          SizedBox(height: 12),
-          if (rows.isEmpty)
-            ShadCard(
-              padding: EdgeInsets.zero,
-              child: Padding(padding: EdgeInsets.all(24), child: Text(empty)),
-            )
-          else
-            SizedBox(
-              // Same poster card as the library, plus a thin progress bar.
-              height: 280 + MediaQuery.textScalerOf(context).scale(14) * 2,
-              child: ListView.separated(
-                scrollDirection: Axis.horizontal,
-                itemCount: rows.length,
-                separatorBuilder: (_, _) => SizedBox(width: 12),
-                itemBuilder: (_, index) {
-                  final row = rows[index];
-                  final position = row['position'] as int;
-                  final duration = row['duration'] as int;
-                  final id = row['id'] as String;
-                  final artwork = _library!.metadata.displayArtwork(id);
-                  return SizedBox(
-                    width: 150,
-                    child: MediaPosterCard(
-                      title: row['title'] as String,
-                      artwork: artwork == null || _artwork == null
-                          ? null
-                          : MetadataArtwork(
-                              service: _artwork!,
-                              artwork: artwork,
-                            ),
-                      progress: row['completed'] == 1
-                          ? 1
-                          : duration > 0
-                          ? position / duration
-                          : 0,
-                      favorite: false,
-                      onFavorite: () {},
-                      onOpen: () => _playHistory(row),
-                    ),
-                  );
-                },
-              ),
-            ),
-        ],
-      );
 
   Widget _settings() => SettingsPage(
     library: _library,
@@ -548,11 +487,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Widget _branch(int index) => Navigator(
     key: _branches[index],
     onGenerateRoute: (_) => MaterialPageRoute<void>(
-      builder: (_) => switch (index) {
-        0 => _home(),
-        1 => LibraryPage(sources: _sources, service: _library, onPlay: _play),
-        2 => SourcePage(manager: _sources, library: _library, onPlay: _play),
-        _ => _settings(),
+      builder: (_) => switch (AppDestination.values[index]) {
+        AppDestination.home => _home(),
+        AppDestination.sources => SourcePage(
+          manager: _sources,
+          library: _library,
+          onPlay: _play,
+        ),
+        AppDestination.settings => _settings(),
       },
     ),
   );
@@ -616,7 +558,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                               child: IndexedStack(
                                 index: _destination,
                                 children: [
-                                  for (var i = 0; i < 4; i++) _branch(i),
+                                  for (final d in AppDestination.values)
+                                    _branch(d.index),
                                 ],
                               ),
                             ),

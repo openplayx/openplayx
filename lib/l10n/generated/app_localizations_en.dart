@@ -1367,4 +1367,76 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get addFileSourceShort => 'Add folder';
+
+  @override
+  String shelfViewAll(int count) {
+    return 'All · $count';
+  }
+
+  @override
+  String get recentlyAdded => 'Recently added';
+
+  @override
+  String get tvShows => 'TV shows';
+
+  @override
+  String seasonCount(int n) {
+    String _temp0 = intl.Intl.pluralLogic(
+      n,
+      locale: localeName,
+      other: '$n seasons',
+      one: '1 season',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String seasonEpisodeShort(int season, int episode) {
+    return 'S$season E$episode';
+  }
+
+  @override
+  String get detailCastAndCrew => 'Cast & Crew';
+
+  @override
+  String get detailGenres => 'Genres';
+
+  @override
+  String get detailCollection => 'Collection';
+
+  @override
+  String get detailVersions => 'Versions';
+
+  @override
+  String get detailViewAll => 'View all';
+
+  @override
+  String get detailScrollStart => 'Back to start';
+
+  @override
+  String get detailScrollEnd => 'Jump to end';
+
+  @override
+  String detailEpisodeCount(int n) {
+    return '$n episodes';
+  }
+
+  @override
+  String detailMovieCount(int n) {
+    return '$n movies';
+  }
+
+  @override
+  String detailRuntime(int n) {
+    return '$n min';
+  }
+
+  @override
+  String get markWatched => 'Mark as watched';
+
+  @override
+  String get markUnwatched => 'Mark as unwatched';
+
+  @override
+  String get removeFavorite => 'Remove from favorites';
 }

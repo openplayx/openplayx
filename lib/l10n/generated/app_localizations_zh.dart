@@ -1303,6 +1303,72 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get addFileSourceShort => '添加文件源';
+
+  @override
+  String shelfViewAll(int count) {
+    return '全部 · $count';
+  }
+
+  @override
+  String get recentlyAdded => '最近添加';
+
+  @override
+  String get tvShows => '电视剧';
+
+  @override
+  String seasonCount(int n) {
+    return '共$n季';
+  }
+
+  @override
+  String seasonEpisodeShort(int season, int episode) {
+    return '第$season季 第$episode集';
+  }
+
+  @override
+  String get detailCastAndCrew => '演职人员';
+
+  @override
+  String get detailGenres => '风格';
+
+  @override
+  String get detailCollection => '系列电影';
+
+  @override
+  String get detailVersions => '版本';
+
+  @override
+  String get detailViewAll => '查看全部';
+
+  @override
+  String get detailScrollStart => '回到开头';
+
+  @override
+  String get detailScrollEnd => '跳到末尾';
+
+  @override
+  String detailEpisodeCount(int n) {
+    return '共 $n 集';
+  }
+
+  @override
+  String detailMovieCount(int n) {
+    return '共 $n 部';
+  }
+
+  @override
+  String detailRuntime(int n) {
+    return '$n 分钟';
+  }
+
+  @override
+  String get markWatched => '标记为已看';
+
+  @override
+  String get markUnwatched => '标记为未看';
+
+  @override
+  String get removeFavorite => '取消收藏';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2603,6 +2669,72 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get addFileSourceShort => '添加文件源';
+
+  @override
+  String shelfViewAll(int count) {
+    return '全部 · $count';
+  }
+
+  @override
+  String get recentlyAdded => '最近添加';
+
+  @override
+  String get tvShows => '电视剧';
+
+  @override
+  String seasonCount(int n) {
+    return '共$n季';
+  }
+
+  @override
+  String seasonEpisodeShort(int season, int episode) {
+    return '第$season季 第$episode集';
+  }
+
+  @override
+  String get detailCastAndCrew => '演职人员';
+
+  @override
+  String get detailGenres => '风格';
+
+  @override
+  String get detailCollection => '系列电影';
+
+  @override
+  String get detailVersions => '版本';
+
+  @override
+  String get detailViewAll => '查看全部';
+
+  @override
+  String get detailScrollStart => '回到开头';
+
+  @override
+  String get detailScrollEnd => '跳到末尾';
+
+  @override
+  String detailEpisodeCount(int n) {
+    return '共 $n 集';
+  }
+
+  @override
+  String detailMovieCount(int n) {
+    return '共 $n 部';
+  }
+
+  @override
+  String detailRuntime(int n) {
+    return '$n 分钟';
+  }
+
+  @override
+  String get markWatched => '标记为已看';
+
+  @override
+  String get markUnwatched => '标记为未看';
+
+  @override
+  String get removeFavorite => '取消收藏';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3903,4 +4035,70 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get addFileSourceShort => '新增檔案來源';
+
+  @override
+  String shelfViewAll(int count) {
+    return '全部 · $count';
+  }
+
+  @override
+  String get recentlyAdded => '最近添加';
+
+  @override
+  String get tvShows => '電視劇';
+
+  @override
+  String seasonCount(int n) {
+    return '共$n季';
+  }
+
+  @override
+  String seasonEpisodeShort(int season, int episode) {
+    return '第$season季 第$episode集';
+  }
+
+  @override
+  String get detailCastAndCrew => '演職人員';
+
+  @override
+  String get detailGenres => '風格';
+
+  @override
+  String get detailCollection => '系列電影';
+
+  @override
+  String get detailVersions => '版本';
+
+  @override
+  String get detailViewAll => '查看全部';
+
+  @override
+  String get detailScrollStart => '回到開頭';
+
+  @override
+  String get detailScrollEnd => '跳到末尾';
+
+  @override
+  String detailEpisodeCount(int n) {
+    return '共 $n 集';
+  }
+
+  @override
+  String detailMovieCount(int n) {
+    return '共 $n 部';
+  }
+
+  @override
+  String detailRuntime(int n) {
+    return '$n 分鐘';
+  }
+
+  @override
+  String get markWatched => '標記為已看';
+
+  @override
+  String get markUnwatched => '標記為未看';
+
+  @override
+  String get removeFavorite => '取消收藏';
 }

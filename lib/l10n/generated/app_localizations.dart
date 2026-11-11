@@ -2582,6 +2582,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Add folder'**
   String get addFileSourceShort;
+
+  /// No description provided for @shelfViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All · {count}'**
+  String shelfViewAll(int count);
+
+  /// No description provided for @recentlyAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Recently added'**
+  String get recentlyAdded;
+
+  /// No description provided for @tvShows.
+  ///
+  /// In en, this message translates to:
+  /// **'TV shows'**
+  String get tvShows;
+
+  /// No description provided for @seasonCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n, plural, =1{1 season} other{{n} seasons}}'**
+  String seasonCount(int n);
+
+  /// No description provided for @seasonEpisodeShort.
+  ///
+  /// In en, this message translates to:
+  /// **'S{season} E{episode}'**
+  String seasonEpisodeShort(int season, int episode);
+
+  /// No description provided for @detailCastAndCrew.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast & Crew'**
+  String get detailCastAndCrew;
+
+  /// No description provided for @detailGenres.
+  ///
+  /// In en, this message translates to:
+  /// **'Genres'**
+  String get detailGenres;
+
+  /// No description provided for @detailCollection.
+  ///
+  /// In en, this message translates to:
+  /// **'Collection'**
+  String get detailCollection;
+
+  /// No description provided for @detailVersions.
+  ///
+  /// In en, this message translates to:
+  /// **'Versions'**
+  String get detailVersions;
+
+  /// No description provided for @detailViewAll.
+  ///
+  /// In en, this message translates to:
+  /// **'View all'**
+  String get detailViewAll;
+
+  /// No description provided for @detailScrollStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to start'**
+  String get detailScrollStart;
+
+  /// No description provided for @detailScrollEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to end'**
+  String get detailScrollEnd;
+
+  /// No description provided for @detailEpisodeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} episodes'**
+  String detailEpisodeCount(int n);
+
+  /// No description provided for @detailMovieCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} movies'**
+  String detailMovieCount(int n);
+
+  /// No description provided for @detailRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} min'**
+  String detailRuntime(int n);
+
+  /// No description provided for @markWatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as watched'**
+  String get markWatched;
+
+  /// No description provided for @markUnwatched.
+  ///
+  /// In en, this message translates to:
+  /// **'Mark as unwatched'**
+  String get markUnwatched;
+
+  /// No description provided for @removeFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove from favorites'**
+  String get removeFavorite;
 }
 
 class _AppLocalizationsDelegate

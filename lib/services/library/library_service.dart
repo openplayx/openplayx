@@ -368,6 +368,58 @@ class LibraryService {
   List<Row> resources(String media) => repository.resources(media);
   void favorite(String media, bool value) =>
       repository.setFavorite(value ? 1 : 0, media);
+  bool isFavorite(String media) => repository.isFavorite(media);
+
+  /// Other library items in the same film collection (including [media]).
+  List<Row> collection(String media) {
+    final collection = metadata.fields(media)['collection'];
+    final id = collection is Map ? collection['id'] : null;
+    return id is String ? repository.collectionMembers(id) : const [];
+  }
+
+  /// The playable resources of a movie, or of every episode under a series.
+  List<String> playableResources(String media) {
+    final result = <String>[];
+    final seen = <String>{};
+    void visit(String id, int depth) {
+      if (!seen.add(id)) return;
+      result.addAll(resources(id).map((r) => r['id'] as String));
+      if (depth >= 2) return;
+      for (final child in children(id, limit: 500)) {
+        visit(child['id'] as String, depth + 1);
+      }
+    }
+
+    visit(media, 0);
+    return result;
+  }
+
+  /// Every playable resource has been watched to the end.
+  bool isWatched(String media) {
+    final all = playableResources(media);
+    return all.isNotEmpty && all.every((r) => checkpoint(r)?['completed'] == 1);
+  }
+
+  /// Marks a movie, or every episode of a series, as watched or unwatched.
+  void setWatched(String media, bool watched) => transaction(() {
+    for (final resource in playableResources(media)) {
+      if (!watched) {
+        repository.resetProgress(resource);
+        continue;
+      }
+      final duration = checkpoint(resource)?['duration'];
+      final length = duration is int && duration > 0 ? duration : 1;
+      final session = beginSession(resource);
+      repository.saveProgress(
+        length,
+        length,
+        DateTime.now().millisecondsSinceEpoch,
+        1,
+        resource,
+        session,
+      );
+    }
+  });
   void rename(String media, String title) {
     if (title.trim().isEmpty) throw ArgumentError('请输入标题');
     transaction(

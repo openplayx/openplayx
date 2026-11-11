@@ -13,11 +13,27 @@ class MetadataArtwork extends StatefulWidget {
     required this.artwork,
     this.width,
     this.height,
+    this.fit = BoxFit.cover,
+    this.alignment = Alignment.center,
+    this.cacheWidth = 600,
+    this.placeholder,
+    this.fadeIn = false,
   });
   final ArtworkService service;
   final ArtworkDescriptor artwork;
   final double? width;
   final double? height;
+  final BoxFit fit;
+  final Alignment alignment;
+
+  /// Decode width in physical pixels; null decodes at full resolution.
+  final int? cacheWidth;
+
+  /// Shown while loading and on failure; defaults to a movie icon.
+  final Widget? placeholder;
+
+  /// Cross-fades the image in once decoded instead of popping in.
+  final bool fadeIn;
   @override
   State<MetadataArtwork> createState() => _MetadataArtworkState();
 }
@@ -42,11 +58,13 @@ class _MetadataArtworkState extends State<MetadataArtwork> {
     }
   }
 
-  Widget get _placeholder => SizedBox(
-    width: widget.width,
-    height: widget.height,
-    child: Center(child: Icon(AppIcons.movie, size: 40)),
-  );
+  Widget get _placeholder =>
+      widget.placeholder ??
+      SizedBox(
+        width: widget.width,
+        height: widget.height,
+        child: Center(child: Icon(AppIcons.movie, size: 40)),
+      );
   @override
   Widget build(BuildContext context) => FutureBuilder<File>(
     future: _file,
@@ -55,9 +73,19 @@ class _MetadataArtworkState extends State<MetadataArtwork> {
             snapshot.data!,
             width: widget.width,
             height: widget.height,
-            fit: BoxFit.cover,
-            cacheWidth: 600,
+            fit: widget.fit,
+            alignment: widget.alignment,
+            cacheWidth: widget.cacheWidth,
             errorBuilder: (_, _, _) => _placeholder,
+            frameBuilder: widget.fadeIn
+                ? (_, child, frame, sync) => sync
+                      ? child
+                      : AnimatedOpacity(
+                          opacity: frame == null ? 0 : 1,
+                          duration: const Duration(milliseconds: 250),
+                          child: child,
+                        )
+                : null,
           )
         : _placeholder,
   );

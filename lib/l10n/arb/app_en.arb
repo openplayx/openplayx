@@ -599,5 +599,68 @@
   "metadataProgressDone": "Scraping done",
   "edit": "Edit",
   "refresh": "Refresh",
-  "addFileSourceShort": "Add folder"
+  "addFileSourceShort": "Add folder",
+  "shelfViewAll": "All · {count}",
+  "@shelfViewAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "recentlyAdded": "Recently added",
+  "tvShows": "TV shows",
+  "seasonCount": "{n, plural, =1{1 season} other{{n} seasons}}",
+  "@seasonCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "seasonEpisodeShort": "S{season} E{episode}",
+  "@seasonEpisodeShort": {
+    "placeholders": {
+      "season": {
+        "type": "int"
+      },
+      "episode": {
+        "type": "int"
+      }
+    }
+  },
+  "detailCastAndCrew": "Cast & Crew",
+  "detailGenres": "Genres",
+  "detailCollection": "Collection",
+  "detailVersions": "Versions",
+  "detailViewAll": "View all",
+  "detailScrollStart": "Back to start",
+  "detailScrollEnd": "Jump to end",
+  "detailEpisodeCount": "{n} episodes",
+  "@detailEpisodeCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "detailMovieCount": "{n} movies",
+  "@detailMovieCount": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "detailRuntime": "{n} min",
+  "@detailRuntime": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "markWatched": "Mark as watched",
+  "markUnwatched": "Mark as unwatched",
+  "removeFavorite": "Remove from favorites"
 }

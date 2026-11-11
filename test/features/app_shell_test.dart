@@ -1,5 +1,6 @@
 import '../app_test_host.dart';
 
+import 'package:openplayx/features/library/home_page.dart';
 import 'package:openplayx/ui/adaptive/app_navigation.dart';
 
 import 'dart:async';
@@ -56,7 +57,7 @@ void main() {
         );
         final opening = player.openFile();
         await tester.pump();
-        expect(find.text('最近播放'), findsOneWidget);
+        expect(find.byType(HomePage), findsOneWidget);
         expect(find.byTooltip('返回'), findsNothing);
         await player.openFile();
         await tester.pump();
@@ -72,15 +73,14 @@ void main() {
         await opening;
         await tester.pumpAndSettle();
         if (cancel) {
-          expect(find.text('最近播放'), findsOneWidget);
+          expect(find.byType(HomePage), findsOneWidget);
           expect(find.byTooltip('返回'), findsNothing);
           expect(backend.opened, isEmpty);
           expect(backend.value.status, PlaybackStatus.idle);
-          await tester.tap(find.byKey(const ValueKey('nav-library')));
-          await tester.pumpAndSettle();
-          expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
+          // The library tab is gone; browsing lives on the home shelves.
+          expect(find.byKey(const ValueKey('nav-library')), findsNothing);
         } else {
-          expect(find.text('最近播放'), findsNothing);
+          expect(find.byType(HomePage), findsNothing);
           expect(find.byTooltip('返回'), findsOneWidget);
           expect(backend.opened, [Uri.parse('https://example.test/local.mp4')]);
         }
@@ -113,11 +113,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AppSidebar), findsOneWidget);
-      expect(find.text('最近播放'), findsOneWidget);
-      expect(find.text('最近播放'), findsOneWidget);
-      await tester.tap(find.byKey(const ValueKey('nav-library')));
-      await tester.pumpAndSettle();
-      expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
+      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.byType(HomePage), findsOneWidget);
+      expect(find.byKey(const ValueKey('nav-library')), findsNothing);
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       expect(find.text('NAS'), findsOneWidget);
@@ -182,7 +180,7 @@ void main() {
         await tester.tap(find.byTooltip('返回'));
       }
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('nav-library')));
+      await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       expect(backend.opened, hasLength(1));
       expect(backend.released, isFalse);

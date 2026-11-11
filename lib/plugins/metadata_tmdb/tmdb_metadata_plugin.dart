@@ -203,7 +203,11 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
       path += '/season/${ref.season}';
     }
     if (kind == MediaKind.episode) path += '/episode/${ref.episode}';
-    query['append_to_response'] = 'credits,images,external_ids';
+    query['append_to_response'] = [
+      'credits,images,external_ids',
+      if (kind == MediaKind.movie) 'release_dates',
+      if (kind == MediaKind.series) 'content_ratings',
+    ].join(',');
     query['include_image_language'] =
         '${request.language.split('-').first},en,null';
     final j = await get(path, query);
@@ -214,6 +218,61 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
       return MetadataResult(record.children);
     }
     return MetadataResult([record]);
+  }
+
+  /// A TMDB image URL built from the Provider's configured CDN and sizes;
+  /// null when the path or configuration is unusable.
+  String? _imageUrl(Object? file, String type) {
+    if (file is! String ||
+        _images == null ||
+        !RegExp(r'^/[a-zA-Z0-9_.-]+$').hasMatch(file)) {
+      return null;
+    }
+    final base = _images!['secure_base_url'] as String?;
+    final sizes =
+        (_images![switch (type) {
+                  'poster' => 'poster_sizes',
+                  'thumbnail' => 'still_sizes',
+                  'profile' => 'profile_sizes',
+                  'logo' => 'logo_sizes',
+                  _ => 'backdrop_sizes',
+                }]
+                as List?)
+            ?.cast<String>() ??
+        [];
+    if (base == null || sizes.isEmpty) return null;
+    final preferred = switch (type) {
+      'thumbnail' => ['w300', 'w185', 'w92'],
+      'backdrop' => ['w1280', 'w780', 'w300'],
+      'profile' => ['w185', 'h632', 'w45'],
+      'logo' => ['w500', 'w300', 'w185'],
+      _ => ['w500', 'w342', 'w780', 'w185'],
+    };
+    final size = preferred.where(sizes.contains).firstOrNull ?? sizes.first;
+    final uri = Uri.tryParse('$base$size$file');
+    if (uri?.scheme != 'https' || uri!.host != 'image.tmdb.org') return null;
+    return uri.toString();
+  }
+
+  /// Age rating, preferring the US board, then any region that has one.
+  static String? _certification(Map<String, dynamic> j) {
+    final ratings = <String, String>{};
+    for (final r in (j['release_dates'] as Map?)?['results'] as List? ?? []) {
+      for (final d in r['release_dates'] as List? ?? []) {
+        final value = d['certification'];
+        if (value is String && value.trim().isNotEmpty) {
+          ratings.putIfAbsent(r['iso_3166_1'] as String, () => value.trim());
+        }
+      }
+    }
+    for (final r in (j['content_ratings'] as Map?)?['results'] as List? ?? []) {
+      final value = r['rating'];
+      if (value is String && value.trim().isNotEmpty) {
+        ratings.putIfAbsent(r['iso_3166_1'] as String, () => value.trim());
+      }
+    }
+    final value = ratings['US'] ?? ratings.values.firstOrNull;
+    return value == null || value.length > 12 ? null : value;
   }
 
   MetadataRecord _record(
@@ -257,16 +316,46 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
     if ((j['genres'] as List?)?.isNotEmpty == true) {
       fields['genres'] = (j['genres'] as List).map((g) => g['name']).toList();
     }
+    set('runtime', switch (j['runtime'] ?? j['episode_run_time']) {
+      final int minutes when minutes > 0 => minutes,
+      [final int minutes, ...] when minutes > 0 => minutes,
+      _ => null,
+    });
+    set('countries', [
+      for (final c in j['production_countries'] as List? ?? [])
+        if (c is Map && c['iso_3166_1'] is String) c['iso_3166_1'],
+      if ((j['production_countries'] as List?)?.isNotEmpty != true)
+        for (final c in j['origin_country'] as List? ?? [])
+          if (c is String) c,
+    ]);
+    set('certification', _certification(j));
+    final collection = j['belongs_to_collection'];
+    if (collection is Map && collection['id'] != null) {
+      fields['collection'] = {
+        'id': '${collection['id']}',
+        'name': collection['name'],
+      };
+    }
     final credits = j['credits'] as Map<String, dynamic>?;
     if (credits != null) {
       fields['cast'] = [
         for (final c in (credits['cast'] as List? ?? []).take(100))
-          {'name': c['name'], 'role': c['character']},
+          {
+            'name': c['name'],
+            'role': c['character'],
+            'profile': ?_imageUrl(c['profile_path'], 'profile'),
+          },
       ];
-      fields['directors'] = [
+      final directors = [
         for (final c in credits['crew'] as List? ?? [])
-          if (c['job'] == 'Director') c['name'],
+          if (c['job'] == 'Director') c,
       ];
+      fields['directors'] = [for (final c in directors) c['name']];
+      final profiles = {
+        for (final c in directors)
+          c['name']: ?_imageUrl(c['profile_path'], 'profile'),
+      };
+      if (profiles.isNotEmpty) fields['directorProfiles'] = profiles;
     }
     if ((j['vote_count'] as num? ?? 0) > 0) {
       fields['ratings'] = {
@@ -285,30 +374,9 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
       int? width,
       int? height,
     }) {
-      if (file == null ||
-          _images == null ||
-          !RegExp(r'^/[a-zA-Z0-9_.-]+$').hasMatch(file)) {
-        return;
-      }
-      final base = _images!['secure_base_url'] as String?;
-      final sizes =
-          (_images![type == 'poster'
-                      ? 'poster_sizes'
-                      : type == 'thumbnail'
-                      ? 'still_sizes'
-                      : 'backdrop_sizes']
-                  as List?)
-              ?.cast<String>() ??
-          [];
-      if (base == null || sizes.isEmpty) return;
-      final preferred = type == 'thumbnail'
-          ? ['w300', 'w185', 'w92']
-          : type == 'backdrop'
-          ? ['w780', 'w1280', 'w300']
-          : ['w500', 'w342', 'w780', 'w185'];
-      final size = preferred.where(sizes.contains).firstOrNull ?? sizes.first;
-      final uri = Uri.tryParse('$base$size$file');
-      if (uri?.scheme != 'https' || uri!.host != 'image.tmdb.org') return;
+      final url = _imageUrl(file, type);
+      if (url == null) return;
+      final uri = Uri.parse(url);
       final id = 'tmdb:$type:$file';
       if (!art.any((a) => a.id == id)) {
         art.add(
@@ -332,6 +400,7 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
       'posters': 'poster',
       'backdrops': 'backdrop',
       'stills': 'thumbnail',
+      'logos': 'logo',
     }.entries) {
       for (final a in (images[entry.key] as List? ?? []).take(50)) {
         add(

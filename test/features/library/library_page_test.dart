@@ -245,9 +245,25 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('Show'));
     await tester.pumpAndSettle();
-    // Series page: episodes are listed, there is no movie play button.
+    // Series page: an episode shelf, and play starts the next episode.
     expect(find.textContaining('Pilot'), findsOneWidget);
-    expect(find.text('播放'), findsNothing);
+    expect(find.text('播放'), findsOneWidget);
+    final show =
+        service
+                .query(service.defaultLibrary())
+                .firstWhere((m) => m['title'] == 'Show')['id']
+            as String;
+    // Favourite and watched toggles write through to the library.
+    await tester.tap(find.byTooltip('收藏'));
+    await tester.pumpAndSettle();
+    expect(service.isFavorite(show), isTrue);
+    expect(find.byTooltip('取消收藏'), findsOneWidget);
+    await tester.tap(find.byTooltip('标记为已看'));
+    await tester.pumpAndSettle();
+    expect(service.isWatched(show), isTrue);
+    await tester.tap(find.byTooltip('标记为未看'));
+    await tester.pumpAndSettle();
+    expect(service.isWatched(show), isFalse);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();

@@ -5,7 +5,6 @@ import '../ui/icons/app_icons.dart';
 
 enum AppDestination {
   home(AppIcons.home),
-  library(AppIcons.library),
   sources(AppIcons.folder),
   settings(AppIcons.settings);
 
@@ -15,7 +14,6 @@ enum AppDestination {
     final l = AppLocalizations.of(context);
     return switch (this) {
       home => l.home,
-      library => l.library,
       sources => l.sources,
       settings => l.settings,
     };

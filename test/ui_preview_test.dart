@@ -108,7 +108,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        for (final destination in ['home', 'library', 'sources', 'settings']) {
+        for (final destination in ['home', 'sources', 'settings']) {
           await tester.tap(find.byKey(ValueKey('nav-$destination')));
           await tester.pumpAndSettle();
           expect(tester.takeException(), isNull);

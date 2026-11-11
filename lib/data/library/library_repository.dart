@@ -38,7 +38,7 @@ class LibraryRepository {
     int limit = 40,
   }) {
     return db.select(
-      '''SELECT m.*, lm.added_at FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
+      '''SELECT m.*, lm.added_at, COUNT(*) OVER() AS total FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
       WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
       AND NOT (EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM media_evidence e JOIN bindings b ON b.id=e.binding_id WHERE e.media_id=m.id AND b.enabled=1)
@@ -238,6 +238,27 @@ class LibraryRepository {
 
   void setFavorite(int favorite, String media) =>
       db.execute('UPDATE media SET favorite=? WHERE id=?', [favorite, media]);
+
+  bool isFavorite(String media) =>
+      db.select('SELECT favorite FROM media WHERE id=?', [
+        media,
+      ]).firstOrNull?['favorite'] ==
+      1;
+
+  /// Media whose projected metadata names the same collection, oldest first.
+  ResultSet collectionMembers(String collection) => db.select(
+    '''SELECT m.* FROM metadata_projection mp JOIN media m ON m.id=mp.media_id
+    WHERE json_extract(mp.fields,'\$.collection.id')=?
+    AND EXISTS (SELECT 1 FROM memberships ms WHERE ms.media_id=m.id)
+    ORDER BY COALESCE(json_extract(mp.fields,'\$.airDate'),json_extract(mp.fields,'\$.year')),m.id''',
+    [collection],
+  );
+
+  /// Clears a finished mark; the progress row stays for recently played.
+  void resetProgress(String resource) => db.execute(
+    'UPDATE progress SET position=0,completed=0 WHERE resource_id=?',
+    [resource],
+  );
 
   void ignoreMedia(String library, String media) => db.execute(
     'INSERT OR IGNORE INTO ignored VALUES (?,?)',

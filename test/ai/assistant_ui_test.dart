@@ -41,7 +41,7 @@ void main() {
       await tester.enterText(composer, '保留这个草稿');
       Navigator.of(tester.element(find.byType(AssistantView))).pop();
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('媒体库').first);
+      await tester.tap(find.byTooltip('来源').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();

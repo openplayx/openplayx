@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openplayx/features/library/home_page.dart';
 import 'package:openplayx/app/app.dart';
 import 'package:openplayx/l10n/shad_localizations_delegate.dart';
 import 'package:openplayx/app/app_shell.dart';
@@ -127,7 +128,7 @@ void main() {
       expect(backend.value.status, before.status);
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      expect(find.text('Recently played'), findsOneWidget);
+      expect(find.byType(HomePage), findsOneWidget);
       final context = tester.element(find.byType(AppSidebar));
       expect(ShadTheme.of(context).brightness, Brightness.dark);
       await tester.pumpWidget(const SizedBox());
