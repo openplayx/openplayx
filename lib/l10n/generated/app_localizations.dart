@@ -2564,6 +2564,66 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Local library'**
   String get localLibrary;
+
+  /// No description provided for @remoteHomeAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Home remote access'**
+  String get remoteHomeAccess;
+
+  /// No description provided for @remotePairingHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the App pairing configuration for this service from your relay. Importing confirms that this remote entry and this source refer to the same service.'**
+  String get remotePairingHelp;
+
+  /// No description provided for @remotePairingJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Service pairing JSON'**
+  String get remotePairingJson;
+
+  /// No description provided for @remoteKeepCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave empty to keep the saved connection credentials'**
+  String get remoteKeepCredentials;
+
+  /// No description provided for @remoteLanAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Paired LAN HTTPS address'**
+  String get remoteLanAddress;
+
+  /// No description provided for @remoteLanFingerprint.
+  ///
+  /// In en, this message translates to:
+  /// **'LAN service certificate SHA-256'**
+  String get remoteLanFingerprint;
+
+  /// No description provided for @remoteLanIdentityHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the 64-digit hexadecimal fingerprint through a trusted channel. The certificate must also pass system trust checks.'**
+  String get remoteLanIdentityHelp;
+
+  /// No description provided for @remoteAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic: verified LAN, otherwise remote'**
+  String get remoteAutomatic;
+
+  /// No description provided for @remoteLocalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'LAN only'**
+  String get remoteLocalOnly;
+
+  /// No description provided for @remoteRemoteOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote only'**
+  String get remoteRemoteOnly;
 }
 
 class _AppLocalizationsDelegate

@@ -1,12 +1,14 @@
 PODS:
   - Flutter (1.0.0)
   - MobileVLCKit (3.7.3)
+  - OpenPlayXRemote (0.1.0)
   - vlc_player (2.1.2):
     - Flutter
     - MobileVLCKit (= 3.7.3)
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - OpenPlayXRemote (from `../native/remote_access`)
   - vlc_player (from `.symlinks/plugins/vlc_player/ios`)
 
 SPEC REPOS:
@@ -16,14 +18,17 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  OpenPlayXRemote:
+    :path: "../native/remote_access"
   vlc_player:
     :path: ".symlinks/plugins/vlc_player/ios"
 
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   MobileVLCKit: 73d7ddb52238b6885b70b0f281cae75a0a6e3ac0
+  OpenPlayXRemote: c83c9371562b585271307a71acf990f70034df47
   vlc_player: 54e1b3c297a42efdeaa13e912d2ed27f6a7d4e0f
 
-PODFILE CHECKSUM: 3ba3a73b1b12adcf321a227a745625fe0888cc82
+PODFILE CHECKSUM: 060a9c7065194275cef5f8ff0bf6b117e0fb3fcc
 
 COCOAPODS: 1.16.2

@@ -4,6 +4,7 @@ import 'package:smb_connect/smb_connect.dart';
 
 import '../../core/plugins/source_capability.dart';
 import 'source_config.dart';
+import '../remote_access/remote_transport.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
 
@@ -284,17 +285,44 @@ class SmbAccess {
   final SourceConfig config;
   final String _password;
   Future<SmbConnect>? _connection;
-  Future<SmbConnect> _connect() => _connection ??=
-      SmbConnect.connectAuth(
-        host: Uri.parse(config.address).host,
-        username: config.username,
-        password: _password,
-        domain: config.domain,
-      ).catchError((Object error) {
+  RemotePathLease? _path;
+  bool _closed = false;
+  Future<SmbConnect> _connect() =>
+      _connection ??= _open().catchError((Object error) {
         _connection = null;
         throw error;
       });
+  Future<SmbConnect> _open() async {
+    if (_closed) throw const PluginException('cancelled', '连接已关闭。');
+    final path = config.remoteAccess == null
+        ? null
+        : await RemoteTransport.acquire(config);
+    final host = Uri.parse(config.address).host;
+    Future<SmbConnect> connect() => SmbConnect.connectAuth(
+      host: host,
+      username: config.username,
+      password: _password,
+      domain: config.domain,
+    );
+    try {
+      final connection = path == null
+          ? await connect()
+          : await path.runWithTcp(connect, logicalHost: host, logicalPort: 445);
+      if (_closed) {
+        await connection.close();
+        path?.close();
+        throw const PluginException('cancelled', '连接已关闭。');
+      }
+      _path = path;
+      return connection;
+    } catch (_) {
+      path?.close();
+      rethrow;
+    }
+  }
+
   Future<void> close() async {
+    _closed = true;
     final connection = _connection;
     _connection = null;
     if (connection != null) {
@@ -302,6 +330,8 @@ class SmbAccess {
         await (await connection).close();
       } catch (_) {}
     }
+    _path?.close();
+    _path = null;
   }
 }
 

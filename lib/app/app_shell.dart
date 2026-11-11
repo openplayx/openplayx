@@ -59,7 +59,7 @@ class AppShell extends StatefulWidget {
   State<AppShell> createState() => _AppShellState();
 }
 
-class _AppShellState extends State<AppShell> {
+class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   AppLocalizations get l => AppLocalizations.of(context);
   late final _sources = widget.sources ?? SourceManager();
   final _revision = ValueNotifier(0);
@@ -86,7 +86,13 @@ class _AppShellState extends State<AppShell> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
     _load();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) _sources.networkChanged();
   }
 
   Future<void> _load() async {
@@ -123,6 +129,7 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
     unawaited(_metadataRuntime?.dispose());
     _artwork?.dispose();
     _chat?.dispose();

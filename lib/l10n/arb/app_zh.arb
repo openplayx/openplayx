@@ -581,5 +581,15 @@
   "serverUnavailable": "无法连接此服务器",
   "serverEmpty": "这里还没有内容",
   "serverLoadMore": "加载更多",
-  "localLibrary": "本地媒体库"
+  "localLibrary": "本地媒体库",
+  "remoteHomeAccess": "家庭远程访问",
+  "remotePairingHelp": "粘贴 relay 为此服务生成的 App 配对配置。导入表示确认该远程入口与当前来源属于同一服务。",
+  "remotePairingJson": "服务配对 JSON",
+  "remoteKeepCredentials": "留空保留已保存的线路凭据",
+  "remoteLanAddress": "已配对的局域网 HTTPS 地址",
+  "remoteLanFingerprint": "局域网服务证书 SHA-256",
+  "remoteLanIdentityHelp": "通过可信途径确认的 64 位十六进制指纹；服务证书还须通过系统信任校验。",
+  "remoteAutomatic": "自动：验证局域网后使用，否则走远程",
+  "remoteLocalOnly": "仅局域网",
+  "remoteRemoteOnly": "仅远程"
 }

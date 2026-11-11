@@ -2,6 +2,8 @@ import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
+import '../remote_access/remote_transport.dart';
+
 import '../../core/plugins/source_capability.dart';
 import '../../core/plugins/metadata_capability.dart';
 import 'file_sources.dart';
@@ -32,11 +34,44 @@ class SourceHttp {
             };
   final SourceConfig config;
   final Map<String, String> _headers;
+  bool _closed = false;
+  final _connections = <_SourceHttpConnection>{};
+  Future<_SourceHttpConnection> _connect() async {
+    if (_closed) throw const PluginException('cancelled', '连接已关闭。');
+    final remote = config.remoteAccess == null
+        ? null
+        : await RemoteTransport.acquire(config);
+    final client = remote == null
+        ? _client
+        : (HttpClient()
+            ..connectionTimeout = Duration(
+              seconds: config.requestTimeoutSeconds,
+            )
+            ..maxConnectionsPerHost = config.maxConcurrentRequests);
+    remote?.configure(client);
+    late final _SourceHttpConnection connection;
+    connection = _SourceHttpConnection(
+      client,
+      remote?.address ?? Uri.parse(config.address),
+      () {
+        if (remote != null) client.close(force: true);
+        remote?.close();
+        _connections.remove(connection);
+      },
+    );
+    if (_closed) {
+      connection.close();
+      throw const PluginException('cancelled', '连接已关闭。');
+    }
+    _connections.add(connection);
+    return connection;
+  }
+
   late final HttpClient _client = HttpClient()
     ..connectionTimeout = Duration(seconds: config.requestTimeoutSeconds)
     ..maxConnectionsPerHost = config.maxConcurrentRequests;
-  Uri uri(String path, [Map<String, String> query = const {}]) {
-    final base = Uri.parse(config.address);
+  Uri uri(String path, [Map<String, String> query = const {}, Uri? endpoint]) {
+    final base = endpoint ?? Uri.parse(config.address);
     if (path
         .split('/')
         .any(
@@ -73,69 +108,122 @@ class SourceHttp {
   ]) async => await _decode(path, query) as List<dynamic>;
 
   Future<Object?> _decode(String path, Map<String, String> query) async {
-    final request = await _client.getUrl(uri(path, query));
-    request.followRedirects = false;
-    _headers.forEach(request.headers.set);
-    final response = await request.close().timeout(
-      Duration(seconds: config.requestTimeoutSeconds),
-      onTimeout: () {
-        request.abort();
-        throw TimeoutException('Media server request timed out');
-      },
-    );
-    if (response.statusCode < 200 || response.statusCode >= 300) {
-      await response.drain<void>();
-      throw PluginException(
-        response.statusCode == 401 || response.statusCode == 403
-            ? 'authRequired'
-            : 'networkUnavailable',
-        '媒体服务请求失败（HTTP ${response.statusCode}），请检查地址和凭据。',
-        retryable: true,
+    final connection = await _connect();
+    try {
+      final request = await connection.client.getUrl(
+        uri(path, query, connection.address),
       );
+      request.followRedirects = false;
+      _headers.forEach(request.headers.set);
+      final response = await request.close().timeout(
+        Duration(seconds: config.requestTimeoutSeconds),
+        onTimeout: () {
+          request.abort();
+          throw TimeoutException('Media server request timed out');
+        },
+      );
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        await response.drain<void>();
+        throw PluginException(
+          response.statusCode == 401 || response.statusCode == 403
+              ? 'authRequired'
+              : 'networkUnavailable',
+          '媒体服务请求失败（HTTP ${response.statusCode}），请检查地址和凭据。',
+          retryable: true,
+        );
+      }
+      return jsonDecode(
+        await utf8.decoder
+            .bind(response)
+            .timeout(Duration(seconds: config.requestTimeoutSeconds))
+            .join(),
+      );
+    } finally {
+      connection.close();
     }
-    return jsonDecode(
-      await utf8.decoder
-          .bind(response)
-          .timeout(Duration(seconds: config.requestTimeoutSeconds))
-          .join(),
-    );
   }
 
   Future<List<int>> attachment(String path, {required int maxBytes}) async {
-    final request = await _client.getUrl(uri(path));
-    request.followRedirects = false;
-    _headers.forEach(request.headers.set);
-    final response = await request.close();
-    if (response.statusCode != 200 ||
-        ![
-          'image/jpeg',
-          'image/png',
-          'image/webp',
-        ].contains(response.headers.contentType?.mimeType)) {
-      await response.drain<void>();
-      throw const PluginException('invalidArtwork', '服务端图片不可用');
-    }
-    final bytes = <int>[];
-    await for (final chunk in response) {
-      if (bytes.length + chunk.length > maxBytes) {
-        throw const PluginException('quotaExceeded', '图片过大');
+    final connection = await _connect();
+    try {
+      final request = await connection.client.getUrl(
+        uri(path, const {}, connection.address),
+      );
+      request.followRedirects = false;
+      _headers.forEach(request.headers.set);
+      final response = await request.close();
+      if (response.statusCode != 200 ||
+          ![
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+          ].contains(response.headers.contentType?.mimeType)) {
+        await response.drain<void>();
+        throw const PluginException('invalidArtwork', '服务端图片不可用');
       }
-      bytes.addAll(chunk);
+      final bytes = <int>[];
+      await for (final chunk in response) {
+        if (bytes.length + chunk.length > maxBytes) {
+          throw const PluginException('quotaExceeded', '图片过大');
+        }
+        bytes.addAll(chunk);
+      }
+      return bytes;
+    } finally {
+      connection.close();
     }
-    return bytes;
   }
 
   Future<PlayableStream> stream(
     String path, {
     Map<String, String> query = const {},
     String? filename,
-  }) => StreamGateway.http(
-    uri(path, query),
-    _headers,
-    filename: filename,
-    sharedClient: _client,
-  );
-  void close() => _client.close(force: true);
+  }) async {
+    final connection = await _connect();
+    try {
+      final stream = await StreamGateway.http(
+        uri(path, query, connection.address),
+        _headers,
+        filename: filename,
+        sharedClient: connection.client,
+      );
+      return PlayableStream(
+        stream.uri,
+        release: () async {
+          try {
+            await stream.release();
+          } finally {
+            connection.close();
+          }
+        },
+      );
+    } catch (_) {
+      connection.close();
+      rethrow;
+    }
+  }
+
+  void close() {
+    _closed = true;
+    for (final connection in _connections.toList()) {
+      connection.close();
+    }
+    _client.close(force: true);
+  }
+}
+
+class _SourceHttpConnection {
+  _SourceHttpConnection(this.client, this.address, this._release);
+  final HttpClient client;
+  final Uri address;
+  final void Function() _release;
+  bool _closed = false;
+  void close() {
+    if (!_closed) {
+      _closed = true;
+      _release();
+    }
+  }
 }
 
 /// Jellyfin and Emby (same MediaBrowser API).

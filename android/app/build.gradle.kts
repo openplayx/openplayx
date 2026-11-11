@@ -48,3 +48,16 @@ kotlin {
 flutter {
     source = "../.."
 }
+
+// Bundle the Go core into this app; no separate proxy/VPN application is needed.
+android.sourceSets.getByName("main").jniLibs.srcDir("../../native/remote_access/build/android")
+val buildRemoteCore by tasks.registering(Exec::class) {
+    workingDir = file("../../native/remote_access")
+    environment("ANDROID_NDK_HOME", android.ndkDirectory.absolutePath)
+    commandLine("bash", "build_android.sh")
+    inputs.files(fileTree("../../native/remote_access") {
+        include("*.go", "go.mod", "go.sum", "build_android.sh")
+    })
+    outputs.dir(file("../../native/remote_access/build/android"))
+}
+tasks.named("preBuild") { dependsOn(buildRemoteCore) }

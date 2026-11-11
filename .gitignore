@@ -52,3 +52,6 @@ app.*.map.json
 
 # Sentry upload credentials
 sentry.properties
+
+# Generated Go core libraries and toolchain output
+native/remote_access/build/

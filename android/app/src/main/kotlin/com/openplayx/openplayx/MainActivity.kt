@@ -2,6 +2,9 @@ package com.openplayx.openplayx
 
 import android.app.Activity
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
@@ -17,6 +20,20 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/network_policy")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "usingCellular") { result.notImplemented() }
+                else {
+                    val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+                    val caps = manager.getNetworkCapabilities(manager.activeNetwork)
+                    if (caps == null || (caps.hasTransport(NetworkCapabilities.TRANSPORT_VPN) &&
+                        !caps.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) &&
+                        !caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) &&
+                        !caps.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET))) {
+                        result.error("network_unknown", "Unable to determine the active network", null)
+                    } else { result.success(caps.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR)) }
+                }
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/local_media")
             .setMethodCallHandler { call, result ->
                 if (call.method != "pickMedia") {

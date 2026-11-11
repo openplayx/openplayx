@@ -1,5 +1,6 @@
 PODS:
   - FlutterMacOS (1.0.0)
+  - OpenPlayXRemote (0.1.0)
   - vlc_player (2.1.2):
     - FlutterMacOS
     - VLCKit (= 3.7.3)
@@ -7,6 +8,7 @@ PODS:
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - OpenPlayXRemote (from `../native/remote_access`)
   - vlc_player (from `Flutter/ephemeral/.symlinks/plugins/vlc_player/macos`)
 
 SPEC REPOS:
@@ -16,14 +18,17 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
+  OpenPlayXRemote:
+    :path: "../native/remote_access"
   vlc_player:
     :path: Flutter/ephemeral/.symlinks/plugins/vlc_player/macos
 
 SPEC CHECKSUMS:
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+  OpenPlayXRemote: c83c9371562b585271307a71acf990f70034df47
   vlc_player: df3d40f7ce152bd88c2d156e656ae9ef8359e2ad
   VLCKit: 4f2c462daaab6de88b93ab7609bdefbada557a4d
 
-PODFILE CHECKSUM: 1e95c36afbfd1cb6423ceca4de7a8e1b256fb6ac
+PODFILE CHECKSUM: 223e6fe9949a1b67de92426708ba2d42f76e4ae7
 
 COCOAPODS: 1.16.2

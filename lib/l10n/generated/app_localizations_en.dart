@@ -1360,4 +1360,37 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get localLibrary => 'Local library';
+
+  @override
+  String get remoteHomeAccess => 'Home remote access';
+
+  @override
+  String get remotePairingHelp =>
+      'Paste the App pairing configuration for this service from your relay. Importing confirms that this remote entry and this source refer to the same service.';
+
+  @override
+  String get remotePairingJson => 'Service pairing JSON';
+
+  @override
+  String get remoteKeepCredentials =>
+      'Leave empty to keep the saved connection credentials';
+
+  @override
+  String get remoteLanAddress => 'Paired LAN HTTPS address';
+
+  @override
+  String get remoteLanFingerprint => 'LAN service certificate SHA-256';
+
+  @override
+  String get remoteLanIdentityHelp =>
+      'Confirm the 64-digit hexadecimal fingerprint through a trusted channel. The certificate must also pass system trust checks.';
+
+  @override
+  String get remoteAutomatic => 'Automatic: verified LAN, otherwise remote';
+
+  @override
+  String get remoteLocalOnly => 'LAN only';
+
+  @override
+  String get remoteRemoteOnly => 'Remote only';
 }

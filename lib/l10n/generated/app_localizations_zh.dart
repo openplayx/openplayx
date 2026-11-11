@@ -1295,6 +1295,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get localLibrary => '本地媒体库';
+
+  @override
+  String get remoteHomeAccess => '家庭远程访问';
+
+  @override
+  String get remotePairingHelp =>
+      '粘贴 relay 为此服务生成的 App 配对配置。导入表示确认该远程入口与当前来源属于同一服务。';
+
+  @override
+  String get remotePairingJson => '服务配对 JSON';
+
+  @override
+  String get remoteKeepCredentials => '留空保留已保存的线路凭据';
+
+  @override
+  String get remoteLanAddress => '已配对的局域网 HTTPS 地址';
+
+  @override
+  String get remoteLanFingerprint => '局域网服务证书 SHA-256';
+
+  @override
+  String get remoteLanIdentityHelp => '通过可信途径确认的 64 位十六进制指纹；服务证书还须通过系统信任校验。';
+
+  @override
+  String get remoteAutomatic => '自动：验证局域网后使用，否则走远程';
+
+  @override
+  String get remoteLocalOnly => '仅局域网';
+
+  @override
+  String get remoteRemoteOnly => '仅远程';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2587,6 +2618,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get localLibrary => '本地媒体库';
+
+  @override
+  String get remoteHomeAccess => '家庭远程访问';
+
+  @override
+  String get remotePairingHelp =>
+      '粘贴 relay 为此服务生成的 App 配对配置。导入表示确认该远程入口与当前来源属于同一服务。';
+
+  @override
+  String get remotePairingJson => '服务配对 JSON';
+
+  @override
+  String get remoteKeepCredentials => '留空保留已保存的线路凭据';
+
+  @override
+  String get remoteLanAddress => '已配对的局域网 HTTPS 地址';
+
+  @override
+  String get remoteLanFingerprint => '局域网服务证书 SHA-256';
+
+  @override
+  String get remoteLanIdentityHelp => '通过可信途径确认的 64 位十六进制指纹；服务证书还须通过系统信任校验。';
+
+  @override
+  String get remoteAutomatic => '自动：验证局域网后使用，否则走远程';
+
+  @override
+  String get remoteLocalOnly => '仅局域网';
+
+  @override
+  String get remoteRemoteOnly => '仅远程';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3879,4 +3941,35 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get localLibrary => '本機媒體庫';
+
+  @override
+  String get remoteHomeAccess => '家庭遠端存取';
+
+  @override
+  String get remotePairingHelp =>
+      '貼上 relay 為此服務產生的 App 配對設定。匯入表示確認此遠端入口與目前來源屬於同一服務。';
+
+  @override
+  String get remotePairingJson => '服務配對 JSON';
+
+  @override
+  String get remoteKeepCredentials => '留空保留已儲存的連線憑證';
+
+  @override
+  String get remoteLanAddress => '已配對的區域網路 HTTPS 位址';
+
+  @override
+  String get remoteLanFingerprint => '區域網路服務憑證 SHA-256';
+
+  @override
+  String get remoteLanIdentityHelp => '透過可信管道確認的 64 位十六進位指紋；服務憑證還須通過系統信任驗證。';
+
+  @override
+  String get remoteAutomatic => '自動：驗證區域網路後使用，否則走遠端';
+
+  @override
+  String get remoteLocalOnly => '僅區域網路';
+
+  @override
+  String get remoteRemoteOnly => '僅遠端';
 }

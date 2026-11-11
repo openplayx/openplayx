@@ -1,4 +1,5 @@
 import 'diagnostics_section.dart';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -13,6 +14,7 @@ import '../../ui/tokens/app_spacing.dart';
 import '../../data/sources/source_manager.dart';
 import 'scan_extensions_row.dart';
 import 'tmdb_settings_section.dart';
+import 'remote_access_settings_page.dart';
 
 class SettingsPage extends StatelessWidget {
   const SettingsPage({
@@ -118,6 +120,26 @@ class SettingsPage extends StatelessWidget {
                       if (sources != null) ScanExtensionsRow(sources: sources!),
                     ],
                   ),
+                  if (sources != null)
+                    SettingsSection(
+                      title: '远程访问',
+                      children: [
+                        SettingsRow(
+                          title: '家庭与连接线路',
+                          description:
+                              '管理配对、局域网路径和连接策略，保存到 remote_access.json。',
+                          control: ShadButton.outline(
+                            onPressed: () => Navigator.of(context).push(
+                              MaterialPageRoute<void>(
+                                builder: (_) =>
+                                    RemoteAccessSettingsPage(sources: sources!),
+                              ),
+                            ),
+                            child: Text(l.manage),
+                          ),
+                        ),
+                      ],
+                    ),
                   if (library != null) TmdbSettingsSection(library: library!),
                   if (onModelSettings != null)
                     SettingsSection(
