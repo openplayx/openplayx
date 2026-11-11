@@ -92,7 +92,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(sources.saved.single.kind, SourceKind.smb);
       expect(sources.secrets.single, 'password');
-      await tester.tap(find.byTooltip('编辑媒体源'));
+      await tester.tap(find.byTooltip('更多操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('编辑媒体源'));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byType(EditableText).first,
@@ -150,12 +152,16 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('删除媒体源'));
+      await tester.tap(find.byTooltip('更多操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除媒体源'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(sources.saved, hasLength(1));
-      await tester.tap(find.byTooltip('删除媒体源'));
+      await tester.tap(find.byTooltip('更多操作'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('删除媒体源'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除'));
       await tester.pumpAndSettle();

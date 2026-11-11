@@ -66,6 +66,11 @@ class SourceConfigurationService {
       namespace TEXT NOT NULL, scope TEXT NOT NULL, owner_id TEXT NOT NULL,
       key TEXT NOT NULL, value_json TEXT NOT NULL, revision INTEGER NOT NULL,
       PRIMARY KEY(namespace, scope, owner_id, key))''');
+    // Source passwords/tokens. Kept in the app's private SQLite file instead of
+    // the keychain so connecting a source never triggers an OS password prompt.
+    _db.execute(
+      'CREATE TABLE IF NOT EXISTS source_secrets (ref TEXT PRIMARY KEY, secret TEXT NOT NULL)',
+    );
     _db.execute('PRAGMA user_version = 1');
   }
 
@@ -298,6 +303,25 @@ class SourceConfigurationService {
     }
   }
 
+  /// Global file-suffix filter for scans; null means never customized.
+  List<String>? scanExtensions() {
+    final rows = _db.select(
+      "SELECT value_json FROM settings WHERE namespace='sources' AND scope='device' AND owner_id='local' AND key='scanExtensions'",
+    );
+    return rows.isEmpty
+        ? null
+        : (jsonDecode(rows.first['value_json'] as String) as List)
+              .cast<String>();
+  }
+
+  void saveScanExtensions(List<String> value) => _transaction(() {
+    _db.execute(
+      "INSERT INTO settings VALUES ('sources','device','local','scanExtensions',?,1) "
+      'ON CONFLICT(namespace,scope,owner_id,key) DO UPDATE SET value_json=excluded.value_json, revision=settings.revision+1',
+      [jsonEncode(value)],
+    );
+  });
+
   String? appearance(String key) {
     final rows = _db.select(
       "SELECT value_json FROM settings WHERE namespace='appearance' AND scope='user' AND owner_id='local' AND key=?",
@@ -315,6 +339,21 @@ class SourceConfigurationService {
       [key, jsonEncode(value)],
     );
   });
+
+  String? readSecret(String ref) {
+    final rows = _db.select('SELECT secret FROM source_secrets WHERE ref=?', [
+      ref,
+    ]);
+    return rows.isEmpty ? null : rows.first['secret'] as String;
+  }
+
+  void writeSecret(String ref, String secret) => _db.execute(
+    'INSERT OR REPLACE INTO source_secrets (ref, secret) VALUES (?,?)',
+    [ref, secret],
+  );
+
+  void deleteSecret(String ref) =>
+      _db.execute('DELETE FROM source_secrets WHERE ref=?', [ref]);
 
   void close() => _db.close();
 }

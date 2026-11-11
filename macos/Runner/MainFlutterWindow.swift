@@ -1,15 +1,60 @@
 import Cocoa
 import FlutterMacOS
+import desktop_multi_window
+
+final class PlayerWindowCloser: NSObject, NSWindowDelegate {
+  static var key: UInt8 = 0
+  private let channel: FlutterMethodChannel
+  init(channel: FlutterMethodChannel) { self.channel = channel }
+  func windowShouldClose(_ sender: NSWindow) -> Bool {
+    channel.invokeMethod("windowClosing", arguments: nil)
+    return false
+  }
+}
 
 class MainFlutterWindow: NSWindow {
   private var sourceAccess: FlutterMethodChannel?
   private var accessedURLs: [URL] = []
   private let sourceAccessQueue = DispatchQueue(label: "openplayx.source-access")
+  private static func configurePlayerWindow(_ controller: FlutterViewController) {
+    guard let window = controller.view.window else { return }
+    window.titleVisibility = .hidden
+    window.titlebarAppearsTransparent = true
+    window.styleMask.insert(.fullSizeContentView)
+    window.appearance = NSAppearance(named: .darkAqua)
+    window.backgroundColor = .black
+    window.minSize = NSSize(width: 480, height: 300)
+    window.setContentSize(NSSize(width: 1100, height: 650))
+    window.center()
+    let channel = FlutterMethodChannel(
+      name: "openplayx/player_window", binaryMessenger: controller.engine.binaryMessenger)
+    channel.setMethodCallHandler { [weak window] call, result in
+      if call.method == "close" {
+        window?.close()
+        result(nil)
+      } else {
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    // Hold back a native close (red button, Cmd+W) until Dart stopped playback;
+    // its `close` call above then closes the window for real.
+    let closer = PlayerWindowCloser(channel: channel)
+    window.delegate = closer
+    objc_setAssociatedObject(window, &PlayerWindowCloser.key, closer, .OBJC_ASSOCIATION_RETAIN)
+  }
+
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)
+    // Let Flutter fill the title area while retaining the native window controls.
+    titleVisibility = .hidden
+    titlebarAppearsTransparent = true
+    styleMask.insert(.fullSizeContentView)
+    if #available(macOS 11.0, *) {
+      titlebarSeparatorStyle = .none
+    }
     // Start with enough space for the media library and connection dialogs,
     // while fitting smaller laptop displays without opening off-screen.
     let visibleFrame = self.screen?.visibleFrame ?? NSScreen.main?.visibleFrame
@@ -22,6 +67,13 @@ class MainFlutterWindow: NSWindow {
     self.center()
 
     RegisterGeneratedPlugins(registry: flutterViewController)
+
+    // Playback opens in its own window with its own Flutter engine. Each one
+    // needs the plugins registered and the same integrated title bar.
+    FlutterMultiWindowPlugin.setOnWindowCreatedCallback { controller in
+      RegisterGeneratedPlugins(registry: controller)
+      MainFlutterWindow.configurePlayerWindow(controller)
+    }
 
     sourceAccess = FlutterMethodChannel(name: "openplayx/source_access", binaryMessenger: flutterViewController.engine.binaryMessenger)
     sourceAccess?.setMethodCallHandler { [weak self] call, result in

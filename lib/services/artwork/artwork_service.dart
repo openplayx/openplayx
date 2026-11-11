@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 import 'dart:typed_data';
 import 'dart:ui' as ui;
 
@@ -192,7 +193,9 @@ class ArtworkService {
         buffer.dispose();
       }
       if (_closed) throw const PluginException('cancelled', '图片加载已取消');
-      temporary = File('${file.path}.tmp');
+      temporary = File(
+        '${file.path}.${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}.tmp',
+      );
       await temporary.writeAsBytes(bytes, flush: true);
       return await _publish(temporary, file, bytes.length);
     } finally {

@@ -9,7 +9,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../ui/components/states/content_state.dart';
 import '../ui/adaptive/app_page.dart';
-import '../ui/icons/app_icons.dart';
 
 import 'package:openplayx_playback/playback.dart';
 
@@ -20,10 +19,28 @@ import '../features/library/library_page.dart';
 import '../features/player/player_page.dart';
 import '../features/sources/source_defaults_page.dart';
 import '../features/sources/source_page.dart';
+import '../features/library/metadata_artwork.dart';
+import '../ui/components/media/media_poster_card.dart';
+import '../services/artwork/artwork_service.dart';
 import '../services/library/library_service.dart';
+import '../services/metadata/metadata_runtime.dart';
 import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
+import 'player_window.dart';
 import '../ui/tokens/app_spacing.dart';
+
+import '../core/models/text_model.dart';
+import '../plugins/model_langchain/langchain_model.dart';
+import '../services/ai_tools/media_tools.dart';
+import '../services/ai_tools/tool_registry.dart';
+import '../services/conversations/assistant_store.dart';
+import '../services/conversations/conversation_coordinator.dart';
+import '../features/ai_assistant/assistant_page.dart';
+import '../features/ai_assistant/ai_chat_controller.dart';
+import '../features/ai_assistant/ai_chat_panel.dart';
+import '../features/ai_assistant/widgets/ai_composer.dart';
+import '../ui/icons/app_icons.dart';
+import '../features/ai_assistant/assistant_settings_page.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -49,7 +66,17 @@ class _AppShellState extends State<AppShell> {
   final _player = GlobalKey<PlayerPageState>();
   final _branches = List.generate(4, (_) => GlobalKey<NavigatorState>());
   LibraryService? _library;
+  MetadataRuntime? _metadataRuntime;
+  ArtworkService? _artwork;
+  AssistantStore? _assistantStore;
+  ConversationCoordinator? _assistant;
+  AiChatController? _chat;
+  MediaTools? _mediaTools;
   PlayerBackend? _backend;
+  // Desktop playback opens in its own window; tests inject a backend and keep
+  // the embedded player.
+  late final PlayerWindows? _playerWindows =
+      widget.backend == null && supportsPlayerWindow ? PlayerWindows() : null;
   int _destination = 0;
   bool _showPlayer = false;
   bool _opening = false;
@@ -71,10 +98,23 @@ class _AppShellState extends State<AppShell> {
       }
       setState(() {
         _library = library;
+        _artwork = ArtworkService(
+          _sources,
+          retainedArtwork: () => library.metadata.retainedArtwork,
+        );
+        _metadataRuntime = MetadataRuntime(library, _sources);
+        unawaited(_metadataRuntime!.start());
         _backend =
             widget.backend ??
             (LibVlcBackend.isSupported ? LibVlcBackend() : null);
         _error = null;
+        try {
+          _initializeAssistant(library);
+        } catch (_) {
+          // Optional AI storage must not prevent traditional playback.
+          _assistant = null;
+          _assistantStore = null;
+        }
       });
     } catch (_) {
       if (mounted) setState(() => _error = l.libraryOpenFailed);
@@ -83,10 +123,279 @@ class _AppShellState extends State<AppShell> {
 
   @override
   void dispose() {
+    unawaited(_metadataRuntime?.dispose());
+    _artwork?.dispose();
+    _chat?.dispose();
+    _assistant?.dispose();
+    _assistantStore?.close();
+    _revision.dispose();
     if (widget.library == null) _library?.close();
     if (widget.sources == null) unawaited(_sources.dispose());
     super.dispose();
   }
+
+  Map<String, dynamic> _aiContext() => {
+    'page': _showPlayer
+        ? 'player'
+        : ['home', 'library', 'sources', 'settings'][_destination],
+    'playback': _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
+  };
+
+  void _initializeAssistant(LibraryService library) {
+    final store = _assistantStore = AssistantStore(library.db);
+    final tools = _mediaTools = MediaTools(
+      canExecute: () => _assistant?.acceptingActions ?? false,
+      library: library,
+      sources: _sources,
+      context: _aiContext,
+      playbackSnapshot: _backend == null
+          ? null
+          : () =>
+                _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
+      playbackControl: _backend == null
+          ? null
+          : (command, args) async {
+              final player = _player.currentState;
+              if (player == null ||
+                  player.assistantSnapshot()['session_id'] !=
+                      args['session_id']) {
+                throw const ToolFailure('staleSession');
+              }
+              try {
+                return await player.assistantControl(command, args);
+              } catch (_) {
+                throw const ToolFailure('playbackRejected');
+              }
+            },
+      openResource: _backend == null
+          ? null
+          : (entry) async {
+              if (!ToolExecution.active || _opening || _exitingPlayer) {
+                throw const ToolFailure('playerBusy');
+              }
+              final ref = entry.ref;
+              final PlayableStream stream;
+              if (ref.instanceId == '@local') {
+                if (!await File(ref.id).exists()) {
+                  throw const ToolFailure('notFound');
+                }
+                stream = PlayableStream(Uri.file(ref.id));
+              } else {
+                stream = await _sources.resolve(ref);
+              }
+              // The user may stop generation or open another resource during resolve.
+              if (!mounted ||
+                  !ToolExecution.active ||
+                  !(_assistant?.acceptingActions ?? false) ||
+                  _opening ||
+                  _exitingPlayer) {
+                await stream.release();
+                throw const ToolFailure('cancelled');
+              }
+              await _play(
+                SourceSelection(entry.name, stream, ref: ref, entry: entry),
+              );
+              final result =
+                  _player.currentState?.assistantSnapshot() ??
+                  {'status': 'idle'};
+              if (result['status'] == 'error') {
+                throw const ToolFailure('playbackFailed');
+              }
+              return {'command_status': 'submitted', 'playback': result};
+            },
+    );
+    _assistant = ConversationCoordinator(
+      store: store,
+      gateway: ToolGateway(tools.registry, journal: store),
+      context: _aiContext,
+      confirmationTarget: (_, arguments) {
+        final id = arguments['media_id'];
+        if (id is! String) return null;
+        final rows = _library!.db.select('SELECT title FROM media WHERE id=?', [
+          id,
+        ]);
+        return rows.isEmpty
+            ? null
+            : MediaTools.safeText(rows.first['title'] as String);
+      },
+      model: () async {
+        final config = store.loadConfig();
+        config.validate();
+        if (!config.cloudAllowed) {
+          throw const ModelFailure('configurationRequired');
+        }
+        final key = await store.key(config);
+        if (key.isEmpty) throw const ModelFailure('configurationRequired');
+        return LangChainModel(
+          apiKey: key,
+          endpoint: config.endpoint,
+          model: config.model,
+          maxTokens: config.maxTokens,
+          streaming: config.streamVerified || !config.textVerified,
+        );
+      },
+    );
+    _chat = AiChatController(_assistant!);
+  }
+
+  Future<void> _modelSettings() async {
+    if (_assistantStore == null || (_assistant?.busy ?? false)) return;
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => AssistantSettingsPage(store: _assistantStore!),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Widget _assistantView({bool panel = false, BuildContext? panelContext}) =>
+      AssistantView(
+        coordinator: _assistant!,
+        controller: _chat,
+        toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
+        onSettings: _modelSettings,
+        onShowContent: panel ? null : _chat!.showContent,
+        onExpand: !panel
+            ? null
+            : () {
+                Navigator.of(panelContext!).pop();
+                _chat!.showChat();
+                _select(0);
+              },
+        onOpenMedia: _openChatMedia,
+        onFavorite: (id) async {
+          final rows = _library!.db.select(
+            'SELECT favorite FROM media WHERE id=?',
+            [id],
+          );
+          if (rows.isEmpty) throw StateError('Media unavailable');
+          final favorite = rows.first['favorite'] != 1;
+          _library!.favorite(id, favorite);
+          _revision.value++;
+          return favorite;
+        },
+      );
+
+  Future<void> _openChatMedia(Map<String, dynamic> item) async {
+    SourceEntry? entry;
+    if (item['ref'] is String) {
+      entry = _mediaTools!.entryForReference(item['ref'] as String);
+    }
+    if (item['media_id'] is String || item['resource_id'] is String) {
+      final resources = item['resource_id'] is String
+          ? _library!.db.select('SELECT * FROM resources WHERE id=?', [
+              item['resource_id'],
+            ])
+          : _library!.resources(item['media_id'] as String);
+      if (resources.isEmpty || !mounted) {
+        throw StateError('Resource unavailable');
+      }
+      String? id = resources.length == 1
+          ? resources.single['id'] as String
+          : null;
+      id ??= await showShadDialog<String>(
+        context: context,
+        builder: (context) => ShadDialog(
+          title: Text(l.chooseVersion),
+          child: SizedBox(
+            width: 480,
+            height: 320,
+            child: ListView(
+              children: [
+                for (final resource in resources)
+                  ShadButton.ghost(
+                    onPressed: () =>
+                        Navigator.pop(context, resource['id'] as String),
+                    child: Text(
+                      MediaTools.safeText(resource['name'] as String),
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ),
+      );
+      if (id == null) return;
+      final fresh = _library!.db.select('SELECT * FROM resources WHERE id=?', [
+        id,
+      ]);
+      if (fresh.isEmpty) throw StateError('Resource unavailable');
+      final r = fresh.single;
+      entry = SourceEntry(
+        ResourceRef(r['source'] as String, r['item'] as String),
+        r['name'] as String,
+        isFolder: false,
+      );
+    }
+    if (entry == null || entry.isFolder || !mounted) {
+      throw StateError('Resource unavailable');
+    }
+    if (entry.ref.instanceId == '@local' &&
+        !await File(entry.ref.id).exists()) {
+      throw StateError('File unavailable');
+    }
+    final stream = entry.ref.instanceId == '@local'
+        ? PlayableStream(Uri.file(entry.ref.id))
+        : await _sources.resolve(entry.ref);
+    if (!mounted) {
+      await stream.release();
+      return;
+    }
+    await _play(
+      SourceSelection(entry.name, stream, ref: entry.ref, entry: entry),
+    );
+  }
+
+  Future<void> _openAssistant() => showAiChatPanel(
+    context,
+    playing: _showPlayer,
+    builder: (panelContext) =>
+        _assistantView(panel: true, panelContext: panelContext),
+  );
+
+  // Distance of the floating button from the bottom-right corner; draggable.
+  Offset _fabInset = const Offset(16, 16);
+
+  Widget _draggableAssistantButton() => Positioned.fill(
+    child: LayoutBuilder(
+      builder: (context, box) {
+        const size = 48.0;
+        final maxX = (box.maxWidth - size).clamp(0.0, double.infinity);
+        final maxY = (box.maxHeight - size).clamp(0.0, double.infinity);
+        final right = _fabInset.dx.clamp(0.0, maxX);
+        final bottom = _fabInset.dy.clamp(0.0, maxY);
+        return Stack(
+          children: [
+            Positioned(
+              right: right,
+              bottom: bottom,
+              child: GestureDetector(
+                onPanUpdate: (d) => setState(
+                  () => _fabInset = Offset(
+                    (right - d.delta.dx).clamp(0.0, maxX),
+                    (bottom - d.delta.dy).clamp(0.0, maxY),
+                  ),
+                ),
+                child: Tooltip(
+                  message: l.aiAssistant,
+                  child: Semantics(
+                    label: l.aiAssistant,
+                    button: true,
+                    child: ShadIconButton(
+                      icon: const Icon(AppIcons.assistant),
+                      onPressed: _openAssistant,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ],
+        );
+      },
+    ),
+  );
 
   Future<void> _exitPlayer() async {
     if (_exitingPlayer) return;
@@ -102,6 +411,14 @@ class _AppShellState extends State<AppShell> {
   }
 
   Future<void> _play(SourceSelection selection) async {
+    if (_playerWindows != null && !_opening && !_exitingPlayer) {
+      _opening = true;
+      try {
+        if (await _playerWindows.open(selection)) return;
+      } finally {
+        _opening = false;
+      }
+    }
     if (_opening || _exitingPlayer || _backend == null) {
       await selection.stream.release();
       if (mounted && _backend == null) _message(l.platformUnsupported);
@@ -167,48 +484,76 @@ class _AppShellState extends State<AppShell> {
   );
 
   Widget _homeContent() => AppPage(
-    body: ListView(
-      key: PageStorageKey('home'),
-      padding: AppSpacing.page(context),
-      children: [
-        Text(l.welcome, style: ShadTheme.of(context).textTheme.h3),
-        SizedBox(height: 8),
-        Text(l.welcomeDescription),
-        SizedBox(height: 20),
-        Align(
-          alignment: Alignment.centerLeft,
-          child: ShadButton(
-            onPressed: _backend == null
-                ? null
-                : () async {
-                    if (_opening || _exitingPlayer) return;
-                    _opening = true;
-                    try {
-                      await _player.currentState?.openFile();
-                    } finally {
-                      _opening = false;
-                    }
-                  },
-            leading: Icon(AppIcons.openFile),
-            enabled: !(_backend == null),
-            child: Text(l.openFile),
+    title: Text(l.home),
+    body: _chat == null
+        ? _homeMedia()
+        : ListenableBuilder(
+            listenable: _chat!,
+            builder: (context, _) =>
+                _chat!.showConversation ? _assistantView() : _homeMedia(),
           ),
-        ),
-        SizedBox(height: 28),
+  );
+
+  Widget _homeMedia() => ListView(
+    key: const PageStorageKey('home'),
+    padding: AppSpacing.page(context),
+    children: [
+      if (_library!.continueWatching().isNotEmpty) ...[
         _history(
           l.continueWatching,
           _library!.continueWatching(),
           empty: l.continueEmpty,
         ),
-        SizedBox(height: 28),
-        _history(
-          l.recentlyPlayed,
-          _library!.recentlyPlayed(),
-          empty: l.recentEmpty,
+        const SizedBox(height: AppSpacing.xl),
+      ],
+      _history(
+        l.recentlyPlayed,
+        _library!.recentlyPlayed(),
+        empty: l.recentEmpty,
+      ),
+      if (_chat != null) ...[
+        const SizedBox(height: AppSpacing.xl),
+        ShadCard(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: ShadButton.ghost(
+                  key: const ValueKey('home-open-chat'),
+                  leading: const Icon(AppIcons.chat),
+                  onPressed: _chat!.showChat,
+                  child: Text(l.aiAssistant),
+                ),
+              ),
+              Text(l.aiWelcome, style: ShadTheme.of(context).textTheme.muted),
+              const SizedBox(height: 12),
+              Wrap(
+                spacing: 8,
+                runSpacing: 8,
+                children: [
+                  for (final suggestion in [
+                    l.aiSuggestMedia,
+                    l.aiSuggestResume,
+                  ])
+                    ShadButton.outline(
+                      height: 0,
+                      onPressed: () => _chat!.suggest(suggestion),
+                      child: Flexible(child: Text(suggestion)),
+                    ),
+                ],
+              ),
+              AiComposer(
+                controller: _chat!,
+                toolsEnabled: () =>
+                    _assistantStore!.loadConfig().toolsSupported,
+                onSettings: _modelSettings,
+              ),
+            ],
+          ),
         ),
       ],
-    ),
-    title: Text(l.home),
+    ],
   );
 
   Widget _history(String title, List<dynamic> rows, {required String empty}) =>
@@ -224,7 +569,8 @@ class _AppShellState extends State<AppShell> {
             )
           else
             SizedBox(
-              height: 184 + MediaQuery.textScalerOf(context).scale(14) * 2,
+              // Same poster card as the library, plus a thin progress bar.
+              height: 280 + MediaQuery.textScalerOf(context).scale(14) * 2,
               child: ListView.separated(
                 scrollDirection: Axis.horizontal,
                 itemCount: rows.length,
@@ -233,44 +579,26 @@ class _AppShellState extends State<AppShell> {
                   final row = rows[index];
                   final position = row['position'] as int;
                   final duration = row['duration'] as int;
+                  final id = row['id'] as String;
+                  final artwork = _library!.metadata.displayArtwork(id);
                   return SizedBox(
-                    width: 256,
-                    child: ShadCard(
-                      padding: EdgeInsets.zero,
-                      clipBehavior: Clip.antiAlias,
-                      child: InkWell(
-                        onTap: () => _playHistory(row),
-                        child: Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Icon(AppIcons.playMedia),
-                              SizedBox(height: 8),
-                              Text(
-                                row['title'] as String,
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                              ),
-                              Spacer(),
-                              Text(
-                                row['completed'] == 1
-                                    ? l.rewatch
-                                    : l.watchProgress(
-                                        position ~/ 60000,
-                                        duration ~/ 60000,
-                                      ),
-                              ),
-                              SizedBox(height: 8),
-                              ShadProgress(
-                                value: duration > 0
-                                    ? (position / duration).clamp(0, 1)
-                                    : 0,
-                              ),
-                            ],
-                          ),
-                        ),
-                      ),
+                    width: 150,
+                    child: MediaPosterCard(
+                      title: row['title'] as String,
+                      artwork: artwork == null || _artwork == null
+                          ? null
+                          : MetadataArtwork(
+                              service: _artwork!,
+                              artwork: artwork,
+                            ),
+                      progress: row['completed'] == 1
+                          ? 1
+                          : duration > 0
+                          ? position / duration
+                          : 0,
+                      favorite: false,
+                      onFavorite: () {},
+                      onOpen: () => _playHistory(row),
                     ),
                   );
                 },
@@ -280,6 +608,9 @@ class _AppShellState extends State<AppShell> {
       );
 
   Widget _settings() => SettingsPage(
+    library: _library,
+    sources: _sources,
+    onModelSettings: _assistantStore == null ? null : _modelSettings,
     onSourceDefaults: () => _branches[3].currentState!.push(
       MaterialPageRoute<void>(
         builder: (_) => SourceDefaultsPage(manager: _sources),
@@ -293,7 +624,7 @@ class _AppShellState extends State<AppShell> {
       builder: (_) => switch (index) {
         0 => _home(),
         1 => LibraryPage(sources: _sources, service: _library, onPlay: _play),
-        2 => SourcePage(manager: _sources, onPlay: _play),
+        2 => SourcePage(manager: _sources, library: _library, onPlay: _play),
         _ => _settings(),
       },
     ),
@@ -385,6 +716,8 @@ class _AppShellState extends State<AppShell> {
                       ),
                     ),
                   ),
+                if (_assistant != null && (_destination != 0 || _showPlayer))
+                  _draggableAssistantButton(),
               ],
             ),
             bottomNavigationBar: sidebar || _showPlayer

@@ -103,7 +103,7 @@
   "chooseEachTime": "每次選擇",
   "defaultUnavailable": "存在無法使用的預設實例綁定，請重新選擇；未自動替換為其他帳號。",
   "searchScope": "多來源搜尋範圍",
-  "searchScopeDescription": "範圍以實例清單儲存，可包含多個實例。目前來源僅支援瀏覽及解析，搜尋能力接入後才開放相關預設設定。",
+  "searchScopeDescription": "選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。",
   "sourceDefaultsTitle": "能力預設實例及搜尋範圍",
   "localFolder": "本機資料夾",
   "pickFolderFailed": "無法選擇資料夾，請重試。",
@@ -126,6 +126,8 @@
   "optionalPath": "路徑（選填）",
   "smbPathHint": "共用資料夾/影片目錄",
   "serverPathHint": "例如 jellyfin，無則留空",
+  "scanExtensions": "掃描的檔案副檔名",
+  "scanExtensionsHelp": "以逗號分隔。預覽與入庫只保留這些副檔名的檔案，留空則保留所有檔案。以點開頭的隱藏檔案一律忽略。",
   "optionalDomain": "工作群組（選填）",
   "waitingPlex": "等待 Plex 授權…",
   "signInPlex": "登入 Plex",
@@ -169,6 +171,10 @@
   "adjustFailed": "調整失敗，請重試。",
   "audioTrack": "音軌",
   "noAudioTracks": "此媒體沒有可選音軌",
+  "subtitleTrack": "字幕",
+  "noSubtitleTracks": "此媒體沒有可選字幕",
+  "subtitleOff": "關閉字幕",
+  "numberedSubtitleTrack": "字幕 {id}",
   "playbackCommandFailed": "播放操作失敗，請重新開啟媒體檔案。",
   "openFileFailed": "無法開啟檔案，請重新選擇。",
   "stopPlaybackFailed": "停止播放失敗，請重試返回",
@@ -195,6 +201,28 @@
         "type": "int"
       },
       "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressLabel": "刮削 {done}/{total}",
+  "@metadataProgressLabel": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressTooltip": "元資料刮削進度：已處理 {done} / 共 {total}（找不到符合的也算已處理）",
+  "@metadataProgressTooltip": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -361,6 +389,13 @@
   "shadPaste": "貼上",
   "shadSelectAll": "全選",
   "shadDone": "完成",
+  "scanFoundMedia": "已發現 {n} 個媒體檔案",
+  "detailOverview": "簡介",
+  "detailCast": "演員",
+  "detailDirectors": "導演",
+  "seasonLabel": "第 {n} 季",
+  "episodeLabel": "第 {n} 集",
+  "detailNoEpisodes": "還沒有可播放的劇集。",
   "metadata": "影視資訊",
   "metadataIdentify": "識別 / 重新配對",
   "metadataImport": "匯入鄰近 NFO 和圖片",
@@ -372,7 +407,7 @@
   "metadataLanguage": "中繼資料語言",
   "metadataToken": "TMDB 讀取存取權杖",
   "metadataConfigure": "設定 TMDB",
-  "metadataPrivacy": "線上查詢僅向 TMDB 傳送名稱、年份、ID 和語言，不上傳影片或私人路徑。僅在主動操作時連網查詢。",
+  "metadataPrivacy": "加入媒體庫的影視會在背景自動識別，僅向 TMDB 傳送必要的名稱、年份、ID 和語言，不上傳影片或私人路徑。",
   "metadataSaved": "TMDB 設定已儲存",
   "metadataCandidates": "選擇作品",
   "metadataChooseChildren": "選擇季 / 集",
@@ -406,5 +441,145 @@
   "metadataMissingSource": "來源檔案已遺失",
   "metadataAttribution": "本產品使用 TMDB API，但未經 TMDB 認可或認證。",
   "metadataForgetToken": "移除 TMDB 憑證",
-  "metadataSearch": "搜尋 TMDB"
+  "metadataTokenSaved": "已在本機儲存 TMDB 權杖。",
+  "metadataTokenMissing": "尚未設定 TMDB 權杖。",
+  "metadataSearch": "搜尋 TMDB",
+  "aiAssistant": "AI 助手",
+  "aiPrivacyNotice": "訊息、選定上下文及工具結果會傳送至你設定的模型供應商。",
+  "aiWelcome": "可以讓我尋找媒體、繼續觀看或控制播放。請先設定模型。",
+  "aiYou": "你",
+  "aiToolResult": "工具結果",
+  "aiConfirmAction": "確認這項變更",
+  "aiApprove": "同意執行",
+  "aiInputHint": "想看些什麼？",
+  "aiStop": "停止生成",
+  "aiSend": "傳送",
+  "aiToolFailed": "工具未完成",
+  "aiConfigureFirst": "請先在 AI 設定中設定模型、API Key 並授權傳送至雲端。",
+  "aiSendFailed": "無法傳送，請檢查輸入長度後重試。",
+  "aiCancelled": "已停止生成，已完成操作會保留。",
+  "aiTimeout": "請求逾時，已完成操作會保留。",
+  "aiBudgetReached": "已達到本回合上限，已完成結果會保留。",
+  "aiProviderFailed": "模型請求失敗，請檢查憑據、端點及模型支援情況。",
+  "aiInterrupted": "上次關閉時中斷，不會重播操作。",
+  "aiTokenUsage": "供應商回報用量：{count} tokens",
+  "aiModelSettings": "模型設定",
+  "aiProviderDescription": "使用 OpenAI 或相容協定的 HTTPS 端點。API Key 儲存在系統憑據儲存區。",
+  "aiEndpoint": "API 基址",
+  "aiModel": "模型 ID",
+  "aiApiKey": "API Key",
+  "aiKeyRequired": "填寫 API Key",
+  "aiKeySaved": "已儲存憑據，留空保留",
+  "aiOutputLimit": "輸出 token 上限（128–16384）",
+  "aiCloudConsent": "允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。",
+  "aiTestText": "測試一般回覆",
+  "aiTestStream": "測試串流回覆",
+  "aiTestTools": "測試工具呼叫",
+  "aiTestPassed": "連線測試通過，儲存後生效。",
+  "aiTestFailed": "測試失敗，請檢查憑據及協定支援。工具呼叫須獨立通過測試。",
+  "aiToolsVerified": "工具呼叫已驗證，將啟用實際可用的業務工具。",
+  "aiTextOnly": "工具呼叫測試通過前僅啟用純對話。",
+  "aiSaveFailed": "儲存失敗，請檢查設定及系統憑據儲存權限。",
+  "@aiTokenUsage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiExecuting": "正在執行 {name}…",
+  "@aiExecuting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAuthenticationFailed": "驗證失敗，請在模型設定中更新 API Key。",
+  "aiRateLimited": "已達到供應商速率限制，請稍後重試。",
+  "aiProtocolMismatch": "端點或模型不支援此請求，請檢查連線測試結果。",
+  "metadataAutomaticQueued": "等待自動識別",
+  "metadataAutomaticWaitingConfig": "背景擷取需要設定有效的 TMDB 讀取權杖，本機 NFO 和播放不受影響。",
+  "metadataAutomaticRetry": "重試未完成的擷取",
+  "metadataAutomaticStatus": "背景擷取：{queued} 待處理 · {running} 處理中 · {waiting} 待確認 · {failed} 失敗",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "fileSources": "檔案來源",
+  "addFileSource": "新增檔案來源",
+  "nameFileSource": "為檔案來源命名",
+  "fileSourceEnable": "啟用",
+  "fileSourceDisable": "停用",
+  "fileSourceDisabled": "已停用",
+  "rescanAll": "重新掃描全部檔案來源",
+  "noFileSources": "尚無檔案來源，新增一個資料夾開始建立媒體庫",
+  "removeFileSource": "刪除檔案來源",
+  "removeFileSourceConfirm": "刪除此檔案來源？",
+  "libraryEmptyNoMedia": "檔案來源中尚無可辨識的媒體，請重新掃描或檢查檔名",
+  "chooseFolderDescription": "進入目錄並確認作為檔案來源。僅索引其中的媒體，不下載影片。",
+  "confirmFolder": "使用此資料夾",
+  "libraryNoFileSources": "尚無檔案來源。請在「來源」中為連線新增資料夾",
+  "sourceTabConnections": "連線",
+  "sourceTabFileSources": "檔案來源",
+  "moreActions": "更多操作",
+  "aiNewChat": "新增對話",
+  "aiChatHistory": "對話紀錄",
+  "aiShowMedia": "返回首頁內容",
+  "aiExpandChat": "在首頁展開",
+  "aiLatest": "回到最新",
+  "aiDraftNext": "正在回覆，你可以先編輯下一則訊息。",
+  "aiSuggestMedia": "幫我找一部電影",
+  "aiSuggestResume": "我上次看到哪裡了？",
+  "aiToolPreparing": "準備執行",
+  "aiToolRunning": "執行中",
+  "aiToolWaiting": "等待確認",
+  "aiToolSucceeded": "已完成",
+  "aiToolCancelled": "未執行或已取消",
+  "aiActionExpired": "此操作已失效，請重新選擇。",
+  "aiRemoteImageBlocked": "遠端圖片未自動載入",
+  "aiOpenLink": "開啟外部連結？",
+  "aiLinkBlocked": "無法開啟此連結",
+  "aiTaskSubmitted": "已提交工作",
+  "aiPartialFailure": "部分來源暫時無法使用",
+  "aiMoreResults": "還有更多結果，可繼續提問查看。",
+  "aiNoResults": "沒有找到符合的內容",
+  "aiUntitledChat": "新對話",
+  "aiHistoryEmpty": "還沒有對話紀錄",
+  "aiReplying": "正在回覆…",
+  "aiToolSummary": "操作及結果來自本機服務",
+  "aiEarlier": "載入較早的訊息",
+  "diagnosticsTitle": "傳送診斷資訊",
+  "diagnosticsDescription": "選擇是否向配置的 Sentry 服務傳送應用版本及脫敏錯誤堆疊，不含媒體路徑、憑證或聊天內容。開啟後重啟生效，關閉立即停止所有視窗及背景任務的新上報。暫不收集原生崩潰。",
+  "anonymousHelp": "匿名存取時，使用者名稱和密碼都留空",
+  "s3AccessKey": "Access Key ID",
+  "s3SecretKey": "Secret Access Key",
+  "s3AnonymousHelp": "公開儲存貯體可以不填金鑰",
+  "s3Region": "區域（選填，預設 us-east-1）",
+  "s3PathHint": "儲存貯體/選填前綴，例如 media/movies",
+  "remotePathHint": "例如 media/movies，留空為根目錄",
+  "dlnaSearch": "搜尋區域網路裝置",
+  "dlnaSearching": "正在搜尋…",
+  "dlnaNoDevices": "沒有找到媒體伺服器，可以手動填寫裝置描述位址。",
+  "dlnaDevice": "裝置",
+  "dlnaAddress": "裝置描述位址",
+  "dlnaAddressHelp": "選擇搜尋到的裝置會自動填寫，也可以手動填寫。",
+  "aiOpenExternal": "開啟連結",
+  "serverBrowseAll": "全部",
+  "serverUnavailable": "無法連線此伺服器",
+  "serverEmpty": "這裡還沒有內容",
+  "serverLoadMore": "載入更多",
+  "localLibrary": "本機媒體庫"
 }

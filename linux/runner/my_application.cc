@@ -5,7 +5,68 @@
 #include <gdk/gdkx.h>
 #endif
 
+#include "desktop_multi_window/desktop_multi_window_plugin.h"
 #include "flutter/generated_plugin_registrant.h"
+#include "resources/app_icon.h"
+
+// Per player window: holds back a native close until Dart stopped playback,
+// then lets the `close` call through.
+typedef struct {
+  GtkWindow* window;
+  FlMethodChannel* channel;
+  gboolean confirmed;
+} PlayerWindowBridge;
+
+static void player_window_bridge_free(gpointer data) {
+  PlayerWindowBridge* bridge = static_cast<PlayerWindowBridge*>(data);
+  g_clear_object(&bridge->channel);
+  g_free(bridge);
+}
+
+static void player_window_method_cb(FlMethodChannel* channel,
+                                    FlMethodCall* method_call,
+                                    gpointer user_data) {
+  PlayerWindowBridge* bridge = static_cast<PlayerWindowBridge*>(user_data);
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (g_strcmp0(fl_method_call_get_name(method_call), "close") == 0) {
+    bridge->confirmed = TRUE;
+    gtk_window_close(bridge->window);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+  fl_method_call_respond(method_call, response, nullptr);
+}
+
+static gboolean player_window_delete_cb(GtkWidget* widget, GdkEvent* event,
+                                        gpointer user_data) {
+  PlayerWindowBridge* bridge = static_cast<PlayerWindowBridge*>(user_data);
+  if (bridge->confirmed) return FALSE;
+  fl_method_channel_invoke_method(bridge->channel, "windowClosing", nullptr,
+                                  nullptr, nullptr, nullptr);
+  return TRUE;
+}
+
+static void configure_player_window(FlPluginRegistry* registry) {
+  GtkWidget* window =
+      gtk_widget_get_toplevel(GTK_WIDGET(FL_VIEW(registry)));
+  if (!GTK_IS_WINDOW(window)) return;
+  g_autoptr(FlPluginRegistrar) registrar =
+      fl_plugin_registry_get_registrar_for_plugin(registry,
+                                                  "PlayerWindowBridge");
+  g_autoptr(FlStandardMethodCodec) codec = fl_standard_method_codec_new();
+  PlayerWindowBridge* bridge = g_new0(PlayerWindowBridge, 1);
+  bridge->window = GTK_WINDOW(window);
+  bridge->channel = fl_method_channel_new(
+      fl_plugin_registrar_get_messenger(registrar), "openplayx/player_window",
+      FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(
+      bridge->channel, player_window_method_cb, bridge, nullptr);
+  g_object_set_data_full(G_OBJECT(window), "openplayx-player-window", bridge,
+                         player_window_bridge_free);
+  g_signal_connect(window, "delete-event",
+                   G_CALLBACK(player_window_delete_cb), bridge);
+}
 
 struct _MyApplication {
   GtkApplication parent_instance;
@@ -75,6 +136,14 @@ static void my_application_activate(GApplication* application) {
 
   fl_register_plugins(FL_PLUGIN_REGISTRY(view));
 
+  // Playback opens in its own window with its own engine, which needs the
+  // plugins registered and the close bridge.
+  desktop_multi_window_plugin_set_window_created_callback(
+      [](FlPluginRegistry* registry) {
+        fl_register_plugins(registry);
+        configure_player_window(registry);
+      });
+
   gtk_widget_grab_focus(GTK_WIDGET(view));
 }
 
@@ -106,6 +175,12 @@ static void my_application_startup(GApplication* application) {
   // Perform any actions required at application startup.
 
   G_APPLICATION_CLASS(my_application_parent_class)->startup(application);
+
+  g_autoptr(GInputStream) icon_stream = g_memory_input_stream_new_from_data(
+      kOpenPlayXAppIcon, sizeof(kOpenPlayXAppIcon), nullptr);
+  g_autoptr(GdkPixbuf) icon =
+      gdk_pixbuf_new_from_stream(icon_stream, nullptr, nullptr);
+  if (icon != nullptr) gtk_window_set_default_icon(icon);
 }
 
 // Implements GApplication::shutdown.

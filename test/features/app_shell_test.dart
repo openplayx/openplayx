@@ -8,6 +8,7 @@ import 'package:flutter/material.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app_shell.dart';
+import 'package:openplayx/features/player/player_page.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -30,7 +31,7 @@ class ShellSources extends Sources {
 void main() {
   for (final cancel in [true, false]) {
     testWidgets(
-      'home opens player only after selecting a file (cancel: $cancel)',
+      'file selection reveals the player only after choosing a file (cancel: $cancel)',
       (tester) async {
         final library = LibraryService(sqlite3.openInMemory());
         final backend = FakeBackend();
@@ -50,11 +51,14 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.text('打开文件'));
+        final player = tester.state<PlayerPageState>(
+          find.byType(PlayerPage, skipOffstage: false),
+        );
+        final opening = player.openFile();
         await tester.pump();
-        expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);
+        expect(find.text('最近播放'), findsOneWidget);
         expect(find.byTooltip('返回'), findsNothing);
-        await tester.tap(find.text('打开文件'));
+        await player.openFile();
         await tester.pump();
         expect(pickerCalls, 1);
         selection.complete(
@@ -65,17 +69,18 @@ void main() {
                   'Local video',
                 ),
         );
+        await opening;
         await tester.pumpAndSettle();
         if (cancel) {
-          expect(find.text('欢迎使用 OpenPlayX'), findsOneWidget);
+          expect(find.text('最近播放'), findsOneWidget);
           expect(find.byTooltip('返回'), findsNothing);
           expect(backend.opened, isEmpty);
           expect(backend.value.status, PlaybackStatus.idle);
           await tester.tap(find.byKey(const ValueKey('nav-library')));
           await tester.pumpAndSettle();
-          expect(find.text('创建第一个媒体库'), findsOneWidget);
+          expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
         } else {
-          expect(find.text('欢迎使用 OpenPlayX'), findsNothing);
+          expect(find.text('最近播放'), findsNothing);
           expect(find.byTooltip('返回'), findsOneWidget);
           expect(backend.opened, [Uri.parse('https://example.test/local.mp4')]);
         }
@@ -108,11 +113,11 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byType(AppSidebar), findsOneWidget);
-      expect(find.text('继续观看'), findsOneWidget);
+      expect(find.text('最近播放'), findsOneWidget);
       expect(find.text('最近播放'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-library')));
       await tester.pumpAndSettle();
-      expect(find.text('全部媒体库'), findsOneWidget);
+      expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
       expect(find.text('NAS'), findsOneWidget);

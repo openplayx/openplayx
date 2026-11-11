@@ -91,7 +91,9 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('打开文件'));
+      await tester
+          .state<PlayerPageState>(find.byType(PlayerPage, skipOffstage: false))
+          .openFile();
       await tester.pumpAndSettle();
       final state = tester.state<PlayerPageState>(find.byType(PlayerPage));
       final before = backend.value;
@@ -111,7 +113,7 @@ void main() {
       expect(backend.value.status, before.status);
       await tester.tap(find.byTooltip('Back'));
       await tester.pumpAndSettle();
-      expect(find.text('Welcome to OpenPlayX'), findsOneWidget);
+      expect(find.text('Recently played'), findsOneWidget);
       final context = tester.element(find.byType(AppSidebar));
       expect(ShadTheme.of(context).brightness, Brightness.dark);
       await tester.pumpWidget(const SizedBox());

@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
 """Initialize only the disposable servers in this Compose project."""
 import json
+import os
 import time
 import urllib.error
 import urllib.parse
 import urllib.request
 from pathlib import Path
 
-JELLYFIN = 'http://127.0.0.1:18096'
-PLEX = 'http://127.0.0.1:13240'
+# SOURCE_HOST: the machine running compose.yaml, as clients reach it.
+HOST = os.environ.get('SOURCE_HOST', '127.0.0.1')
+JELLYFIN = f'http://{HOST}:18096'
+PLEX = f'http://{HOST}:13240'
+EMBY = f'http://{HOST}:18097/emby'
 AUTH = 'MediaBrowser Client="OpenPlayX Test", Device="Integration", DeviceId="openplayx-test", Version="1"'
 
 
@@ -35,6 +39,36 @@ def wait(base, path):
         except (OSError, ValueError):
             time.sleep(1)
     raise RuntimeError(f'Service did not become ready: {base}')
+
+
+def setup_emby():
+    headers = {'X-Emby-Authorization': AUTH}
+    wait(EMBY, '/System/Info/Public')
+    try:
+        call(EMBY, '/Startup/Configuration', 'POST',
+            {'UICulture': 'en-US', 'MetadataCountryCode': 'US', 'PreferredMetadataLanguage': 'en'})
+        call(EMBY, '/Startup/User')
+        call(EMBY, '/Startup/User', 'POST', {'Name': 'openplayx', 'Password': 'test-only-password'})
+        call(EMBY, '/Startup/Complete', 'POST')
+    except RuntimeError:
+        pass  # The wizard already ran on this container.
+    auth = call(EMBY, '/Users/AuthenticateByName', 'POST',
+        {'Username': 'openplayx', 'Pw': 'test-only-password'}, headers)
+    token = auth['AccessToken']
+    user = auth['User']['Id']
+    headers = {'X-Emby-Authorization': AUTH + ', Token="' + token + '"', 'X-Emby-Token': token}
+    if not call(EMBY, '/Library/VirtualFolders', headers=headers):
+        query = urllib.parse.urlencode({'name': 'Test Videos', 'collectionType': 'homevideos',
+            'paths': '/media', 'refreshLibrary': 'true'})
+        call(EMBY, '/Library/VirtualFolders?' + query, 'POST',
+            {'LibraryOptions': {'PathInfos': [{'Path': '/media'}], 'EnableRealtimeMonitor': False}}, headers)
+    call(EMBY, '/Library/Refresh', 'POST', headers=headers)
+    for _ in range(90):
+        items = call(EMBY, f'/Users/{user}/Items?Recursive=true&IncludeItemTypes=Video,Movie', headers=headers)
+        if items.get('Items'):
+            return user, token
+        time.sleep(1)
+    raise RuntimeError('Emby media scan timed out')
 
 
 def main():
@@ -88,11 +122,14 @@ def main():
         time.sleep(1)
     else:
         raise RuntimeError('Plex media scan timed out')
-    defines = {'SOURCE_SERVICES': True, 'JELLYFIN_USER_ID': auth['User']['Id'], 'JELLYFIN_TOKEN': token}
+    emby_user, emby_token = setup_emby()
+    defines = {'SOURCE_SERVICES': True, 'SOURCE_HOST': HOST,
+               'JELLYFIN_USER_ID': auth['User']['Id'], 'JELLYFIN_TOKEN': token,
+               'EMBY_USER_ID': emby_user, 'EMBY_TOKEN': emby_token}
     output = Path(__file__).with_name('defines.local.json')
     output.write_text(json.dumps(defines))
     output.chmod(0o600)
-    print('Disposable SMB, Jellyfin and Plex services are ready. Test defines written to ' + str(output))
+    print('Disposable source services are ready. Test defines written to ' + str(output))
 
 
 if __name__ == '__main__':

@@ -13,7 +13,13 @@ class MediaPosterCard extends StatelessWidget {
     required this.onFavorite,
     this.onOpen,
     this.artwork,
+    this.showFavorite = false,
+    this.progress,
   });
+  final bool showFavorite;
+
+  /// Watch progress in 0..1, drawn as a thin bar under the cover when set.
+  final double? progress;
   final Widget? artwork;
   final String title;
   final bool favorite;
@@ -52,37 +58,57 @@ class MediaPosterCard extends StatelessWidget {
               ),
             ),
           ),
-          Padding(
-            padding: const EdgeInsets.all(AppSpacing.sm),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ShadButton.ghost(
-                    expands: true,
-                    height: 64,
-                    onPressed: onOpen,
-                    enabled: onOpen != null,
-                    padding: const EdgeInsets.all(AppSpacing.xs),
+          if (progress != null)
+            SizedBox(
+              height: 3,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  ColoredBox(color: theme.colorScheme.border),
+                  FractionallySizedBox(
+                    alignment: Alignment.centerLeft,
+                    widthFactor: progress!.clamp(0.0, 1.0),
+                    child: ColoredBox(color: theme.colorScheme.primary),
+                  ),
+                ],
+              ),
+            ),
+          // Compact caption: the title only, tappable like the poster.
+          InkWell(
+            onTap: onOpen,
+            child: Padding(
+              padding: const EdgeInsets.symmetric(
+                horizontal: AppSpacing.sm,
+                vertical: AppSpacing.sm,
+              ),
+              child: Row(
+                children: [
+                  Expanded(
                     child: Text(
                       title,
+                      textAlign: TextAlign.center,
                       maxLines: 2,
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                ),
-                Tooltip(
-                  message: label,
-                  child: Semantics(
-                    button: true,
-                    toggled: favorite,
-                    label: label,
-                    child: ShadIconButton.ghost(
-                      icon: Icon(favorite ? AppIcons.check : AppIcons.favorite),
-                      onPressed: onFavorite,
+                  // Favourites are hidden for now; enable with showFavorite.
+                  if (showFavorite)
+                    Tooltip(
+                      message: label,
+                      child: Semantics(
+                        button: true,
+                        toggled: favorite,
+                        label: label,
+                        child: ShadIconButton.ghost(
+                          icon: Icon(
+                            favorite ? AppIcons.check : AppIcons.favorite,
+                          ),
+                          onPressed: onFavorite,
+                        ),
+                      ),
                     ),
-                  ),
-                ),
-              ],
+                ],
+              ),
             ),
           ),
         ],

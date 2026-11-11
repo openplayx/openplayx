@@ -9,9 +9,26 @@ import '../../core/plugins/metadata_capability.dart';
 import '../configuration/source_configuration_service.dart';
 import '../configuration/source_credential_broker.dart';
 import 'file_sources.dart';
+import 'dlna_source.dart';
 import 'media_server_sources.dart';
+import 'network_file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
+
+/// Builds the provider for one configuration snapshot and its secret.
+SourceCapability createSourceProvider(SourceConfig config, String secret) =>
+    switch (config.kind) {
+      SourceKind.local => LocalFolderPlugin(config),
+      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, secret)),
+      SourceKind.webdav => WebDavPlugin(config, secret),
+      SourceKind.ftp => FtpPlugin(config, secret),
+      SourceKind.sftp => SftpPlugin(config, secret),
+      SourceKind.s3 => S3Plugin(config, secret),
+      SourceKind.plex => PlexPlugin(config, SourceHttp(config, secret)),
+      SourceKind.jellyfin ||
+      SourceKind.emby => JellyfinPlugin(config, SourceHttp(config, secret)),
+      SourceKind.dlna => DlnaPlugin(config),
+    };
 
 class SourceSelection {
   const SourceSelection(this.name, this.stream, {this.ref, this.entry});
@@ -43,11 +60,12 @@ class SourceManager {
     FlutterSecureStorage? credentials,
     SourceConfigurationService? configuration,
   }) : _configuration = configuration,
-       _ownsConfiguration = configuration == null,
-       _credentials = SourceCredentialBroker(credentials);
+       _ownsConfiguration = configuration == null {
+    _credentials = SourceCredentialBroker(() => _configuration!, credentials);
+  }
   SourceConfigurationService? _configuration;
   final bool _ownsConfiguration;
-  final SourceCredentialBroker _credentials;
+  late final SourceCredentialBroker _credentials;
   bool _hasBookmarks = false;
   bool _disposed = false;
   final _configs = <SourceConfig>[];
@@ -118,16 +136,17 @@ class SourceManager {
     }
     String? staged;
     if (config.kind != SourceKind.local &&
+        config.kind != SourceKind.dlna &&
         (secret.isNotEmpty ||
             previous == null &&
-                config.kind == SourceKind.smb &&
+                (config.kind.optionalCredential ||
+                    config.kind == SourceKind.sftp) &&
                 config.username.isNotEmpty)) {
       staged = await _credentials.stage(config.id, secret);
       saved = saved.copyWith(credentialRef: staged);
     }
     try {
-      if (config.kind == SourceKind.plex ||
-          config.kind == SourceKind.jellyfin) {
+      if (config.kind.requiresSecret) {
         if ((await _credentials.readForHost(saved))?.isNotEmpty != true) {
           throw const PluginException('authRequired', '请填写访问令牌。');
         }
@@ -218,6 +237,19 @@ class SourceManager {
     SourceApplicationStatus.initialized => '已初始化 · 待连接验证',
     SourceApplicationStatus.saved => '已保存 · 下次访问生效',
   };
+
+  /// Global suffix filter shared by preview scans and library scans.
+  List<String> get scanExtensions =>
+      _configuration?.scanExtensions() ?? defaultScanExtensions;
+
+  Future<void> setScanExtensions(List<String> extensions) async {
+    await load();
+    if (extensions.length > 100 ||
+        extensions.any((e) => !RegExp(r'^[a-z0-9]{1,16}$').hasMatch(e))) {
+      throw const PluginException('invalidInput', '文件后缀只能包含字母和数字，最多 100 个。');
+    }
+    _configuration!.saveScanExtensions(extensions);
+  }
 
   Future<void> setDefault(String capability, String? id) async {
     await load();
@@ -327,26 +359,10 @@ class SourceManager {
     final storedSecret = await _credentials.readForHost(config);
     final secret = storedSecret ?? '';
     if ((config.credentialRef != null && storedSecret == null) ||
-        (config.kind != SourceKind.local &&
-            config.kind != SourceKind.smb &&
-            secret.isEmpty)) {
+        (config.kind.requiresSecret && secret.isEmpty)) {
       throw const PluginException('authRequired', '凭据不可用，请重新登录或更新凭据。');
     }
-    final SourceCapability provider = switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(pluginConfig),
-      SourceKind.smb => SmbPlugin.withAccess(
-        pluginConfig,
-        SmbAccess(pluginConfig, secret),
-      ),
-      SourceKind.plex => PlexPlugin(
-        pluginConfig,
-        SourceHttp(pluginConfig, secret),
-      ),
-      SourceKind.jellyfin => JellyfinPlugin(
-        pluginConfig,
-        SourceHttp(pluginConfig, secret),
-      ),
-    };
+    final provider = createSourceProvider(pluginConfig, secret);
     if (_disposed ||
         !_configs.any(
           (c) =>
@@ -427,6 +443,45 @@ class SourceManager {
         }
         return runtime.provider.browse(request, CallContext.forInstance(id));
       });
+  Future<BrowseResult> search(
+    String id,
+    String query, {
+    int offset = 0,
+    int limit = 20,
+  }) => _call(id, (runtime) async {
+    if (query.trim().isEmpty ||
+        query.length > 200 ||
+        offset < 0 ||
+        limit < 1 ||
+        limit > 40) {
+      throw const PluginException('invalidInput', '无效搜索或分页');
+    }
+    final provider = runtime.provider;
+    if (provider is! SearchCapability) {
+      throw const PluginException('unsupported', '此来源不支持搜索');
+    }
+    return (provider as SearchCapability).search(
+      query,
+      BrowseRequest(offset: offset, limit: limit),
+      CallContext.forInstance(id),
+    );
+  });
+
+  /// Items for a media server's shelf: its newest additions when it can list
+  /// them, otherwise the first entries of its root.
+  Future<List<SourceEntry>> featured(String id, {int limit = 20}) =>
+      _call(id, (runtime) async {
+        final provider = runtime.provider;
+        final context = CallContext.forInstance(id);
+        if (provider is RecentCapability) {
+          return (provider as RecentCapability).recent(limit, context);
+        }
+        return (await provider.browse(
+          BrowseRequest(limit: limit),
+          context,
+        )).entries;
+      });
+
   Future<PlayableStream> resolve(ResourceRef resource) =>
       _call(resource.instanceId, (runtime) async {
         final stream = await runtime.provider.resolve(
@@ -489,16 +544,10 @@ class SourceManager {
         : existing == null
         ? ''
         : await _credentials.readForHost(existing) ?? '';
-    if ([SourceKind.plex, SourceKind.jellyfin].contains(config.kind) &&
-        value.isEmpty) {
+    if (config.kind.requiresSecret && value.isEmpty) {
       throw const PluginException('authRequired', '请填写访问令牌。');
     }
-    final SourceCapability provider = switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(config),
-      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, value)),
-      SourceKind.plex => PlexPlugin(config, SourceHttp(config, value)),
-      SourceKind.jellyfin => JellyfinPlugin(config, SourceHttp(config, value)),
-    };
+    final provider = createSourceProvider(config, value);
     final operation = provider.browse(
       const BrowseRequest(limit: 1),
       CallContext.forInstance(config.id),
@@ -561,15 +610,14 @@ class SourceManager {
                     .replaceFirst(RegExp(r'^/+'), '')
               : entry.ref.id
                     .substring(
-                      Uri.parse(config.address).path
-                          .replaceFirst(RegExp(r'/+$'), '')
-                          .length,
+                      config.rootPath.replaceFirst(RegExp(r'/+$'), '').length,
                     )
                     .replaceFirst(RegExp(r'^/+'), '');
           if (config.excludedFromScan(relative)) continue;
           if (entry.isFolder) {
             if (visited.add(entry.ref.id)) queue.add(entry.ref);
           } else {
+            if (!matchesScanExtension(entry.name, scanExtensions)) continue;
             yield entry;
             if (++emitted >= limit) return;
           }

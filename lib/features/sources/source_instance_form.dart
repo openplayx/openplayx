@@ -5,6 +5,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 
 import '../../l10n/generated/app_localizations.dart';
+import '../../ui/components/media/source_kind_icon.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -15,6 +16,7 @@ import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_config.dart';
+import '../../data/sources/dlna_source.dart';
 import '../../data/sources/source_connection.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_sign_in.dart';
@@ -27,12 +29,14 @@ class SourceInstanceForm extends StatefulWidget {
     this.signIn,
     this.openBrowser,
     this.chooseDirectory,
+    this.discoverDlna,
   });
   final SourceConfig? initial;
   final SourceManager manager;
   final SourceSignIn? signIn;
   final Future<bool> Function(Uri)? openBrowser;
   final Future<String?> Function()? chooseDirectory;
+  final Future<List<DlnaDevice>> Function()? discoverDlna;
   @override
   State<SourceInstanceForm> createState() => _SourceInstanceFormState();
 }
@@ -63,6 +67,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   String? _plexToken;
   Uri? _loginUri;
   int _loginGeneration = 0;
+  List<DlnaDevice>? _devices;
+  DlnaDevice? _device;
+  bool _searching = false;
   @override
   void initState() {
     super.initState();
@@ -78,6 +85,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         _normalizeAddress();
       }
     });
+    _address.addListener(() {
+      if (_kind == SourceKind.dlna && mounted) setState(() {});
+    });
     _addressFocus.addListener(() {
       if (!_addressFocus.hasFocus && mounted) _normalizeAddress();
     });
@@ -86,7 +96,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   void _fillConnection(SourceConfig config) {
     _username.text = config.username;
     _domain.text = config.domain;
-    if (config.kind == SourceKind.local) {
+    if (config.kind == SourceKind.local || config.kind == SourceKind.dlna) {
       _address.text = config.address;
       return;
     }
@@ -130,6 +140,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _plexToken = null;
       _loginUri = null;
       _https = false;
+      _devices = null;
+      _device = null;
       for (final c in [
         _address,
         _username,
@@ -145,22 +157,26 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   }
 
   void _normalizeAddress({bool notify = true}) {
-    if (_kind == SourceKind.local || !_address.text.contains('://')) return;
+    if (_kind == SourceKind.local ||
+        _kind == SourceKind.dlna ||
+        !_address.text.contains('://')) {
+      return;
+    }
     final uri = Uri.tryParse(_address.text.trim());
     if (uri == null ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
         uri.hasQuery ||
         uri.hasFragment ||
-        !(_kind == SourceKind.smb ? ['smb'] : ['http', 'https']).contains(
-          uri.scheme,
-        )) {
+        !_kind.schemes.contains(uri.scheme)) {
       return;
     }
     if (_kind == SourceKind.smb && uri.hasPort && uri.port != 445) return;
     void update() {
       _https = uri.scheme == 'https';
-      _port.text = _kind == SourceKind.smb ? '445' : '${uri.port}';
+      _port.text = uri.hasPort || _kind.standardPort == null
+          ? '${uri.port}'
+          : '${_kind.standardPort}';
       _path.text = uri.path.replaceFirst(RegExp(r'^/+'), '');
       _address.text = uri.host.contains(':') ? '[${uri.host}]' : uri.host;
     }
@@ -187,12 +203,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
 
   SourceConfig _draft() {
     final address = _connectionAddress();
-    final defaultName = _kind == SourceKind.local
-        ? Directory(address).uri.pathSegments
-                  .where((s) => s.isNotEmpty)
-                  .lastOrNull ??
-              l.localFolder
-        : _server?.name ?? Uri.parse(address).host;
+    // A blank name stays blank: it displays as "type · address". Only a server
+    // the user picked from sign-in discovery brings its own name.
+    final defaultName = _server?.name ?? _device?.name ?? '';
     final config =
         widget.initial ??
         SourceConfig(id: _id, kind: _kind, name: '', address: '');
@@ -295,10 +308,16 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       switch (_kind) {
         case SourceKind.local:
           await widget.manager.testDraft(draft, '');
-        case SourceKind.smb:
+        case SourceKind.smb ||
+            SourceKind.webdav ||
+            SourceKind.ftp ||
+            SourceKind.sftp ||
+            SourceKind.s3:
           secret = _password.text;
           await widget.manager.testDraft(draft, secret);
-        case SourceKind.jellyfin:
+        case SourceKind.dlna:
+          await widget.manager.testDraft(draft, '');
+        case SourceKind.jellyfin || SourceKind.emby:
           final initial = widget.initial;
           final reauthenticate =
               initial == null ||
@@ -337,6 +356,16 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       if (mounted) setState(() => _busy = false);
     }
   }
+
+  /// Kind name with its recognisable mark.
+  Widget _kindLabel(SourceKind kind) => Row(
+    mainAxisSize: MainAxisSize.min,
+    children: [
+      SourceKindIcon(kind, size: 24),
+      const SizedBox(width: 8),
+      Text(kind == SourceKind.local ? l.localFolder : kind.label),
+    ],
+  );
 
   Widget _field(
     TextEditingController c,
@@ -389,25 +418,47 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       ],
     ),
   );
+  String get _addressHint => switch (_kind) {
+    SourceKind.smb || SourceKind.ftp || SourceKind.sftp => '192.168.1.10',
+    SourceKind.s3 => 's3.amazonaws.com',
+    _ => l.addressHint,
+  };
+
+  String? get _usernameHelp => switch (_kind) {
+    SourceKind.smb => l.guestHelp,
+    SourceKind.webdav || SourceKind.ftp => l.anonymousHelp,
+    SourceKind.s3 => l.s3AnonymousHelp,
+    _ => null,
+  };
+
+  String get _pathHint => switch (_kind) {
+    SourceKind.smb => l.smbPathHint,
+    SourceKind.s3 => l.s3PathHint,
+    SourceKind.webdav || SourceKind.ftp || SourceKind.sftp => l.remotePathHint,
+    _ => l.serverPathHint,
+  };
+
+  Widget _pathField() => _field(_path, l.optionalPath, hint: _pathHint);
+
   Widget _networkFields() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
-      _field(
-        _address,
-        l.address,
-        hint: _kind == SourceKind.smb ? '192.168.1.10' : l.addressHint,
-      ),
+      _field(_address, l.address, hint: _addressHint),
       _field(
         _username,
-        l.username,
-        help: _kind == SourceKind.smb ? l.guestHelp : null,
+        _kind == SourceKind.s3 ? l.s3AccessKey : l.username,
+        help: _usernameHelp,
       ),
       _field(
         _password,
-        l.password,
+        _kind == SourceKind.s3 ? l.s3SecretKey : l.password,
         password: true,
         help: widget.initial != null ? l.keepCredentials : null,
       ),
+      if (_kind == SourceKind.s3) ...[
+        _field(_domain, l.s3Region, hint: 'us-east-1'),
+        _pathField(),
+      ],
       ShadAccordion<String>(
         key: ValueKey('advanced-${_kind.name}'),
         controller: _advancedController,
@@ -420,6 +471,13 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               children: [
                 if (_kind == SourceKind.smb)
                   ContentRow(title: Text(l.port), trailing: Text('445'))
+                else if (!_kind.isHttp)
+                  _field(
+                    _port,
+                    l.port,
+                    number: true,
+                    hint: '${_kind.standardPort}',
+                  )
                 else ...[
                   Align(
                     alignment: AlignmentDirectional.centerStart,
@@ -439,16 +497,10 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                     _port,
                     l.port,
                     number: true,
-                    hint: _https ? '443' : '8096',
+                    hint: _https ? '443' : '${_kind.defaultPort ?? 80}',
                   ),
                 ],
-                _field(
-                  _path,
-                  l.optionalPath,
-                  hint: _kind == SourceKind.smb
-                      ? l.smbPathHint
-                      : l.serverPathHint,
-                ),
+                if (_kind != SourceKind.s3) _pathField(),
                 if (_kind == SourceKind.smb) _field(_domain, l.optionalDomain),
               ],
             ),
@@ -457,6 +509,75 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       ),
     ],
   );
+
+  Future<void> _searchDlna() async {
+    setState(() {
+      _searching = true;
+      _error = null;
+    });
+    try {
+      final devices =
+          await (widget.discoverDlna?.call() ?? DlnaDiscovery.search());
+      if (!mounted) return;
+      setState(() {
+        _devices = devices;
+        if (devices.length == 1) _selectDevice(devices.single);
+      });
+    } catch (_) {
+      if (mounted) setState(() => _devices = const []);
+    } finally {
+      if (mounted) setState(() => _searching = false);
+    }
+  }
+
+  void _selectDevice(DlnaDevice? device) {
+    _device = device;
+    if (device != null) _address.text = device.location.toString();
+  }
+
+  Widget _dlnaFields() => Column(
+    crossAxisAlignment: CrossAxisAlignment.start,
+    children: [
+      SizedBox(height: 12),
+      ShadButton.outline(
+        onPressed: _busy || _searching ? null : _searchDlna,
+        leading: Icon(AppIcons.search),
+        enabled: !(_busy || _searching),
+        child: Text(_searching ? l.dlnaSearching : l.dlnaSearch),
+      ),
+      if (_devices != null && _devices!.isEmpty)
+        Padding(
+          padding: EdgeInsets.only(top: 8),
+          child: Text(
+            l.dlnaNoDevices,
+            style: ShadTheme.of(context).textTheme.muted,
+          ),
+        ),
+      if (_devices?.isNotEmpty == true)
+        Padding(
+          padding: EdgeInsets.only(top: 12),
+          child: ShadSelect<DlnaDevice>(
+            initialValue: _device,
+            onChanged: _busy ? null : (d) => setState(() => _selectDevice(d)),
+            selectedOptionBuilder: (_, device) => Text(device.name),
+            placeholder: Text(l.dlnaDevice),
+            key: ValueKey(_device?.location ?? 'dlna-device'),
+            options: _devices!
+                .map((d) => ShadOption(value: d, child: Text(d.name)))
+                .toList(),
+            maxWidth: 520,
+            enabled: !_busy,
+          ),
+        ),
+      _field(
+        _address,
+        l.dlnaAddress,
+        hint: 'http://192.168.1.10:8200/rootDesc.xml',
+        help: l.dlnaAddressHelp,
+      ),
+    ],
+  );
+
   Widget _plexFields() => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -465,7 +586,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         ContentRow(
           contentPadding: EdgeInsets.zero,
           leading: Icon(AppIcons.server),
-          title: Text(widget.initial!.name),
+          title: Text(widget.initial!.titleName),
           subtitle: Text(Uri.parse(widget.initial!.address).host),
         ),
       ShadButton(
@@ -558,7 +679,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       ShadButton(
         onPressed:
             _busy ||
-                _kind == SourceKind.local && _address.text.isEmpty ||
+                (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
+                    _address.text.trim().isEmpty ||
                 _kind == SourceKind.plex &&
                     widget.initial == null &&
                     !_manualPlex &&
@@ -567,7 +689,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             : _save,
         enabled:
             !(_busy ||
-                _kind == SourceKind.local && _address.text.isEmpty ||
+                (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
+                    _address.text.trim().isEmpty ||
                 _kind == SourceKind.plex &&
                     widget.initial == null &&
                     !_manualPlex &&
@@ -587,18 +710,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               onChanged: _busy || widget.initial != null
                   ? null
                   : (kind) => _changeKind(kind!),
-              selectedOptionBuilder: (_, kind) =>
-                  Text(kind == SourceKind.local ? l.localFolder : kind.label),
+              selectedOptionBuilder: (_, kind) => _kindLabel(kind),
               key: ValueKey('kind-${_kind.name}'),
               placeholder: Text(l.type),
               options: SourceKind.values
                   .map(
-                    (kind) => ShadOption(
-                      value: kind,
-                      child: Text(
-                        kind == SourceKind.local ? l.localFolder : kind.label,
-                      ),
-                    ),
+                    (kind) => ShadOption(value: kind, child: _kindLabel(kind)),
                   )
                   .toList(),
               maxWidth: 520,
@@ -629,6 +746,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                 ),
             ] else if (_kind == SourceKind.plex)
               _plexFields()
+            else if (_kind == SourceKind.dlna)
+              _dlnaFields()
             else
               _networkFields(),
             if (_error != null)

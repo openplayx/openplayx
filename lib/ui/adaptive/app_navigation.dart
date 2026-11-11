@@ -3,7 +3,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../app/app_destination.dart';
 import '../tokens/app_metrics.dart';
-import '../icons/app_icons.dart';
 import '../tokens/app_spacing.dart';
 
 class AppSidebar extends StatelessWidget {
@@ -135,7 +134,6 @@ class _NavigationItem extends StatelessWidget {
               if (!compact) ...[
                 const SizedBox(width: AppSpacing.md),
                 Expanded(child: Text(label)),
-                if (selected) Icon(AppIcons.check, size: 16),
               ],
             ],
           );

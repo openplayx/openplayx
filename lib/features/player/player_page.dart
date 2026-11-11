@@ -1,3 +1,5 @@
+import '../../app/diagnostics/diagnostics_bootstrap.dart';
+import '../../app/diagnostics/diagnostics_service.dart';
 import 'dart:io';
 import 'dart:async';
 
@@ -31,12 +33,17 @@ class PlayerPage extends StatefulWidget {
     this.backend,
     this.onExit,
     this.onFileSelected,
+    this.showBack = true,
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
     this.libraryService,
   });
   final VoidCallback? onExit;
   final VoidCallback? onFileSelected;
+
+  /// False in a dedicated player window, which is closed with its own
+  /// window controls instead of navigating back.
+  final bool showBack;
   final PlayerBackend? backend;
   final SourceManager? sourceManager;
   final LibraryService? libraryService;
@@ -141,6 +148,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       final id = resource['id'] as String;
       final checkpoint = service.checkpoint(id);
       _resource = id;
+      final title = service.metadata.fields(media)['title']?.toString().trim();
+      if (mounted && title != null && title.isNotEmpty) {
+        setState(() => _displayTitle = title);
+      }
       if (checkpoint != null &&
           checkpoint['completed'] == 0 &&
           (checkpoint['position'] as int) > 0) {
@@ -176,6 +187,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   PlayableStream? _stream;
   String? _name;
+  // Scraped/edited library title, preferred over the file name in the header.
+  String? _displayTitle;
   String? _error;
   bool _busy = false;
   bool _background = false;
@@ -191,6 +204,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   double _speed = 1;
   double _brightness = 1;
   int? _selectedAudioTrack;
+  // null: the media's default; -1: subtitles switched off by the user.
+  int? _selectedSubtitleTrack;
   Future<void> _speedCommands = Future.value();
 
   final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
@@ -454,6 +469,71 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<void> _showSubtitleTracks() async {
+    List<PlayerSubtitleTrack> tracks = [];
+    if (!await _adjust(() async {
+      tracks = await _backend.getSubtitleTracks();
+    })) {
+      return;
+    }
+    if (!mounted || !_enabled) return;
+    _panelOpened();
+    final id = await showShadSheet<int>(
+      context: context,
+      builder: (context) => ShadTheme(
+        data: AppTheme.dark,
+        child: ShadSheet(
+          child: SafeArea(
+            child: SingleChildScrollView(
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ContentRow(title: Text(l.subtitleTrack)),
+                  if (tracks.isEmpty)
+                    ContentRow(title: Text(l.noSubtitleTracks))
+                  else ...[
+                    ContentRow(
+                      title: Text(l.subtitleOff),
+                      trailing: _selectedSubtitleTrack == -1
+                          ? Icon(AppIcons.check)
+                          : null,
+                      onTap: () => Navigator.pop(context, -1),
+                    ),
+                    for (final track in tracks)
+                      ContentRow(
+                        title: Text(
+                          track.name.isEmpty
+                              ? l.numberedSubtitleTrack(track.id)
+                              : track.name,
+                        ),
+                        subtitle: track.language == null
+                            ? null
+                            : Text(track.language!),
+                        trailing: _selectedSubtitleTrack == track.id
+                            ? Icon(AppIcons.check)
+                            : null,
+                        onTap: () => Navigator.pop(context, track.id),
+                      ),
+                  ],
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+    _panelClosed();
+    if (id != null &&
+        _enabled &&
+        await _adjust(
+          () => id < 0
+              ? _backend.disableSubtitle()
+              : _backend.setSubtitleTrack(id),
+        )) {
+      if (mounted) setState(() => _selectedSubtitleTrack = id);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -525,6 +605,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     try {
       await action();
     } catch (error, stack) {
+      unawaited(reportDiagnostic(DiagnosticFailure.playbackCommand,
+          DiagnosticRole.player, stack));
       debugPrint('Playback command failed: $error\n$stack');
       if (mounted) {
         setState(() {
@@ -554,6 +636,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _error = null;
         _drag = null;
         _selectedAudioTrack = null;
+        _selectedSubtitleTrack = null;
       });
       await _command(() async {
         await _backend.open(media.uri);
@@ -592,6 +675,76 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
+  /// AI and UI share the same player state and backend command path.
+  Map<String, dynamic> assistantSnapshot() {
+    final value = _backend.value;
+    return {
+      'session_id': _busy || _closing ? null : _session,
+      'resource_id': _resource,
+      'status': value.status.name,
+      'position_ms': value.position.inMilliseconds,
+      'duration_ms': value.duration.inMilliseconds,
+      'can_seek': value.canSeek,
+      'speed': value.speed,
+      'volume': value.volume,
+    };
+  }
+
+  Future<Map<String, dynamic>> assistantControl(
+    String command,
+    Map<String, dynamic> args,
+  ) async {
+    if (_busy ||
+        _closing ||
+        _session == null ||
+        args['session_id'] != _session) {
+      throw StateError('staleSession');
+    }
+    final session = _session;
+    switch (command) {
+      case 'pause':
+        await _backend.pause();
+      case 'resume':
+        await _backend.play();
+      case 'stop':
+        if (!await stopPlayback()) throw StateError('stopFailed');
+      case 'seek':
+        final position = args['position_ms'] as int;
+        if (!_backend.value.canSeek ||
+            position > _backend.value.duration.inMilliseconds) {
+          throw StateError('invalidPosition');
+        }
+        await _backend.seek(Duration(milliseconds: position));
+      case 'set_speed':
+        final speed = (args['speed'] as num).toDouble();
+        if (!const [
+          0.25,
+          0.5,
+          0.75,
+          1.0,
+          1.25,
+          1.5,
+          1.75,
+          2.0,
+          3.0,
+          4.0,
+        ].contains(speed)) {
+          throw StateError('unsupportedSpeed');
+        }
+        await _backend.setSpeed(speed);
+        if (mounted) setState(() => _speed = speed);
+      case 'set_volume':
+        await _backend.setVolume(args['volume'] as int);
+      default:
+        throw StateError('unsupportedCommand');
+    }
+    if (command != 'stop' && session != _session) {
+      throw StateError('staleSession');
+    }
+    _checkpoint(force: true);
+    return assistantSnapshot();
+  }
+
   Future<bool> stopPlayback() async {
     if (_closing) return false;
     _closing = true;
@@ -611,6 +764,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _hideTimer?.cancel();
       setState(() {
         _name = null;
+        _displayTitle = null;
         _error = null;
         _drag = null;
         _locked = false;
@@ -654,9 +808,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _stream = selection.stream;
       setState(() {
         _name = selection.name;
+        _displayTitle = null;
         _error = null;
         _drag = null;
         _selectedAudioTrack = null;
+        _selectedSubtitleTrack = null;
       });
       await _command(() async {
         await _backend.open(selection.stream.uri);
@@ -875,7 +1031,21 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     ),
   );
 
-  Widget _icon(String tooltip, IconData icon, VoidCallback? action) => Tooltip(
+  /// macOS draws the native window buttons over the top-left of the player.
+  /// They disappear in native full screen, where no space needs reserving.
+  bool _reservesWindowButtons(BuildContext context) {
+    if (kIsWeb || !Platform.isMacOS) return false;
+    final view = View.of(context);
+    final size = MediaQuery.sizeOf(context) * view.devicePixelRatio;
+    return size.height < view.display.size.height - 1;
+  }
+
+  Widget _icon(
+    String tooltip,
+    IconData icon,
+    VoidCallback? action, {
+    double extent = 48,
+  }) => Tooltip(
     message: tooltip,
     child: Semantics(
       button: true,
@@ -883,9 +1053,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       child: ShadIconButton.ghost(
         onPressed: action,
         enabled: action != null,
-        icon: Icon(icon, size: 20),
-        width: 48,
-        height: 48,
+        icon: Icon(icon, size: extent < 48 ? 18 : 20),
+        width: extent,
+        height: extent,
         foregroundColor: AppSemanticColors.playerForeground,
       ),
     ),
@@ -981,6 +1151,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         for (final item in {
                           'display': _displayLabel,
                           'audio': l.audioTrack,
+                          'subtitle': l.subtitleTrack,
                           'brightness': l.brightness,
                           'lock': l.lockControls,
                         }.entries)
@@ -1002,6 +1173,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 await _showDisplayOptions();
               case 'audio':
                 await _showAudioTracks();
+              case 'subtitle':
+                await _showSubtitleTracks();
               case 'brightness':
                 await _showLevel(false);
               case 'lock':
@@ -1033,35 +1206,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           children: [
             LayoutBuilder(
               builder: (context, constraints) {
-                final remaining = l.remainingTime(
-                  formatTime(
-                    Duration(milliseconds: (duration - position).round()),
-                  ),
-                );
                 return Row(
                   children: [
                     Flexible(
-                      child: Tooltip(
-                        message: remaining,
-                        child: Text(
-                          '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: AppTheme.dark.textTheme.muted.copyWith(
-                            color: AppSemanticColors.playerMuted,
-                          ),
-                        ),
-                      ),
-                    ),
-                    Spacer(),
-                    Flexible(
                       child: Text(
-                        l.readSpeed(
-                          value.readSpeedMBps == null
-                              ? '--'
-                              : value.readSpeedMBps!.toStringAsFixed(2),
-                        ),
-                        key: Key('playback-read-speed'),
+                        '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.dark.textTheme.muted.copyWith(
@@ -1069,15 +1218,16 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                    if (duration > 0 && constraints.maxWidth >= 456) ...[
-                      SizedBox(width: 16),
-                      Text(
-                        remaining,
-                        style: AppTheme.dark.textTheme.muted.copyWith(
-                          color: AppSemanticColors.playerMuted,
-                        ),
+                    Spacer(),
+                    Text(
+                      '${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
+                      key: Key('playback-read-speed'),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: AppTheme.dark.textTheme.muted.copyWith(
+                        color: AppSemanticColors.playerMuted,
                       ),
-                    ],
+                    ),
                   ],
                 );
               },
@@ -1129,6 +1279,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         l.audioTrack,
                         AppIcons.audio,
                         _enabled ? _showAudioTracks : null,
+                      ),
+                      _icon(
+                        l.subtitleTrack,
+                        AppIcons.captions,
+                        _enabled ? _showSubtitleTracks : null,
                       ),
                       _icon(
                         l.lockControls,
@@ -1248,40 +1403,66 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                       left: 0,
                       right: 0,
                       child: _chrome(
-                        Container(
-                          padding: EdgeInsets.symmetric(
-                            horizontal: 12,
-                            vertical: 4,
-                          ),
-                          decoration: BoxDecoration(
-                            gradient: LinearGradient(
-                              begin: Alignment.topCenter,
-                              end: Alignment.bottomCenter,
-                              colors: [
-                                AppSemanticColors.playerScrim,
-                                Colors.transparent,
-                              ],
-                            ),
-                          ),
-                          child: Row(
-                            children: [
-                              _icon(
-                                l.back,
-                                AppIcons.back,
-                                _closing ? null : _exitPlayback,
-                              ),
-                              Expanded(
-                                child: Text(
-                                  _name ?? 'OpenPlayX',
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: AppTheme.dark.textTheme.small.copyWith(
-                                    color: AppSemanticColors.playerMuted,
-                                  ),
+                        Builder(
+                          builder: (context) {
+                            // Align with the native traffic lights (centred ~14pt
+                            // from the top) and start after them (~80pt wide).
+                            final windowButtons = _reservesWindowButtons(
+                              context,
+                            );
+                            return Container(
+                              padding: windowButtons
+                                  ? const EdgeInsets.only(
+                                      left: 80,
+                                      right: 12,
+                                      bottom: 16,
+                                    )
+                                  : const EdgeInsets.symmetric(
+                                      horizontal: 12,
+                                      vertical: 4,
+                                    ),
+                              decoration: BoxDecoration(
+                                gradient: LinearGradient(
+                                  begin: Alignment.topCenter,
+                                  end: Alignment.bottomCenter,
+                                  colors: [
+                                    AppSemanticColors.playerScrim,
+                                    Colors.transparent,
+                                  ],
                                 ),
                               ),
-                            ],
-                          ),
+                              child: Row(
+                                children: [
+                                  if (widget.showBack) ...[
+                                    _icon(
+                                      l.back,
+                                      AppIcons.back,
+                                      _closing ? null : _exitPlayback,
+                                      extent: windowButtons ? 28 : 48,
+                                    ),
+                                    if (windowButtons) const SizedBox(width: 4),
+                                  ] else
+                                    // Keep the row as tall as the back button
+                                    // so the title stays centred on the window
+                                    // controls.
+                                    SizedBox(height: windowButtons ? 28 : 48),
+                                  Expanded(
+                                    child: Text(
+                                      _displayTitle ?? _name ?? 'OpenPlayX',
+                                      textAlign: TextAlign.center,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: AppTheme.dark.textTheme.small
+                                          .copyWith(
+                                            color:
+                                                AppSemanticColors.playerMuted,
+                                          ),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            );
+                          },
                         ),
                       ),
                     ),

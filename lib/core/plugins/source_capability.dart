@@ -72,8 +72,14 @@ class SourceMediaInfo {
 }
 
 class BrowseRequest {
-  const BrowseRequest({this.node, this.offset = 0, this.limit = 100});
+  const BrowseRequest({
+    this.node,
+    this.offset = 0,
+    this.limit = 100,
+    this.search,
+  });
   final ResourceRef? node;
+  final String? search;
   final int offset;
   final int limit;
 }
@@ -128,4 +134,18 @@ abstract interface class SourceAttachmentCapability {
     CallContext context, {
     required int maxBytes,
   });
+}
+
+/// Newest additions on a media server, for its shelf in the library.
+abstract interface class RecentCapability {
+  Future<List<SourceEntry>> recent(int limit, CallContext context);
+}
+
+/// Explicit search contract; a browse-only source is never advertised as search.
+abstract interface class SearchCapability {
+  Future<BrowseResult> search(
+    String query,
+    BrowseRequest page,
+    CallContext context,
+  );
 }

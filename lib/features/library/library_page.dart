@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
+import 'package:sqlite3/sqlite3.dart' as sql;
 
 import '../../l10n/generated/app_localizations.dart';
 
@@ -13,12 +14,13 @@ import '../../ui/components/media/content_row.dart';
 import '../../ui/icons/app_icons.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../../data/sources/source_config.dart';
 import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
-import '../../services/metadata/metadata_service.dart';
 import '../../services/artwork/artwork_service.dart';
-import 'metadata_page.dart';
+import 'media_detail_page.dart';
 import 'metadata_artwork.dart';
+import 'server_shelf.dart';
 import '../../ui/components/media/media_poster_card.dart';
 
 class LibraryPage extends StatefulWidget {
@@ -38,29 +40,72 @@ class LibraryPage extends StatefulWidget {
 class _LibraryPageState extends State<LibraryPage> {
   AppLocalizations get l => AppLocalizations.of(context);
   LibraryService? _service;
-  MetadataService? _metadata;
+  StreamSubscription<void>? _libraryChanges;
   late final ArtworkService _artwork = ArtworkService(
     widget.sources,
     retainedArtwork: () => _service?.metadata.retainedArtwork ?? [],
   );
-  bool _metadataBusy = false;
-  String? _metadataSummary;
-  String? _metadataProgress;
-  String? _library;
   String _search = '';
-  String? _sourceFilter;
-  String? _typeFilter;
-  bool? _watchedFilter;
   String? _error;
-  bool _favorites = false;
-  bool _scanning = false;
+  // Scans run from the Sources page; the poster wall only reflects them.
+  bool get _scanning =>
+      _service?.fileSources().any((b) => b['status'] == '扫描中') ?? false;
   bool _resolving = false;
-  Timer? _scanRefresh;
   int _offset = 0;
   @override
   void initState() {
     super.initState();
     _load();
+  }
+
+  final _boostPending = <String>[];
+  final _boosted = <String>{};
+  bool _boostScheduled = false;
+
+  /// Collects visible items and boosts them once per frame, so lazy list
+  /// builders do not issue one write per row.
+  void _boost(String media) {
+    if (!_boosted.add(media)) return;
+    _boostPending.add(media);
+    if (_boostScheduled) return;
+    _boostScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _boostScheduled = false;
+      final ids = List<String>.of(_boostPending);
+      _boostPending.clear();
+      if (mounted) _service?.prioritizeMetadata(ids);
+    });
+  }
+
+  /// Header badge: "Scraping 464/4651". Hidden when nothing is queued or
+  /// everything is processed.
+  Widget _scrapeProgress(LibraryService service) {
+    final p = service.metadataProgress();
+    if (p.total == 0 || p.done >= p.total) return const SizedBox.shrink();
+    final theme = ShadTheme.of(context);
+    return Tooltip(
+      message: l.metadataProgressTooltip(p.done, p.total),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            l.metadataProgressLabel(p.done, p.total),
+            style: theme.textTheme.small.copyWith(
+              fontFeatures: const [FontFeature.tabularFigures()],
+            ),
+          ),
+          const SizedBox(width: 8),
+          SizedBox(
+            width: 56,
+            child: LinearProgressIndicator(
+              value: p.done / p.total,
+              minHeight: 4,
+              borderRadius: BorderRadius.circular(2),
+            ),
+          ),
+        ],
+      ),
+    );
   }
 
   Future<void> _load() async {
@@ -73,7 +118,9 @@ class _LibraryPageState extends State<LibraryPage> {
       }
       setState(() {
         _service = service;
-        _metadata = MetadataService(service, widget.sources);
+        _libraryChanges = service.changes.listen((_) {
+          if (mounted) setState(() {});
+        });
       });
     } catch (_) {
       if (mounted) setState(() => _error = l.libraryLoadFailed);
@@ -82,153 +129,11 @@ class _LibraryPageState extends State<LibraryPage> {
 
   @override
   void dispose() {
-    _scanRefresh?.cancel();
-    _metadata?.dispose();
+    _libraryChanges?.cancel();
     _artwork.dispose();
     // Database closure waits for any active scan.
     if (widget.service == null) _service?.close();
     super.dispose();
-  }
-
-  Future<String?> _text(String title, {String initial = ''}) async {
-    var value = initial;
-    final result = await showShadDialog<String>(
-      context: context,
-      builder: (context) => ShadDialog(
-        title: Text(title),
-        actions: [
-          ShadButton.ghost(
-            onPressed: () => Navigator.pop(context),
-            child: Text(l.cancel),
-          ),
-          ShadButton(
-            onPressed: () {
-              if (value.trim().isNotEmpty) {
-                Navigator.pop(context, value.trim());
-              }
-            },
-            child: Text(l.save),
-          ),
-        ],
-        child: ShadInput(
-          initialValue: initial,
-          onChanged: (text) => value = text,
-          autofocus: true,
-        ),
-      ),
-    );
-    return result;
-  }
-
-  Future<void> _create() async {
-    final name = await _text(l.createLibrary);
-    if (name != null && mounted) {
-      final type = await showShadDialog<String>(
-        context: context,
-        builder: (c) => ShadDialog(
-          title: Text(l.contentType),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final entry in {
-                'mixed': l.mixed,
-                'movie': l.movie,
-                'series': l.series,
-                'home': l.homeVideos,
-                'audio': l.audio,
-              }.entries)
-                ShadButton.ghost(
-                  onPressed: () => Navigator.pop(c, entry.key),
-                  child: Text(entry.value),
-                ),
-            ],
-          ),
-        ),
-      );
-      if (type == null || !mounted) return;
-      setState(() {
-        _library = _service!.create(name, type: type);
-        _offset = 0;
-      });
-    }
-  }
-
-  Future<void> _bind() async {
-    try {
-      await widget.sources.load();
-      if (!mounted) return;
-      final source = await showShadDialog<String>(
-        context: context,
-        builder: (context) => ShadDialog(
-          title: Text(l.chooseScopeSource),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final source in widget.sources.configs.where(
-                (c) => c.enabled,
-              ))
-                ShadButton.ghost(
-                  onPressed: () => Navigator.pop(context, source.id),
-                  child: Text(source.name),
-                ),
-              if (widget.sources.configs.where((c) => c.enabled).isEmpty)
-                Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Text(l.addEnabledSource),
-                ),
-            ],
-          ),
-        ),
-      );
-      if (source == null || !mounted) return;
-      final scope = await Navigator.of(context).push<SourceEntry>(
-        MaterialPageRoute(
-          builder: (_) => _ScopePage(sources: widget.sources, source: source),
-        ),
-      );
-      if (scope == null || !mounted) return;
-      final binding = _service!.bind(
-        _library!,
-        source,
-        root: scope.ref.id.isEmpty ? null : scope.ref.id,
-        rootEntry: scope,
-      );
-      await _scan(binding);
-    } catch (_) {
-      if (mounted) setState(() => _error = l.bindFailed);
-    }
-  }
-
-  Future<void> _scan(String binding) async {
-    setState(() {
-      _scanning = true;
-      _error = null;
-    });
-    _scanRefresh = Timer.periodic(Duration(milliseconds: 500), (_) {
-      if (mounted) setState(() {});
-    });
-    try {
-      await _service!.scan(binding, widget.sources);
-      if (mounted) {
-        final library =
-            _service!.db.select('SELECT library_id FROM bindings WHERE id=?', [
-                  binding,
-                ]).firstOrNull?['library_id']
-                as String?;
-        if (library != null &&
-            _service!.libraries.firstWhere((l) => l['id'] == library)['type'] !=
-                'home') {
-          unawaited(_importMetadata(library));
-        }
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = l.scanFailedRetained);
-    } finally {
-      _scanRefresh?.cancel();
-      if (mounted) setState(() => _scanning = false);
-    }
   }
 
   Future<PlayableStream> _resolve(ResourceRef ref) async {
@@ -251,846 +156,326 @@ class _LibraryPageState extends State<LibraryPage> {
         .where((c) => c.id == resource['source'] && c.enabled)
         .firstOrNull;
     if (source == null) return l.setupResource(progress);
-    return '${source.name} · ${_service!.observedMissing(resource['id'] as String) ? l.missingOnScan : l.verifyOnPlay}$progress';
+    return '${source.displayName} · ${_service!.observedMissing(resource['id'] as String) ? l.missingOnScan : l.verifyOnPlay}$progress';
   }
 
-  Future<void> _importMetadata(String library) async {
-    if (_metadataBusy) return;
-    setState(() => _metadataBusy = true);
+  /// Movies and plain videos open the movie page, series the episode page.
+  Future<void> _detail(dynamic media) async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => MediaDetailPage(
+          service: _service!,
+          sources: widget.sources,
+          artwork: _artwork,
+          media: media,
+          play: _playResource,
+          resourceLabel: _resourceLabel,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  Future<void> _playResource(BuildContext detail, dynamic resource) async {
+    if (_resolving) return;
+    _resolving = true;
     try {
-      final result = await _metadata!.importLibrary(
-        library,
-        onProgress: (done, total) {
-          if (mounted) setState(() => _metadataProgress = '$done / $total');
-        },
+      final ref = ResourceRef(
+        resource['source'] as String,
+        resource['item'] as String,
       );
-      if (mounted) {
-        setState(
-          () => _metadataSummary =
-              '${l.metadataCompleted}: ${result['completed']} · ${l.metadataAwaiting}: ${result['waiting']} · ${l.metadataUnmatched}: ${result['unmatched']} · ${l.metadataFailed}: ${result['failed']}',
-        );
+      final stream = await _resolve(ref);
+      if (!mounted || !detail.mounted) {
+        await stream.release();
+        return;
+      }
+      final selection = SourceSelection(
+        resource['name'] as String,
+        stream,
+        ref: ref,
+      );
+      if (widget.onPlay != null) {
+        widget.onPlay!(selection);
+      } else {
+        Navigator.pop(detail);
+        Navigator.pop(context, selection);
       }
     } catch (_) {
-      if (mounted) setState(() => _error = l.metadataFailed);
+      if (detail.mounted) {
+        ShadToaster.of(
+          detail,
+        ).show(ShadToast.destructive(description: Text(l.versionOpenFailed)));
+      }
     } finally {
-      if (mounted) setState(() => _metadataBusy = false);
+      _resolving = false;
     }
   }
 
-  Future<void> _detail(dynamic media) async {
-    final service = _service!;
-    var childOffset = 0;
-    await showShadSheet<void>(
-      context: context,
-      builder: (sheet) => StatefulBuilder(
-        builder: (sheet, updateDetail) => ShadSheet(
-          child: SizedBox(
-            height: MediaQuery.sizeOf(sheet).height * 0.8,
-            child: SafeArea(
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  ContentRow(
-                    title: Text(media['title'] as String),
-                    subtitle: Text(l.chooseVersion),
-                  ),
-                  ContentRow(
-                    leading: Icon(AppIcons.search),
-                    title: Text(l.metadata),
-                    subtitle: Text(
-                      service.metadata.fields(media['id'] as String)['overview']
-                              as String? ??
-                          l.metadataIdentify,
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    onTap: () async {
-                      Navigator.pop(sheet);
-                      await Navigator.of(context).push<void>(
-                        MaterialPageRoute(
-                          builder: (_) => MetadataPage(
-                            library: service,
-                            sources: widget.sources,
-                            media: media['id'] as String,
-                          ),
-                        ),
-                      );
-                      if (mounted) setState(() {});
-                    },
-                  ),
-                  for (final child in service.children(
-                    media['id'] as String,
-                    library: _library,
-                    offset: childOffset,
-                  ))
-                    ContentRow(
-                      leading: Icon(AppIcons.collection),
-                      title: Text(child['title'] as String),
-                      subtitle: Text(
-                        '${{'series': l.series, 'season': l.season, 'episode': l.episode}[child['kind']] ?? l.media} · ${child['season'] ?? '-'} / ${child['episode'] ?? '-'}',
-                      ),
-                      onTap: () {
-                        Navigator.pop(sheet);
-                        _detail(child);
-                      },
-                    ),
-                  if (childOffset > 0 ||
-                      service
-                              .children(
-                                media['id'] as String,
-                                library: _library,
-                                offset: childOffset,
-                              )
-                              .length ==
-                          40)
-                    Wrap(
-                      alignment: WrapAlignment.center,
-                      crossAxisAlignment: WrapCrossAlignment.center,
-                      children: [
-                        ShadButton.ghost(
-                          onPressed: childOffset == 0
-                              ? null
-                              : () => updateDetail(() => childOffset -= 40),
-                          enabled: !(childOffset == 0),
-                          child: Text(l.previousPage),
-                        ),
-                        ShadButton.ghost(
-                          onPressed:
-                              service
-                                      .children(
-                                        media['id'] as String,
-                                        library: _library,
-                                        offset: childOffset,
-                                      )
-                                      .length <
-                                  40
-                              ? null
-                              : () => updateDetail(() => childOffset += 40),
-                          enabled:
-                              !(service
-                                      .children(
-                                        media['id'] as String,
-                                        library: _library,
-                                        offset: childOffset,
-                                      )
-                                      .length <
-                                  40),
-                          child: Text(l.nextPage),
-                        ),
-                      ],
-                    ),
-                  for (final resource in service.resources(
-                    media['id'] as String,
-                  ))
-                    ContentRow(
-                      leading: Icon(AppIcons.playMedia),
-                      title: Text(resource['name'] as String),
-                      subtitle: Text(_resourceLabel(resource)),
-                      onTap: () async {
-                        try {
-                          if (_resolving) return;
-                          _resolving = true;
-                          final stream = await _resolve(
-                            ResourceRef(
-                              resource['source'] as String,
-                              resource['item'] as String,
-                            ),
-                          );
-                          if (!mounted || !sheet.mounted) {
-                            await stream.release();
-                            return;
-                          }
-                          Navigator.pop(sheet);
-                          final selection = SourceSelection(
-                            resource['name'] as String,
-                            stream,
-                            ref: ResourceRef(
-                              resource['source'] as String,
-                              resource['item'] as String,
-                            ),
-                          );
-                          if (widget.onPlay != null) {
-                            widget.onPlay!(selection);
-                          } else {
-                            Navigator.pop(context, selection);
-                          }
-                        } catch (_) {
-                          if (sheet.mounted) {
-                            ShadToaster.of(sheet).show(
-                              ShadToast.destructive(
-                                description: Text(l.versionOpenFailed),
-                              ),
-                            );
-                          }
-                        } finally {
-                          _resolving = false;
-                        }
-                      },
-                    ),
-                  ContentRow(
-                    leading: Icon(AppIcons.addToLibrary),
-                    title: Text(l.addToLibrary),
-                    onTap: () async {
-                      final library = await showShadDialog<String>(
-                        context: context,
-                        builder: (c) => ShadDialog(
-                          title: Text(l.chooseLibrary),
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.stretch,
-                            children: [
-                              for (final library in service.libraries)
-                                ShadButton.ghost(
-                                  onPressed: () =>
-                                      Navigator.pop(c, library['id'] as String),
-                                  child: Text(library['name'] as String),
-                                ),
-                            ],
-                          ),
-                        ),
-                      );
-                      if (library != null && mounted) {
-                        service.addManual(library, media['id'] as String);
-                        setState(() {});
-                      }
-                      if (sheet.mounted) Navigator.pop(sheet);
-                    },
-                  ),
-                  ContentRow(
-                    leading: Icon(AppIcons.edit),
-                    title: Text(l.correctTitle),
-                    onTap: () async {
-                      final title = await _text(
-                        l.correctTitle,
-                        initial: media['title'] as String,
-                      );
-                      if (title != null && mounted) {
-                        service.rename(media['id'] as String, title);
-                        setState(() {});
-                      }
-                      if (sheet.mounted) Navigator.pop(sheet);
-                    },
-                  ),
-                  if (_library != null)
-                    ContentRow(
-                      leading: Icon(AppIcons.remove),
-                      title: Text(l.removeFromLibrary),
-                      onTap: () {
-                        service.remove(_library!, media['id'] as String);
-                        Navigator.pop(sheet);
-                        setState(() {});
-                      },
-                    ),
-                ],
-              ),
+  /// Server shelf / browse tap: folders open their poster wall, files play.
+  Future<void> _openEntry(BuildContext from, SourceEntry entry) async {
+    if (entry.isFolder) {
+      await Navigator.of(from).push<void>(
+        MaterialPageRoute(
+          builder: (_) => ServerBrowsePage(
+            sources: widget.sources,
+            artwork: _artwork,
+            instanceId: entry.ref.instanceId,
+            title: entry.name,
+            node: entry.ref,
+            onOpen: _openEntry,
+          ),
+        ),
+      );
+      return;
+    }
+    if (_resolving) return;
+    _resolving = true;
+    try {
+      final stream = await widget.sources.resolve(entry.ref);
+      if (!mounted) {
+        await stream.release();
+        return;
+      }
+      final selection = SourceSelection(
+        entry.name,
+        stream,
+        ref: entry.ref,
+        entry: entry,
+      );
+      if (widget.onPlay != null) {
+        widget.onPlay!(selection);
+      } else {
+        final own = ModalRoute.of(context);
+        Navigator.of(context).popUntil((route) => route == own);
+        Navigator.pop(context, selection);
+      }
+    } catch (error) {
+      if (from.mounted) {
+        ShadToaster.of(from).show(
+          ShadToast.destructive(
+            description: Text(
+              error is PluginException ? error.message : l.versionOpenFailed,
             ),
+          ),
+        );
+      }
+    } finally {
+      _resolving = false;
+    }
+  }
+
+  Future<void> _openSearch() async {
+    final controller = TextEditingController(text: _search);
+    void apply(String value) => setState(() {
+      _search = value;
+      _offset = 0;
+    });
+    await showShadDialog<void>(
+      context: context,
+      builder: (c) => ShadDialog(
+        title: Text(l.searchLibrary),
+        actions: [
+          if (_search.isNotEmpty)
+            ShadButton.ghost(
+              onPressed: () {
+                controller.clear();
+                apply('');
+                Navigator.pop(c);
+              },
+              child: Text(l.cancel),
+            ),
+          ShadButton(onPressed: () => Navigator.pop(c), child: Text(l.close)),
+        ],
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: ShadInput(
+            controller: controller,
+            autofocus: true,
+            placeholder: Text(l.searchLibrary),
+            leading: Icon(AppIcons.search),
+            onChanged: apply,
+            onSubmitted: (_) => Navigator.pop(c),
           ),
         ),
       ),
     );
+    controller.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     final service = _service;
+    final fileSources = service?.fileSources() ?? const <sql.Row>[];
     final rows = service == null
         ? []
-        : service.query(
-            _library,
-            search: _search,
-            favorites: _favorites,
-            source: _sourceFilter,
-            contentType: _typeFilter,
-            watched: _watchedFilter,
-            offset: _offset,
-          );
+        : service.query(null, search: _search, offset: _offset);
+    final recent = service?.continueWatching() ?? const <sql.Row>[];
+    // A search filters the local wall only, so the shelves step aside.
+    final servers = service == null || _search.isNotEmpty
+        ? const <SourceConfig>[]
+        : widget.sources.configs
+              .where((c) => c.enabled && !c.isFileSource)
+              .toList();
+    // Recent/continue-watching entries are on screen: process them first.
+    for (final media in recent) {
+      _boost(media['id'] as String);
+    }
     return PopScope(
       canPop: !_scanning,
       child: AppPage(
+        actions: [
+          if (service != null) _scrapeProgress(service),
+          if (service != null)
+            Tooltip(
+              message: l.searchLibrary,
+              child: ShadIconButton.ghost(
+                icon: Icon(
+                  AppIcons.search,
+                  // Tinted while a search is filtering the poster wall.
+                  color: _search.isEmpty
+                      ? null
+                      : ShadTheme.of(context).colorScheme.primary,
+                ),
+                onPressed: _openSearch,
+              ),
+            ),
+        ],
         body: service == null
             ? Center(
                 child: _error == null
                     ? ContentState(message: l.loading, loading: true)
                     : Text(_error!),
               )
-            : LayoutBuilder(
-                builder: (context, layout) => Column(
-                  children: [
-                    ConstrainedBox(
-                      constraints: BoxConstraints(
-                        maxHeight: layout.maxHeight * 0.45,
+            : CustomScrollView(
+                slivers: [
+                  if (widget.onPlay == null && recent.isNotEmpty) ...[
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.all(12),
+                        child: Text(l.continueIncludingHistory),
                       ),
-                      child: SingleChildScrollView(
-                        child: Column(
+                    ),
+                    SliverToBoxAdapter(
+                      child: SizedBox(
+                        height: 100,
+                        child: ListView(
+                          scrollDirection: Axis.horizontal,
                           children: [
-                            if (widget.onPlay == null &&
-                                service.continueWatching().isNotEmpty) ...[
-                              Align(
-                                alignment: Alignment.centerLeft,
-                                child: Padding(
-                                  padding: EdgeInsets.all(12),
-                                  child: Text(l.continueIncludingHistory),
-                                ),
-                              ),
+                            for (final media in recent)
                               SizedBox(
-                                height: 100,
-                                child: ListView(
-                                  scrollDirection: Axis.horizontal,
-                                  children: [
-                                    for (final media
-                                        in service.continueWatching())
-                                      SizedBox(
-                                        width: 240,
-                                        child: ShadCard(
-                                          padding: EdgeInsets.zero,
-                                          child: ContentRow(
-                                            leading: Icon(AppIcons.history),
-                                            title: Text(
-                                              media['title'] as String,
-                                              maxLines: 1,
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
-                                            subtitle: Text(
-                                              l.watchProgress(
-                                                (media['position'] as int) ~/
-                                                    60000,
-                                                (media['duration'] as int) ~/
-                                                    60000,
-                                              ),
-                                            ),
-                                            onTap: _scanning
-                                                ? null
-                                                : () => _detail(media),
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ],
-                            if (service.libraries.isNotEmpty)
-                              Padding(
-                                padding: EdgeInsets.all(12),
-                                child: Wrap(
-                                  spacing: 8,
-                                  runSpacing: 8,
-                                  crossAxisAlignment: WrapCrossAlignment.center,
-                                  children: [
-                                    SizedBox(
-                                      width: 240,
-                                      child: ShadSelect<String>(
-                                        onChanged: _scanning
-                                            ? null
-                                            : (value) => setState(() {
-                                                _library = value == '*'
-                                                    ? null
-                                                    : value;
-                                                _offset = 0;
-                                              }),
-                                        initialValue: _library ?? '*',
-                                        key: ValueKey(_library ?? '*'),
-                                        options: [
-                                          ShadOption(
-                                            value: '*',
-                                            child: Text(l.allLibraries),
-                                          ),
-                                          for (final library
-                                              in service.libraries)
-                                            ShadOption(
-                                              value: library['id'] as String,
-                                              child: Text(
-                                                library['name'] as String,
-                                              ),
-                                            ),
-                                        ],
-                                        selectedOptionBuilder: (_, value) =>
-                                            Text(
-                                              value == '*'
-                                                  ? l.allLibraries
-                                                  : service.libraries
-                                                            .firstWhere(
-                                                              (l) =>
-                                                                  l['id'] ==
-                                                                  value,
-                                                            )['name']
-                                                        as String,
-                                            ),
-                                        maxWidth: 240,
-                                        enabled: !(_scanning),
+                                width: 240,
+                                child: ShadCard(
+                                  padding: EdgeInsets.zero,
+                                  child: ContentRow(
+                                    leading: Icon(AppIcons.history),
+                                    title: Text(
+                                      media['title'] as String,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                    ),
+                                    subtitle: Text(
+                                      l.watchProgress(
+                                        (media['position'] as int) ~/ 60000,
+                                        (media['duration'] as int) ~/ 60000,
                                       ),
                                     ),
-                                    Wrap(
-                                      spacing: 4,
-                                      children: [
-                                        Tooltip(
-                                          message: l.renameLibrary,
-                                          child: Semantics(
-                                            button: true,
-                                            label: l.renameLibrary,
-                                            child: ShadIconButton.ghost(
-                                              onPressed:
-                                                  _scanning || _library == null
-                                                  ? null
-                                                  : () async {
-                                                      final name = await _text(
-                                                        l.renameLibrary,
-                                                        initial:
-                                                            service.libraries
-                                                                    .firstWhere(
-                                                                      (l) =>
-                                                                          l['id'] ==
-                                                                          _library,
-                                                                    )['name']
-                                                                as String,
-                                                      );
-                                                      if (name != null &&
-                                                          mounted) {
-                                                        setState(
-                                                          () => service
-                                                              .renameLibrary(
-                                                                _library!,
-                                                                name,
-                                                              ),
-                                                        );
-                                                      }
-                                                    },
-                                              icon: Icon(AppIcons.rename),
-                                              enabled:
-                                                  !(_scanning ||
-                                                      _library == null),
-                                              width: 48,
-                                              height: 48,
-                                            ),
-                                          ),
-                                        ),
-                                        Tooltip(
-                                          message: l.addSourceScope,
-                                          child: Semantics(
-                                            button: true,
-                                            label: l.addSourceScope,
-                                            child: ShadIconButton.ghost(
-                                              onPressed:
-                                                  _scanning || _library == null
-                                                  ? null
-                                                  : _bind,
-                                              icon: Icon(AppIcons.addFolder),
-                                              enabled:
-                                                  !(_scanning ||
-                                                      _library == null),
-                                              width: 48,
-                                              height: 48,
-                                            ),
-                                          ),
-                                        ),
-                                        Tooltip(
-                                          message: l.deleteLibrary,
-                                          child: Semantics(
-                                            button: true,
-                                            label: l.deleteLibrary,
-                                            child: ShadIconButton.ghost(
-                                              onPressed:
-                                                  _scanning || _library == null
-                                                  ? null
-                                                  : () async {
-                                                      final confirmed = await showShadDialog<bool>(
-                                                        context: context,
-                                                        builder: (c) => ShadDialog(
-                                                          title: Text(
-                                                            l.deleteLibraryConfirm,
-                                                          ),
-                                                          actions: [
-                                                            ShadButton.ghost(
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                    c,
-                                                                    false,
-                                                                  ),
-                                                              child: Text(
-                                                                l.cancel,
-                                                              ),
-                                                            ),
-                                                            ShadButton.ghost(
-                                                              onPressed: () =>
-                                                                  Navigator.pop(
-                                                                    c,
-                                                                    true,
-                                                                  ),
-                                                              child: Text(
-                                                                l.delete,
-                                                              ),
-                                                            ),
-                                                          ],
-                                                          child: Text(
-                                                            l.deleteLibraryDescription,
-                                                          ),
-                                                        ),
-                                                      );
-                                                      if (confirmed == true &&
-                                                          mounted) {
-                                                        setState(() {
-                                                          service.delete(
-                                                            _library!,
-                                                          );
-                                                          _library =
-                                                              service
-                                                                      .libraries
-                                                                      .firstOrNull?['id']
-                                                                  as String?;
-                                                          _offset = 0;
-                                                        });
-                                                      }
-                                                    },
-                                              icon: Icon(AppIcons.delete),
-                                              enabled:
-                                                  !(_scanning ||
-                                                      _library == null),
-                                              width: 48,
-                                              height: 48,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            if (_library != null) ...[
-                              Padding(
-                                padding: EdgeInsets.symmetric(horizontal: 16),
-                                child: ShadInput(
-                                  placeholder: Text(l.searchLibrary),
-                                  leading: Icon(AppIcons.search),
-                                  onChanged: (value) => setState(() {
-                                    _search = value;
-                                    _offset = 0;
-                                  }),
-                                ),
-                              ),
-                              Wrap(
-                                spacing: 8,
-                                runSpacing: 8,
-                                crossAxisAlignment: WrapCrossAlignment.center,
-                                children: [
-                                  ShadSelect<String>(
-                                    onChanged: (value) => setState(() {
-                                      _sourceFilter = value == '*'
-                                          ? null
-                                          : value;
-                                      _offset = 0;
-                                    }),
-                                    initialValue: _sourceFilter ?? '*',
-                                    key: ValueKey('source-$_sourceFilter'),
-                                    options: [
-                                      ShadOption(
-                                        value: '*',
-                                        child: Text(l.allSources),
-                                      ),
-                                      for (final source
-                                          in widget.sources.configs)
-                                        ShadOption(
-                                          value: source.id,
-                                          child: Text(source.name),
-                                        ),
-                                    ],
-                                    selectedOptionBuilder: (_, value) => Text(
-                                      value == '*'
-                                          ? l.allSources
-                                          : widget.sources.configs
-                                                .firstWhere(
-                                                  (s) => s.id == value,
-                                                )
-                                                .name,
-                                    ),
-                                    maxWidth: 240,
-                                    enabled: !_scanning,
-                                  ),
-                                  ShadSelect<String>(
-                                    onChanged: (value) => setState(() {
-                                      _typeFilter = value == '*' ? null : value;
-                                      _offset = 0;
-                                    }),
-                                    initialValue: _typeFilter ?? '*',
-                                    key: ValueKey('type-$_typeFilter'),
-                                    options: [
-                                      for (final entry in {
-                                        '*': l.allTypes,
-                                        'movie': l.movie,
-                                        'series': l.series,
-                                        'season': l.season,
-                                        'episode': l.episode,
-                                        'video': l.video,
-                                        'audio': l.audio,
-                                      }.entries)
-                                        ShadOption(
-                                          value: entry.key,
-                                          child: Text(entry.value),
-                                        ),
-                                    ],
-                                    selectedOptionBuilder: (_, value) => Text(
-                                      {
-                                        '*': l.allTypes,
-                                        'movie': l.movie,
-                                        'series': l.series,
-                                        'season': l.season,
-                                        'episode': l.episode,
-                                        'video': l.video,
-                                        'audio': l.audio,
-                                      }[value]!,
-                                    ),
-                                    maxWidth: 240,
-                                    enabled: !_scanning,
-                                  ),
-                                  ShadSelect<String>(
-                                    onChanged: (value) => setState(() {
-                                      _watchedFilter = value == '*'
-                                          ? null
-                                          : value == 'yes';
-                                      _offset = 0;
-                                    }),
-                                    initialValue: _watchedFilter == null
-                                        ? '*'
-                                        : _watchedFilter!
-                                        ? 'yes'
-                                        : 'no',
-                                    key: ValueKey('watched-$_watchedFilter'),
-                                    options: [
-                                      ShadOption(
-                                        value: '*',
-                                        child: Text(l.allWatchStates),
-                                      ),
-                                      ShadOption(
-                                        value: 'yes',
-                                        child: Text(l.watched),
-                                      ),
-                                      ShadOption(
-                                        value: 'no',
-                                        child: Text(l.unwatched),
-                                      ),
-                                    ],
-                                    selectedOptionBuilder: (_, value) => Text(
-                                      {
-                                        '*': l.allWatchStates,
-                                        'yes': l.watched,
-                                        'no': l.unwatched,
-                                      }[value]!,
-                                    ),
-                                    maxWidth: 240,
-                                    enabled: !_scanning,
-                                  ),
-                                  ShadCheckbox(
-                                    label: Text(l.favorite),
-                                    value: _favorites,
-                                    onChanged: (value) => setState(() {
-                                      _favorites = value;
-                                      _offset = 0;
-                                    }),
-                                  ),
-                                  ShadButton.ghost(
-                                    onPressed: _scanning
+                                    onTap: _scanning
                                         ? null
-                                        : () {
-                                            service.clearIgnored(_library!);
-                                            setState(() {});
-                                          },
-                                    width: double.infinity,
-                                    height: 0,
-                                    expands: true,
-                                    enabled: !(_scanning),
-                                    child: Text(l.restoreIgnored),
-                                  ),
-                                ],
-                              ),
-                              for (final binding in service.bindings(_library!))
-                                ContentRow(
-                                  dense: true,
-                                  title: Text(
-                                    '${binding['status']} · ${widget.sources.configs.where((c) => c.id == binding['source']).firstOrNull?.name ?? l.sourceNeedsSetup}',
-                                  ),
-                                  subtitle: binding['error'] == null
-                                      ? null
-                                      : Text(binding['error'] as String),
-                                  trailing: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Tooltip(
-                                        message: l.rescan,
-                                        child: Semantics(
-                                          button: true,
-                                          label: l.rescan,
-                                          child: ShadIconButton.ghost(
-                                            onPressed: _scanning
-                                                ? null
-                                                : () => _scan(
-                                                    binding['id'] as String,
-                                                  ),
-                                            icon: Icon(AppIcons.refresh),
-                                            enabled: !(_scanning),
-                                            width: 48,
-                                            height: 48,
-                                          ),
-                                        ),
-                                      ),
-                                      Tooltip(
-                                        message: l.removeBinding,
-                                        child: Semantics(
-                                          button: true,
-                                          label: l.removeBinding,
-                                          child: ShadIconButton.ghost(
-                                            onPressed: _scanning
-                                                ? null
-                                                : () async {
-                                                    final count = service
-                                                        .bindingImpact(
-                                                          binding['id']
-                                                              as String,
-                                                        );
-                                                    final confirmed =
-                                                        await showShadDialog<
-                                                          bool
-                                                        >(
-                                                          context: context,
-                                                          builder: (c) => ShadDialog(
-                                                            title: Text(
-                                                              l.removeBindingConfirm,
-                                                            ),
-                                                            actions: [
-                                                              ShadButton.ghost(
-                                                                onPressed: () =>
-                                                                    Navigator.pop(
-                                                                      c,
-                                                                      false,
-                                                                    ),
-                                                                child: Text(
-                                                                  l.cancel,
-                                                                ),
-                                                              ),
-                                                              ShadButton.ghost(
-                                                                onPressed: () =>
-                                                                    Navigator.pop(
-                                                                      c,
-                                                                      true,
-                                                                    ),
-                                                                child: Text(
-                                                                  l.remove,
-                                                                ),
-                                                              ),
-                                                            ],
-                                                            child: Text(
-                                                              l.removeBindingDescription(
-                                                                count,
-                                                              ),
-                                                            ),
-                                                          ),
-                                                        );
-                                                    if (confirmed == true &&
-                                                        mounted) {
-                                                      setState(
-                                                        () => service
-                                                            .removeBinding(
-                                                              binding['id']
-                                                                  as String,
-                                                            ),
-                                                      );
-                                                    }
-                                                  },
-                                            icon: Icon(AppIcons.unlink),
-                                            enabled: !(_scanning),
-                                            width: 48,
-                                            height: 48,
-                                          ),
-                                        ),
-                                      ),
-                                    ],
+                                        : () => _detail(media),
                                   ),
                                 ),
-                            ],
-                            if (_scanning || _metadataBusy) ShadProgress(),
-                            if (_metadataBusy)
-                              Text(
-                                '${l.metadataBusy} ${_metadataProgress ?? ''}',
                               ),
-                            if (_metadataBusy)
-                              ShadButton.ghost(
-                                onPressed: _metadata?.cancelActive,
-                                child: Text(l.cancel),
-                              ),
-                            if (!_metadataBusy && _metadataSummary != null)
-                              Text(_metadataSummary!),
-                            if (_library != null)
-                              ShadButton.outline(
-                                enabled: !_scanning && !_metadataBusy,
-                                onPressed: () => _importMetadata(_library!),
-                                child: Text(l.metadataBatch),
-                              ),
-                            if (_error != null)
-                              ShadAlert.destructive(title: Text(_error!)),
                           ],
                         ),
                       ),
                     ),
-                    Expanded(
-                      child: service.libraries.isEmpty
-                          ? Center(
-                              child: ShadButton(
-                                onPressed: _create,
-                                child: Text(l.createFirstLibrary),
-                              ),
-                            )
-                          : rows.isEmpty
-                          ? Center(
-                              child: Text(
-                                _search.isNotEmpty ||
-                                        _favorites ||
-                                        _sourceFilter != null ||
-                                        _typeFilter != null ||
-                                        _watchedFilter != null
-                                    ? l.noMatchingMedia
-                                    : l.libraryEmpty,
-                              ),
-                            )
-                          : GridView.builder(
-                              padding: EdgeInsets.all(16),
-                              gridDelegate:
-                                  SliverGridDelegateWithMaxCrossAxisExtent(
-                                    maxCrossAxisExtent: 220,
-                                    childAspectRatio: 0.5,
-                                    crossAxisSpacing: 12,
-                                    mainAxisSpacing: 12,
-                                  ),
-                              itemCount: rows.length,
-                              itemBuilder: (_, index) {
-                                final media = rows[index];
-                                return MediaPosterCard(
-                                  title: media['title'] as String,
-                                  artwork:
-                                      service.metadata.selectedArtwork(
-                                            media['id'] as String,
-                                          ) ==
-                                          null
-                                      ? null
-                                      : MetadataArtwork(
-                                          service: _artwork,
-                                          artwork: service.metadata
-                                              .selectedArtwork(
-                                                media['id'] as String,
-                                              )!,
-                                        ),
-                                  favorite: media['favorite'] == 1,
-                                  onOpen: _scanning
-                                      ? null
-                                      : () => _detail(media),
-                                  onFavorite: () => setState(
-                                    () => service.favorite(
-                                      media['id'] as String,
-                                      media['favorite'] != 1,
-                                    ),
-                                  ),
-                                );
-                              },
-                            ),
+                  ],
+                  if (_scanning) SliverToBoxAdapter(child: ShadProgress()),
+                  if (_error != null)
+                    SliverToBoxAdapter(
+                      child: ShadAlert.destructive(title: Text(_error!)),
                     ),
-                    if (_library != null)
-                      Wrap(
+                  // Media servers keep their own catalogues and artwork, so
+                  // each gets a shelf instead of being merged into the wall.
+                  for (final server in servers)
+                    SliverToBoxAdapter(
+                      child: ServerShelf(
+                        key: ValueKey('shelf-${server.id}-${server.revision}'),
+                        sources: widget.sources,
+                        config: server,
+                        artwork: _artwork,
+                        onOpen: _openEntry,
+                      ),
+                    ),
+                  if (servers.isNotEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(16, 24, 16, 0),
+                        child: Text(
+                          l.localLibrary,
+                          style: ShadTheme.of(context).textTheme.large,
+                        ),
+                      ),
+                    ),
+                  if (rows.isEmpty)
+                    SliverToBoxAdapter(
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(
+                          horizontal: 24,
+                          vertical: servers.isEmpty ? 120 : 32,
+                        ),
+                        child: Center(
+                          child: Text(
+                            fileSources.isEmpty
+                                ? l.libraryNoFileSources
+                                : _search.isNotEmpty
+                                ? l.noMatchingMedia
+                                : l.libraryEmptyNoMedia,
+                            textAlign: TextAlign.center,
+                          ),
+                        ),
+                      ),
+                    )
+                  else
+                    SliverPadding(
+                      padding: EdgeInsets.all(16),
+                      sliver: SliverGrid.builder(
+                        gridDelegate: SliverGridDelegateWithMaxCrossAxisExtent(
+                          maxCrossAxisExtent: 220,
+                          childAspectRatio: 0.5,
+                          crossAxisSpacing: 12,
+                          mainAxisSpacing: 12,
+                        ),
+                        itemCount: rows.length,
+                        itemBuilder: (_, index) {
+                          final media = rows[index];
+                          _boost(media['id'] as String);
+                          final artwork = service.metadata.displayArtwork(
+                            media['id'] as String,
+                          );
+                          return MediaPosterCard(
+                            title: media['title'] as String,
+                            artwork: artwork == null
+                                ? null
+                                : MetadataArtwork(
+                                    service: _artwork,
+                                    artwork: artwork,
+                                  ),
+                            favorite: media['favorite'] == 1,
+                            onOpen: _scanning ? null : () => _detail(media),
+                            onFavorite: () => setState(
+                              () => service.favorite(
+                                media['id'] as String,
+                                media['favorite'] != 1,
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  if (rows.isNotEmpty || _offset > 0)
+                    SliverToBoxAdapter(
+                      child: Wrap(
                         alignment: WrapAlignment.center,
                         crossAxisAlignment: WrapCrossAlignment.center,
                         children: [
@@ -1111,140 +496,11 @@ class _LibraryPageState extends State<LibraryPage> {
                           ),
                         ],
                       ),
-                  ],
-                ),
+                    ),
+                ],
               ),
         title: Text(l.library),
-        actions: [
-          if (service != null)
-            Tooltip(
-              message: l.createLibrary,
-              child: Semantics(
-                button: true,
-                label: l.createLibrary,
-                child: ShadIconButton.ghost(
-                  onPressed: _scanning ? null : _create,
-                  icon: Icon(AppIcons.add),
-                  enabled: !(_scanning),
-                  width: 48,
-                  height: 48,
-                ),
-              ),
-            ),
-        ],
       ),
     );
   }
-}
-
-class _ScopePage extends StatefulWidget {
-  const _ScopePage({required this.sources, required this.source});
-  final SourceManager sources;
-  final String source;
-  @override
-  State<_ScopePage> createState() => _ScopePageState();
-}
-
-class _ScopePageState extends State<_ScopePage> {
-  AppLocalizations get l => AppLocalizations.of(context);
-  final List<SourceEntry> _path = [];
-  List<SourceEntry> _folders = [];
-  int? _next;
-  String? _error;
-  bool _busy = false;
-  @override
-  void initState() {
-    super.initState();
-    _load();
-  }
-
-  Future<void> _load({bool more = false}) async {
-    setState(() {
-      _busy = true;
-      _error = null;
-    });
-    try {
-      final page = await widget.sources.browse(
-        widget.source,
-        BrowseRequest(node: _path.lastOrNull?.ref, offset: more ? _next! : 0),
-      );
-      if (mounted) {
-        setState(() {
-          _folders = [
-            ...(more ? _folders : <SourceEntry>[]),
-            ...page.entries.where((e) => e.isFolder),
-          ];
-          _next = page.nextOffset;
-        });
-      }
-    } catch (_) {
-      if (mounted) setState(() => _error = l.browseFailed);
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
-  }
-
-  @override
-  Widget build(BuildContext context) => AppPage(
-    body: Column(
-      children: [
-        Padding(padding: EdgeInsets.all(16), child: Text(l.scopeDescription)),
-        if (_busy) ShadProgress(),
-        if (_error != null)
-          ShadButton.ghost(onPressed: () => _load(), child: Text(_error!)),
-        if (_path.isNotEmpty)
-          ContentRow(
-            title: Text(l.parent),
-            onTap: _busy
-                ? null
-                : () {
-                    _path.removeLast();
-                    _load();
-                  },
-          ),
-        Expanded(
-          child: ListView(
-            children: [
-              for (final folder in _folders)
-                ContentRow(
-                  leading: Icon(AppIcons.folder),
-                  title: Text(folder.name),
-                  onTap: _busy
-                      ? null
-                      : () {
-                          _path.add(folder);
-                          _load();
-                        },
-                ),
-              if (_next != null)
-                ShadButton.ghost(
-                  onPressed: _busy ? null : () => _load(more: true),
-                  enabled: !(_busy),
-                  child: Text(l.loadMore),
-                ),
-            ],
-          ),
-        ),
-        Padding(
-          padding: EdgeInsets.all(16),
-          child: ShadButton(
-            onPressed: _busy || _error != null
-                ? null
-                : () => Navigator.pop(
-                    context,
-                    _path.lastOrNull ??
-                        SourceEntry(
-                          ResourceRef(widget.source, ''),
-                          l.rootFolder,
-                          isFolder: true,
-                        ),
-                  ),
-            enabled: !(_busy || _error != null),
-            child: Text(l.confirmScanScope),
-          ),
-        ),
-      ],
-    ),
-    title: Text(_path.lastOrNull?.name ?? l.chooseScanScope),
-  );
 }

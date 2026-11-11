@@ -61,7 +61,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(manager.configs.single.enabled, isFalse);
       expect(manager.bindings.defaults, isEmpty);
-      expect(await const FlutterSecureStorage().readAll(), hasLength(1));
+      expect(service.readSecret('source.plex'), isNull);
+      expect(
+        service.readSecret(manager.configs.single.credentialRef!),
+        'safe-token',
+      );
       expect(find.text('已禁用'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -216,7 +220,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'http://192.168.1.20:8096');
       expect(manager.saved.single.userId, 'automatic-user-id');
-      expect(manager.saved.single.name, '192.168.1.20');
+      expect(manager.saved.single.name, isEmpty);
+      expect(
+        manager.saved.single.displayName,
+        'Jellyfin · http://192.168.1.20:8096',
+      );
       expect(manager.secrets.single, 'automatic-session-token');
       expect(signIn.password, 'user-password');
     },
@@ -344,7 +352,8 @@ void main() {
     await tester.tap(find.text('添加'));
     await tester.pumpAndSettle();
     expect(manager.saved.single.address, '/tmp/Movies');
-    expect(manager.saved.single.name, 'Movies');
+    expect(manager.saved.single.name, isEmpty);
+    expect(manager.saved.single.displayName, '本地文件夹 · /tmp/Movies');
   });
 }
 

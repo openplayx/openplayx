@@ -20,8 +20,14 @@ class SourceHttp {
               'Accept': 'application/json',
             }
           : {
+              // Jellyfin reads Authorization, Emby reads X-Emby-*.
               'Authorization':
                   'MediaBrowser Client="OpenPlayX", Device="OpenPlayX", DeviceId="${config.id}", Version="1", Token="$token"',
+              if (config.kind == SourceKind.emby) ...{
+                'X-Emby-Authorization':
+                    'MediaBrowser Client="OpenPlayX", Device="OpenPlayX", DeviceId="${config.id}", Version="1", Token="$token"',
+                'X-Emby-Token': token,
+              },
               'Accept': 'application/json',
             };
   final SourceConfig config;
@@ -59,7 +65,14 @@ class SourceHttp {
   Future<Map<String, dynamic>> json(
     String path, [
     Map<String, String> query = const {},
-  ]) async {
+  ]) async => await _decode(path, query) as Map<String, dynamic>;
+
+  Future<List<dynamic>> jsonList(
+    String path, [
+    Map<String, String> query = const {},
+  ]) async => await _decode(path, query) as List<dynamic>;
+
+  Future<Object?> _decode(String path, Map<String, String> query) async {
     final request = await _client.getUrl(uri(path, query));
     request.followRedirects = false;
     _headers.forEach(request.headers.set);
@@ -85,7 +98,7 @@ class SourceHttp {
           .bind(response)
           .timeout(Duration(seconds: config.requestTimeoutSeconds))
           .join(),
-    ) as Map<String, dynamic>;
+    );
   }
 
   Future<List<int>> attachment(String path, {required int maxBytes}) async {
@@ -125,17 +138,59 @@ class SourceHttp {
   void close() => _client.close(force: true);
 }
 
+/// Jellyfin and Emby (same MediaBrowser API).
 class JellyfinPlugin
     implements
         Plugin,
         SourceCapability,
+        SearchCapability,
+        RecentCapability,
         MetadataCapability,
         SourceAttachmentCapability {
   JellyfinPlugin(this.config, this.http);
+  static const _fields =
+      'MediaSources,ParentId,Overview,Genres,ProviderIds,OriginalTitle';
+
+  SourceEntry _entry(Map<String, dynamic> item) {
+    final versions = (item['MediaSources'] as List? ?? []).length > 1;
+    return SourceEntry(
+      ResourceRef(
+        config.id,
+        versions ? 'versions:${item['Id']}' : item['Id'] as String,
+      ),
+      item['Name'] as String? ?? '未命名',
+      media: _jellyfinInfo(item),
+      isFolder: item['IsFolder'] == true || versions,
+    );
+  }
+
+  static bool _listed(Map<String, dynamic> item) =>
+      item['IsFolder'] == true ||
+      item['MediaType'] == 'Video' ||
+      item['MediaType'] == 'Audio';
+
+  @override
+  Future<List<SourceEntry>> recent(int limit, CallContext context) async {
+    checkOwnership(config.id, null, context);
+    final items = await http.jsonList(
+      'Users/${Uri.encodeComponent(config.userId)}/Items/Latest',
+      {
+        'Limit': '$limit',
+        'Fields': _fields,
+        'IncludeItemTypes': 'Movie,Series,Episode,Video,MusicVideo',
+      },
+    );
+    return items
+        .cast<Map<String, dynamic>>()
+        .where(_listed)
+        .map(_entry)
+        .toList();
+  }
+
   final SourceConfig config;
   final SourceHttp http;
   @override
-  PluginManifest get manifest => SourceSchemas.forKind(SourceKind.jellyfin);
+  PluginManifest get manifest => SourceSchemas.forKind(config.kind);
   @override
   Future<BrowseResult> browse(
     BrowseRequest request,
@@ -167,37 +222,21 @@ class JellyfinPlugin
       'Users/${Uri.encodeComponent(config.userId)}/Items',
       {
         if (request.node != null) 'ParentId': request.node!.id,
+        if (request.search != null) ...{
+          'SearchTerm': request.search!,
+          'Recursive': 'true',
+        },
         'StartIndex': '${request.offset}',
         'Limit': '${request.limit}',
-        'Fields':
-            'MediaSources,ParentId,Overview,Genres,ProviderIds,OriginalTitle',
+        'Fields': _fields,
         'SortBy': 'SortName',
         'SortOrder': 'Ascending',
       },
     );
     final entries = (result['Items'] as List? ?? [])
         .cast<Map<String, dynamic>>()
-        .where(
-          (item) =>
-              item['IsFolder'] == true ||
-              item['MediaType'] == 'Video' ||
-              item['MediaType'] == 'Audio',
-        )
-        .map(
-          (item) => SourceEntry(
-            ResourceRef(
-              config.id,
-              (item['MediaSources'] as List? ?? []).length > 1
-                  ? 'versions:${item['Id']}'
-                  : item['Id'] as String,
-            ),
-            item['Name'] as String? ?? '未命名',
-            media: _jellyfinInfo(item),
-            isFolder:
-                item['IsFolder'] == true ||
-                (item['MediaSources'] as List? ?? []).length > 1,
-          ),
-        )
+        .where(_listed)
+        .map(_entry)
         .toList();
     final count = (result['Items'] as List? ?? []).length;
     final next = request.offset + count;
@@ -208,6 +247,16 @@ class JellyfinPlugin
           : null,
     );
   }
+
+  @override
+  Future<BrowseResult> search(
+    String query,
+    BrowseRequest page,
+    CallContext context,
+  ) => browse(
+    BrowseRequest(search: query, offset: page.offset, limit: page.limit),
+    context,
+  );
 
   @override
   Future<PlayableStream> resolve(
@@ -285,9 +334,47 @@ class PlexPlugin
     implements
         Plugin,
         SourceCapability,
+        SearchCapability,
+        RecentCapability,
         MetadataCapability,
         SourceAttachmentCapability {
   PlexPlugin(this.config, this.http);
+
+  SourceEntry _entry(Map<String, dynamic> item, {bool root = false}) {
+    final folder =
+        root || !['movie', 'episode', 'track', 'clip'].contains(item['type']);
+    final key = root
+        ? '/library/sections/${Uri.encodeComponent('${item['key']}')}/all'
+        : folder
+        ? "${'${item['key']}'.replaceFirst(RegExp(r'/children$'), '')}/children"
+        : '${item['key']}';
+    final multiple =
+        !folder &&
+        (item['Media'] as List? ?? []).fold<int>(
+              0,
+              (n, m) => n + (m['Part'] as List? ?? []).length,
+            ) >
+            1;
+    return SourceEntry(
+      ResourceRef(config.id, multiple ? 'versions:$key' : key),
+      item['title'] as String? ?? '未命名',
+      isFolder: folder || multiple,
+      media: root ? null : _plexInfo(item),
+    );
+  }
+
+  @override
+  Future<List<SourceEntry>> recent(int limit, CallContext context) async {
+    checkOwnership(config.id, null, context);
+    final json = await http.json('/library/recentlyAdded', {
+      'X-Plex-Container-Start': '0',
+      'X-Plex-Container-Size': '$limit',
+    });
+    final items = (json['MediaContainer']['Metadata'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    return items.map(_entry).toList();
+  }
+
   final SourceConfig config;
   final SourceHttp http;
   @override
@@ -318,37 +405,19 @@ class PlexPlugin
         request,
       );
     }
-    final root = request.node == null;
-    final path = request.node?.id ?? '/library/sections';
+    final root = request.node == null && request.search == null;
+    final path = request.search != null
+        ? '/library/all'
+        : request.node?.id ?? '/library/sections';
     final json = await http.json(path, {
+      if (request.search != null) 'title': request.search!,
       'X-Plex-Container-Start': '${request.offset}',
       'X-Plex-Container-Size': '${request.limit}',
     });
     final container = json['MediaContainer'] as Map<String, dynamic>;
     final items = (container[root ? 'Directory' : 'Metadata'] as List? ?? [])
         .cast<Map<String, dynamic>>();
-    final entries = items.map((item) {
-      final folder =
-          root || !['movie', 'episode', 'track', 'clip'].contains(item['type']);
-      final key = root
-          ? '/library/sections/${Uri.encodeComponent('${item['key']}')}/all'
-          : folder
-          ? "${'${item['key']}'.replaceFirst(RegExp(r'/children$'), '')}/children"
-          : '${item['key']}';
-      final multiple =
-          !folder &&
-          (item['Media'] as List? ?? []).fold<int>(
-                0,
-                (n, m) => n + (m['Part'] as List? ?? []).length,
-              ) >
-              1;
-      return SourceEntry(
-        ResourceRef(config.id, multiple ? 'versions:$key' : key),
-        item['title'] as String? ?? '未命名',
-        isFolder: folder || multiple,
-        media: root ? null : _plexInfo(item),
-      );
-    }).toList();
+    final entries = items.map((item) => _entry(item, root: root)).toList();
     final next = request.offset + items.length;
     final total =
         container['totalSize'] as int? ?? container['size'] as int? ?? next;
@@ -357,6 +426,16 @@ class PlexPlugin
       nextOffset: items.isNotEmpty && next < total ? next : null,
     );
   }
+
+  @override
+  Future<BrowseResult> search(
+    String query,
+    BrowseRequest page,
+    CallContext context,
+  ) => browse(
+    BrowseRequest(search: query, offset: page.offset, limit: page.limit),
+    context,
+  );
 
   @override
   Future<PlayableStream> resolve(

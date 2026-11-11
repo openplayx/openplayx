@@ -80,7 +80,7 @@ void main() {
       (await SharedPreferences.getInstance()).getString('source.instances.v1'),
       isNull,
     );
-    final broker = SourceCredentialBroker();
+    final broker = SourceCredentialBroker(() => service);
     expect(await broker.readForHost(saved), 'private-token');
     final reloaded = manager();
     await reloaded.load();
@@ -96,11 +96,11 @@ void main() {
     final oldRef = saved.credentialRef;
     await reloaded.save(reloaded.configs.single, 'replacement');
     expect(reloaded.configs.single.credentialRef, isNot(oldRef));
-    expect(await const FlutterSecureStorage().read(key: oldRef!), isNull);
+    expect(service.readSecret(oldRef!), isNull);
     expect(await broker.readForHost(reloaded.configs.single), 'replacement');
     await reloaded.remove('one');
     expect(service.load(), isEmpty);
-    expect(await const FlutterSecureStorage().readAll(), isEmpty);
+    expect(db.select('SELECT 1 FROM source_secrets'), isEmpty);
     await first.dispose();
     await reloaded.dispose();
   });
@@ -114,14 +114,15 @@ void main() {
       first.configs.single.copyWith(name: 'Updated'),
       'new-token',
     );
-    final count = (await const FlutterSecureStorage().readAll()).length;
+    final count = db.select('SELECT 1 FROM source_secrets').length;
     await expectLater(
       second.save(second.configs.single.copyWith(name: 'Stale'), 'uncommitted'),
       throwsA(isA<PluginException>().having((e) => e.code, 'code', 'conflict')),
     );
-    expect((await const FlutterSecureStorage().readAll()).length, count);
+    expect(db.select('SELECT 1 FROM source_secrets').length, count);
     expect(
-      await SourceCredentialBroker().readForHost(service.load().single),
+      await SourceCredentialBroker(() => service)
+          .readForHost(service.load().single),
       'new-token',
     );
     expect(service.load().single.name, 'Updated');
@@ -150,9 +151,12 @@ void main() {
     expect(configs.single.id, 'legacy');
     expect(configs.single.credentialRef, 'source.legacy');
     expect(
-      await SourceCredentialBroker().readForHost(configs.single),
+      await SourceCredentialBroker(() => service).readForHost(configs.single),
       'legacy-secret',
     );
+    // Copied into SQLite and dropped from the keychain.
+    expect(service.readSecret('source.legacy'), 'legacy-secret');
+    expect(await const FlutterSecureStorage().readAll(), isEmpty);
     expect(
       service.issues.map((i) => i.instanceId),
       containsAll(['future', 'broken']),
@@ -180,7 +184,8 @@ void main() {
     expect(host.configs.single.enabled, isFalse);
     expect(host.bindings.defaults, isEmpty);
     expect(
-      await SourceCredentialBroker().readForHost(host.configs.single),
+      await SourceCredentialBroker(() => service)
+          .readForHost(host.configs.single),
       'secret',
     );
     await expectLater(

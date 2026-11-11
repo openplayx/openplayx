@@ -721,7 +721,7 @@ abstract class AppLocalizations {
   /// No description provided for @searchScopeDescription.
   ///
   /// In en, this message translates to:
-  /// **'Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.'**
+  /// **'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.'**
   String get searchScopeDescription;
 
   /// No description provided for @sourceDefaultsTitle.
@@ -855,6 +855,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'For example jellyfin; otherwise leave blank.'**
   String get serverPathHint;
+
+  /// No description provided for @scanExtensions.
+  ///
+  /// In en, this message translates to:
+  /// **'File extensions to scan'**
+  String get scanExtensions;
+
+  /// No description provided for @scanExtensionsHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.'**
+  String get scanExtensionsHelp;
 
   /// No description provided for @optionalDomain.
   ///
@@ -1114,6 +1126,30 @@ abstract class AppLocalizations {
   /// **'No selectable audio tracks'**
   String get noAudioTracks;
 
+  /// No description provided for @subtitleTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get subtitleTrack;
+
+  /// No description provided for @noSubtitleTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'No selectable subtitles'**
+  String get noSubtitleTracks;
+
+  /// No description provided for @subtitleOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles off'**
+  String get subtitleOff;
+
+  /// No description provided for @numberedSubtitleTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle {id}'**
+  String numberedSubtitleTrack(int id);
+
   /// No description provided for @playbackCommandFailed.
   ///
   /// In en, this message translates to:
@@ -1233,6 +1269,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Watched {position} / {duration} min'**
   String watchProgress(int position, int duration);
+
+  /// No description provided for @metadataProgressLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Scraping {done}/{total}'**
+  String metadataProgressLabel(int done, int total);
+
+  /// No description provided for @metadataProgressTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata scraping progress: {done} of {total} processed (items with no match count as processed)'**
+  String metadataProgressTooltip(int done, int total);
 
   /// No description provided for @watchedMinutes.
   ///
@@ -1534,6 +1582,48 @@ abstract class AppLocalizations {
   /// **'Done'**
   String get shadDone;
 
+  /// No description provided for @scanFoundMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} media files found'**
+  String scanFoundMedia(int n);
+
+  /// No description provided for @detailOverview.
+  ///
+  /// In en, this message translates to:
+  /// **'Overview'**
+  String get detailOverview;
+
+  /// No description provided for @detailCast.
+  ///
+  /// In en, this message translates to:
+  /// **'Cast'**
+  String get detailCast;
+
+  /// No description provided for @detailDirectors.
+  ///
+  /// In en, this message translates to:
+  /// **'Director'**
+  String get detailDirectors;
+
+  /// No description provided for @seasonLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Season {n}'**
+  String seasonLabel(int n);
+
+  /// No description provided for @episodeLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode {n}'**
+  String episodeLabel(int n);
+
+  /// No description provided for @detailNoEpisodes.
+  ///
+  /// In en, this message translates to:
+  /// **'No episodes yet.'**
+  String get detailNoEpisodes;
+
   /// No description provided for @metadata.
   ///
   /// In en, this message translates to:
@@ -1603,7 +1693,7 @@ abstract class AppLocalizations {
   /// No description provided for @metadataPrivacy.
   ///
   /// In en, this message translates to:
-  /// **'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.'**
+  /// **'Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.'**
   String get metadataPrivacy;
 
   /// No description provided for @metadataSaved.
@@ -1804,11 +1894,676 @@ abstract class AppLocalizations {
   /// **'Remove TMDB credential'**
   String get metadataForgetToken;
 
+  /// No description provided for @metadataTokenSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB token saved on this device.'**
+  String get metadataTokenSaved;
+
+  /// No description provided for @metadataTokenMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'No TMDB token configured.'**
+  String get metadataTokenMissing;
+
   /// No description provided for @metadataSearch.
   ///
   /// In en, this message translates to:
   /// **'Search TMDB'**
   String get metadataSearch;
+
+  /// No description provided for @aiAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'AI assistant'**
+  String get aiAssistant;
+
+  /// No description provided for @aiPrivacyNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Messages, selected context and tool results are sent to your configured model provider.'**
+  String get aiPrivacyNotice;
+
+  /// No description provided for @aiWelcome.
+  ///
+  /// In en, this message translates to:
+  /// **'Ask me to find media, continue watching, or control playback. Configure a model to begin.'**
+  String get aiWelcome;
+
+  /// No description provided for @aiYou.
+  ///
+  /// In en, this message translates to:
+  /// **'You'**
+  String get aiYou;
+
+  /// No description provided for @aiToolResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool result'**
+  String get aiToolResult;
+
+  /// No description provided for @aiConfirmAction.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm this change'**
+  String get aiConfirmAction;
+
+  /// No description provided for @aiApprove.
+  ///
+  /// In en, this message translates to:
+  /// **'Approve'**
+  String get aiApprove;
+
+  /// No description provided for @aiInputHint.
+  ///
+  /// In en, this message translates to:
+  /// **'What would you like to watch?'**
+  String get aiInputHint;
+
+  /// No description provided for @aiStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop generating'**
+  String get aiStop;
+
+  /// No description provided for @aiSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Send'**
+  String get aiSend;
+
+  /// No description provided for @aiToolFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool did not complete'**
+  String get aiToolFailed;
+
+  /// No description provided for @aiConfigureFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure your model, API key and cloud consent in AI settings first.'**
+  String get aiConfigureFirst;
+
+  /// No description provided for @aiSendFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to send. Check the input length and try again.'**
+  String get aiSendFailed;
+
+  /// No description provided for @aiCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Generation stopped. Completed actions are retained.'**
+  String get aiCancelled;
+
+  /// No description provided for @aiTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out. Completed actions are retained.'**
+  String get aiTimeout;
+
+  /// No description provided for @aiBudgetReached.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn limit reached. Completed results are retained.'**
+  String get aiBudgetReached;
+
+  /// No description provided for @aiProviderFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Model request failed. Check credentials, endpoint and model support.'**
+  String get aiProviderFailed;
+
+  /// No description provided for @aiInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Interrupted on shutdown; actions will not be replayed.'**
+  String get aiInterrupted;
+
+  /// No description provided for @aiTokenUsage.
+  ///
+  /// In en, this message translates to:
+  /// **'Reported tokens: {count}'**
+  String aiTokenUsage(int count);
+
+  /// No description provided for @aiModelSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Model settings'**
+  String get aiModelSettings;
+
+  /// No description provided for @aiProviderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.'**
+  String get aiProviderDescription;
+
+  /// No description provided for @aiEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'API base URL'**
+  String get aiEndpoint;
+
+  /// No description provided for @aiModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model ID'**
+  String get aiModel;
+
+  /// No description provided for @aiApiKey.
+  ///
+  /// In en, this message translates to:
+  /// **'API key'**
+  String get aiApiKey;
+
+  /// No description provided for @aiKeyRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an API key'**
+  String get aiKeyRequired;
+
+  /// No description provided for @aiKeySaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Key saved; leave blank to keep it'**
+  String get aiKeySaved;
+
+  /// No description provided for @aiOutputLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Maximum output tokens (128–16384)'**
+  String get aiOutputLimit;
+
+  /// No description provided for @aiCloudConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.'**
+  String get aiCloudConsent;
+
+  /// No description provided for @aiTestText.
+  ///
+  /// In en, this message translates to:
+  /// **'Test reply'**
+  String get aiTestText;
+
+  /// No description provided for @aiTestStream.
+  ///
+  /// In en, this message translates to:
+  /// **'Test streaming'**
+  String get aiTestStream;
+
+  /// No description provided for @aiTestTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Test tool calls'**
+  String get aiTestTools;
+
+  /// No description provided for @aiTestPassed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test passed. Save to apply.'**
+  String get aiTestPassed;
+
+  /// No description provided for @aiTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Test failed. Check credentials and protocol support. Tool support must pass independently.'**
+  String get aiTestFailed;
+
+  /// No description provided for @aiToolsVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Tool calls verified. Available business tools will be enabled.'**
+  String get aiToolsVerified;
+
+  /// No description provided for @aiTextOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversation only until the tool-call test passes.'**
+  String get aiTextOnly;
+
+  /// No description provided for @aiSaveFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to save. Check the configuration and credential store access.'**
+  String get aiSaveFailed;
+
+  /// No description provided for @aiExecuting.
+  ///
+  /// In en, this message translates to:
+  /// **'Running {name}…'**
+  String aiExecuting(String name);
+
+  /// No description provided for @aiAuthenticationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed. Update the API key in model settings.'**
+  String get aiAuthenticationFailed;
+
+  /// No description provided for @aiRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'Provider rate limit reached. Try again later.'**
+  String get aiRateLimited;
+
+  /// No description provided for @aiProtocolMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The endpoint or model does not support this request. Check connection tests.'**
+  String get aiProtocolMismatch;
+
+  /// No description provided for @metadataAutomaticQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued for identification'**
+  String get metadataAutomaticQueued;
+
+  /// No description provided for @metadataAutomaticWaitingConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.'**
+  String get metadataAutomaticWaitingConfig;
+
+  /// No description provided for @metadataAutomaticRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry unfinished identification'**
+  String get metadataAutomaticRetry;
+
+  /// No description provided for @metadataAutomaticStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Background metadata: {queued} queued · {running} running · {waiting} awaiting selection · {failed} failed'**
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  );
+
+  /// No description provided for @fileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'File sources'**
+  String get fileSources;
+
+  /// No description provided for @addFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Add file source'**
+  String get addFileSource;
+
+  /// No description provided for @nameFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Name this file source'**
+  String get nameFileSource;
+
+  /// No description provided for @fileSourceEnable.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable'**
+  String get fileSourceEnable;
+
+  /// No description provided for @fileSourceDisable.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable'**
+  String get fileSourceDisable;
+
+  /// No description provided for @fileSourceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get fileSourceDisabled;
+
+  /// No description provided for @rescanAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan all file sources'**
+  String get rescanAll;
+
+  /// No description provided for @noFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'No file sources yet. Add a folder to build your library.'**
+  String get noFileSources;
+
+  /// No description provided for @removeFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete file source'**
+  String get removeFileSource;
+
+  /// No description provided for @removeFileSourceConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete this file source?'**
+  String get removeFileSourceConfirm;
+
+  /// No description provided for @libraryEmptyNoMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'No media found in your file sources. Rescan or check the folder naming.'**
+  String get libraryEmptyNoMedia;
+
+  /// No description provided for @chooseFolderDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.'**
+  String get chooseFolderDescription;
+
+  /// No description provided for @confirmFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Use this folder'**
+  String get confirmFolder;
+
+  /// No description provided for @libraryNoFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'No file sources yet. Add a folder to a connection under Sources.'**
+  String get libraryNoFileSources;
+
+  /// No description provided for @sourceTabConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Connections'**
+  String get sourceTabConnections;
+
+  /// No description provided for @sourceTabFileSources.
+  ///
+  /// In en, this message translates to:
+  /// **'File sources'**
+  String get sourceTabFileSources;
+
+  /// No description provided for @moreActions.
+  ///
+  /// In en, this message translates to:
+  /// **'More actions'**
+  String get moreActions;
+
+  /// No description provided for @aiNewChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get aiNewChat;
+
+  /// No description provided for @aiChatHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Conversations'**
+  String get aiChatHistory;
+
+  /// No description provided for @aiShowMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Show home content'**
+  String get aiShowMedia;
+
+  /// No description provided for @aiExpandChat.
+  ///
+  /// In en, this message translates to:
+  /// **'Expand on Home'**
+  String get aiExpandChat;
+
+  /// No description provided for @aiLatest.
+  ///
+  /// In en, this message translates to:
+  /// **'Back to latest'**
+  String get aiLatest;
+
+  /// No description provided for @aiDraftNext.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying. You can draft your next message.'**
+  String get aiDraftNext;
+
+  /// No description provided for @aiSuggestMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Help me find a movie'**
+  String get aiSuggestMedia;
+
+  /// No description provided for @aiSuggestResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Where did I leave off?'**
+  String get aiSuggestResume;
+
+  /// No description provided for @aiToolPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing'**
+  String get aiToolPreparing;
+
+  /// No description provided for @aiToolRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get aiToolRunning;
+
+  /// No description provided for @aiToolWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting confirmation'**
+  String get aiToolWaiting;
+
+  /// No description provided for @aiToolSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed'**
+  String get aiToolSucceeded;
+
+  /// No description provided for @aiToolCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not executed or cancelled'**
+  String get aiToolCancelled;
+
+  /// No description provided for @aiActionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This action is no longer available. Select again.'**
+  String get aiActionExpired;
+
+  /// No description provided for @aiRemoteImageBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote image not loaded'**
+  String get aiRemoteImageBlocked;
+
+  /// No description provided for @aiOpenLink.
+  ///
+  /// In en, this message translates to:
+  /// **'Open external link?'**
+  String get aiOpenLink;
+
+  /// No description provided for @aiLinkBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'This link cannot be opened'**
+  String get aiLinkBlocked;
+
+  /// No description provided for @aiTaskSubmitted.
+  ///
+  /// In en, this message translates to:
+  /// **'Task submitted'**
+  String get aiTaskSubmitted;
+
+  /// No description provided for @aiPartialFailure.
+  ///
+  /// In en, this message translates to:
+  /// **'Some sources are unavailable'**
+  String get aiPartialFailure;
+
+  /// No description provided for @aiMoreResults.
+  ///
+  /// In en, this message translates to:
+  /// **'More results are available. Ask to see another page.'**
+  String get aiMoreResults;
+
+  /// No description provided for @aiNoResults.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching results'**
+  String get aiNoResults;
+
+  /// No description provided for @aiUntitledChat.
+  ///
+  /// In en, this message translates to:
+  /// **'New conversation'**
+  String get aiUntitledChat;
+
+  /// No description provided for @aiHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No conversations yet'**
+  String get aiHistoryEmpty;
+
+  /// No description provided for @aiReplying.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying…'**
+  String get aiReplying;
+
+  /// No description provided for @aiToolSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions and results come from local services'**
+  String get aiToolSummary;
+
+  /// No description provided for @aiEarlier.
+  ///
+  /// In en, this message translates to:
+  /// **'Load earlier messages'**
+  String get aiEarlier;
+
+  /// No description provided for @diagnosticsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Send diagnostics'**
+  String get diagnosticsTitle;
+
+  /// No description provided for @diagnosticsDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.'**
+  String get diagnosticsDescription;
+
+  /// No description provided for @anonymousHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Leave username and password blank for anonymous access.'**
+  String get anonymousHelp;
+
+  /// No description provided for @s3AccessKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Access Key ID'**
+  String get s3AccessKey;
+
+  /// No description provided for @s3SecretKey.
+  ///
+  /// In en, this message translates to:
+  /// **'Secret Access Key'**
+  String get s3SecretKey;
+
+  /// No description provided for @s3AnonymousHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Public buckets need no keys.'**
+  String get s3AnonymousHelp;
+
+  /// No description provided for @s3Region.
+  ///
+  /// In en, this message translates to:
+  /// **'Region (optional, default us-east-1)'**
+  String get s3Region;
+
+  /// No description provided for @s3PathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'bucket/optional-prefix, e.g. media/movies'**
+  String get s3PathHint;
+
+  /// No description provided for @remotePathHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. media/movies; leave blank for the root'**
+  String get remotePathHint;
+
+  /// No description provided for @dlnaSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Search local network'**
+  String get dlnaSearch;
+
+  /// No description provided for @dlnaSearching.
+  ///
+  /// In en, this message translates to:
+  /// **'Searching…'**
+  String get dlnaSearching;
+
+  /// No description provided for @dlnaNoDevices.
+  ///
+  /// In en, this message translates to:
+  /// **'No media servers found. You can enter the device description URL manually.'**
+  String get dlnaNoDevices;
+
+  /// No description provided for @dlnaDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Device'**
+  String get dlnaDevice;
+
+  /// No description provided for @dlnaAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Device description URL'**
+  String get dlnaAddress;
+
+  /// No description provided for @dlnaAddressHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Filled in when you pick a discovered device; you can also enter it manually.'**
+  String get dlnaAddressHelp;
+
+  /// No description provided for @aiOpenExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'Open link'**
+  String get aiOpenExternal;
+
+  /// No description provided for @serverBrowseAll.
+  ///
+  /// In en, this message translates to:
+  /// **'All'**
+  String get serverBrowseAll;
+
+  /// No description provided for @serverUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Can\'t reach this server'**
+  String get serverUnavailable;
+
+  /// No description provided for @serverEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing here yet'**
+  String get serverEmpty;
+
+  /// No description provided for @serverLoadMore.
+  ///
+  /// In en, this message translates to:
+  /// **'Load more'**
+  String get serverLoadMore;
+
+  /// No description provided for @localLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Local library'**
+  String get localLibrary;
 }
 
 class _AppLocalizationsDelegate

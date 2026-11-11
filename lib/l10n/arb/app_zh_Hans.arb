@@ -103,7 +103,7 @@
   "chooseEachTime": "每次选择",
   "defaultUnavailable": "存在不可用的默认实例绑定，请重新选择；没有自动替换为其他账号。",
   "searchScope": "多源搜索范围",
-  "searchScopeDescription": "范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。",
+  "searchScopeDescription": "选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。",
   "sourceDefaultsTitle": "能力默认实例与搜索范围",
   "localFolder": "本地文件夹",
   "pickFolderFailed": "无法选择文件夹，请重试。",
@@ -126,6 +126,8 @@
   "optionalPath": "路径（可选）",
   "smbPathHint": "共享文件夹/影片目录",
   "serverPathHint": "例如 jellyfin，没有则留空",
+  "scanExtensions": "扫描的文件后缀",
+  "scanExtensionsHelp": "用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。",
   "optionalDomain": "工作组（可选）",
   "waitingPlex": "等待 Plex 授权…",
   "signInPlex": "登录 Plex",
@@ -169,6 +171,10 @@
   "adjustFailed": "调整失败，请重试。",
   "audioTrack": "音轨",
   "noAudioTracks": "此媒体没有可选音轨",
+  "subtitleTrack": "字幕",
+  "noSubtitleTracks": "此媒体没有可选字幕",
+  "subtitleOff": "关闭字幕",
+  "numberedSubtitleTrack": "字幕 {id}",
   "playbackCommandFailed": "播放操作失败，请重新打开媒体文件。",
   "openFileFailed": "无法打开文件，请重新选择。",
   "stopPlaybackFailed": "停止播放失败，请重试返回",
@@ -195,6 +201,28 @@
         "type": "int"
       },
       "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressLabel": "刮削 {done}/{total}",
+  "@metadataProgressLabel": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressTooltip": "元数据刮削进度：已处理 {done} / 共 {total}（找不到匹配的也算已处理）",
+  "@metadataProgressTooltip": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -361,6 +389,13 @@
   "shadPaste": "粘贴",
   "shadSelectAll": "全选",
   "shadDone": "完成",
+  "scanFoundMedia": "已发现 {n} 个媒体文件",
+  "detailOverview": "简介",
+  "detailCast": "演员",
+  "detailDirectors": "导演",
+  "seasonLabel": "第 {n} 季",
+  "episodeLabel": "第 {n} 集",
+  "detailNoEpisodes": "还没有可播放的剧集。",
   "metadata": "影视信息",
   "metadataIdentify": "识别 / 重新匹配",
   "metadataImport": "导入邻近 NFO 和图片",
@@ -372,7 +407,7 @@
   "metadataLanguage": "元数据语言",
   "metadataToken": "TMDB 读取访问令牌",
   "metadataConfigure": "配置 TMDB",
-  "metadataPrivacy": "在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。",
+  "metadataPrivacy": "入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。",
   "metadataSaved": "TMDB 配置已保存",
   "metadataCandidates": "选择作品",
   "metadataChooseChildren": "选择季 / 集",
@@ -406,5 +441,145 @@
   "metadataMissingSource": "来源文件已缺失",
   "metadataAttribution": "本产品使用 TMDB API，但未经 TMDB 认可或认证。",
   "metadataForgetToken": "移除 TMDB 凭据",
-  "metadataSearch": "搜索 TMDB"
+  "metadataTokenSaved": "已在本机保存 TMDB 令牌。",
+  "metadataTokenMissing": "尚未配置 TMDB 令牌。",
+  "metadataSearch": "搜索 TMDB",
+  "aiAssistant": "AI 助手",
+  "aiPrivacyNotice": "消息、选定上下文及工具结果会发送至你配置的模型供应商。",
+  "aiWelcome": "可以让我查找媒体、继续观看或控制播放。请先配置模型。",
+  "aiYou": "你",
+  "aiToolResult": "工具结果",
+  "aiConfirmAction": "确认这项变更",
+  "aiApprove": "同意执行",
+  "aiInputHint": "想看些什么？",
+  "aiStop": "停止生成",
+  "aiSend": "发送",
+  "aiToolFailed": "工具未完成",
+  "aiConfigureFirst": "请先在 AI 设置中配置模型、API Key 并授权发送至云端。",
+  "aiSendFailed": "无法发送，请检查输入长度后重试。",
+  "aiCancelled": "已停止生成，已完成操作会保留。",
+  "aiTimeout": "请求超时，已完成操作会保留。",
+  "aiBudgetReached": "已达到本回合上限，已完成结果会保留。",
+  "aiProviderFailed": "模型请求失败，请检查凭据、端点及模型支持情况。",
+  "aiInterrupted": "上次关闭时中断，不会重放操作。",
+  "aiTokenUsage": "供应商报告用量：{count} tokens",
+  "aiModelSettings": "模型设置",
+  "aiProviderDescription": "使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。",
+  "aiEndpoint": "API 基址",
+  "aiModel": "模型 ID",
+  "aiApiKey": "API Key",
+  "aiKeyRequired": "填写 API Key",
+  "aiKeySaved": "已保存凭据，留空保留",
+  "aiOutputLimit": "输出 token 上限（128–16384）",
+  "aiCloudConsent": "允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。",
+  "aiTestText": "测试普通回复",
+  "aiTestStream": "测试流式回复",
+  "aiTestTools": "测试工具调用",
+  "aiTestPassed": "连接测试通过，保存后生效。",
+  "aiTestFailed": "测试失败，请检查凭据及协议支持。工具调用须单独通过测试。",
+  "aiToolsVerified": "工具调用已验证，将启用实际可用的业务工具。",
+  "aiTextOnly": "工具调用测试通过前仅启用纯对话。",
+  "aiSaveFailed": "保存失败，请检查配置及系统凭据存储权限。",
+  "@aiTokenUsage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiExecuting": "正在执行 {name}…",
+  "@aiExecuting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAuthenticationFailed": "认证失败，请在模型设置中更新 API Key。",
+  "aiRateLimited": "已达到供应商限流，请稍后重试。",
+  "aiProtocolMismatch": "端点或模型不支持此请求，请检查连接测试结果。",
+  "metadataAutomaticQueued": "等待自动识别",
+  "metadataAutomaticWaitingConfig": "后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。",
+  "metadataAutomaticRetry": "重试未完成的刮削",
+  "metadataAutomaticStatus": "后台刮削：{queued} 待处理 · {running} 处理中 · {waiting} 待确认 · {failed} 失败",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "fileSources": "文件源",
+  "addFileSource": "添加文件源",
+  "nameFileSource": "为文件源命名",
+  "fileSourceEnable": "启用",
+  "fileSourceDisable": "停用",
+  "fileSourceDisabled": "已停用",
+  "rescanAll": "重新扫描全部文件源",
+  "noFileSources": "还没有文件源，添加一个文件夹开始建立媒体库",
+  "removeFileSource": "删除文件源",
+  "removeFileSourceConfirm": "删除此文件源？",
+  "libraryEmptyNoMedia": "文件源中暂无可识别的媒体，请重新扫描或检查文件命名",
+  "chooseFolderDescription": "进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。",
+  "confirmFolder": "使用此文件夹",
+  "libraryNoFileSources": "还没有文件源。请在「来源」中为连接添加文件夹",
+  "sourceTabConnections": "连接",
+  "sourceTabFileSources": "文件源",
+  "moreActions": "更多操作",
+  "aiNewChat": "新建对话",
+  "aiChatHistory": "会话历史",
+  "aiShowMedia": "返回首页内容",
+  "aiExpandChat": "在首页展开",
+  "aiLatest": "回到最新",
+  "aiDraftNext": "正在回复，你可以先编辑下一条消息。",
+  "aiSuggestMedia": "帮我找一部电影",
+  "aiSuggestResume": "我上次看到哪里了？",
+  "aiToolPreparing": "准备执行",
+  "aiToolRunning": "执行中",
+  "aiToolWaiting": "等待确认",
+  "aiToolSucceeded": "已完成",
+  "aiToolCancelled": "未执行或已取消",
+  "aiActionExpired": "此操作已失效，请重新选择。",
+  "aiRemoteImageBlocked": "远程图片未自动加载",
+  "aiOpenLink": "打开外部链接？",
+  "aiLinkBlocked": "无法打开此链接",
+  "aiTaskSubmitted": "已提交任务",
+  "aiPartialFailure": "部分来源暂不可用",
+  "aiMoreResults": "还有更多结果，可继续提问查看。",
+  "aiNoResults": "没有找到匹配内容",
+  "aiUntitledChat": "新对话",
+  "aiHistoryEmpty": "还没有会话记录",
+  "aiReplying": "正在回复…",
+  "aiToolSummary": "操作及结果来自本机服务",
+  "aiEarlier": "加载更早消息",
+  "diagnosticsTitle": "发送诊断信息",
+  "diagnosticsDescription": "可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。",
+  "anonymousHelp": "匿名访问时，用户名和密码都留空",
+  "s3AccessKey": "Access Key ID",
+  "s3SecretKey": "Secret Access Key",
+  "s3AnonymousHelp": "公开存储桶可以不填密钥",
+  "s3Region": "区域（可选，默认 us-east-1）",
+  "s3PathHint": "存储桶/可选前缀，例如 media/movies",
+  "remotePathHint": "例如 media/movies，留空为根目录",
+  "dlnaSearch": "搜索局域网设备",
+  "dlnaSearching": "正在搜索…",
+  "dlnaNoDevices": "没有找到媒体服务器，可以手动填写设备描述地址。",
+  "dlnaDevice": "设备",
+  "dlnaAddress": "设备描述地址",
+  "dlnaAddressHelp": "选择搜索到的设备会自动填写，也可以手动填写。",
+  "aiOpenExternal": "打开链接",
+  "serverBrowseAll": "全部",
+  "serverUnavailable": "无法连接此服务器",
+  "serverEmpty": "这里还没有内容",
+  "serverLoadMore": "加载更多",
+  "localLibrary": "本地媒体库"
 }

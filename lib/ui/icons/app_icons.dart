@@ -2,6 +2,12 @@ import 'package:lucide_icons_flutter/lucide_icons.dart';
 
 /// Business meanings share one locally bundled Lucide mapping.
 abstract final class AppIcons {
+  static const send = LucideIcons.send;
+  static const stop = LucideIcons.square;
+  static const copy = LucideIcons.copy;
+  static const assistant = LucideIcons.sparkles;
+  static const chat = LucideIcons.messageCircle;
+
   static const home = LucideIcons.house;
   static const library = LucideIcons.libraryBig;
   static const folder = LucideIcons.folder;

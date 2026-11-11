@@ -103,7 +103,7 @@
   "chooseEachTime": "Choose each time",
   "defaultUnavailable": "A default source is unavailable. Choose again; no other account was substituted.",
   "searchScope": "Multi-source search scope",
-  "searchScopeDescription": "Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.",
+  "searchScopeDescription": "Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.",
   "sourceDefaultsTitle": "Default sources and search scope",
   "localFolder": "Local folder",
   "pickFolderFailed": "Could not choose a folder. Try again.",
@@ -126,6 +126,8 @@
   "optionalPath": "Path (optional)",
   "smbPathHint": "Share/video-folder",
   "serverPathHint": "For example jellyfin; otherwise leave blank.",
+  "scanExtensions": "File extensions to scan",
+  "scanExtensionsHelp": "Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.",
   "optionalDomain": "Workgroup (optional)",
   "waitingPlex": "Waiting for Plex authorization…",
   "signInPlex": "Sign in to Plex",
@@ -169,6 +171,17 @@
   "adjustFailed": "Adjustment failed. Try again.",
   "audioTrack": "Audio track",
   "noAudioTracks": "No selectable audio tracks",
+  "subtitleTrack": "Subtitles",
+  "noSubtitleTracks": "No selectable subtitles",
+  "subtitleOff": "Subtitles off",
+  "numberedSubtitleTrack": "Subtitle {id}",
+  "@numberedSubtitleTrack": {
+    "placeholders": {
+      "id": {
+        "type": "int"
+      }
+    }
+  },
   "playbackCommandFailed": "Playback failed. Reopen the media file.",
   "openFileFailed": "Could not open the file. Choose again.",
   "stopPlaybackFailed": "Could not stop playback. Try going back again.",
@@ -195,6 +208,28 @@
         "type": "int"
       },
       "duration": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressLabel": "Scraping {done}/{total}",
+  "@metadataProgressLabel": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "metadataProgressTooltip": "Metadata scraping progress: {done} of {total} processed (items with no match count as processed)",
+  "@metadataProgressTooltip": {
+    "placeholders": {
+      "done": {
+        "type": "int"
+      },
+      "total": {
         "type": "int"
       }
     }
@@ -361,6 +396,34 @@
   "shadPaste": "Paste",
   "shadSelectAll": "Select all",
   "shadDone": "Done",
+  "scanFoundMedia": "{n} media files found",
+  "@scanFoundMedia": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "detailOverview": "Overview",
+  "detailCast": "Cast",
+  "detailDirectors": "Director",
+  "seasonLabel": "Season {n}",
+  "@seasonLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "episodeLabel": "Episode {n}",
+  "@episodeLabel": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
+  "detailNoEpisodes": "No episodes yet.",
   "metadata": "Metadata",
   "metadataIdentify": "Identify / rematch",
   "metadataImport": "Import nearby NFO and artwork",
@@ -372,7 +435,7 @@
   "metadataLanguage": "Metadata language",
   "metadataToken": "TMDB read access token",
   "metadataConfigure": "Configure TMDB",
-  "metadataPrivacy": "Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.",
+  "metadataPrivacy": "Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.",
   "metadataSaved": "TMDB configuration saved",
   "metadataCandidates": "Choose a work",
   "metadataChooseChildren": "Choose season / episode",
@@ -406,5 +469,145 @@
   "metadataMissingSource": "Source file missing",
   "metadataAttribution": "This product uses the TMDB API but is not endorsed or certified by TMDB.",
   "metadataForgetToken": "Remove TMDB credential",
-  "metadataSearch": "Search TMDB"
+  "metadataTokenSaved": "TMDB token saved on this device.",
+  "metadataTokenMissing": "No TMDB token configured.",
+  "metadataSearch": "Search TMDB",
+  "aiAssistant": "AI assistant",
+  "aiPrivacyNotice": "Messages, selected context and tool results are sent to your configured model provider.",
+  "aiWelcome": "Ask me to find media, continue watching, or control playback. Configure a model to begin.",
+  "aiYou": "You",
+  "aiToolResult": "Tool result",
+  "aiConfirmAction": "Confirm this change",
+  "aiApprove": "Approve",
+  "aiInputHint": "What would you like to watch?",
+  "aiStop": "Stop generating",
+  "aiSend": "Send",
+  "aiToolFailed": "Tool did not complete",
+  "aiConfigureFirst": "Configure your model, API key and cloud consent in AI settings first.",
+  "aiSendFailed": "Unable to send. Check the input length and try again.",
+  "aiCancelled": "Generation stopped. Completed actions are retained.",
+  "aiTimeout": "The request timed out. Completed actions are retained.",
+  "aiBudgetReached": "Turn limit reached. Completed results are retained.",
+  "aiProviderFailed": "Model request failed. Check credentials, endpoint and model support.",
+  "aiInterrupted": "Interrupted on shutdown; actions will not be replayed.",
+  "aiTokenUsage": "Reported tokens: {count}",
+  "aiModelSettings": "Model settings",
+  "aiProviderDescription": "OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.",
+  "aiEndpoint": "API base URL",
+  "aiModel": "Model ID",
+  "aiApiKey": "API key",
+  "aiKeyRequired": "Enter an API key",
+  "aiKeySaved": "Key saved; leave blank to keep it",
+  "aiOutputLimit": "Maximum output tokens (128–16384)",
+  "aiCloudConsent": "Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.",
+  "aiTestText": "Test reply",
+  "aiTestStream": "Test streaming",
+  "aiTestTools": "Test tool calls",
+  "aiTestPassed": "Connection test passed. Save to apply.",
+  "aiTestFailed": "Test failed. Check credentials and protocol support. Tool support must pass independently.",
+  "aiToolsVerified": "Tool calls verified. Available business tools will be enabled.",
+  "aiTextOnly": "Conversation only until the tool-call test passes.",
+  "aiSaveFailed": "Unable to save. Check the configuration and credential store access.",
+  "@aiTokenUsage": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "aiExecuting": "Running {name}…",
+  "@aiExecuting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
+  "aiAuthenticationFailed": "Authentication failed. Update the API key in model settings.",
+  "aiRateLimited": "Provider rate limit reached. Try again later.",
+  "aiProtocolMismatch": "The endpoint or model does not support this request. Check connection tests.",
+  "metadataAutomaticQueued": "Queued for identification",
+  "metadataAutomaticWaitingConfig": "Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.",
+  "metadataAutomaticRetry": "Retry unfinished identification",
+  "metadataAutomaticStatus": "Background metadata: {queued} queued · {running} running · {waiting} awaiting selection · {failed} failed",
+  "@metadataAutomaticStatus": {
+    "placeholders": {
+      "queued": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      },
+      "waiting": {
+        "type": "int"
+      },
+      "failed": {
+        "type": "int"
+      }
+    }
+  },
+  "fileSources": "File sources",
+  "addFileSource": "Add file source",
+  "nameFileSource": "Name this file source",
+  "fileSourceEnable": "Enable",
+  "fileSourceDisable": "Disable",
+  "fileSourceDisabled": "Disabled",
+  "rescanAll": "Rescan all file sources",
+  "noFileSources": "No file sources yet. Add a folder to build your library.",
+  "removeFileSource": "Delete file source",
+  "removeFileSourceConfirm": "Delete this file source?",
+  "libraryEmptyNoMedia": "No media found in your file sources. Rescan or check the folder naming.",
+  "chooseFolderDescription": "Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.",
+  "confirmFolder": "Use this folder",
+  "libraryNoFileSources": "No file sources yet. Add a folder to a connection under Sources.",
+  "sourceTabConnections": "Connections",
+  "sourceTabFileSources": "File sources",
+  "moreActions": "More actions",
+  "aiNewChat": "New conversation",
+  "aiChatHistory": "Conversations",
+  "aiShowMedia": "Show home content",
+  "aiExpandChat": "Expand on Home",
+  "aiLatest": "Back to latest",
+  "aiDraftNext": "Replying. You can draft your next message.",
+  "aiSuggestMedia": "Help me find a movie",
+  "aiSuggestResume": "Where did I leave off?",
+  "aiToolPreparing": "Preparing",
+  "aiToolRunning": "Running",
+  "aiToolWaiting": "Awaiting confirmation",
+  "aiToolSucceeded": "Completed",
+  "aiToolCancelled": "Not executed or cancelled",
+  "aiActionExpired": "This action is no longer available. Select again.",
+  "aiRemoteImageBlocked": "Remote image not loaded",
+  "aiOpenLink": "Open external link?",
+  "aiLinkBlocked": "This link cannot be opened",
+  "aiTaskSubmitted": "Task submitted",
+  "aiPartialFailure": "Some sources are unavailable",
+  "aiMoreResults": "More results are available. Ask to see another page.",
+  "aiNoResults": "No matching results",
+  "aiUntitledChat": "New conversation",
+  "aiHistoryEmpty": "No conversations yet",
+  "aiReplying": "Replying…",
+  "aiToolSummary": "Actions and results come from local services",
+  "aiEarlier": "Load earlier messages",
+  "diagnosticsTitle": "Send diagnostics",
+  "diagnosticsDescription": "Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.",
+  "anonymousHelp": "Leave username and password blank for anonymous access.",
+  "s3AccessKey": "Access Key ID",
+  "s3SecretKey": "Secret Access Key",
+  "s3AnonymousHelp": "Public buckets need no keys.",
+  "s3Region": "Region (optional, default us-east-1)",
+  "s3PathHint": "bucket/optional-prefix, e.g. media/movies",
+  "remotePathHint": "e.g. media/movies; leave blank for the root",
+  "dlnaSearch": "Search local network",
+  "dlnaSearching": "Searching…",
+  "dlnaNoDevices": "No media servers found. You can enter the device description URL manually.",
+  "dlnaDevice": "Device",
+  "dlnaAddress": "Device description URL",
+  "dlnaAddressHelp": "Filled in when you pick a discovered device; you can also enter it manually.",
+  "aiOpenExternal": "Open link",
+  "serverBrowseAll": "All",
+  "serverUnavailable": "Can't reach this server",
+  "serverEmpty": "Nothing here yet",
+  "serverLoadMore": "Load more",
+  "localLibrary": "Local library"
 }

@@ -320,7 +320,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get searchScopeDescription =>
-      '范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。';
+      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
 
   @override
   String get sourceDefaultsTitle => '能力默认实例与搜索范围';
@@ -387,6 +387,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get serverPathHint => '例如 jellyfin，没有则留空';
+
+  @override
+  String get scanExtensions => '扫描的文件后缀';
+
+  @override
+  String get scanExtensionsHelp =>
+      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
 
   @override
   String get optionalDomain => '工作组（可选）';
@@ -518,6 +525,20 @@ class AppLocalizationsZh extends AppLocalizations {
   String get noAudioTracks => '此媒体没有可选音轨';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒体没有可选字幕';
+
+  @override
+  String get subtitleOff => '关闭字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失败，请重新打开媒体文件。';
 
   @override
@@ -577,6 +598,16 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分钟';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
   }
 
   @override
@@ -756,6 +787,33 @@ class AppLocalizationsZh extends AppLocalizations {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已发现 $n 个媒体文件';
+  }
+
+  @override
+  String get detailOverview => '简介';
+
+  @override
+  String get detailCast => '演员';
+
+  @override
+  String get detailDirectors => '导演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '还没有可播放的剧集。';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -790,7 +848,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metadataPrivacy =>
-      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+      '入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。';
 
   @override
   String get metadataSaved => 'TMDB 配置已保存';
@@ -892,7 +950,351 @@ class AppLocalizationsZh extends AppLocalizations {
   String get metadataForgetToken => '移除 TMDB 凭据';
 
   @override
+  String get metadataTokenSaved => '已在本机保存 TMDB 令牌。';
+
+  @override
+  String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
+
+  @override
   String get metadataSearch => '搜索 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
+
+  @override
+  String get aiWelcome => '可以让我查找媒体、继续观看或控制播放。请先配置模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具结果';
+
+  @override
+  String get aiConfirmAction => '确认这项变更';
+
+  @override
+  String get aiApprove => '同意执行';
+
+  @override
+  String get aiInputHint => '想看些什么？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '发送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+
+  @override
+  String get aiSendFailed => '无法发送，请检查输入长度后重试。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作会保留。';
+
+  @override
+  String get aiTimeout => '请求超时，已完成操作会保留。';
+
+  @override
+  String get aiBudgetReached => '已达到本回合上限，已完成结果会保留。';
+
+  @override
+  String get aiProviderFailed => '模型请求失败，请检查凭据、端点及模型支持情况。';
+
+  @override
+  String get aiInterrupted => '上次关闭时中断，不会重放操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供应商报告用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型设置';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填写 API Key';
+
+  @override
+  String get aiKeySaved => '已保存凭据，留空保留';
+
+  @override
+  String get aiOutputLimit => '输出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiTestText => '测试普通回复';
+
+  @override
+  String get aiTestStream => '测试流式回复';
+
+  @override
+  String get aiTestTools => '测试工具调用';
+
+  @override
+  String get aiTestPassed => '连接测试通过，保存后生效。';
+
+  @override
+  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
+
+  @override
+  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
+
+  @override
+  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
+
+  @override
+  String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已达到供应商限流，请稍后重试。';
+
+  @override
+  String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自动识别';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。';
+
+  @override
+  String get metadataAutomaticRetry => '重试未完成的刮削';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
+  }
+
+  @override
+  String get fileSources => '文件源';
+
+  @override
+  String get addFileSource => '添加文件源';
+
+  @override
+  String get nameFileSource => '为文件源命名';
+
+  @override
+  String get fileSourceEnable => '启用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新扫描全部文件源';
+
+  @override
+  String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
+
+  @override
+  String get removeFileSource => '删除文件源';
+
+  @override
+  String get removeFileSourceConfirm => '删除此文件源？';
+
+  @override
+  String get libraryEmptyNoMedia => '文件源中暂无可识别的媒体，请重新扫描或检查文件命名';
+
+  @override
+  String get chooseFolderDescription => '进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。';
+
+  @override
+  String get confirmFolder => '使用此文件夹';
+
+  @override
+  String get libraryNoFileSources => '还没有文件源。请在「来源」中为连接添加文件夹';
+
+  @override
+  String get sourceTabConnections => '连接';
+
+  @override
+  String get sourceTabFileSources => '文件源';
+
+  @override
+  String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新建对话';
+
+  @override
+  String get aiChatHistory => '会话历史';
+
+  @override
+  String get aiShowMedia => '返回首页内容';
+
+  @override
+  String get aiExpandChat => '在首页展开';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回复，你可以先编辑下一条消息。';
+
+  @override
+  String get aiSuggestMedia => '帮我找一部电影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪里了？';
+
+  @override
+  String get aiToolPreparing => '准备执行';
+
+  @override
+  String get aiToolRunning => '执行中';
+
+  @override
+  String get aiToolWaiting => '等待确认';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未执行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，请重新选择。';
+
+  @override
+  String get aiRemoteImageBlocked => '远程图片未自动加载';
+
+  @override
+  String get aiOpenLink => '打开外部链接？';
+
+  @override
+  String get aiLinkBlocked => '无法打开此链接';
+
+  @override
+  String get aiTaskSubmitted => '已提交任务';
+
+  @override
+  String get aiPartialFailure => '部分来源暂不可用';
+
+  @override
+  String get aiMoreResults => '还有更多结果，可继续提问查看。';
+
+  @override
+  String get aiNoResults => '没有找到匹配内容';
+
+  @override
+  String get aiUntitledChat => '新对话';
+
+  @override
+  String get aiHistoryEmpty => '还没有会话记录';
+
+  @override
+  String get aiReplying => '正在回复…';
+
+  @override
+  String get aiToolSummary => '操作及结果来自本机服务';
+
+  @override
+  String get aiEarlier => '加载更早消息';
+
+  @override
+  String get diagnosticsTitle => '发送诊断信息';
+
+  @override
+  String get diagnosticsDescription =>
+      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
+
+  @override
+  String get anonymousHelp => '匿名访问时，用户名和密码都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公开存储桶可以不填密钥';
+
+  @override
+  String get s3Region => '区域（可选，默认 us-east-1）';
+
+  @override
+  String get s3PathHint => '存储桶/可选前缀，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空为根目录';
+
+  @override
+  String get dlnaSearch => '搜索局域网设备';
+
+  @override
+  String get dlnaSearching => '正在搜索…';
+
+  @override
+  String get dlnaNoDevices => '没有找到媒体服务器，可以手动填写设备描述地址。';
+
+  @override
+  String get dlnaDevice => '设备';
+
+  @override
+  String get dlnaAddress => '设备描述地址';
+
+  @override
+  String get dlnaAddressHelp => '选择搜索到的设备会自动填写，也可以手动填写。';
+
+  @override
+  String get aiOpenExternal => '打开链接';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '无法连接此服务器';
+
+  @override
+  String get serverEmpty => '这里还没有内容';
+
+  @override
+  String get serverLoadMore => '加载更多';
+
+  @override
+  String get localLibrary => '本地媒体库';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1210,7 +1612,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get searchScopeDescription =>
-      '范围以实例列表保存，可包含多个实例。当前四类插件仅实现浏览和解析，尚无可选搜索实例。字幕搜索等能力接入后才开放对应默认实例设置。';
+      '选择参与聚合搜索的 Plex/Jellyfin 来源。本地文件夹与 SMB 通过已索引的媒体库查询。';
 
   @override
   String get sourceDefaultsTitle => '能力默认实例与搜索范围';
@@ -1277,6 +1679,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get serverPathHint => '例如 jellyfin，没有则留空';
+
+  @override
+  String get scanExtensions => '扫描的文件后缀';
+
+  @override
+  String get scanExtensionsHelp =>
+      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
 
   @override
   String get optionalDomain => '工作组（可选）';
@@ -1408,6 +1817,20 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get noAudioTracks => '此媒体没有可选音轨';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒体没有可选字幕';
+
+  @override
+  String get subtitleOff => '关闭字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失败，请重新打开媒体文件。';
 
   @override
@@ -1467,6 +1890,16 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分钟';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元数据刮削进度：已处理 $done / 共 $total（找不到匹配的也算已处理）';
   }
 
   @override
@@ -1646,6 +2079,33 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已发现 $n 个媒体文件';
+  }
+
+  @override
+  String get detailOverview => '简介';
+
+  @override
+  String get detailCast => '演员';
+
+  @override
+  String get detailDirectors => '导演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '还没有可播放的剧集。';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -1680,7 +2140,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get metadataPrivacy =>
-      '在线查询仅向 TMDB 发送名称、年份、ID 和语言，不上传视频或私人路径。仅在主动操作时联网查询。';
+      '入库的影视会在后台自动识别，仅向 TMDB 发送必要的名称、年份、ID 和语言，不上传视频或私人路径。';
 
   @override
   String get metadataSaved => 'TMDB 配置已保存';
@@ -1782,7 +2242,351 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get metadataForgetToken => '移除 TMDB 凭据';
 
   @override
+  String get metadataTokenSaved => '已在本机保存 TMDB 令牌。';
+
+  @override
+  String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
+
+  @override
   String get metadataSearch => '搜索 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
+
+  @override
+  String get aiWelcome => '可以让我查找媒体、继续观看或控制播放。请先配置模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具结果';
+
+  @override
+  String get aiConfirmAction => '确认这项变更';
+
+  @override
+  String get aiApprove => '同意执行';
+
+  @override
+  String get aiInputHint => '想看些什么？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '发送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+
+  @override
+  String get aiSendFailed => '无法发送，请检查输入长度后重试。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作会保留。';
+
+  @override
+  String get aiTimeout => '请求超时，已完成操作会保留。';
+
+  @override
+  String get aiBudgetReached => '已达到本回合上限，已完成结果会保留。';
+
+  @override
+  String get aiProviderFailed => '模型请求失败，请检查凭据、端点及模型支持情况。';
+
+  @override
+  String get aiInterrupted => '上次关闭时中断，不会重放操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供应商报告用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型设置';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填写 API Key';
+
+  @override
+  String get aiKeySaved => '已保存凭据，留空保留';
+
+  @override
+  String get aiOutputLimit => '输出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiTestText => '测试普通回复';
+
+  @override
+  String get aiTestStream => '测试流式回复';
+
+  @override
+  String get aiTestTools => '测试工具调用';
+
+  @override
+  String get aiTestPassed => '连接测试通过，保存后生效。';
+
+  @override
+  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
+
+  @override
+  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
+
+  @override
+  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
+
+  @override
+  String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已达到供应商限流，请稍后重试。';
+
+  @override
+  String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自动识别';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '后台刮削需要配置有效的 TMDB 读取令牌，本地 NFO 和播放不受影响。';
+
+  @override
+  String get metadataAutomaticRetry => '重试未完成的刮削';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '后台刮削：$queued 待处理 · $running 处理中 · $waiting 待确认 · $failed 失败';
+  }
+
+  @override
+  String get fileSources => '文件源';
+
+  @override
+  String get addFileSource => '添加文件源';
+
+  @override
+  String get nameFileSource => '为文件源命名';
+
+  @override
+  String get fileSourceEnable => '启用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新扫描全部文件源';
+
+  @override
+  String get noFileSources => '还没有文件源，添加一个文件夹开始建立媒体库';
+
+  @override
+  String get removeFileSource => '删除文件源';
+
+  @override
+  String get removeFileSourceConfirm => '删除此文件源？';
+
+  @override
+  String get libraryEmptyNoMedia => '文件源中暂无可识别的媒体，请重新扫描或检查文件命名';
+
+  @override
+  String get chooseFolderDescription => '进入目录并确认作为文件源。仅索引其中的媒体，不下载视频。';
+
+  @override
+  String get confirmFolder => '使用此文件夹';
+
+  @override
+  String get libraryNoFileSources => '还没有文件源。请在「来源」中为连接添加文件夹';
+
+  @override
+  String get sourceTabConnections => '连接';
+
+  @override
+  String get sourceTabFileSources => '文件源';
+
+  @override
+  String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新建对话';
+
+  @override
+  String get aiChatHistory => '会话历史';
+
+  @override
+  String get aiShowMedia => '返回首页内容';
+
+  @override
+  String get aiExpandChat => '在首页展开';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回复，你可以先编辑下一条消息。';
+
+  @override
+  String get aiSuggestMedia => '帮我找一部电影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪里了？';
+
+  @override
+  String get aiToolPreparing => '准备执行';
+
+  @override
+  String get aiToolRunning => '执行中';
+
+  @override
+  String get aiToolWaiting => '等待确认';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未执行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，请重新选择。';
+
+  @override
+  String get aiRemoteImageBlocked => '远程图片未自动加载';
+
+  @override
+  String get aiOpenLink => '打开外部链接？';
+
+  @override
+  String get aiLinkBlocked => '无法打开此链接';
+
+  @override
+  String get aiTaskSubmitted => '已提交任务';
+
+  @override
+  String get aiPartialFailure => '部分来源暂不可用';
+
+  @override
+  String get aiMoreResults => '还有更多结果，可继续提问查看。';
+
+  @override
+  String get aiNoResults => '没有找到匹配内容';
+
+  @override
+  String get aiUntitledChat => '新对话';
+
+  @override
+  String get aiHistoryEmpty => '还没有会话记录';
+
+  @override
+  String get aiReplying => '正在回复…';
+
+  @override
+  String get aiToolSummary => '操作及结果来自本机服务';
+
+  @override
+  String get aiEarlier => '加载更早消息';
+
+  @override
+  String get diagnosticsTitle => '发送诊断信息';
+
+  @override
+  String get diagnosticsDescription =>
+      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
+
+  @override
+  String get anonymousHelp => '匿名访问时，用户名和密码都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公开存储桶可以不填密钥';
+
+  @override
+  String get s3Region => '区域（可选，默认 us-east-1）';
+
+  @override
+  String get s3PathHint => '存储桶/可选前缀，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空为根目录';
+
+  @override
+  String get dlnaSearch => '搜索局域网设备';
+
+  @override
+  String get dlnaSearching => '正在搜索…';
+
+  @override
+  String get dlnaNoDevices => '没有找到媒体服务器，可以手动填写设备描述地址。';
+
+  @override
+  String get dlnaDevice => '设备';
+
+  @override
+  String get dlnaAddress => '设备描述地址';
+
+  @override
+  String get dlnaAddressHelp => '选择搜索到的设备会自动填写，也可以手动填写。';
+
+  @override
+  String get aiOpenExternal => '打开链接';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '无法连接此服务器';
+
+  @override
+  String get serverEmpty => '这里还没有内容';
+
+  @override
+  String get serverLoadMore => '加载更多';
+
+  @override
+  String get localLibrary => '本地媒体库';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -2100,7 +2904,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get searchScopeDescription =>
-      '範圍以實例清單儲存，可包含多個實例。目前來源僅支援瀏覽及解析，搜尋能力接入後才開放相關預設設定。';
+      '選擇參與彙總搜尋的 Plex/Jellyfin 來源。本機資料夾與 SMB 透過已索引的媒體庫查詢。';
 
   @override
   String get sourceDefaultsTitle => '能力預設實例及搜尋範圍';
@@ -2167,6 +2971,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get serverPathHint => '例如 jellyfin，無則留空';
+
+  @override
+  String get scanExtensions => '掃描的檔案副檔名';
+
+  @override
+  String get scanExtensionsHelp =>
+      '以逗號分隔。預覽與入庫只保留這些副檔名的檔案，留空則保留所有檔案。以點開頭的隱藏檔案一律忽略。';
 
   @override
   String get optionalDomain => '工作群組（選填）';
@@ -2298,6 +3109,20 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get noAudioTracks => '此媒體沒有可選音軌';
 
   @override
+  String get subtitleTrack => '字幕';
+
+  @override
+  String get noSubtitleTracks => '此媒體沒有可選字幕';
+
+  @override
+  String get subtitleOff => '關閉字幕';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return '字幕 $id';
+  }
+
+  @override
   String get playbackCommandFailed => '播放操作失敗，請重新開啟媒體檔案。';
 
   @override
@@ -2357,6 +3182,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String watchProgress(int position, int duration) {
     return '已看 $position / $duration 分鐘';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return '刮削 $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return '元資料刮削進度：已處理 $done / 共 $total（找不到符合的也算已處理）';
   }
 
   @override
@@ -2536,6 +3371,33 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get shadDone => '完成';
 
   @override
+  String scanFoundMedia(int n) {
+    return '已發現 $n 個媒體檔案';
+  }
+
+  @override
+  String get detailOverview => '簡介';
+
+  @override
+  String get detailCast => '演員';
+
+  @override
+  String get detailDirectors => '導演';
+
+  @override
+  String seasonLabel(int n) {
+    return '第 $n 季';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return '第 $n 集';
+  }
+
+  @override
+  String get detailNoEpisodes => '還沒有可播放的劇集。';
+
+  @override
   String get metadata => '影視資訊';
 
   @override
@@ -2570,7 +3432,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get metadataPrivacy =>
-      '線上查詢僅向 TMDB 傳送名稱、年份、ID 和語言，不上傳影片或私人路徑。僅在主動操作時連網查詢。';
+      '加入媒體庫的影視會在背景自動識別，僅向 TMDB 傳送必要的名稱、年份、ID 和語言，不上傳影片或私人路徑。';
 
   @override
   String get metadataSaved => 'TMDB 設定已儲存';
@@ -2672,5 +3534,349 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get metadataForgetToken => '移除 TMDB 憑證';
 
   @override
+  String get metadataTokenSaved => '已在本機儲存 TMDB 權杖。';
+
+  @override
+  String get metadataTokenMissing => '尚未設定 TMDB 權杖。';
+
+  @override
   String get metadataSearch => '搜尋 TMDB';
+
+  @override
+  String get aiAssistant => 'AI 助手';
+
+  @override
+  String get aiPrivacyNotice => '訊息、選定上下文及工具結果會傳送至你設定的模型供應商。';
+
+  @override
+  String get aiWelcome => '可以讓我尋找媒體、繼續觀看或控制播放。請先設定模型。';
+
+  @override
+  String get aiYou => '你';
+
+  @override
+  String get aiToolResult => '工具結果';
+
+  @override
+  String get aiConfirmAction => '確認這項變更';
+
+  @override
+  String get aiApprove => '同意執行';
+
+  @override
+  String get aiInputHint => '想看些什麼？';
+
+  @override
+  String get aiStop => '停止生成';
+
+  @override
+  String get aiSend => '傳送';
+
+  @override
+  String get aiToolFailed => '工具未完成';
+
+  @override
+  String get aiConfigureFirst => '請先在 AI 設定中設定模型、API Key 並授權傳送至雲端。';
+
+  @override
+  String get aiSendFailed => '無法傳送，請檢查輸入長度後重試。';
+
+  @override
+  String get aiCancelled => '已停止生成，已完成操作會保留。';
+
+  @override
+  String get aiTimeout => '請求逾時，已完成操作會保留。';
+
+  @override
+  String get aiBudgetReached => '已達到本回合上限，已完成結果會保留。';
+
+  @override
+  String get aiProviderFailed => '模型請求失敗，請檢查憑據、端點及模型支援情況。';
+
+  @override
+  String get aiInterrupted => '上次關閉時中斷，不會重播操作。';
+
+  @override
+  String aiTokenUsage(int count) {
+    return '供應商回報用量：$count tokens';
+  }
+
+  @override
+  String get aiModelSettings => '模型設定';
+
+  @override
+  String get aiProviderDescription =>
+      '使用 OpenAI 或相容協定的 HTTPS 端點。API Key 儲存在系統憑據儲存區。';
+
+  @override
+  String get aiEndpoint => 'API 基址';
+
+  @override
+  String get aiModel => '模型 ID';
+
+  @override
+  String get aiApiKey => 'API Key';
+
+  @override
+  String get aiKeyRequired => '填寫 API Key';
+
+  @override
+  String get aiKeySaved => '已儲存憑據，留空保留';
+
+  @override
+  String get aiOutputLimit => '輸出 token 上限（128–16384）';
+
+  @override
+  String get aiCloudConsent => '允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。';
+
+  @override
+  String get aiTestText => '測試一般回覆';
+
+  @override
+  String get aiTestStream => '測試串流回覆';
+
+  @override
+  String get aiTestTools => '測試工具呼叫';
+
+  @override
+  String get aiTestPassed => '連線測試通過，儲存後生效。';
+
+  @override
+  String get aiTestFailed => '測試失敗，請檢查憑據及協定支援。工具呼叫須獨立通過測試。';
+
+  @override
+  String get aiToolsVerified => '工具呼叫已驗證，將啟用實際可用的業務工具。';
+
+  @override
+  String get aiTextOnly => '工具呼叫測試通過前僅啟用純對話。';
+
+  @override
+  String get aiSaveFailed => '儲存失敗，請檢查設定及系統憑據儲存權限。';
+
+  @override
+  String aiExecuting(String name) {
+    return '正在執行 $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed => '驗證失敗，請在模型設定中更新 API Key。';
+
+  @override
+  String get aiRateLimited => '已達到供應商速率限制，請稍後重試。';
+
+  @override
+  String get aiProtocolMismatch => '端點或模型不支援此請求，請檢查連線測試結果。';
+
+  @override
+  String get metadataAutomaticQueued => '等待自動識別';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      '背景擷取需要設定有效的 TMDB 讀取權杖，本機 NFO 和播放不受影響。';
+
+  @override
+  String get metadataAutomaticRetry => '重試未完成的擷取';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return '背景擷取：$queued 待處理 · $running 處理中 · $waiting 待確認 · $failed 失敗';
+  }
+
+  @override
+  String get fileSources => '檔案來源';
+
+  @override
+  String get addFileSource => '新增檔案來源';
+
+  @override
+  String get nameFileSource => '為檔案來源命名';
+
+  @override
+  String get fileSourceEnable => '啟用';
+
+  @override
+  String get fileSourceDisable => '停用';
+
+  @override
+  String get fileSourceDisabled => '已停用';
+
+  @override
+  String get rescanAll => '重新掃描全部檔案來源';
+
+  @override
+  String get noFileSources => '尚無檔案來源，新增一個資料夾開始建立媒體庫';
+
+  @override
+  String get removeFileSource => '刪除檔案來源';
+
+  @override
+  String get removeFileSourceConfirm => '刪除此檔案來源？';
+
+  @override
+  String get libraryEmptyNoMedia => '檔案來源中尚無可辨識的媒體，請重新掃描或檢查檔名';
+
+  @override
+  String get chooseFolderDescription => '進入目錄並確認作為檔案來源。僅索引其中的媒體，不下載影片。';
+
+  @override
+  String get confirmFolder => '使用此資料夾';
+
+  @override
+  String get libraryNoFileSources => '尚無檔案來源。請在「來源」中為連線新增資料夾';
+
+  @override
+  String get sourceTabConnections => '連線';
+
+  @override
+  String get sourceTabFileSources => '檔案來源';
+
+  @override
+  String get moreActions => '更多操作';
+
+  @override
+  String get aiNewChat => '新增對話';
+
+  @override
+  String get aiChatHistory => '對話紀錄';
+
+  @override
+  String get aiShowMedia => '返回首頁內容';
+
+  @override
+  String get aiExpandChat => '在首頁展開';
+
+  @override
+  String get aiLatest => '回到最新';
+
+  @override
+  String get aiDraftNext => '正在回覆，你可以先編輯下一則訊息。';
+
+  @override
+  String get aiSuggestMedia => '幫我找一部電影';
+
+  @override
+  String get aiSuggestResume => '我上次看到哪裡了？';
+
+  @override
+  String get aiToolPreparing => '準備執行';
+
+  @override
+  String get aiToolRunning => '執行中';
+
+  @override
+  String get aiToolWaiting => '等待確認';
+
+  @override
+  String get aiToolSucceeded => '已完成';
+
+  @override
+  String get aiToolCancelled => '未執行或已取消';
+
+  @override
+  String get aiActionExpired => '此操作已失效，請重新選擇。';
+
+  @override
+  String get aiRemoteImageBlocked => '遠端圖片未自動載入';
+
+  @override
+  String get aiOpenLink => '開啟外部連結？';
+
+  @override
+  String get aiLinkBlocked => '無法開啟此連結';
+
+  @override
+  String get aiTaskSubmitted => '已提交工作';
+
+  @override
+  String get aiPartialFailure => '部分來源暫時無法使用';
+
+  @override
+  String get aiMoreResults => '還有更多結果，可繼續提問查看。';
+
+  @override
+  String get aiNoResults => '沒有找到符合的內容';
+
+  @override
+  String get aiUntitledChat => '新對話';
+
+  @override
+  String get aiHistoryEmpty => '還沒有對話紀錄';
+
+  @override
+  String get aiReplying => '正在回覆…';
+
+  @override
+  String get aiToolSummary => '操作及結果來自本機服務';
+
+  @override
+  String get aiEarlier => '載入較早的訊息';
+
+  @override
+  String get diagnosticsTitle => '傳送診斷資訊';
+
+  @override
+  String get diagnosticsDescription =>
+      '選擇是否向配置的 Sentry 服務傳送應用版本及脫敏錯誤堆疊，不含媒體路徑、憑證或聊天內容。開啟後重啟生效，關閉立即停止所有視窗及背景任務的新上報。暫不收集原生崩潰。';
+
+  @override
+  String get anonymousHelp => '匿名存取時，使用者名稱和密碼都留空';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => '公開儲存貯體可以不填金鑰';
+
+  @override
+  String get s3Region => '區域（選填，預設 us-east-1）';
+
+  @override
+  String get s3PathHint => '儲存貯體/選填前綴，例如 media/movies';
+
+  @override
+  String get remotePathHint => '例如 media/movies，留空為根目錄';
+
+  @override
+  String get dlnaSearch => '搜尋區域網路裝置';
+
+  @override
+  String get dlnaSearching => '正在搜尋…';
+
+  @override
+  String get dlnaNoDevices => '沒有找到媒體伺服器，可以手動填寫裝置描述位址。';
+
+  @override
+  String get dlnaDevice => '裝置';
+
+  @override
+  String get dlnaAddress => '裝置描述位址';
+
+  @override
+  String get dlnaAddressHelp => '選擇搜尋到的裝置會自動填寫，也可以手動填寫。';
+
+  @override
+  String get aiOpenExternal => '開啟連結';
+
+  @override
+  String get serverBrowseAll => '全部';
+
+  @override
+  String get serverUnavailable => '無法連線此伺服器';
+
+  @override
+  String get serverEmpty => '這裡還沒有內容';
+
+  @override
+  String get serverLoadMore => '載入更多';
+
+  @override
+  String get localLibrary => '本機媒體庫';
 }

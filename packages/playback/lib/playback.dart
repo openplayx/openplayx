@@ -17,6 +17,18 @@ class PlayerAudioTrack {
 }
 
 @immutable
+class PlayerSubtitleTrack {
+  const PlayerSubtitleTrack({
+    required this.id,
+    required this.name,
+    this.language,
+  });
+  final int id;
+  final String name;
+  final String? language;
+}
+
+@immutable
 class PlayerSnapshot {
   const PlayerSnapshot({
     this.status = PlaybackStatus.idle,
@@ -54,6 +66,11 @@ abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   Future<void> setVolume(int volume);
   Future<List<PlayerAudioTrack>> getAudioTracks();
   Future<void> setAudioTrack(int id);
+
+  /// Embedded and auto-detected subtitle tracks, without a "disabled" entry.
+  Future<List<PlayerSubtitleTrack>> getSubtitleTracks();
+  Future<void> setSubtitleTrack(int id);
+  Future<void> disableSubtitle();
   Widget buildVideo();
 }
 
@@ -243,6 +260,22 @@ class LibVlcBackend extends PlayerBackend {
   ];
   @override
   Future<void> setAudioTrack(int id) => _controller.setAudioTrack(id);
+  @override
+  Future<List<PlayerSubtitleTrack>> getSubtitleTracks() async => [
+    for (final track in await _controller.getSubtitleTracks())
+      // libVLC lists its own "disable" entry with a negative id; the app shows
+      // a dedicated "off" row instead.
+      if (track.id >= 0)
+        PlayerSubtitleTrack(
+          id: track.id,
+          name: track.name,
+          language: track.language,
+        ),
+  ];
+  @override
+  Future<void> setSubtitleTrack(int id) => _controller.setSubtitleTrack(id);
+  @override
+  Future<void> disableSubtitle() => _controller.disableSubtitle();
   @override
   Widget buildVideo() => VlcPlayer(controller: _controller);
   @override

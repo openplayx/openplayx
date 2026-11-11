@@ -13,11 +13,19 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx_playback/playback.dart';
 
+import 'support/source_services.dart';
 import 'support/test_video.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   const services = bool.fromEnvironment('SOURCE_SERVICES');
+  const host = String.fromEnvironment('SOURCE_HOST', defaultValue: '127.0.0.1');
+  const defines = <String, dynamic>{
+    'JELLYFIN_USER_ID': String.fromEnvironment('JELLYFIN_USER_ID'),
+    'JELLYFIN_TOKEN': String.fromEnvironment('JELLYFIN_TOKEN'),
+    'EMBY_USER_ID': String.fromEnvironment('EMBY_USER_ID'),
+    'EMBY_TOKEN': String.fromEnvironment('EMBY_TOKEN'),
+  };
   for (final kind in SourceKind.values) {
     testWidgets('${kind.label}: real source browse, Range, VLC decode and seek', (
       tester,
@@ -25,19 +33,19 @@ void main() {
       final dir = await Directory.systemTemp.createTemp('openplayx-source-');
       final mediaDirectory = await Directory('${dir.path}/media').create();
       final fixture = await createTestVideo(mediaDirectory);
-      var config = SourceConfig(
-        id: 'integration-${kind.name}-${DateTime.now().microsecondsSinceEpoch}',
-        kind: kind,
-        name: kind.label,
-        address: switch (kind) {
-          SourceKind.local => mediaDirectory.path,
-          SourceKind.smb => 'smb://127.0.0.1',
-          SourceKind.plex => 'http://127.0.0.1:13240',
-          SourceKind.jellyfin => 'http://127.0.0.1:18096',
-        },
-        username: 'openplayx',
-        userId: const String.fromEnvironment('JELLYFIN_USER_ID'),
-      );
+      var config = kind == SourceKind.local
+          ? SourceConfig(
+              id: 'integration-local',
+              kind: kind,
+              name: kind.label,
+              address: mediaDirectory.path,
+            )
+          : sourceServiceConfig(kind, host, defines);
+      config = SourceConfig.fromJson({
+        ...config.toJson(),
+        'id':
+            'integration-${kind.name}-${DateTime.now().microsecondsSinceEpoch}',
+      });
       final configuration = SourceConfigurationService(
         sqlite3.open('${dir.path}/configuration.sqlite3'),
       );
@@ -55,7 +63,8 @@ void main() {
         await dir.delete(recursive: true);
       });
       String? jellyfinToken;
-      if (kind == SourceKind.jellyfin) {
+      // Jellyfin and Emby go through the real username/password sign-in.
+      if (kind.mediaBrowser) {
         final signIn = SourceSignIn();
         try {
           final session = await signIn.jellyfin(config, 'test-only-password');
@@ -66,12 +75,10 @@ void main() {
         }
       }
       debugPrint('Source integration: ${kind.name} saving');
-      await manager.save(config, switch (kind) {
-        SourceKind.local => '',
-        SourceKind.smb => 'test-only-password',
-        SourceKind.plex => 'test-token',
-        SourceKind.jellyfin => jellyfinToken!,
-      });
+      await manager.save(
+        config,
+        jellyfinToken ?? sourceServiceSecret(kind, defines),
+      );
       debugPrint('Source integration: ${kind.name} saved');
       await manager.setDefault('source.browse', config.id);
       // Test bounded pages and traverse the actual media library to a playable leaf.

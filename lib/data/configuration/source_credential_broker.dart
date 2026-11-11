@@ -3,6 +3,7 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/plugins/source_capability.dart';
+import '../configuration/source_configuration_service.dart';
 import '../sources/source_config.dart';
 
 enum SourceAuthorization {
@@ -32,14 +33,19 @@ class SourceCredentialStatus {
 
 /// Only the host receives this object. Every reference is scoped to its instance;
 /// rotation writes a fresh key before committing the new reference to SQLite.
+///
+/// Secrets live in the configuration SQLite database. Entries written by older
+/// versions sit in the macOS keychain; they are copied over the first time they
+/// are needed (one last keychain prompt per source) and then removed from it.
 class SourceCredentialBroker {
-  SourceCredentialBroker([FlutterSecureStorage? storage])
-    : _storage =
-          storage ??
+  SourceCredentialBroker(this._service, [FlutterSecureStorage? legacyKeychain])
+    : _legacy =
+          legacyKeychain ??
           const FlutterSecureStorage(
             mOptions: MacOsOptions(usesDataProtectionKeychain: false),
           );
-  final FlutterSecureStorage _storage;
+  final SourceConfigurationService Function() _service;
+  final FlutterSecureStorage _legacy;
   void _check(String id, String ref) {
     if (ref != 'source.$id' && !ref.startsWith('source.$id.')) {
       throw const PluginException('permissionDenied', '凭据不属于此实例。');
@@ -50,7 +56,24 @@ class SourceCredentialBroker {
     final ref = config.credentialRef;
     if (ref == null) return null;
     _check(config.id, ref);
-    return _storage.read(key: ref);
+    final stored = _service().readSecret(ref);
+    if (stored != null) return stored;
+    return _migrateLegacy(ref);
+  }
+
+  Future<String?> _migrateLegacy(String ref) async {
+    String? secret;
+    try {
+      secret = await _legacy.read(key: ref);
+    } catch (_) {
+      return null; // No keychain, or the user declined: treat as missing.
+    }
+    if (secret == null) return null;
+    _service().writeSecret(ref, secret);
+    try {
+      await _legacy.delete(key: ref);
+    } catch (_) {} // The copy is saved; a leftover keychain item is harmless.
+    return secret;
   }
 
   Future<String> stage(String instanceId, String secret) async {
@@ -60,14 +83,14 @@ class SourceCredentialBroker {
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
     final ref = 'source.$instanceId.$suffix';
-    await _storage.write(key: ref, value: secret);
+    _service().writeSecret(ref, secret);
     return ref;
   }
 
   Future<void> delete(String instanceId, String? ref) async {
     if (ref == null) return;
     _check(instanceId, ref);
-    await _storage.delete(key: ref);
+    _service().deleteSecret(ref);
   }
 
   /// Display saved metadata without unlocking the keychain. The secret is
@@ -78,7 +101,8 @@ class SourceCredentialBroker {
     bool rejected = false,
   }) {
     if (config.kind == SourceKind.local ||
-        (config.kind == SourceKind.smb &&
+        config.kind == SourceKind.dlna ||
+        ((config.kind.optionalCredential || config.kind == SourceKind.sftp) &&
             config.username.isEmpty &&
             config.credentialRef == null)) {
       return const SourceCredentialStatus(SourceAuthorization.notRequired);

@@ -1,17 +1,77 @@
 enum SourceKind {
-  local('本地文件夹'),
-  smb('SMB'),
-  plex('Plex'),
-  jellyfin('Jellyfin');
+  local('本地文件夹', files: true),
+  smb('SMB', files: true, scheme: 'smb', standardPort: 445),
+  webdav('WebDAV', files: true, scheme: 'http'),
+  ftp('FTP', files: true, scheme: 'ftp', standardPort: 21),
+  sftp('SFTP', files: true, scheme: 'sftp', standardPort: 22),
+  s3('S3', files: true, scheme: 'http'),
+  plex('Plex', scheme: 'http', defaultPort: 32400),
+  jellyfin('Jellyfin', scheme: 'http', defaultPort: 8096),
+  emby('Emby', scheme: 'http', defaultPort: 8096),
+  dlna('DLNA', scheme: 'http');
 
-  const SourceKind(this.label);
+  const SourceKind(
+    this.label, {
+    this.files = false,
+    this.scheme,
+    this.standardPort,
+    this.defaultPort,
+  });
   final String label;
+
+  /// Path-addressed file tree that can be scanned into the library.
+  final bool files;
+
+  /// URL scheme of the address; `http` also accepts `https`.
+  final String? scheme;
+
+  /// Protocol port implied when the address has none (never written out).
+  final int? standardPort;
+
+  /// Port filled in for a bare host on an HTTP media server.
+  final int? defaultPort;
+
+  List<String> get schemes => scheme == 'http' ? ['http', 'https'] : [scheme!];
+  bool get isHttp => scheme == 'http';
+
+  /// Media servers that only work with a sign-in token.
+  bool get requiresSecret => this == plex || this == jellyfin || this == emby;
+
+  /// Username/password are optional (anonymous or guest access).
+  bool get optionalCredential =>
+      this == smb || this == webdav || this == ftp || this == s3;
+
+  /// Jellyfin and Emby share the same server API.
+  bool get mediaBrowser => this == jellyfin || this == emby;
 }
 
 enum ScanMode { manual, disabled }
 
 /// Host-owned immutable instance snapshot. Secrets are represented by a scoped
 /// credential reference; permissions and live authorization aren't booleans here.
+const defaultScanExtensions = [
+  'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'wmv', //
+  'mp3', 'flac', 'm4a', 'wav', 'ogg',
+];
+
+/// Parses user input such as "mp4, .MKV；avi" into normalized suffixes.
+List<String> parseScanExtensions(String text) => text
+    .split(RegExp(r'[\s,;，；、]+'))
+    .map((e) => e.replaceFirst(RegExp(r'^\*?\.'), '').toLowerCase())
+    .where((e) => e.isNotEmpty)
+    .toSet()
+    .toList();
+
+/// Whether a scan keeps a file with this name. Hidden files (leading dot, such
+/// as macOS `._movie.mp4` or `.DS_Store`) are always dropped; empty
+/// [extensions] keeps every other file.
+bool matchesScanExtension(String name, List<String> extensions) {
+  if (name.startsWith('.')) return false;
+  if (extensions.isEmpty) return true;
+  final dot = name.lastIndexOf('.');
+  return dot >= 0 && extensions.contains(name.substring(dot + 1).toLowerCase());
+}
+
 class SourceConfig {
   const SourceConfig({
     required this.id,
@@ -59,9 +119,29 @@ class SourceConfig {
   final int maxConcurrentRequests;
   final List<String> allowedPaths;
   final List<String> scanExclusions;
+
   final ScanMode scanMode;
   final bool backgroundIndexing;
-  bool get isFileSource => kind == SourceKind.local || kind == SourceKind.smb;
+
+  /// Name shown when the connection appears in another place (pickers,
+  /// filters, file source rows): always prefixed with the type. A blank name
+  /// falls back to the address, so the default is "type + address".
+  String get displayName =>
+      '${kind.label} · ${name.trim().isEmpty ? address : name.trim()}';
+
+  /// Name for the connection's own management row: the user's name, or the
+  /// type-prefixed default when none was entered.
+  String get titleName => name.trim().isEmpty ? displayName : name.trim();
+  bool get isFileSource => kind.files;
+
+  /// Decoded root path inside the server ("/" or "/share/movies"); resource ids
+  /// of remote file sources are decoded absolute paths below it.
+  String get rootPath {
+    if (kind == SourceKind.local) return address;
+    final segments = Uri.parse(address).pathSegments.where((s) => s.isNotEmpty);
+    return '/${segments.join('/')}';
+  }
+
   String get effectiveBrowseMode =>
       browseMode ?? (isFileSource ? 'files' : 'library');
   String get pluginId => 'source.${kind.name}';
@@ -165,6 +245,7 @@ class SourceConfig {
       'maxConcurrentRequests',
       'allowedPaths',
       'scanExclusions',
+      'scanExtensions', // legacy per-source value, now a global setting
       'scanMode',
       'backgroundIndexing',
     };
@@ -206,8 +287,8 @@ class SourceConfig {
 
   void validate() {
     if (configVersion != 2) throw const FormatException('配置版本不兼容，不能覆盖保存。');
-    if (id.isEmpty || name.trim().isEmpty || address.trim().isEmpty) {
-      throw const FormatException('请填写名称和地址。');
+    if (id.isEmpty || address.trim().isEmpty) {
+      throw const FormatException('请填写地址。');
     }
     if (requestTimeoutSeconds < 1 ||
         requestTimeoutSeconds > 120 ||
@@ -254,12 +335,11 @@ class SourceConfig {
       throw const FormatException('地址不能包含相对路径片段。');
     }
     final uri = Uri.tryParse(address);
-    final schemes = kind == SourceKind.smb ? ['smb'] : ['http', 'https'];
     if (uri == null ||
-        !schemes.contains(uri.scheme) ||
+        !kind.schemes.contains(uri.scheme) ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
-        uri.hasQuery ||
+        (uri.hasQuery && kind != SourceKind.dlna) ||
         uri.hasFragment ||
         uri.pathSegments.contains('..')) {
       throw const FormatException('请输入有效的服务器地址，凭据请填在单独字段。');
@@ -267,8 +347,11 @@ class SourceConfig {
     if (kind == SourceKind.smb && uri.hasPort && uri.port != 445) {
       throw const FormatException('SMB 使用标准 445 端口：smb://主机/共享名/可选目录。');
     }
-    if (kind == SourceKind.jellyfin && userId.trim().isEmpty) {
-      throw const FormatException('请填写 Jellyfin 用户 ID。');
+    if (kind.mediaBrowser && userId.trim().isEmpty) {
+      throw FormatException('请填写 ${kind.label} 用户 ID。');
+    }
+    if (kind == SourceKind.sftp && username.trim().isEmpty) {
+      throw const FormatException('请填写 SFTP 用户名。');
     }
   }
 
@@ -279,6 +362,7 @@ class SourceConfig {
         relative.startsWith('$root/') ||
         (directory && (relative.isEmpty || root.startsWith('$relative/'))),
   );
+
   bool excludedFromScan(String relative) => scanExclusions.any((pattern) {
     if (pattern.endsWith('/**') &&
         relative == pattern.substring(0, pattern.length - 3)) {

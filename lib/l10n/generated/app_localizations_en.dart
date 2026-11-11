@@ -338,7 +338,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get searchScopeDescription =>
-      'Search scope can include multiple sources. Current sources support browsing and resolution; search settings will appear when a search capability is available.';
+      'Select Plex/Jellyfin sources for aggregated search. Local folders and SMB use the indexed media library.';
 
   @override
   String get sourceDefaultsTitle => 'Default sources and search scope';
@@ -407,6 +407,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get serverPathHint => 'For example jellyfin; otherwise leave blank.';
+
+  @override
+  String get scanExtensions => 'File extensions to scan';
+
+  @override
+  String get scanExtensionsHelp =>
+      'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.';
 
   @override
   String get optionalDomain => 'Workgroup (optional)';
@@ -545,6 +552,20 @@ class AppLocalizationsEn extends AppLocalizations {
   String get noAudioTracks => 'No selectable audio tracks';
 
   @override
+  String get subtitleTrack => 'Subtitles';
+
+  @override
+  String get noSubtitleTracks => 'No selectable subtitles';
+
+  @override
+  String get subtitleOff => 'Subtitles off';
+
+  @override
+  String numberedSubtitleTrack(int id) {
+    return 'Subtitle $id';
+  }
+
+  @override
   String get playbackCommandFailed => 'Playback failed. Reopen the media file.';
 
   @override
@@ -606,6 +627,16 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String watchProgress(int position, int duration) {
     return 'Watched $position / $duration min';
+  }
+
+  @override
+  String metadataProgressLabel(int done, int total) {
+    return 'Scraping $done/$total';
+  }
+
+  @override
+  String metadataProgressTooltip(int done, int total) {
+    return 'Metadata scraping progress: $done of $total processed (items with no match count as processed)';
   }
 
   @override
@@ -786,6 +817,33 @@ class AppLocalizationsEn extends AppLocalizations {
   String get shadDone => 'Done';
 
   @override
+  String scanFoundMedia(int n) {
+    return '$n media files found';
+  }
+
+  @override
+  String get detailOverview => 'Overview';
+
+  @override
+  String get detailCast => 'Cast';
+
+  @override
+  String get detailDirectors => 'Director';
+
+  @override
+  String seasonLabel(int n) {
+    return 'Season $n';
+  }
+
+  @override
+  String episodeLabel(int n) {
+    return 'Episode $n';
+  }
+
+  @override
+  String get detailNoEpisodes => 'No episodes yet.';
+
+  @override
   String get metadata => 'Metadata';
 
   @override
@@ -820,7 +878,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metadataPrivacy =>
-      'Online lookup sends only the title, year, ID and language to TMDB. Videos and private paths stay on this device. Online lookup runs only when requested.';
+      'Movies and shows added to your library are identified automatically in the background. Only titles, years, IDs and language are sent to TMDB; videos and private paths stay on this device.';
 
   @override
   String get metadataSaved => 'TMDB configuration saved';
@@ -933,5 +991,373 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metadataForgetToken => 'Remove TMDB credential';
 
   @override
+  String get metadataTokenSaved => 'TMDB token saved on this device.';
+
+  @override
+  String get metadataTokenMissing => 'No TMDB token configured.';
+
+  @override
   String get metadataSearch => 'Search TMDB';
+
+  @override
+  String get aiAssistant => 'AI assistant';
+
+  @override
+  String get aiPrivacyNotice =>
+      'Messages, selected context and tool results are sent to your configured model provider.';
+
+  @override
+  String get aiWelcome =>
+      'Ask me to find media, continue watching, or control playback. Configure a model to begin.';
+
+  @override
+  String get aiYou => 'You';
+
+  @override
+  String get aiToolResult => 'Tool result';
+
+  @override
+  String get aiConfirmAction => 'Confirm this change';
+
+  @override
+  String get aiApprove => 'Approve';
+
+  @override
+  String get aiInputHint => 'What would you like to watch?';
+
+  @override
+  String get aiStop => 'Stop generating';
+
+  @override
+  String get aiSend => 'Send';
+
+  @override
+  String get aiToolFailed => 'Tool did not complete';
+
+  @override
+  String get aiConfigureFirst =>
+      'Configure your model, API key and cloud consent in AI settings first.';
+
+  @override
+  String get aiSendFailed =>
+      'Unable to send. Check the input length and try again.';
+
+  @override
+  String get aiCancelled =>
+      'Generation stopped. Completed actions are retained.';
+
+  @override
+  String get aiTimeout =>
+      'The request timed out. Completed actions are retained.';
+
+  @override
+  String get aiBudgetReached =>
+      'Turn limit reached. Completed results are retained.';
+
+  @override
+  String get aiProviderFailed =>
+      'Model request failed. Check credentials, endpoint and model support.';
+
+  @override
+  String get aiInterrupted =>
+      'Interrupted on shutdown; actions will not be replayed.';
+
+  @override
+  String aiTokenUsage(int count) {
+    return 'Reported tokens: $count';
+  }
+
+  @override
+  String get aiModelSettings => 'Model settings';
+
+  @override
+  String get aiProviderDescription =>
+      'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.';
+
+  @override
+  String get aiEndpoint => 'API base URL';
+
+  @override
+  String get aiModel => 'Model ID';
+
+  @override
+  String get aiApiKey => 'API key';
+
+  @override
+  String get aiKeyRequired => 'Enter an API key';
+
+  @override
+  String get aiKeySaved => 'Key saved; leave blank to keep it';
+
+  @override
+  String get aiOutputLimit => 'Maximum output tokens (128–16384)';
+
+  @override
+  String get aiCloudConsent =>
+      'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.';
+
+  @override
+  String get aiTestText => 'Test reply';
+
+  @override
+  String get aiTestStream => 'Test streaming';
+
+  @override
+  String get aiTestTools => 'Test tool calls';
+
+  @override
+  String get aiTestPassed => 'Connection test passed. Save to apply.';
+
+  @override
+  String get aiTestFailed =>
+      'Test failed. Check credentials and protocol support. Tool support must pass independently.';
+
+  @override
+  String get aiToolsVerified =>
+      'Tool calls verified. Available business tools will be enabled.';
+
+  @override
+  String get aiTextOnly => 'Conversation only until the tool-call test passes.';
+
+  @override
+  String get aiSaveFailed =>
+      'Unable to save. Check the configuration and credential store access.';
+
+  @override
+  String aiExecuting(String name) {
+    return 'Running $name…';
+  }
+
+  @override
+  String get aiAuthenticationFailed =>
+      'Authentication failed. Update the API key in model settings.';
+
+  @override
+  String get aiRateLimited => 'Provider rate limit reached. Try again later.';
+
+  @override
+  String get aiProtocolMismatch =>
+      'The endpoint or model does not support this request. Check connection tests.';
+
+  @override
+  String get metadataAutomaticQueued => 'Queued for identification';
+
+  @override
+  String get metadataAutomaticWaitingConfig =>
+      'Configure a valid TMDB read token for background identification. Local NFO import and playback remain available.';
+
+  @override
+  String get metadataAutomaticRetry => 'Retry unfinished identification';
+
+  @override
+  String metadataAutomaticStatus(
+    int queued,
+    int running,
+    int waiting,
+    int failed,
+  ) {
+    return 'Background metadata: $queued queued · $running running · $waiting awaiting selection · $failed failed';
+  }
+
+  @override
+  String get fileSources => 'File sources';
+
+  @override
+  String get addFileSource => 'Add file source';
+
+  @override
+  String get nameFileSource => 'Name this file source';
+
+  @override
+  String get fileSourceEnable => 'Enable';
+
+  @override
+  String get fileSourceDisable => 'Disable';
+
+  @override
+  String get fileSourceDisabled => 'Disabled';
+
+  @override
+  String get rescanAll => 'Rescan all file sources';
+
+  @override
+  String get noFileSources =>
+      'No file sources yet. Add a folder to build your library.';
+
+  @override
+  String get removeFileSource => 'Delete file source';
+
+  @override
+  String get removeFileSourceConfirm => 'Delete this file source?';
+
+  @override
+  String get libraryEmptyNoMedia =>
+      'No media found in your file sources. Rescan or check the folder naming.';
+
+  @override
+  String get chooseFolderDescription =>
+      'Open a folder and confirm it as a file source. Media inside is indexed, never downloaded.';
+
+  @override
+  String get confirmFolder => 'Use this folder';
+
+  @override
+  String get libraryNoFileSources =>
+      'No file sources yet. Add a folder to a connection under Sources.';
+
+  @override
+  String get sourceTabConnections => 'Connections';
+
+  @override
+  String get sourceTabFileSources => 'File sources';
+
+  @override
+  String get moreActions => 'More actions';
+
+  @override
+  String get aiNewChat => 'New conversation';
+
+  @override
+  String get aiChatHistory => 'Conversations';
+
+  @override
+  String get aiShowMedia => 'Show home content';
+
+  @override
+  String get aiExpandChat => 'Expand on Home';
+
+  @override
+  String get aiLatest => 'Back to latest';
+
+  @override
+  String get aiDraftNext => 'Replying. You can draft your next message.';
+
+  @override
+  String get aiSuggestMedia => 'Help me find a movie';
+
+  @override
+  String get aiSuggestResume => 'Where did I leave off?';
+
+  @override
+  String get aiToolPreparing => 'Preparing';
+
+  @override
+  String get aiToolRunning => 'Running';
+
+  @override
+  String get aiToolWaiting => 'Awaiting confirmation';
+
+  @override
+  String get aiToolSucceeded => 'Completed';
+
+  @override
+  String get aiToolCancelled => 'Not executed or cancelled';
+
+  @override
+  String get aiActionExpired =>
+      'This action is no longer available. Select again.';
+
+  @override
+  String get aiRemoteImageBlocked => 'Remote image not loaded';
+
+  @override
+  String get aiOpenLink => 'Open external link?';
+
+  @override
+  String get aiLinkBlocked => 'This link cannot be opened';
+
+  @override
+  String get aiTaskSubmitted => 'Task submitted';
+
+  @override
+  String get aiPartialFailure => 'Some sources are unavailable';
+
+  @override
+  String get aiMoreResults =>
+      'More results are available. Ask to see another page.';
+
+  @override
+  String get aiNoResults => 'No matching results';
+
+  @override
+  String get aiUntitledChat => 'New conversation';
+
+  @override
+  String get aiHistoryEmpty => 'No conversations yet';
+
+  @override
+  String get aiReplying => 'Replying…';
+
+  @override
+  String get aiToolSummary => 'Actions and results come from local services';
+
+  @override
+  String get aiEarlier => 'Load earlier messages';
+
+  @override
+  String get diagnosticsTitle => 'Send diagnostics';
+
+  @override
+  String get diagnosticsDescription =>
+      'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.';
+
+  @override
+  String get anonymousHelp =>
+      'Leave username and password blank for anonymous access.';
+
+  @override
+  String get s3AccessKey => 'Access Key ID';
+
+  @override
+  String get s3SecretKey => 'Secret Access Key';
+
+  @override
+  String get s3AnonymousHelp => 'Public buckets need no keys.';
+
+  @override
+  String get s3Region => 'Region (optional, default us-east-1)';
+
+  @override
+  String get s3PathHint => 'bucket/optional-prefix, e.g. media/movies';
+
+  @override
+  String get remotePathHint => 'e.g. media/movies; leave blank for the root';
+
+  @override
+  String get dlnaSearch => 'Search local network';
+
+  @override
+  String get dlnaSearching => 'Searching…';
+
+  @override
+  String get dlnaNoDevices =>
+      'No media servers found. You can enter the device description URL manually.';
+
+  @override
+  String get dlnaDevice => 'Device';
+
+  @override
+  String get dlnaAddress => 'Device description URL';
+
+  @override
+  String get dlnaAddressHelp =>
+      'Filled in when you pick a discovered device; you can also enter it manually.';
+
+  @override
+  String get aiOpenExternal => 'Open link';
+
+  @override
+  String get serverBrowseAll => 'All';
+
+  @override
+  String get serverUnavailable => 'Can\'t reach this server';
+
+  @override
+  String get serverEmpty => 'Nothing here yet';
+
+  @override
+  String get serverLoadMore => 'Load more';
+
+  @override
+  String get localLibrary => 'Local library';
 }

@@ -1,17 +1,31 @@
+import 'diagnostics_section.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../app/theme/app_theme_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../services/library/library_service.dart';
 import '../../ui/components/media/tmdb_attribution.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
+import '../../data/sources/source_manager.dart';
+import 'scan_extensions_row.dart';
+import 'tmdb_settings_section.dart';
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, required this.onSourceDefaults});
+  const SettingsPage({
+    super.key,
+    required this.onSourceDefaults,
+    this.onModelSettings,
+    this.library,
+    this.sources,
+  });
+  final LibraryService? library;
+  final SourceManager? sources;
   final VoidCallback onSourceDefaults;
+  final VoidCallback? onModelSettings;
   @override
   Widget build(BuildContext context) {
     final appearance = AppAppearance.of(context);
@@ -101,8 +115,25 @@ class SettingsPage extends StatelessWidget {
                           child: Text(l.manage),
                         ),
                       ),
+                      if (sources != null) ScanExtensionsRow(sources: sources!),
                     ],
                   ),
+                  if (library != null) TmdbSettingsSection(library: library!),
+                  if (onModelSettings != null)
+                    SettingsSection(
+                      title: l.aiAssistant,
+                      children: [
+                        SettingsRow(
+                          title: l.aiModelSettings,
+                          description: l.aiProviderDescription,
+                          control: ShadButton.outline(
+                            onPressed: onModelSettings,
+                            child: Text(l.manage),
+                          ),
+                        ),
+                      ],
+                    ),
+                  const DiagnosticsSection(),
                   SettingsSection(
                     title: l.about,
                     children: [
