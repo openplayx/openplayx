@@ -224,6 +224,16 @@ class MetadataQueueRunner {
       if (!_valid(media, owner)) return;
       await artwork.load(image);
     }
+    // Pre-fetch the title logo too (and vet its transparency) so the detail
+    // page can show it on first open. The UI may use a different language;
+    // that pick is then resolved lazily.
+    final logos = ArtworkService.orderedLogos(
+      library.metadata.artworkCandidates(media),
+      library.metadata.setting('language'),
+    );
+    if (logos.isNotEmpty && _valid(media, owner)) {
+      await artwork.resolveLogo(logos);
+    }
   }
 
   List<MetadataRecord> _candidates(String job) =>

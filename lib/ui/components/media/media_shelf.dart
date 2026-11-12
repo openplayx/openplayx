@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import '../../icons/app_icons.dart';
 import '../../tokens/app_motion.dart';
 
@@ -78,8 +79,10 @@ class ShelfHeader extends StatelessWidget {
   }
 }
 
-/// A titled horizontal row of tiles.
-class MediaShelf extends StatelessWidget {
+/// A titled horizontal row of tiles. On hover, round previous/next buttons
+/// page the row by however many tiles are fully visible, snapping so the next
+/// group starts at the leading edge.
+class MediaShelf extends StatefulWidget {
   const MediaShelf({
     super.key,
     required this.title,
@@ -106,31 +109,192 @@ class MediaShelf extends StatelessWidget {
   final EdgeInsets padding;
 
   @override
-  Widget build(BuildContext context) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      Padding(
-        padding: EdgeInsets.only(left: padding.left, right: padding.right),
-        child: ShelfHeader(
-          title: title,
-          trailing: trailing,
-          onViewAll: onViewAll,
-        ),
-      ),
-      const SizedBox(height: 20),
-      SizedBox(
-        height: tileHeight + ShelfMetrics.captionHeight(context) + 4,
-        child: ListView.separated(
-          scrollDirection: Axis.horizontal,
+  State<MediaShelf> createState() => _MediaShelfState();
+}
+
+class _MediaShelfState extends State<MediaShelf> {
+  final _controller = ScrollController();
+  bool _hover = false;
+  bool _canBack = false;
+  bool _canForward = false;
+
+  double get _stride => widget.tileWidth + ShelfMetrics.gap;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.addListener(_updateEdges);
+  }
+
+  @override
+  void dispose() {
+    _controller.dispose();
+    super.dispose();
+  }
+
+  void _updateEdges() {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final back = position.pixels > position.minScrollExtent + 1;
+    final forward = position.pixels < position.maxScrollExtent - 1;
+    if (back != _canBack || forward != _canForward) {
+      setState(() {
+        _canBack = back;
+        _canForward = forward;
+      });
+    }
+  }
+
+  /// Scrolls one group of fully visible tiles in [direction] (-1 or 1).
+  void _page(int direction) {
+    if (!_controller.hasClients) return;
+    final position = _controller.position;
+    final visible =
+        position.viewportDimension - widget.padding.left - widget.padding.right;
+    final tiles = ((visible + ShelfMetrics.gap) / _stride).floor().clamp(
+      1,
+      1 << 20,
+    );
+    final index = (position.pixels / _stride).round() + direction * tiles;
+    final target = (index * _stride).clamp(
+      position.minScrollExtent,
+      position.maxScrollExtent,
+    );
+    final duration = AppMotion.duration(context, AppMotion.page);
+    if (duration == Duration.zero) {
+      _controller.jumpTo(target);
+    } else {
+      _controller.animateTo(
+        target,
+        duration: duration,
+        curve: Curves.easeOutCubic,
+      );
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final padding = widget.padding;
+    // Recompute edges after layout (item count or window width changes).
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) _updateEdges();
+    });
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Padding(
           padding: EdgeInsets.only(left: padding.left, right: padding.right),
-          clipBehavior: Clip.none,
-          itemCount: itemCount,
-          separatorBuilder: (_, _) => const SizedBox(width: ShelfMetrics.gap),
-          itemBuilder: (context, index) =>
-              SizedBox(width: tileWidth, child: itemBuilder(context, index)),
+          child: ShelfHeader(
+            title: widget.title,
+            trailing: widget.trailing,
+            onViewAll: widget.onViewAll,
+          ),
+        ),
+        const SizedBox(height: 20),
+        MouseRegion(
+          onEnter: (_) => setState(() => _hover = true),
+          onExit: (_) => setState(() => _hover = false),
+          child: SizedBox(
+            height: widget.tileHeight + ShelfMetrics.captionHeight(context) + 4,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: ListView.separated(
+                    controller: _controller,
+                    scrollDirection: Axis.horizontal,
+                    padding: EdgeInsets.only(
+                      left: padding.left,
+                      right: padding.right,
+                    ),
+                    clipBehavior: Clip.none,
+                    itemCount: widget.itemCount,
+                    separatorBuilder: (_, _) =>
+                        const SizedBox(width: ShelfMetrics.gap),
+                    itemBuilder: (context, index) => SizedBox(
+                      width: widget.tileWidth,
+                      child: widget.itemBuilder(context, index),
+                    ),
+                  ),
+                ),
+                Positioned(
+                  left: (padding.left - _ShelfArrow.size / 2).clamp(
+                    4.0,
+                    double.infinity,
+                  ),
+                  top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
+                  child: _ShelfArrow(
+                    icon: AppIcons.previous,
+                    label: AppLocalizations.of(context).previousPage,
+                    visible: _hover && _canBack,
+                    onTap: () => _page(-1),
+                  ),
+                ),
+                Positioned(
+                  right: (padding.right - _ShelfArrow.size / 2).clamp(
+                    4.0,
+                    double.infinity,
+                  ),
+                  top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
+                  child: _ShelfArrow(
+                    icon: AppIcons.next,
+                    label: AppLocalizations.of(context).nextPage,
+                    visible: _hover && _canForward,
+                    onTap: () => _page(1),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Round translucent paging button over a shelf.
+class _ShelfArrow extends StatelessWidget {
+  const _ShelfArrow({
+    required this.icon,
+    required this.label,
+    required this.visible,
+    required this.onTap,
+  });
+  static const size = 44.0;
+  final IconData icon;
+  final String label;
+  final bool visible;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) => IgnorePointer(
+    ignoring: !visible,
+    child: AnimatedOpacity(
+      opacity: visible ? 1 : 0,
+      duration: AppMotion.duration(context, AppMotion.feedback),
+      child: _Hoverable(
+        onTap: onTap,
+        semanticLabel: label,
+        builder: (hover) => AnimatedContainer(
+          duration: AppMotion.duration(context, AppMotion.feedback),
+          width: size,
+          height: size,
+          decoration: BoxDecoration(
+            shape: BoxShape.circle,
+            color: Colors.black.withValues(alpha: hover ? .78 : .55),
+            border: Border.all(color: Colors.white.withValues(alpha: .18)),
+            boxShadow: const [
+              BoxShadow(
+                color: Color(0x40000000),
+                blurRadius: 10,
+                offset: Offset(0, 3),
+              ),
+            ],
+          ),
+          child: Icon(icon, size: 22, color: Colors.white),
         ),
       ),
-    ],
+    ),
   );
 }
 

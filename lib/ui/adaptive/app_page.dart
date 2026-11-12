@@ -14,6 +14,23 @@ class AppPage extends StatelessWidget {
     this.trailing = const [],
   });
   final Widget title, body;
+
+  /// Height of the header row (title, back button and header controls).
+  static const headerHeight = 40.0;
+
+  static ShadThemeData _compactHeaderTheme(ShadThemeData theme) {
+    ShadButtonTheme compact(ShadButtonTheme t) =>
+        t.copyWith(height: headerHeight);
+    return theme.copyWith(
+      primaryButtonTheme: compact(theme.primaryButtonTheme),
+      secondaryButtonTheme: compact(theme.secondaryButtonTheme),
+      outlineButtonTheme: compact(theme.outlineButtonTheme),
+      ghostButtonTheme: compact(theme.ghostButtonTheme),
+      destructiveButtonTheme: compact(theme.destructiveButtonTheme),
+      linkButtonTheme: compact(theme.linkButtonTheme),
+    );
+  }
+
   final List<Widget> actions;
 
   /// Right-aligned header controls, placed just left of the assistant button.
@@ -40,58 +57,66 @@ class AppPage extends StatelessWidget {
                   bottom: BorderSide(color: theme.colorScheme.border),
                 ),
               ),
-              child: Row(
-                children: [
-                  Expanded(
-                    child: LayoutBuilder(
-                      builder: (context, box) => Wrap(
-                        spacing: AppSpacing.lg,
-                        runSpacing: AppSpacing.sm,
-                        crossAxisAlignment: WrapCrossAlignment.center,
-                        children: [
-                          Row(
-                            mainAxisSize: MainAxisSize.min,
+              // One header height for every page: controls placed in the
+              // header use a compact button size so they never grow it.
+              child: ShadTheme(
+                data: _compactHeaderTheme(theme),
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(minHeight: headerHeight),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: LayoutBuilder(
+                          builder: (context, box) => Wrap(
+                            spacing: AppSpacing.lg,
+                            runSpacing: AppSpacing.sm,
+                            crossAxisAlignment: WrapCrossAlignment.center,
                             children: [
-                              if (Navigator.of(context).canPop())
-                                Tooltip(
-                                  message: MaterialLocalizations.of(context)
-                                      .backButtonTooltip,
-                                  child: Semantics(
-                                    label: MaterialLocalizations.of(context)
-                                        .backButtonTooltip,
-                                    button: true,
-                                    child: ShadIconButton.ghost(
-                                      icon: const Icon(AppIcons.back),
-                                      onPressed: () =>
-                                          Navigator.of(context).maybePop(),
+                              Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  if (Navigator.of(context).canPop())
+                                    Tooltip(
+                                      message: MaterialLocalizations.of(context)
+                                          .backButtonTooltip,
+                                      child: Semantics(
+                                        label: MaterialLocalizations.of(context)
+                                            .backButtonTooltip,
+                                        button: true,
+                                        child: ShadIconButton.ghost(
+                                          icon: const Icon(AppIcons.back),
+                                          onPressed: () =>
+                                              Navigator.of(context).maybePop(),
+                                        ),
+                                      ),
+                                    ),
+                                  Flexible(
+                                    child: DefaultTextStyle(
+                                      style: theme.textTheme.h4.copyWith(
+                                        color: theme.colorScheme.foreground,
+                                      ),
+                                      child: title,
                                     ),
                                   ),
-                                ),
-                              Flexible(
-                                child: DefaultTextStyle(
-                                  style: theme.textTheme.h4.copyWith(
-                                    color: theme.colorScheme.foreground,
-                                  ),
-                                  child: title,
-                                ),
+                                ],
                               ),
+                              if (actions.isNotEmpty)
+                                Wrap(
+                                  spacing: AppSpacing.xs,
+                                  runSpacing: AppSpacing.xs,
+                                  children: actions,
+                                ),
                             ],
                           ),
-                          if (actions.isNotEmpty)
-                            Wrap(
-                              spacing: AppSpacing.xs,
-                              runSpacing: AppSpacing.xs,
-                              children: actions,
-                            ),
-                        ],
+                        ),
                       ),
-                    ),
+                      for (final widget in trailing) ...[
+                        const SizedBox(width: AppSpacing.xs),
+                        widget,
+                      ],
+                    ],
                   ),
-                  for (final widget in trailing) ...[
-                    const SizedBox(width: AppSpacing.xs),
-                    widget,
-                  ],
-                ],
+                ),
               ),
             ),
             Expanded(child: body),

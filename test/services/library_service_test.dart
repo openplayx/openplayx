@@ -4,6 +4,8 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/core/plugins/metadata_capability.dart';
+import 'package:openplayx/data/metadata/metadata_queue.dart';
 
 class FakeSources extends SourceManager {
   bool fail = false;
@@ -573,4 +575,64 @@ void main() {
       expect(service.resources(real).map((r) => r['name']), ['S01E01.mkv']);
     },
   );
+
+  test(
+    'a metadata series built only from hidden sidecars is not a duplicate',
+    () {
+      final library = service.create('Shows');
+      String episodeFile(String name) {
+        final media = service.register(
+          SourceEntry(ResourceRef('s', '/show/$name'), name, isFolder: false),
+        );
+        service.addManual(library, media);
+        return media;
+      }
+
+      final real = episodeFile('Show.S01E01.mkv');
+      final sidecar = episodeFile('._Show.S01E01.mkv');
+      const show = MetadataRecord(
+        ref: MetadataRef('tmdb', MediaKind.series, '1418'),
+        fields: {'kind': 'series', 'title': 'Show'},
+      );
+      const season = MetadataRecord(
+        ref: MetadataRef('tmdb', MediaKind.season, '3738'),
+        fields: {'kind': 'season', 'title': 'Season 1'},
+      );
+      // Old builds grouped the sidecar into its own "local" containers.
+      for (final (media, scope) in [(real, 's'), (sidecar, 'local')]) {
+        service.metadata.attachHierarchy(media, [
+          (scope: 'tmdb:$scope:series', record: show),
+          (scope: 'tmdb:$scope:season', record: season),
+        ], operationId: 'test-$scope');
+      }
+      final series = service.query(library, contentType: 'series');
+      expect(series.map((m) => m['title']), ['Show']);
+      final seasons = service.children(series.single['id'] as String);
+      expect(seasons, hasLength(1));
+      expect(
+        service.children(seasons.single['id'] as String).map((m) => m['id']),
+        [real],
+      );
+    },
+  );
+
+  test('background identification skips media that are only sidecars', () {
+    final library = service.create('Shows');
+    final sidecar = service.register(
+      const SourceEntry(
+        ResourceRef('s', '/._Film.mp4'),
+        '._Film.mp4',
+        isFolder: false,
+      ),
+    );
+    service.addManual(library, sidecar);
+    final queue = MetadataQueue(service.db);
+    while (true) {
+      final work = queue.claim('test');
+      if (work == null) break;
+      expect(work['media_id'], isNot(sidecar));
+      queue.finish(work['media_id'] as String, 'test', 'completed');
+    }
+    expect(queue.item(sidecar)!['state'], 'skipped');
+  });
 }

@@ -22,7 +22,34 @@ class ArtworkService {
     this.cacheQuotaBytes = 256 * 1024 * 1024,
   })
     // ignore: prefer_initializing_formals
-    : _directory = directory;
+    : _directory = directory {
+    // Resolve the cache directory early so [cachedFile] can answer
+    // synchronously on the first detail page build.
+    unawaited(_root().then<void>((_) {}, onError: (Object _) {}));
+  }
+
+  /// Logos in display preference: [language] first, then language-neutral,
+  /// then English. Other languages are never shown as title art.
+  static List<ArtworkDescriptor> orderedLogos(
+    Iterable<ArtworkDescriptor> artwork,
+    String? language,
+  ) {
+    final logos = artwork.where((a) => a.type == 'logo').toList();
+    final code = language?.split(RegExp('[-_]')).first.toLowerCase();
+    final lang = code == null || code.isEmpty ? null : code;
+    bool same(ArtworkDescriptor a) =>
+        a.language?.split(RegExp('[-_]')).first.toLowerCase() == lang;
+    return [
+      if (lang != null) ...logos.where(same),
+      ...logos.where((a) => a.language == null),
+      if (lang != 'en') ...logos.where((a) => a.language == 'en'),
+    ];
+  }
+
+  // Process-wide: the scrape runner and the pages use separate instances
+  // over the same disk cache, and a cache key always names the same bytes.
+  static final _opaque = <String, bool>{};
+  static final _opaquePending = <String, Future<bool>>{};
   final List<ArtworkDescriptor> Function()? retainedArtwork;
   final int cacheQuotaBytes;
   Future<void> _writeTail = Future.value();
@@ -42,6 +69,101 @@ class ArtworkService {
     return _pending[key] ??= _load(key, artwork).whenComplete(() {
       _pending.remove(key);
     });
+  }
+
+  /// The cached file when it is already on disk, without waiting.
+  File? cachedFile(ArtworkDescriptor artwork) {
+    final dir = _directory;
+    if (dir == null) return null;
+    final file = File('${dir.path}/${cacheKey(artwork)}');
+    return file.existsSync() ? file : null;
+  }
+
+  /// Whether the image's border is mostly opaque, i.e. it carries its own
+  /// background. Title logos should be transparent word marks; user uploads
+  /// with a boxed background look like a stray poster. Null until checked.
+  bool? knownOpaqueEdges(ArtworkDescriptor artwork) =>
+      _opaque[cacheKey(artwork)];
+
+  Future<bool> hasOpaqueEdges(ArtworkDescriptor artwork) {
+    final key = cacheKey(artwork);
+    final known = _opaque[key];
+    if (known != null) return Future.value(known);
+    return _opaquePending[key] ??= _checkEdges(artwork)
+        .then((v) => _opaque[key] = v)
+        // A block body: `=> remove(key)` would return this very future and
+        // make whenComplete wait on itself forever.
+        .whenComplete(() {
+          _opaquePending.remove(key);
+        });
+  }
+
+  Future<bool> _checkEdges(ArtworkDescriptor artwork) async {
+    final bytes = await (await load(artwork)).readAsBytes();
+    if (bytes.length >= 3 && bytes[0] == 255 && bytes[1] == 216) return true;
+    final codec = await ui.instantiateImageCodec(bytes, targetWidth: 64);
+    final ui.Image image;
+    try {
+      image = (await codec.getNextFrame()).image;
+    } finally {
+      codec.dispose();
+    }
+    final int w, h;
+    final ByteData? data;
+    try {
+      w = image.width;
+      h = image.height;
+      data = await image.toByteData(format: ui.ImageByteFormat.rawRgba);
+    } finally {
+      image.dispose();
+    }
+    if (data == null || w < 2 || h < 2) return false;
+    var opaque = 0, total = 0;
+    void sample(int x, int y) {
+      total++;
+      if (data!.getUint8((y * w + x) * 4 + 3) >= 250) opaque++;
+    }
+
+    for (var x = 0; x < w; x++) {
+      sample(x, 0);
+      sample(x, h - 1);
+    }
+    for (var y = 1; y < h - 1; y++) {
+      sample(0, y);
+      sample(w - 1, y);
+    }
+    return opaque / total > 0.6;
+  }
+
+  /// The first logo in [ordered] that downloads and has a transparent
+  /// border, or null when none qualifies.
+  Future<ArtworkDescriptor?> resolveLogo(
+    List<ArtworkDescriptor> ordered,
+  ) async {
+    for (final logo in ordered) {
+      try {
+        if (!await hasOpaqueEdges(logo)) return logo;
+      } on Object {
+        if (_closed) return null;
+      }
+    }
+    return null;
+  }
+
+  /// Synchronous [resolveLogo] from what is already known in memory and on
+  /// disk. Returns null when async work is still needed; a record with a
+  /// null logo when every candidate is known to be unusable.
+  ({ArtworkDescriptor? logo, File? file})? cachedLogo(
+    List<ArtworkDescriptor> ordered,
+  ) {
+    for (final logo in ordered) {
+      final opaque = _opaque[cacheKey(logo)];
+      if (opaque == null) return null;
+      if (opaque) continue;
+      final file = cachedFile(logo);
+      return file == null ? null : (logo: logo, file: file);
+    }
+    return (logo: null, file: null);
   }
 
   String cacheKey(ArtworkDescriptor artwork) {

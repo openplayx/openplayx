@@ -1774,6 +1774,18 @@ abstract class AppLocalizations {
   /// **'No TMDB token configured.'**
   String get metadataTokenMissing;
 
+  /// No description provided for @metadataTokenStatusSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved'**
+  String get metadataTokenStatusSaved;
+
+  /// No description provided for @metadataTokenStatusMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Not set'**
+  String get metadataTokenStatusMissing;
+
   /// No description provided for @metadataSearch.
   ///
   /// In en, this message translates to:
@@ -1947,6 +1959,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.'**
   String get aiCloudConsent;
+
+  /// No description provided for @aiCloudConsentTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow this provider'**
+  String get aiCloudConsentTitle;
 
   /// No description provided for @aiTestText.
   ///

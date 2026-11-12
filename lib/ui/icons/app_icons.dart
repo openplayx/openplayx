@@ -13,6 +13,7 @@ abstract final class AppIcons {
   static const folder = LucideIcons.folder;
   static const settings = LucideIcons.settings;
   static const next = LucideIcons.chevronRight;
+  static const previous = LucideIcons.chevronLeft;
   static const openFile = LucideIcons.fileVideo;
   static const info = LucideIcons.info;
   static const playMedia = LucideIcons.circlePlay;

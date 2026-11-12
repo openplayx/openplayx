@@ -127,7 +127,16 @@ void main() {
       expect(find.byType(SegmentedButton<bool>), findsNothing);
       await tester.tap(find.byKey(const ValueKey('nav-settings')));
       await tester.pumpAndSettle();
+      // Phone settings is a category menu; categories open sub-pages.
+      expect(find.text('扫描的文件后缀'), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('settings-来源')));
+      await tester.pumpAndSettle();
       expect(find.text('扫描的文件后缀'), findsOneWidget);
+      // Secondary pages hide the bottom bar; returning brings it back.
+      expect(find.byType(AppBottomBar), findsNothing);
+      Navigator.of(tester.element(find.text('扫描的文件后缀'))).pop();
+      await tester.pumpAndSettle();
+      expect(find.byType(AppBottomBar), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

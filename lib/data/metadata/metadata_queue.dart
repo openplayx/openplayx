@@ -125,6 +125,13 @@ class MetadataQueue {
       "UPDATE metadata_queue SET state='queued',lease_owner=NULL,lease_until=NULL,error_code='interrupted' WHERE state='running' AND lease_until<=?",
       [now],
     );
+    // Media whose files are all hidden dot files (macOS `._x.mkv` sidecars
+    // from old scans) are never shown; identifying them would only create
+    // duplicate series/season containers, so they are skipped.
+    db.execute(
+      "UPDATE metadata_queue SET state='skipped',error_code='hiddenFile',updated_at=? WHERE state='queued' AND EXISTS(SELECT 1 FROM resources r WHERE r.media_id=metadata_queue.media_id) AND NOT EXISTS(SELECT 1 FROM resources r WHERE r.media_id=metadata_queue.media_id AND substr(r.name,1,1)<>'.')",
+      [now],
+    );
     final row = db.select(
       "SELECT * FROM metadata_queue q WHERE state='queued' AND next_at<=? AND (?=1 OR phase=0) AND EXISTS(SELECT 1 FROM memberships m WHERE m.media_id=q.media_id) ORDER BY priority DESC,updated_at,media_id LIMIT 1",
       [now, allowOnline ? 1 : 0],

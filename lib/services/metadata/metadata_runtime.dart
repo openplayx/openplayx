@@ -31,11 +31,19 @@ class MetadataRuntime with WidgetsBindingObserver {
       _nativeReady = false,
       _started = false;
   String? _configuration;
+
+  /// Inputs of the last full reconcile. Reconcile is O(library) on the UI
+  /// isolate, so the 15s poll and app resume skip it when nothing changed.
+  bool _dirty = true;
+  String? _reconciled;
   Future<void> start() async {
     if (_started) return;
     _started = true;
     WidgetsBinding.instance.addObserver(this);
-    _changes = library.changes.listen((_) => _scheduleRefresh());
+    _changes = library.changes.listen((_) {
+      _dirty = true;
+      _scheduleRefresh();
+    });
     // Boosts are picked up by the running batch's next claim; this only wakes
     // an idle runtime so a boosted item does not wait for the 15s poll.
     _priority = library.priorityRequests.listen((_) => _scheduleRefresh());
@@ -80,7 +88,21 @@ class MetadataRuntime with WidgetsBindingObserver {
         await old?.dispose();
       }
       _runner ??= _runnerFactory();
-      await _runner!.reconcile();
+      final inputs = [
+        config,
+        for (final c in sources.configs) '${c.id}:${c.revision}:${c.enabled}',
+      ].join('|');
+      if (_dirty || _reconciled != inputs) {
+        // Cleared first: a change during the reconcile marks it dirty again.
+        _dirty = false;
+        try {
+          await _runner!.reconcile();
+          _reconciled = inputs;
+        } catch (_) {
+          _dirty = true;
+          rethrow;
+        }
+      }
       if (_closed || library.isClosing) return;
       if (_nativeReady) {
         final queue = _runner!.queue;

@@ -9,6 +9,8 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../plugins/model_langchain/langchain_model.dart';
 import '../../services/conversations/assistant_store.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/settings/settings_section.dart';
+import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
 
 class AssistantSettingsPage extends StatefulWidget {
@@ -169,94 +171,96 @@ class _AssistantSettingsPageState extends State<AssistantSettingsPage> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
+    final colors = ShadTheme.of(context).colorScheme;
+    Widget field(
+      String label,
+      TextEditingController controller, {
+      bool secret = false,
+      TextInputType? keyboardType,
+      String? placeholder,
+    }) => SettingsRow(
+      title: label,
+      stacked: true,
+      control: ShadInput(
+        controller: controller,
+        enabled: !_busy,
+        obscureText: secret,
+        keyboardType: keyboardType,
+        autocorrect: false,
+        enableSuggestions: false,
+        onChanged: _changed,
+        placeholder: placeholder == null ? null : Text(placeholder),
+      ),
+    );
+    Widget test(String kind, String label, bool passed) => SettingsRow(
+      title: label,
+      accent: true,
+      onTap: _busy ? null : () => _test(kind),
+      control: passed
+          ? Icon(AppIcons.success, size: 20, color: colors.primary)
+          : null,
+    );
     return AppPage(
       title: Text(l.aiModelSettings),
-      body: ListView(
-        padding: AppSpacing.page(context),
+      trailing: [
+        ShadButton.ghost(
+          key: const ValueKey('ai-save'),
+          onPressed: _busy ? null : _save,
+          child: Text(l.save),
+        ),
+      ],
+      body: SettingsListView(
         children: [
-          Center(
-            child: ConstrainedBox(
-              constraints: const BoxConstraints(maxWidth: 640),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Text(l.aiProviderDescription),
-                  const SizedBox(height: 16),
-                  Text(l.aiEndpoint),
-                  ShadInput(
-                    controller: _endpoint,
-                    enabled: !_busy,
-                    onChanged: _changed,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(l.aiModel),
-                  ShadInput(
-                    controller: _model,
-                    enabled: !_busy,
-                    onChanged: _changed,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(l.aiApiKey),
-                  ShadInput(
-                    controller: _key,
-                    enabled: !_busy,
-                    obscureText: true,
-                    onChanged: _changed,
-                    placeholder: Text(
-                      _saved.credentialRef == null
-                          ? l.aiKeyRequired
-                          : l.aiKeySaved,
-                    ),
-                  ),
-                  const SizedBox(height: 12),
-                  Text(l.aiOutputLimit),
-                  ShadInput(
-                    controller: _tokens,
-                    enabled: !_busy,
-                    onChanged: _changed,
-                    keyboardType: TextInputType.number,
-                  ),
-                  const SizedBox(height: 16),
-                  ShadCheckbox(
-                    value: _cloud,
-                    enabled: !_busy,
-                    label: Text(l.aiCloudConsent),
-                    onChanged: (value) => setState(() => _cloud = value),
-                  ),
-                  const SizedBox(height: 16),
-                  Wrap(
-                    spacing: 8,
-                    runSpacing: 8,
-                    children: [
-                      ShadButton.outline(
-                        onPressed: _busy ? null : () => _test('text'),
-                        child: Text('${l.aiTestText}${_text ? ' ✓' : ''}'),
-                      ),
-                      ShadButton.outline(
-                        onPressed: _busy ? null : () => _test('stream'),
-                        child: Text('${l.aiTestStream}${_stream ? ' ✓' : ''}'),
-                      ),
-                      ShadButton.outline(
-                        onPressed: _busy ? null : () => _test('tools'),
-                        child: Text('${l.aiTestTools}${_tools ? ' ✓' : ''}'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  Text(_tools ? l.aiToolsVerified : l.aiTextOnly),
-                  if (_message != null)
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 12),
-                      child: Text(_message!),
-                    ),
-                  const SizedBox(height: 16),
-                  ShadButton(
-                    onPressed: _busy ? null : _save,
-                    child: Text(l.save),
-                  ),
-                ],
-              ),
+          if (_busy)
+            const Padding(
+              padding: EdgeInsets.only(bottom: AppSpacing.lg),
+              child: ShadProgress(),
             ),
+          if (_message != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: AppSpacing.lg),
+              child: ShadAlert(title: Text(_message!)),
+            ),
+          SettingsSection(
+            footer: l.aiProviderDescription,
+            children: [
+              field(l.aiEndpoint, _endpoint, keyboardType: TextInputType.url),
+              field(l.aiModel, _model),
+              field(
+                l.aiApiKey,
+                _key,
+                secret: true,
+                placeholder: _saved.credentialRef == null
+                    ? l.aiKeyRequired
+                    : l.aiKeySaved,
+              ),
+              field(
+                l.aiOutputLimit,
+                _tokens,
+                keyboardType: TextInputType.number,
+              ),
+            ],
+          ),
+          SettingsSection(
+            children: [
+              SettingsRow(
+                title: l.aiCloudConsentTitle,
+                description: l.aiCloudConsent,
+                control: ShadSwitch(
+                  value: _cloud,
+                  enabled: !_busy,
+                  onChanged: (value) => setState(() => _cloud = value),
+                ),
+              ),
+            ],
+          ),
+          SettingsSection(
+            footer: _tools ? l.aiToolsVerified : l.aiTextOnly,
+            children: [
+              test('text', l.aiTestText, _text),
+              test('stream', l.aiTestStream, _stream),
+              test('tools', l.aiTestTools, _tools),
+            ],
           ),
         ],
       ),

@@ -6,6 +6,19 @@ import 'library_database.dart';
 
 /// Library persistence. No source connections, widgets or scan traversal live here.
 /// Multi-step business operations use [transaction] to commit atomically.
+/// SQL condition for media `m`: false for metadata containers (series,
+/// seasons) whose descendant files are all hidden dot files, such as macOS
+/// `._episode.mkv` sidecars kept from scans before those were filtered.
+/// Without it each such series appears twice: once for the real files and
+/// once for the sidecars, which metadata grouping put in a separate container.
+const _visibleContainer =
+    """NOT (EXISTS (SELECT 1 FROM metadata_relations c1 WHERE c1.parent_id=m.id)
+        AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.')
+        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN resources r ON r.media_id=c1.child_id WHERE c1.parent_id=m.id AND substr(r.name,1,1)<>'.')
+        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN metadata_relations c2 ON c2.parent_id=c1.child_id JOIN resources r ON r.media_id=c2.child_id WHERE c1.parent_id=m.id AND substr(r.name,1,1)<>'.')
+        AND (EXISTS (SELECT 1 FROM metadata_relations c1 JOIN resources r ON r.media_id=c1.child_id WHERE c1.parent_id=m.id)
+          OR EXISTS (SELECT 1 FROM metadata_relations c1 JOIN metadata_relations c2 ON c2.parent_id=c1.child_id JOIN resources r ON r.media_id=c2.child_id WHERE c1.parent_id=m.id)))""";
+
 class LibraryRepository {
   LibraryRepository(
     this.db, {
@@ -45,6 +58,7 @@ class LibraryRepository {
         AND NOT EXISTS (SELECT 1 FROM manual_memberships mm WHERE mm.media_id=m.id))
       AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
+      AND $_visibleContainer
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id AND (? IS NULL OR pm.library_id=?)))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
@@ -188,6 +202,7 @@ class LibraryRepository {
       WHERE (? IS NULL OR EXISTS (SELECT 1 FROM memberships lm WHERE lm.media_id=m.id AND lm.library_id=?))
       AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
+      AND $_visibleContainer
       GROUP BY m.id ORDER BY season,episode,m.id LIMIT ? OFFSET ?''',
         [media, media, library, library, limit, offset],
       );

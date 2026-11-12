@@ -883,6 +883,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
 
   @override
+  String get metadataTokenStatusSaved => '已保存';
+
+  @override
+  String get metadataTokenStatusMissing => '未配置';
+
+  @override
   String get metadataSearch => '搜索 TMDB';
 
   @override
@@ -971,6 +977,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiCloudConsentTitle => '允许发送给此供应商';
 
   @override
   String get aiTestText => '测试普通回复';
@@ -2249,6 +2258,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get metadataTokenMissing => '尚未配置 TMDB 令牌。';
 
   @override
+  String get metadataTokenStatusSaved => '已保存';
+
+  @override
+  String get metadataTokenStatusMissing => '未配置';
+
+  @override
   String get metadataSearch => '搜索 TMDB';
 
   @override
@@ -2337,6 +2352,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
+
+  @override
+  String get aiCloudConsentTitle => '允许发送给此供应商';
 
   @override
   String get aiTestText => '测试普通回复';
@@ -3615,6 +3633,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get metadataTokenMissing => '尚未設定 TMDB 權杖。';
 
   @override
+  String get metadataTokenStatusSaved => '已儲存';
+
+  @override
+  String get metadataTokenStatusMissing => '未設定';
+
+  @override
   String get metadataSearch => '搜尋 TMDB';
 
   @override
@@ -3703,6 +3727,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aiCloudConsent => '允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。';
+
+  @override
+  String get aiCloudConsentTitle => '允許傳送給此供應商';
 
   @override
   String get aiTestText => '測試一般回覆';

@@ -49,6 +49,14 @@ class MetadataRepository {
       parent_id TEXT NOT NULL REFERENCES media(id), child_id TEXT PRIMARY KEY REFERENCES media(id),
       CHECK(parent_id<>child_id))''');
     db.execute(
+      'CREATE INDEX IF NOT EXISTS metadata_relations_parent ON metadata_relations(parent_id)',
+    );
+    // "Latest job of a media" runs per item in queue reconcile (on resume and
+    // every poll, on the UI isolate); without it each lookup scans the table.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS metadata_jobs_media ON metadata_jobs(media_id,updated_at)',
+    );
+    db.execute(
       'INSERT OR IGNORE INTO metadata_state(media_id,fallback_title) SELECT id,title FROM media',
     );
   }

@@ -23,8 +23,9 @@ func export(_ path: String, size: Int, adaptive: Bool = false, desktop: Bool = f
         ctx.addPath(CGPath(roundedRect: rect,cornerWidth: edge*0.19,cornerHeight: edge*0.19,transform: nil))
         ctx.clip(); ctx.draw(master,in: rect)
     } else if adaptive {
-        // Keep the full X inside the safe area of adaptive launcher masks.
-        ctx.draw(foreground,in: CGRect(x: edge*0.125,y: edge*0.125,width: edge*0.75,height: edge*0.75))
+        // Keep the X corners inside the 66dp safe circle of adaptive launcher masks
+        // (circular masks on Pixel clip anything beyond it).
+        ctx.draw(foreground,in: CGRect(x: edge*0.19,y: edge*0.19,width: edge*0.62,height: edge*0.62))
     } else if maskable {
         ctx.setFillColor(CGColor(colorSpace: cs,components: [16.0/255,17.0/255,22.0/255,1])!)
         ctx.fill(CGRect(x: 0,y: 0,width: edge,height: edge))

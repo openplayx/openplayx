@@ -17,6 +17,7 @@ import '../../ui/tokens/app_spacing.dart';
 import 'country_names.dart';
 import 'metadata_artwork.dart';
 import 'metadata_page.dart';
+import 'title_logo.dart';
 
 /// Plays one resource of a media item; supplied by the library page.
 typedef PlayResource = Future<void> Function(
@@ -477,17 +478,13 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
   }
 
   /// The title logo in the UI language (or a language-neutral one), else
-  /// an English logo, else the title set in large type.
+  /// an English logo, else the title set in large type. Logos with an
+  /// opaque background box are skipped.
   Widget _titleArt(String title) {
-    final language = l.localeName.split('_').first;
-    final logos = service.metadata
-        .artworkCandidates(_id)
-        .where((a) => a.type == 'logo')
-        .toList();
-    final logo =
-        logos.where((a) => a.language == language).firstOrNull ??
-        logos.where((a) => a.language == null).firstOrNull ??
-        logos.where((a) => a.language == 'en').firstOrNull;
+    final logos = ArtworkService.orderedLogos(
+      service.metadata.artworkCandidates(_id),
+      l.localeName,
+    );
     final text = Text(
       title,
       textAlign: TextAlign.center,
@@ -501,21 +498,12 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
         shadows: [Shadow(color: Color(0x66000000), blurRadius: 12)],
       ),
     );
-    if (logo == null) return text;
+    if (logos.isEmpty) return text;
     return Semantics(
       label: title,
       image: true,
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxHeight: 80),
-        child: MetadataArtwork(
-          key: ValueKey(logo.id),
-          service: widget.artwork,
-          artwork: logo,
-          fit: BoxFit.contain,
-          alignment: Alignment.bottomCenter,
-          cacheWidth: 800,
-          placeholder: text,
-        ),
+      child: ExcludeSemantics(
+        child: TitleLogo(service: widget.artwork, logos: logos, fallback: text),
       ),
     );
   }

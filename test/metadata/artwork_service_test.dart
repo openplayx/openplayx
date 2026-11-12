@@ -170,4 +170,72 @@ void main() {
       expect(await service.cacheBytes(), 0);
     },
   );
+
+  test('logos prefer UI language, then neutral, then English', () {
+    ArtworkDescriptor logo(String id, String? lang) =>
+        ArtworkDescriptor(id: id, type: 'logo', language: lang);
+    final all = [
+      logo('en', 'en'),
+      logo('ja', 'ja'),
+      logo('none', null),
+      logo('zh', 'zh'),
+      const ArtworkDescriptor(id: 'poster', type: 'poster', language: 'zh'),
+    ];
+    expect(ArtworkService.orderedLogos(all, 'zh_CN').map((a) => a.id), [
+      'zh',
+      'none',
+      'en',
+    ]);
+    expect(ArtworkService.orderedLogos(all, 'en-US').map((a) => a.id), [
+      'en',
+      'none',
+    ]);
+    expect(ArtworkService.orderedLogos(all, '').map((a) => a.id), [
+      'none',
+      'en',
+    ]);
+  });
+
+  testWidgets('title logo resolution skips logos with an opaque background', (
+    tester,
+  ) async {
+    await tester.runAsync(() async {
+      final root = await Directory.systemTemp.createTemp('openplayx-logo-');
+      // 20x8 RGBA: a white bar on a red box, and the same bar on clear.
+      const fixtures = {
+        'boxed': 'iVBORw0KGgoAAAANSUhEUgAAABQAAAAICAYAAAD5nd/tAAAAG0lEQVR4nGM4w8Dwn5qYgeYGkgpGDaRDpFCKATJgiCCZIOLMAAAAAElFTkSuQmCC',
+        'clear': 'iVBORw0KGgoAAAANSUhEUgAAABQAAAAICAYAAAD5nd/tAAAAE0lEQVR4nGNgGHLgP4lg1MAhAAAdtr9BsOMipAAAAABJRU5ErkJggg==',
+      };
+      Future<ArtworkDescriptor> logo(String name) async {
+        final file = await File('${root.path}/$name.png')
+            .writeAsBytes(base64Decode(fixtures[name]!));
+        return ArtworkDescriptor(
+          id: '$name-${root.path}',
+          type: 'logo',
+          source: ResourceRef('files', file.path),
+        );
+      }
+
+      final service = ArtworkService(
+        FixtureSources(root),
+        directory: Directory('${root.path}/cache'),
+      );
+      try {
+        final boxed = await logo('boxed');
+        final clear = await logo('clear');
+        expect(service.cachedLogo([boxed, clear]), isNull);
+        expect(await service.hasOpaqueEdges(boxed), isTrue);
+        expect(await service.hasOpaqueEdges(clear), isFalse);
+        expect((await service.resolveLogo([boxed, clear]))?.id, clear.id);
+        expect(await service.resolveLogo([boxed]), isNull);
+        final cached = service.cachedLogo([boxed, clear]);
+        expect(cached?.logo?.id, clear.id);
+        expect(cached?.file?.existsSync(), isTrue);
+        expect(service.cachedLogo([boxed])?.logo, isNull);
+      } finally {
+        service.dispose();
+        await root.delete(recursive: true);
+      }
+    });
+  });
 }

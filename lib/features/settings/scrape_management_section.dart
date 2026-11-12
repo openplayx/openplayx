@@ -7,6 +7,7 @@ import '../../data/sources/source_manager.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
+import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
 
 /// Shows how much scraped metadata is stored and clears all of it.
@@ -89,22 +90,13 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
 
   Future<void> _clear() async {
     final l = AppLocalizations.of(context);
-    final confirmed = await showShadDialog<bool>(
-      context: context,
-      builder: (c) => ShadDialog(
-        title: Text(l.scrapeClearTitle),
-        description: Text(l.scrapeClearDescription),
-        actions: [
-          ShadButton.ghost(
-            onPressed: () => Navigator.pop(c, false),
-            child: Text(l.cancel),
-          ),
-          ShadButton.destructive(
-            onPressed: () => Navigator.pop(c, true),
-            child: Text(l.scrapeClear),
-          ),
-        ],
-      ),
+    final confirmed = await showSettingsConfirm(
+      context,
+      title: l.scrapeClearTitle,
+      message: l.scrapeClearDescription,
+      confirmLabel: l.scrapeClear,
+      cancelLabel: l.cancel,
+      destructive: true,
     );
     if (confirmed != true || !mounted) return;
     setState(() {
@@ -163,14 +155,10 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
           ),
         ),
         SettingsRow(
+          key: const ValueKey('scrape-clear'),
           title: l.scrapeClear,
-          description: l.scrapeClearHint,
-          control: ShadButton.destructive(
-            key: const ValueKey('scrape-clear'),
-            enabled: !_busy && ready,
-            onPressed: _clear,
-            child: Text(l.scrapeClear),
-          ),
+          destructive: true,
+          onTap: !_busy && ready ? _clear : null,
         ),
         if (_busy) const ShadProgress(),
         if (_message != null)

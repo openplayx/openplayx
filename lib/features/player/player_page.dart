@@ -195,7 +195,12 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   bool _background = false;
   double? _drag;
   Timer? _hideTimer;
-  bool _controlsVisible = true;
+
+  /// Whether the overlay controls are shown; the shell fades the assistant
+  /// button with them.
+  final controlsVisibility = ValueNotifier(true);
+  bool get _controlsVisible => controlsVisibility.value;
+  set _controlsVisible(bool value) => controlsVisibility.value = value;
   bool _pointerDown = false;
   bool _hoveringControls = false;
   int _openPanels = 0;
@@ -860,6 +865,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       }),
     );
     _playerFocus.dispose();
+    controlsVisibility.dispose();
     _finishTracking();
     if (widget.libraryService == null) _library?.close();
     _hideTimer?.cancel();
@@ -1030,7 +1036,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         excluding: !_controlsVisible,
         child: AnimatedOpacity(
           opacity: _controlsVisible ? 1 : 0,
-          duration: AppMotion.duration(context, AppMotion.feedback),
+          duration: AppMotion.duration(context, AppMotion.controls),
           child: child,
         ),
       ),

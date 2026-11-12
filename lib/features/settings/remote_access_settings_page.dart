@@ -8,8 +8,9 @@ import '../../data/sources/source_config.dart';
 import '../../data/sources/source_manager.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/adaptive/form_page.dart';
+import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
-import '../../ui/tokens/app_spacing.dart';
+import '../../ui/tokens/app_metrics.dart';
 
 class RemoteAccessSettingsPage extends StatefulWidget {
   const RemoteAccessSettingsPage({super.key, required this.sources});
@@ -121,24 +122,83 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     }
   }
 
-  Widget _number(TextEditingController controller, String label, String help) =>
-      Padding(
-        padding: const EdgeInsets.symmetric(vertical: 8),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(label),
-            const SizedBox(height: 6),
-            ShadInput(
-              key: ValueKey(label),
-              controller: controller,
-              enabled: !_busy,
+  /// A numeric policy value: shown in the row, edited in a dialog.
+  Widget _number(
+    TextEditingController controller,
+    String label,
+    String help, {
+    required int min,
+    required int max,
+  }) => SettingsRow(
+    key: ValueKey(label),
+    title: label,
+    chevron: true,
+    control: Text(controller.text),
+    onTap: _busy
+        ? null
+        : () async {
+            final value = await showSettingsInputDialog(
+              context,
+              title: label,
+              description: help,
+              initial: controller.text,
               keyboardType: TextInputType.number,
-            ),
-            Text(help, style: ShadTheme.of(context).textTheme.muted),
-          ],
-        ),
+              cancelLabel: '取消',
+              saveLabel: '确定',
+              validate: (v) {
+                final n = int.tryParse(v.trim());
+                return n == null || n < min || n > max
+                    ? '请输入 $min–$max 之间的整数'
+                    : null;
+              },
+            );
+            if (value != null && mounted) {
+              setState(() => controller.text = value.trim());
+            }
+          },
+  );
+
+  void _setBindings(Map<String, RemoteAccessBinding> bindings) =>
+      setState(() => _draft = _draft!.copyWith(bindings: bindings));
+
+  void _showExport() {
+    final text = _service!.exportRedacted();
+    if (isCompactSettings(context)) {
+      pushSettingsPage<void>(
+        context,
+        title: '脱敏导出',
+        children: (_) => [
+          SettingsSection(children: [SelectableText(text)]),
+        ],
       );
+      return;
+    }
+    showShadDialog<void>(
+      context: context,
+      builder: (_) => ShadDialog(
+        title: const Text('脱敏导出'),
+        child: SizedBox(
+          width: 520,
+          child: SingleChildScrollView(child: SelectableText(text)),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _recoverBackup() => _run(() async {
+    final confirmed = await showSettingsConfirm(
+      context,
+      title: '恢复已知备份？',
+      message: '无法识别的原文件将另存保留；备份会保存为新修订，仍需另行应用。',
+      confirmLabel: '保留原文件并恢复',
+      cancelLabel: '取消',
+    );
+    if (confirmed != true) return;
+    await _service!.recoverFromBackup();
+    await _reload();
+    _message = '已保留原文件并恢复备份，尚未应用。';
+  });
+
   Future<void> _save() async {
     final next = await _service!.save(
       _document(),
@@ -178,113 +238,156 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     super.dispose();
   }
 
+  String get _status {
+    if (_service!.error != null) return '应用失败，保留上一份有效配置';
+    return _service!.desired.revision == _service!.active.revision
+        ? '当前保存修订已应用'
+        : '已保存但未生效';
+  }
+
+  List<Widget> _sourceRows(SourceConfig source) {
+    final binding = _draft!.bindings[source.id];
+    if (binding == null) {
+      return [
+        SettingsRow(
+          key: const ValueKey('remote-configure'),
+          title: '配置家庭远程访问',
+          chevron: true,
+          onTap: _busy ? null : () => _edit(source),
+        ),
+      ];
+    }
+    final primary = binding.primary;
+    return [
+      SettingsRow(
+        title: '主线路 ${primary.lineId}',
+        description:
+            '${primary.outboundOptions?['server'] ?? primary.remoteAddress} · ${primary.mode.name}',
+        chevron: true,
+        onTap: _busy ? null : () => _edit(source),
+      ),
+      for (final backup in binding.backups)
+        SettingsMenuRow(
+          title: '备用 ${backup.lineId}',
+          description:
+              '${backup.outboundOptions?['server'] ?? backup.remoteAddress}',
+          enabled: !_busy,
+          items: [
+            SettingsMenuItem(
+              '设为主线路',
+              () => _setBindings(
+                Map.of(_draft!.bindings)
+                  ..[source.id] = RemoteAccessBinding(
+                    backup,
+                    backups: [
+                      primary,
+                      ...binding.backups.where((r) => r != backup),
+                    ],
+                  ),
+              ),
+            ),
+            SettingsMenuItem(
+              '移除',
+              () => _setBindings(
+                Map.of(_draft!.bindings)
+                  ..[source.id] = RemoteAccessBinding(
+                    primary,
+                    backups: binding.backups.where((r) => r != backup).toList(),
+                  ),
+              ),
+              destructive: true,
+            ),
+          ],
+        ),
+      SettingsRow(
+        title: '测试草稿',
+        accent: true,
+        onTap: _busy ? null : () => _run(() => _test(source, primary)),
+      ),
+      if (binding.backups.length < 4)
+        SettingsRow(
+          title: '添加备用线路',
+          accent: true,
+          onTap: _busy ? null : () => _edit(source, backup: true),
+        ),
+      SettingsRow(
+        title: '移除绑定',
+        destructive: true,
+        onTap: _busy
+            ? null
+            : () => _setBindings(Map.of(_draft!.bindings)..remove(source.id)),
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) => AppPage(
     title: const Text('远程访问'),
-    body: ListView(
-      padding: AppSpacing.page(context),
+    body: SettingsListView(
       children: [
-        if (_busy) const ShadProgress(),
+        if (_busy)
+          const Padding(
+            padding: EdgeInsets.only(bottom: 16),
+            child: ShadProgress(),
+          ),
         if (_message != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 16),
             child: ShadAlert(title: Text(_message!)),
           ),
         if (_service != null && _draft == null)
-          ShadButton.outline(
-            onPressed: _busy
-                ? null
-                : () => _run(() async {
-                    final confirmed = await showShadDialog<bool>(
-                      context: context,
-                      builder: (dialogContext) => ShadDialog(
-                        title: const Text('恢复已知备份？'),
-                        description: const Text(
-                          '无法识别的原文件将另存保留；备份会保存为新修订，仍需另行应用。',
-                        ),
-                        actions: [
-                          ShadButton.ghost(
-                            onPressed: () =>
-                                Navigator.pop(dialogContext, false),
-                            child: const Text('取消'),
-                          ),
-                          ShadButton(
-                            onPressed: () => Navigator.pop(dialogContext, true),
-                            child: const Text('保留原文件并恢复'),
-                          ),
-                        ],
-                      ),
-                    );
-                    if (confirmed != true) return;
-                    await _service!.recoverFromBackup();
-                    await _reload();
-                    _message = '已保留原文件并恢复备份，尚未应用。';
-                  }),
-            child: const Text('恢复已知备份'),
+          SettingsSection(
+            children: [
+              SettingsRow(
+                title: '恢复已知备份',
+                accent: true,
+                onTap: _busy ? null : _recoverBackup,
+              ),
+            ],
           ),
         if (_service != null && _draft != null) ...[
           SettingsSection(
             title: '配置与生效状态',
+            footer: '连接配置只保存在应用私有目录的 remote_access.json；实际 UUID 只保存在系统安全存储。',
             children: [
-              Text(
-                '草稿修订 ${_draft!.revision} · 已保存 ${_service!.desired.revision} · 实际生效 ${_service!.active.revision}',
+              SettingsRow(
+                title: '状态',
+                control: Text(_status, key: const ValueKey('remote-status')),
               ),
-              Text(
-                _service!.error == null
-                    ? (_service!.desired.revision == _service!.active.revision
-                          ? '当前保存修订已应用'
-                          : '已保存但未生效')
-                    : '已保存但应用失败，保留上一份有效运行配置',
+              SettingsRow(
+                title: '修订',
+                control: Text(
+                  '草稿 ${_draft!.revision} · 已保存 ${_service!.desired.revision} · 生效 ${_service!.active.revision}',
+                  key: const ValueKey('remote-revisions'),
+                ),
               ),
-              const Text(
-                '连接配置只保存在应用私有目录的 remote_access.json；实际 UUID 只保存在系统安全存储。',
+              SettingsRow(
+                key: const ValueKey('remote-save'),
+                title: '保存 JSON',
+                accent: true,
+                onTap: _busy ? null : () => _run(_save),
               ),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  ShadButton.outline(
-                    onPressed: _busy ? null : () => _run(_save),
-                    child: const Text('保存 JSON'),
+              SettingsRow(
+                key: const ValueKey('remote-apply'),
+                title: '应用已保存配置',
+                accent: true,
+                onTap: _busy ? null : () => _run(_apply),
+              ),
+              SettingsMenuRow(
+                title: '更多操作',
+                enabled: !_busy,
+                items: [
+                  SettingsMenuItem('重新加载', () => _run(_reload)),
+                  SettingsMenuItem(
+                    '恢复备份',
+                    () => _run(() async {
+                      _draft = await _service!.restore(
+                        expectedRevision: _draft!.revision,
+                      );
+                      _message = '上一份配置已恢复为新修订，尚未应用。';
+                    }),
                   ),
-                  ShadButton(
-                    onPressed: _busy ? null : () => _run(_apply),
-                    child: const Text('应用已保存配置'),
-                  ),
-                  ShadButton.ghost(
-                    onPressed: _busy ? null : () => _run(_reload),
-                    child: const Text('重新加载'),
-                  ),
-                  ShadButton.ghost(
-                    onPressed: _busy
-                        ? null
-                        : () => _run(() async {
-                            _draft = await _service!.restore(
-                              expectedRevision: _draft!.revision,
-                            );
-                            _message = '上一份配置已恢复为新修订，尚未应用。';
-                          }),
-                    child: const Text('恢复备份'),
-                  ),
-                  ShadButton.ghost(
-                    onPressed: _busy
-                        ? null
-                        : () => showShadDialog<void>(
-                            context: context,
-                            builder: (_) => ShadDialog(
-                              title: const Text('脱敏导出'),
-                              child: SizedBox(
-                                width: 520,
-                                child: SingleChildScrollView(
-                                  child: SelectableText(
-                                    _service!.exportRedacted(),
-                                  ),
-                                ),
-                              ),
-                            ),
-                          ),
-                    child: const Text('脱敏导出'),
-                  ),
+                  SettingsMenuItem('脱敏导出', _showExport),
                 ],
               ),
             ],
@@ -292,125 +395,68 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
           SettingsSection(
             title: '探测与连接策略',
             children: [
-              _number(_probe, '局域网探测超时（毫秒）', '200–10000；每次仅探测已配置且配对的端点。'),
-              _number(_stability, '路径稳定窗口（秒）', '5–300；复用同一来源的探测，避免频繁切换。'),
-              _number(_attempts, '播放前连接重试次数', '0–5；只重试网络建立阶段，不重复提交媒体登录。'),
-              _number(_delay, '连接重试间隔（毫秒）', '100–10000；不主动中断健康的播放租约。'),
-              ShadSwitch(
-                value: _draft!.allowCellular,
-                enabled: !_busy,
-                label: const Text('允许蜂窝网络远程访问'),
-                onChanged: (v) =>
-                    setState(() => _draft = _draft!.copyWith(allowCellular: v)),
+              _number(
+                _probe,
+                '局域网探测超时（毫秒）',
+                '200–10000；每次仅探测已配置且配对的端点。',
+                min: 200,
+                max: 10000,
+              ),
+              _number(
+                _stability,
+                '路径稳定窗口（秒）',
+                '5–300；复用同一来源的探测，避免频繁切换。',
+                min: 5,
+                max: 300,
+              ),
+              _number(
+                _attempts,
+                '播放前连接重试次数',
+                '0–5；只重试网络建立阶段，不重复提交媒体登录。',
+                min: 0,
+                max: 5,
+              ),
+              _number(
+                _delay,
+                '连接重试间隔（毫秒）',
+                '100–10000；不主动中断健康的播放租约。',
+                min: 100,
+                max: 10000,
+              ),
+              SettingsRow(
+                title: '允许蜂窝网络远程访问',
+                control: ShadSwitch(
+                  value: _draft!.allowCellular,
+                  enabled: !_busy,
+                  onChanged: (v) => setState(
+                    () => _draft = _draft!.copyWith(allowCellular: v),
+                  ),
+                ),
               ),
             ],
           ),
-          for (final source in widget.sources.configs.where(
-            (c) =>
-                c.kind.mediaBrowser ||
-                c.kind == SourceKind.plex ||
-                c.kind == SourceKind.smb,
-          ))
+          for (final (i, source)
+              in widget.sources.configs
+                  .where(
+                    (c) =>
+                        c.kind.mediaBrowser ||
+                        c.kind == SourceKind.plex ||
+                        c.kind == SourceKind.smb,
+                  )
+                  .indexed)
             SettingsSection(
+              key: ValueKey('remote-source-$i'),
               title: source.titleName,
-              children: [
-                if (_draft!.bindings[source.id] case final binding?) ...[
-                  Text(
-                    '家庭 ${binding.primary.homeId} · 服务 ${binding.primary.serviceId}',
-                  ),
-                  Text(
-                    '主线路 ${binding.primary.lineId} · ${binding.primary.outboundOptions?['server'] ?? '已保存线路'}',
-                  ),
-                  Text(
-                    '模式 ${binding.primary.mode.name} · 远程端点 ${binding.primary.remoteAddress}',
-                  ),
-                  Wrap(
-                    spacing: 8,
-                    children: [
-                      ShadButton.outline(
-                        onPressed: _busy ? null : () => _edit(source),
-                        child: const Text('编辑连接'),
-                      ),
-                      ShadButton.ghost(
-                        onPressed: _busy
-                            ? null
-                            : () => _run(() => _test(source, binding.primary)),
-                        child: const Text('测试草稿'),
-                      ),
-                      if (binding.backups.length < 4)
-                        ShadButton.ghost(
-                          onPressed: _busy
-                              ? null
-                              : () => _edit(source, backup: true),
-                          child: const Text('添加备用线路'),
-                        ),
-                      ShadButton.ghost(
-                        onPressed: _busy
-                            ? null
-                            : () => setState(
-                                () => _draft = _draft!.copyWith(
-                                  bindings: Map.of(_draft!.bindings)
-                                    ..remove(source.id),
-                                ),
-                              ),
-                        child: const Text('移除绑定'),
-                      ),
-                    ],
-                  ),
-                  for (final backup in binding.backups)
-                    SettingsRow(
-                      title: '备用 ${backup.lineId}',
-                      description:
-                          '${backup.outboundOptions?['server'] ?? backup.remoteAddress} · 手动切换后保存并应用',
-                      control: Wrap(
-                        children: [
-                          ShadButton.ghost(
-                            onPressed: _busy
-                                ? null
-                                : () => setState(() {
-                                    final list = [
-                                      binding.primary,
-                                      ...binding.backups.where(
-                                        (r) => r != backup,
-                                      ),
-                                    ];
-                                    _draft = _draft!.copyWith(
-                                      bindings: Map.of(_draft!.bindings)
-                                        ..[source.id] = RemoteAccessBinding(
-                                          backup,
-                                          backups: list,
-                                        ),
-                                    );
-                                  }),
-                            child: const Text('设为主线路'),
-                          ),
-                          ShadButton.ghost(
-                            onPressed: _busy
-                                ? null
-                                : () => setState(
-                                    () => _draft = _draft!.copyWith(
-                                      bindings: Map.of(_draft!.bindings)
-                                        ..[source.id] = RemoteAccessBinding(
-                                          binding.primary,
-                                          backups: binding.backups
-                                              .where((r) => r != backup)
-                                              .toList(),
-                                        ),
-                                    ),
-                                  ),
-                            child: const Text('移除'),
-                          ),
-                        ],
-                      ),
-                    ),
-                ] else
-                  ShadButton.outline(
-                    onPressed: _busy ? null : () => _edit(source),
-                    child: const Text('配置家庭远程访问'),
-                  ),
-              ],
+              children: _sourceRows(source),
             ),
-          const Text('App 只管理本端。更换映射、凭据或端口后，还需分别确认 Relay 与 Home 配置一致。'),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16),
+            child: Text(
+              'App 只管理本端。更换映射、凭据或端口后，还需分别确认 Relay 与 Home 配置一致。',
+              style: ShadTheme.of(context).textTheme.muted
+                  .copyWith(fontSize: 12),
+            ),
+          ),
         ],
       ],
     ),
@@ -588,6 +634,7 @@ class _RemoteEditorState extends State<_RemoteEditor> {
 
   @override
   Widget build(BuildContext context) => FormPage(
+    maxWidth: AppMetrics.formWidth,
     canPop: !_busy,
     crossAxisAlignment: CrossAxisAlignment.stretch,
     title: const Text('远程连接设置'),

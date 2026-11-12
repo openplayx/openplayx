@@ -918,6 +918,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metadataTokenMissing => 'No TMDB token configured.';
 
   @override
+  String get metadataTokenStatusSaved => 'Saved';
+
+  @override
+  String get metadataTokenStatusMissing => 'Not set';
+
+  @override
   String get metadataSearch => 'Search TMDB';
 
   @override
@@ -1016,6 +1022,9 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiCloudConsent =>
       'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.';
+
+  @override
+  String get aiCloudConsentTitle => 'Allow this provider';
 
   @override
   String get aiTestText => 'Test reply';

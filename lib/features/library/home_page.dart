@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import '../../data/sources/source_manager.dart';
@@ -63,16 +64,80 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   @override
   ValueChanged<SourceSelection>? get openerPlay => widget.onPlay;
 
+  /// Shelf rows, queried outside build: the queries are synchronous and cost
+  /// tens of milliseconds, and build also runs on resize and theme changes.
+  late _HomeShelves _shelves;
+
+  /// Library changed while this page was hidden (another tab, a pushed
+  /// route); reloaded once it becomes visible again.
+  bool _stale = false;
+  ValueListenable<TickerModeData>? _visible;
+
   @override
   void initState() {
     super.initState();
-    _changes = widget.service.changes.listen((_) {
-      if (mounted) setState(() {});
-    });
+    _shelves = _load();
+    _changes = widget.service.changes.listen((_) => _refresh());
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    final visible = TickerMode.getValuesNotifier(context);
+    if (!identical(visible, _visible)) {
+      _visible?.removeListener(_onVisibility);
+      _visible = visible..addListener(_onVisibility);
+    }
+  }
+
+  @override
+  void didUpdateWidget(HomePage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    // The shell recreates the page when the home tab is selected again.
+    _shelves = _load();
+    _stale = false;
+  }
+
+  void _onVisibility() {
+    if (_stale && (_visible?.value.enabled ?? true)) _refresh();
+  }
+
+  void _refresh() {
+    if (!mounted) return;
+    if (!(_visible?.value.enabled ?? true)) {
+      _stale = true;
+      return;
+    }
+    _stale = false;
+    setState(() => _shelves = _load());
+  }
+
+  _HomeShelves _load() {
+    final service = widget.service;
+    List<dynamic> posters(String? contentType) =>
+        service.query(null, contentType: contentType, limit: _shelfLimit);
+    final shelves = _HomeShelves(
+      continueWatching: service.continueWatching(limit: 200),
+      recentlyAdded: posters(null),
+      movies: posters('movie'),
+      series: posters('series'),
+      recentlyPlayed: service.recentlyPlayed(limit: 200),
+    );
+    for (final rows in [
+      shelves.recentlyAdded,
+      shelves.movies,
+      shelves.series,
+    ]) {
+      for (final row in rows) {
+        _boost(row['id'] as String);
+      }
+    }
+    return shelves;
   }
 
   @override
   void dispose() {
+    _visible?.removeListener(_onVisibility);
     _changes?.cancel();
     _artwork.dispose();
     super.dispose();
@@ -107,18 +172,10 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     ),
   );
 
-  Widget _posterShelf(String title, String? contentType) {
+  Widget _posterShelf(String title, String? contentType, List<dynamic> rows) {
     final service = widget.service;
-    final rows = service.query(
-      null,
-      contentType: contentType,
-      limit: _shelfLimit,
-    );
     if (rows.isEmpty) return const SizedBox.shrink();
     final total = rows.first['total'] as int? ?? rows.length;
-    for (final row in rows) {
-      _boost(row['id'] as String);
-    }
     return _section(
       MediaShelf(
         title: title,
@@ -146,8 +203,11 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     );
   }
 
-  Widget _resumeShelf(String title, List<dynamic> Function(int) load) {
-    final rows = load(200);
+  Widget _resumeShelf(
+    String title,
+    List<dynamic> rows,
+    List<dynamic> Function(int) load,
+  ) {
     if (rows.isEmpty) return const SizedBox.shrink();
     final shown = rows.take(_shelfLimit).toList();
     return _section(
@@ -187,13 +247,15 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     final shelves = [
       _resumeShelf(
         l.continueWatching,
+        _shelves.continueWatching,
         (limit) => service.continueWatching(limit: limit),
       ),
-      _posterShelf(l.recentlyAdded, null),
-      _posterShelf(l.movie, 'movie'),
-      _posterShelf(l.tvShows, 'series'),
+      _posterShelf(l.recentlyAdded, null, _shelves.recentlyAdded),
+      _posterShelf(l.movie, 'movie', _shelves.movies),
+      _posterShelf(l.tvShows, 'series', _shelves.series),
       _resumeShelf(
         l.recentlyPlayed,
+        _shelves.recentlyPlayed,
         (limit) => service.recentlyPlayed(limit: limit),
       ),
     ];
@@ -217,4 +279,19 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
       children: shelves,
     );
   }
+}
+
+class _HomeShelves {
+  const _HomeShelves({
+    required this.continueWatching,
+    required this.recentlyAdded,
+    required this.movies,
+    required this.series,
+    required this.recentlyPlayed,
+  });
+  final List<dynamic> continueWatching;
+  final List<dynamic> recentlyAdded;
+  final List<dynamic> movies;
+  final List<dynamic> series;
+  final List<dynamic> recentlyPlayed;
 }

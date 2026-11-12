@@ -25,6 +25,7 @@ import '../services/metadata/metadata_runtime.dart';
 import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
 import 'player_window.dart';
+import '../ui/tokens/app_motion.dart';
 import '../ui/tokens/app_spacing.dart';
 import 'theme/app_theme.dart';
 
@@ -65,6 +66,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   final _branches = List.generate(
     AppDestination.values.length,
     (_) => GlobalKey<NavigatorState>(),
+  );
+  // Page depth per tab; the bottom bar only shows on a tab's root page.
+  late final _depths = List.generate(
+    AppDestination.values.length,
+    (_) => _PageDepthObserver(_depthChanged),
   );
   LibraryService? _library;
   MetadataRuntime? _metadataRuntime;
@@ -143,9 +149,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   Map<String, dynamic> _aiContext() => {
-    'page': _showPlayer
-        ? 'player'
-        : AppDestination.values[_destination].name,
+    'page': _showPlayer ? 'player' : AppDestination.values[_destination].name,
     'playback': _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
   };
 
@@ -248,8 +252,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Future<void> _modelSettings() async {
     if (_assistantStore == null || (_assistant?.busy ?? false)) return;
-    // Open inside the settings tab like other settings sub-pages, so the
-    // navigation stays visible. The chat sheet (root route) closes first,
+    // Open inside the settings tab like other settings sub-pages. The chat sheet (root route) closes first,
     // otherwise it would sit on top of the page.
     Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
     final settings = AppDestination.settings.index;
@@ -372,13 +375,38 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         // Plain icon, no filled background. Over the (black) player it uses
         // the dark theme so the icon stays visible.
         child: _showPlayer
-            ? ShadTheme(data: AppTheme.dark, child: _assistantIcon())
+            ? _withPlayerControls(
+                ShadTheme(data: AppTheme.dark, child: _assistantIcon()),
+              )
             : _assistantIcon(),
       ),
     ),
   );
 
+  // Over the player the button shows and hides together with its controls.
+  Widget _withPlayerControls(Widget child) {
+    final visibility = _player.currentState?.controlsVisibility;
+    if (visibility == null) return child;
+    return ValueListenableBuilder<bool>(
+      valueListenable: visibility,
+      builder: (context, visible, child) => IgnorePointer(
+        ignoring: !visible,
+        child: ExcludeSemantics(
+          excluding: !visible,
+          child: AnimatedOpacity(
+            opacity: visible ? 1 : 0,
+            duration: AppMotion.duration(context, AppMotion.controls),
+            child: child,
+          ),
+        ),
+      ),
+      child: child,
+    );
+  }
+
   Widget _assistantIcon() => ShadIconButton.ghost(
+    width: AppPage.headerHeight,
+    height: AppPage.headerHeight,
     icon: const Icon(AppIcons.assistant),
     onPressed: _openAssistant,
   );
@@ -484,8 +512,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     onModelSettings: _assistantStore == null ? null : _modelSettings,
   );
 
+  // Observers fire while the navigator is mid-update, so rebuild after it.
+  void _depthChanged() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) setState(() {});
+  });
+
   Widget _branch(int index) => Navigator(
     key: _branches[index],
+    observers: [_depths[index]],
     onGenerateRoute: (_) => MaterialPageRoute<void>(
       builder: (_) => switch (AppDestination.values[index]) {
         AppDestination.home => _home(),
@@ -543,30 +577,34 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               children: [
                 Offstage(
                   offstage: _showPlayer,
-                  child: Row(
-                    children: [
-                      if (sidebar)
-                        AppSidebar(
-                          selected: _destination,
-                          onSelected: _select,
-                          compact: !wide,
-                        ),
-                      Expanded(
-                        child: Column(
-                          children: [
-                            Expanded(
-                              child: IndexedStack(
-                                index: _destination,
-                                children: [
-                                  for (final d in AppDestination.values)
-                                    _branch(d.index),
-                                ],
+                  // Pauses animations and deferred page refreshes under the player.
+                  child: TickerMode(
+                    enabled: !_showPlayer,
+                    child: Row(
+                      children: [
+                        if (sidebar)
+                          AppSidebar(
+                            selected: _destination,
+                            onSelected: _select,
+                            compact: !wide,
+                          ),
+                        Expanded(
+                          child: Column(
+                            children: [
+                              Expanded(
+                                child: IndexedStack(
+                                  index: _destination,
+                                  children: [
+                                    for (final d in AppDestination.values)
+                                      _branch(d.index),
+                                  ],
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
                 if (_backend != null)
@@ -589,7 +627,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                 if (_assistant != null) _assistantButton(context),
               ],
             ),
-            bottomNavigationBar: sidebar || _showPlayer
+            bottomNavigationBar:
+                sidebar || _showPlayer || _depths[_destination].depth > 1
                 ? null
                 : AppBottomBar(selected: _destination, onSelected: _select),
           );
@@ -597,4 +636,29 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ),
     );
   }
+}
+
+/// Counts the page routes on a tab's navigator (dialogs use the root one).
+class _PageDepthObserver extends NavigatorObserver {
+  _PageDepthObserver(this.onChanged);
+  final VoidCallback onChanged;
+  int depth = 0;
+
+  void _change(Route<dynamic> route, int delta) {
+    if (route is! PageRoute) return;
+    depth += delta;
+    onChanged();
+  }
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, 1);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _change(route, -1);
 }

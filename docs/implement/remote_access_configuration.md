@@ -66,6 +66,6 @@ CLI 安装/更新也读取同一角色 JSON 和机密引用，使用同一锁，
 
 新增测试覆盖 JSON 保存/应用区分、共享线路归一化、并发修订、单调损坏恢复、SQLite 迁移、机密清理、失败后跨重启阻止、设置页交互及 TCP 重建前策略检查。两个部署仓库测试覆盖管理认证、CSRF、跨域、脱敏、文件/端口/授权限制、修订冲突与应用失败回退。
 
-Relay 的 `tests/e2e.py --managed-json` 使用真实固定版本 sing-box、frps、frpc 和 App 原生库验证角色 JSON → 机密引用 → 组件配置 → 认证/Range 媒体链路及访问控制。浏览器已实际验证 Relay 登录、草稿校验与“已保存但未生效”状态。Android APK 与 iOS 模拟器构建已验证新增网络类型桥接。
+Relay 的 `tests/e2e.py --managed-json` 使用真实固定版本 sing-box、frps、frpc 和 App 原生库验证角色 JSON → 机密引用 → 组件配置 → 认证/Range 媒体链路及访问控制。（2026-11-12 起该测试由 relay/home 仓库的 Go `TestEndToEnd` 取代，从角色 JSON 导入、经应用流程启动进程内组件，App 端改用同版本 sing-box 出站。）浏览器已实际验证 Relay 登录、草稿校验与“已保存但未生效”状态。Android APK 与 iOS 模拟器构建已验证新增网络类型桥接。
 
 真实 Linux/systemd 安装、真实移动设备蜂窝切换、VPS 与跨境长期播放仍需环境验收；本次没有部署或公开任何实际服务。

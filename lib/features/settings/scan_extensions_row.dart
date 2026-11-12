@@ -7,7 +7,9 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../ui/components/settings/settings_section.dart';
 
 /// Global file-suffix filter used by both preview scans and library scans.
-class ScanExtensionsRow extends StatefulWidget {
+///
+/// The row shows the current list; editing happens in a dialog.
+class ScanExtensionsRow extends StatefulWidget with SettingsRowContent {
   const ScanExtensionsRow({super.key, required this.sources});
   final SourceManager sources;
   @override
@@ -15,29 +17,37 @@ class ScanExtensionsRow extends StatefulWidget {
 }
 
 class _ScanExtensionsRowState extends State<ScanExtensionsRow> {
-  late final _controller = TextEditingController(
-    text: widget.sources.scanExtensions.join(', '),
-  );
   bool _busy = false;
   bool _failed = false;
 
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  Future<void> _save() async {
+  Future<void> _edit() async {
+    final l = AppLocalizations.of(context);
+    final text = await showSettingsInputDialog(
+      context,
+      title: l.scanExtensions,
+      description: l.scanExtensionsHelp,
+      initial: widget.sources.scanExtensions.join(', '),
+      placeholder: 'mp4, mkv, avi',
+      cancelLabel: l.cancel,
+      saveLabel: l.save,
+      validate: (value) {
+        try {
+          parseScanExtensions(value);
+          return null;
+        } catch (_) {
+          return l.preferenceSaveFailed;
+        }
+      },
+    );
+    if (text == null || !mounted) return;
     setState(() {
       _busy = true;
       _failed = false;
     });
     try {
-      final values = parseScanExtensions(_controller.text);
-      await widget.sources.setScanExtensions(values);
-      if (mounted) _controller.text = values.join(', ');
+      await widget.sources.setScanExtensions(parseScanExtensions(text));
     } catch (_) {
-      if (mounted) _failed = true;
+      _failed = true;
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -46,34 +56,19 @@ class _ScanExtensionsRowState extends State<ScanExtensionsRow> {
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        SettingsRow(
-          title: l.scanExtensions,
-          description: l.scanExtensionsHelp,
-          control: SizedBox(
-            width: 280,
-            child: ShadInput(
-              controller: _controller,
-              enabled: !_busy,
-              autocorrect: false,
-              enableSuggestions: false,
-              placeholder: const Text('mp4, mkv, avi'),
-              onSubmitted: (_) => _save(),
-            ),
-          ),
-        ),
-        Align(
-          alignment: AlignmentDirectional.centerEnd,
-          child: ShadButton.outline(
-            onPressed: _busy ? null : _save,
-            enabled: !_busy,
-            child: Text(l.save),
-          ),
-        ),
-        if (_failed) ShadAlert.destructive(title: Text(l.preferenceSaveFailed)),
-      ],
+    final values = widget.sources.scanExtensions;
+    return SettingsRow(
+      key: const ValueKey('scan-extensions'),
+      title: l.scanExtensions,
+      description: _failed ? l.preferenceSaveFailed : null,
+      chevron: true,
+      onTap: _busy ? null : _edit,
+      control: Text(
+        values.isEmpty ? '*' : values.join(', '),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
+        style: ShadTheme.of(context).textTheme.muted.copyWith(fontSize: 14),
+      ),
     );
   }
 }

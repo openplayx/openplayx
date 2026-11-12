@@ -44,6 +44,8 @@ cd native/remote_access
 
 本机链路测试命令位于 relay 的 `tests/e2e.py`：运行真实 sing-box、frpc、frps、测试媒体服务和本 App 编译出的 C ABI 库，验证媒体认证、Host、Range、用户/端口 ACL 和禁止家庭直连回退。配置检查由固定版本上游程序执行；两个部署仓库还各有配置/凭据/版本锁测试。
 
+2026-11-12 起 relay/home 改为单一 Go 服务（sing-box 1.12.12、frp 0.65.0 以库形式编译进二进制），Python 管理器与 `tests/e2e.py` 已移除。链路测试改为两个仓库中的 `go test` `TestEndToEnd`：同一进程内运行 Relay 与 Home 两个角色的真实 sing-box/frp，App 端以相同版本 sing-box 的 VLESS 出站代替本 App 的 C ABI 库；配置检查由内置的上游校验执行。
+
 ## 后续验收与明确边界
 
 - 先通过真实 VPS + 家庭 NAS 的配置和网络验收；当前默认是 VLESS/TLS，不是可用性承诺。REALITY 客户端支持已编译，但 relay/home 默认生成器没有自动发放 REALITY 服务配置，需另选并实测协议部署。
