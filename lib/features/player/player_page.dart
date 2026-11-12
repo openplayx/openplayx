@@ -1220,9 +1220,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
               builder: (context, constraints) {
                 return Row(
                   children: [
-                    Flexible(
+                    Expanded(
                       child: Text(
                         '${formatTime(Duration(milliseconds: position.round()))} / ${duration > 0 ? formatTime(value.duration) : '--:--'}',
+                        textAlign: TextAlign.left,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: AppTheme.dark.textTheme.muted.copyWith(
@@ -1230,14 +1231,17 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         ),
                       ),
                     ),
-                    Spacer(),
-                    Text(
-                      '${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
-                      key: Key('playback-read-speed'),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: AppTheme.dark.textTheme.muted.copyWith(
-                        color: AppSemanticColors.playerMuted,
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        '${value.readSpeedMBps == null ? '--' : value.readSpeedMBps!.toStringAsFixed(2)} MB/s',
+                        key: Key('playback-read-speed'),
+                        textAlign: TextAlign.right,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: AppTheme.dark.textTheme.muted.copyWith(
+                          color: AppSemanticColors.playerMuted,
+                        ),
                       ),
                     ),
                   ],
