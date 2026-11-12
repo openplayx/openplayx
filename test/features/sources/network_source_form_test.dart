@@ -43,7 +43,7 @@ Future<void> openForm(
 }
 
 Future<void> chooseKind(WidgetTester tester, String label) async {
-  await tester.tap(find.byType(ShadSelect<SourceKind>));
+  await tester.tap(find.byKey(const ValueKey('source-kind')));
   await tester.pumpAndSettle();
   await tester.ensureVisible(find.text(label).last);
   await tester.tap(find.text(label).last);
@@ -53,7 +53,7 @@ Future<void> chooseKind(WidgetTester tester, String label) async {
 void main() {
   testWidgets('every source kind is offered with its own icon', (tester) async {
     await openForm(tester, MemorySources());
-    await tester.tap(find.byType(ShadSelect<SourceKind>));
+    await tester.tap(find.byKey(const ValueKey('source-kind')));
     await tester.pumpAndSettle();
     for (final label in [
       'SMB',

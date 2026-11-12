@@ -6,46 +6,60 @@ import 'package:openplayx/data/remote_access/remote_config.dart';
 import 'package:openplayx/data/remote_access/remote_transport.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 
+const publicOutbound = {
+  'type': 'vless',
+  'server': 'relay.example',
+  'server_port': 443,
+  'tls': {'enabled': true, 'server_name': 'relay.example'},
+};
 RemoteAccessConfig config({
   RemoteConnectionMode mode = RemoteConnectionMode.automatic,
 }) => RemoteAccessConfig(
-  lineId: 'line',
-  homeId: 'home',
-  serviceId: 'jellyfin',
-  remoteAddress: 'http://nas.invalid:8096',
+  proxy: 'jellyfin',
   remotePort: 18096,
-  credentialRef: 'remote.source.1',
+  credentialRef: 'remote.outbound.1',
+  outbound: publicOutbound,
   mode: mode,
   localAddress: 'https://nas.example:8920',
   localTlsSha256: List.filled(64, 'a').join(),
 );
 void main() {
-  test('round trip keeps stable source/media identity without embedding outbound secrets', () {
+  test('a source persists only its proxy choice, never the resolved route', () {
     final source = SourceConfig(
       id: 'source',
       kind: SourceKind.jellyfin,
       name: 'NAS',
       address: 'http://nas.invalid:8096',
       userId: 'user',
+      remote: const SourceRemote(proxy: 'jellyfin'),
       remoteAccess: config(),
     );
+    final json = jsonEncode(source.toJson());
+    expect(json, isNot(contains('uuid')));
+    expect(json, isNot(contains('relay.example')));
     final decoded = SourceConfig.fromJson(
-      jsonDecode(jsonEncode(source.toJson())) as Map<String, dynamic>,
+      jsonDecode(json) as Map<String, dynamic>,
     );
-    expect(decoded.id, source.id);
-    expect(decoded.remoteAccess!.serviceId, 'jellyfin');
-    expect(decoded.credentialRef, isNull);
-    expect(jsonEncode(source.toJson()), isNot(contains('uuid')));
+    expect(decoded.remote!.proxy, 'jellyfin');
+    expect(decoded.remoteAccess, isNull);
     decoded.validate();
     expect(
-      () => source
-          .copyWith(
-            remoteAccess: RemoteAccessConfig.fromJson({
-              ...config().toJson(),
-              'credentialRef': 'remote.other.1',
-            }),
-          )
-          .validate(),
+      () => source.copyWith(remote: const SourceRemote(proxy: ' ')).validate(),
+      throwsFormatException,
+    );
+    expect(
+      () => const SourceConfig(
+        id: 'smb',
+        kind: SourceKind.smb,
+        name: 'NAS',
+        address: 'smb://nas.invalid/movie',
+        remote: SourceRemote(
+          proxy: 'smb',
+          mode: RemoteConnectionMode.automatic,
+          localAddress: 'https://nas.example:8920',
+          localTlsSha256: 'aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa',
+        ),
+      ).validate(),
       throwsFormatException,
     );
   });
@@ -95,18 +109,22 @@ void main() {
     },
   );
   test('automatic mode rejects HTTP and unverified identities', () {
+    final remote = {
+      'proxy': 'jellyfin',
+      'mode': 'automatic',
+      'localAddress': 'https://nas.example:8920',
+      'localTlsSha256': List.filled(64, 'a').join(),
+    };
+    SourceRemote.fromJson(remote);
     expect(
-      () => RemoteAccessConfig.fromJson({
-        ...config().toJson(),
+      () => SourceRemote.fromJson({
+        ...remote,
         'localAddress': 'http://nas.local',
       }),
       throwsFormatException,
     );
     expect(
-      () => RemoteAccessConfig.fromJson({
-        ...config().toJson(),
-        'localTlsSha256': '',
-      }),
+      () => SourceRemote.fromJson({...remote, 'localTlsSha256': ''}),
       throwsFormatException,
     );
     expect(
@@ -118,17 +136,21 @@ void main() {
     'pairing accepts TLS and rejects insecure or external file configuration',
     () {
       final pair = {
-        'version': 1,
-        ...config().toJson(),
         'outbound': {
           'type': 'vless',
+          'tag': 'relay',
           'server': 'relay.example',
           'server_port': 443,
           'uuid': '11111111-1111-4111-8111-111111111111',
           'tls': {'enabled': true, 'server_name': 'relay.example'},
         },
+        'proxies': [
+          {'name': 'jellyfin', 'remotePort': 18096},
+        ],
       };
-      expect(RemotePairing.parse(jsonEncode(pair)).outbound['type'], 'vless');
+      final parsed = RemotePairing.parse(jsonEncode(pair));
+      expect(parsed.outbound['type'], 'vless');
+      expect(parsed.outbound.containsKey('tag'), isFalse);
       (pair['outbound'] as Map)['tls'] = {
         'enabled': true,
         'server_name': 'relay.example',
@@ -149,6 +171,49 @@ void main() {
       );
     },
   );
+  test('pairing lists proxies and a source kind picks its default', () {
+    String file(List<Map<String, Object>> proxies) => jsonEncode({
+      'outbound': {
+        'type': 'vless',
+        'server': 'relay.example',
+        'server_port': 443,
+        'uuid': '11111111-1111-4111-8111-111111111111',
+        'tls': {'enabled': true, 'server_name': 'relay.example'},
+      },
+      'proxies': proxies,
+    });
+    final pair = RemotePairing.parse(
+      file([
+        {'name': 'jellyfin', 'remotePort': 18096},
+        {'name': 'smb', 'remotePort': 18445},
+      ]),
+    );
+    expect(RemoteProxy.defaultFor(pair.proxies, 'smb')!.remotePort, 18445);
+    expect(RemoteProxy.defaultFor(pair.proxies, 'emby'), isNull);
+    expect(
+      RemoteProxy.defaultFor([pair.proxies.first], 'emby')!.name,
+      'jellyfin',
+    );
+    for (final invalid in [
+      <Map<String, Object>>[],
+      [
+        {'name': 'a', 'remotePort': 1},
+        {'name': 'a', 'remotePort': 2},
+      ],
+      [
+        {'name': 'a', 'remotePort': 70000},
+      ],
+      [
+        {'name': 'a', 'remotePort': 1, 'localIP': '192.168.1.2'},
+      ],
+    ]) {
+      expect(() => RemotePairing.parse(file(invalid)), throwsFormatException);
+    }
+    expect(
+      () => RemotePairing.parse('{"version": 1, "outbound": {}}'),
+      throwsFormatException,
+    );
+  });
   test('lease scopes sockets to configured origin and closes once', () async {
     var closed = 0;
     final lease = RemotePathLease(
@@ -277,15 +342,8 @@ void main() {
     },
   );
   test('empty optional LAN fields do not turn an unrelated source edit into a route change', () {
-    final primary = RemoteAccessConfig(
-      lineId: 'line',
-      homeId: 'home',
-      serviceId: 'media',
-      remoteAddress: 'http://nas.invalid:8096',
-      remotePort: 18096,
-      credentialRef: 'remote.source.key',
-    );
-    final equivalent = RemoteAccessConfig.fromJson({
+    const primary = SourceRemote(proxy: 'media');
+    final equivalent = SourceRemote.fromJson({
       ...primary.toJson(),
       'localAddress': '',
       'localTlsSha256': '',

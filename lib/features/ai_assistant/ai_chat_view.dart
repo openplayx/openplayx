@@ -7,6 +7,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/conversations/conversation_coordinator.dart';
+import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_motion.dart';
 import 'adapters/flyer_chat_adapter.dart';
@@ -29,6 +30,7 @@ class AiChatView extends StatefulWidget {
     this.onExpand,
     this.onOpenMedia,
     this.onFavorite,
+    this.onBack,
   });
   final ConversationCoordinator coordinator;
   final AiChatController? controller;
@@ -37,6 +39,9 @@ class AiChatView extends StatefulWidget {
   final VoidCallback? onShowContent, onExpand;
   final OpenChatMedia? onOpenMedia;
   final Future<bool> Function(String id)? onFavorite;
+
+  /// Shown as a back button in the header when the view is a full page.
+  final VoidCallback? onBack;
   @override
   State<AiChatView> createState() => _AiChatViewState();
 }
@@ -178,18 +183,162 @@ class _AiChatViewState extends State<AiChatView> {
     );
   }
 
-  Widget _icon(String label, IconData icon, VoidCallback? onPressed) => Tooltip(
+  Widget _icon(
+    String label,
+    IconData icon,
+    VoidCallback? onPressed, {
+    double size = 18,
+  }) => Tooltip(
     message: label,
     child: Semantics(
       label: label,
       button: true,
       child: ShadIconButton.ghost(
         enabled: onPressed != null,
-        icon: Icon(icon, size: 18),
+        icon: Icon(icon, size: size),
         onPressed: onPressed,
       ),
     ),
   );
+  // Slim, ChatGPT-like bar: back, centered title, new chat and a "more" menu.
+  Widget _header(BuildContext context) {
+    final c = widget.coordinator,
+        l = AppLocalizations.of(context),
+        theme = ShadTheme.of(context);
+    return SizedBox(
+      height: 52,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 6),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 88,
+              child: Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: widget.onBack == null
+                    ? null
+                    : _icon(
+                        MaterialLocalizations.of(context).backButtonTooltip,
+                        AppIcons.back,
+                        widget.onBack,
+                        size: 22,
+                      ),
+              ),
+            ),
+            Expanded(
+              child: Text(
+                l.aiAssistant,
+                textAlign: TextAlign.center,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.large,
+              ),
+            ),
+            SizedBox(
+              width: 88,
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  _icon(
+                    l.aiNewChat,
+                    AppIcons.newChat,
+                    c.busy
+                        ? null
+                        : () {
+                            c.newConversation();
+                            _controller.showChat();
+                          },
+                    size: 20,
+                  ),
+                  _icon(l.aiMore, AppIcons.more, _more, size: 20),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _more() {
+    final c = widget.coordinator, l = AppLocalizations.of(context);
+    return showSettingsActionSheet(
+      context,
+      actions: [
+        if (!c.busy) SettingsSheetAction(l.aiChatHistory, _history),
+        if (!c.busy) SettingsSheetAction(l.aiModelSettings, widget.onSettings),
+        if (widget.onShowContent != null)
+          SettingsSheetAction(l.aiShowMedia, widget.onShowContent!),
+        if (widget.onExpand != null)
+          SettingsSheetAction(l.aiExpandChat, () {
+            _saveAnchor();
+            _controller.handoffAnchor('panel', 'home');
+            widget.onExpand!();
+          }),
+      ],
+    );
+  }
+
+  // Greeting plus a few one-tap starters, centered like mainstream chat apps.
+  Widget _empty(BuildContext context) {
+    final l = AppLocalizations.of(context), theme = ShadTheme.of(context);
+    final colors = theme.colorScheme;
+    final ready = widget.coordinator.store.loadConfig().configured;
+    return Center(
+      child: SingleChildScrollView(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(AppIcons.assistant, size: 32, color: colors.foreground),
+              const SizedBox(height: 16),
+              Text(
+                l.aiGreeting,
+                textAlign: TextAlign.center,
+                style: theme.textTheme.h3,
+              ),
+              const SizedBox(height: 28),
+              for (final prompt in [
+                l.aiSuggestTonight,
+                l.aiSuggestContinue,
+                l.aiSuggestSciFi,
+              ])
+                Padding(
+                  padding: const EdgeInsets.only(bottom: 10),
+                  child: Material(
+                    color: Colors.transparent,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () {
+                        _controller.suggest(prompt);
+                        if (ready && !widget.coordinator.busy) {
+                          _controller.send(toolsEnabled: widget.toolsEnabled());
+                        }
+                      },
+                      child: Ink(
+                        width: double.infinity,
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 16,
+                          vertical: 12,
+                        ),
+                        decoration: BoxDecoration(
+                          borderRadius: BorderRadius.circular(16),
+                          border: Border.all(color: colors.border),
+                        ),
+                        child: Text(prompt, style: theme.textTheme.small),
+                      ),
+                    ),
+                  ),
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _part(String id) {
     final part = _adapter.parts[id];
     if (part == null) return const SizedBox.shrink();
@@ -230,63 +379,10 @@ class _AiChatViewState extends State<AiChatView> {
           l = AppLocalizations.of(context),
           theme = ShadTheme.of(context);
       _restoreAnchor();
-      final page = c.context()['page'];
-      final pageName = switch (page) {
-        'library' => l.library,
-        'sources' => l.sources,
-        'settings' => l.settings,
-        'player' => l.play,
-        _ => l.home,
-      };
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 4,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Text(l.aiAssistant, style: theme.textTheme.h4),
-                _icon(
-                  l.aiNewChat,
-                  AppIcons.add,
-                  c.busy
-                      ? null
-                      : () {
-                          c.newConversation();
-                          _controller.showChat();
-                        },
-                ),
-                _icon(
-                  l.aiChatHistory,
-                  AppIcons.history,
-                  c.busy ? null : _history,
-                ),
-                _icon(
-                  l.aiModelSettings,
-                  AppIcons.settings,
-                  c.busy ? null : widget.onSettings,
-                ),
-                if (widget.onShowContent != null)
-                  _icon(l.aiShowMedia, AppIcons.library, widget.onShowContent),
-                if (widget.onExpand != null)
-                  _icon(l.aiExpandChat, AppIcons.fullscreen, () {
-                    _saveAnchor();
-                    _controller.handoffAnchor('panel', 'home');
-                    widget.onExpand!();
-                  }),
-              ],
-            ),
-          ),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12),
-            child: Align(
-              alignment: AlignmentDirectional.centerStart,
-              child: ShadBadge.secondary(child: Text(pageName)),
-            ),
-          ),
+          _header(context),
           Expanded(
             child: SizedBox(
               key: _viewportKey,
@@ -299,12 +395,7 @@ class _AiChatViewState extends State<AiChatView> {
                 builders: flyer.Builders(
                   composerBuilder: (_) => const SizedBox.shrink(),
                   linkPreviewBuilder: (_, _, _) => null,
-                  emptyChatListBuilder: (_) => Center(
-                    child: Padding(
-                      padding: const EdgeInsets.all(24),
-                      child: Text(l.aiWelcome, style: theme.textTheme.muted),
-                    ),
-                  ),
+                  emptyChatListBuilder: (_) => _empty(context),
                   customMessageBuilder: (
                     context,
                     message,
@@ -328,13 +419,10 @@ class _AiChatViewState extends State<AiChatView> {
                           () => GlobalKey(),
                         ),
                         padding: const EdgeInsets.symmetric(
-                          horizontal: 12,
-                          vertical: 8,
+                          horizontal: 16,
+                          vertical: 6,
                         ),
-                        child: Align(
-                          alignment: isSentByMe
-                              ? AlignmentDirectional.centerEnd
-                              : AlignmentDirectional.centerStart,
+                        child: Center(
                           child: ConstrainedBox(
                             constraints: const BoxConstraints(maxWidth: 760),
                             child: child,
@@ -368,13 +456,23 @@ class _AiChatViewState extends State<AiChatView> {
                           alignment: Alignment.bottomCenter,
                           child: ScaleTransition(
                             scale: animation,
-                            child: ShadButton.secondary(
-                              onPressed: onPressed,
-                              child: Flexible(
-                                child: Text(
-                                  l.aiLatest,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
+                            child: Tooltip(
+                              message: l.aiLatest,
+                              child: Semantics(
+                                label: l.aiLatest,
+                                button: true,
+                                child: ShadIconButton.outline(
+                                  width: 36,
+                                  height: 36,
+                                  decoration: const ShadDecoration(
+                                    shape: BoxShape.circle,
+                                  ),
+                                  backgroundColor: theme.colorScheme.background,
+                                  icon: const Icon(
+                                    AppIcons.scrollDown,
+                                    size: 18,
+                                  ),
+                                  onPressed: onPressed,
                                 ),
                               ),
                             ),

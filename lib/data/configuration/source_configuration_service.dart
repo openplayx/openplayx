@@ -185,7 +185,7 @@ class SourceConfigurationService {
         [
           saved.id,
           saved.pluginId,
-          jsonEncode(saved.toJson(includeRemoteAccess: false)),
+          jsonEncode(saved.toJson()),
           saved.configVersion,
           saved.revision,
           saved.enabled ? 1 : 0,
@@ -200,24 +200,6 @@ class SourceConfigurationService {
       return saved;
     });
   }
-
-  void clearLegacyRemoteConfiguration(Set<String> migratedIds) =>
-      _transaction(() {
-        for (final row in _db.select(
-          'SELECT instance_id,config_json FROM plugin_instance_configs',
-        )) {
-          if (!migratedIds.contains(row['instance_id'])) continue;
-          final j =
-              jsonDecode(row['config_json'] as String) as Map<String, dynamic>;
-          if (j.remove('remoteAccess') != null) {
-            j['remoteManaged'] = true;
-            _db.execute(
-              'UPDATE plugin_instance_configs SET config_json=? WHERE instance_id=?',
-              [jsonEncode(j), row['instance_id']],
-            );
-          }
-        }
-      });
 
   void remove(String id, int expectedRevision) => _transaction(() {
     final rows = _db.select(

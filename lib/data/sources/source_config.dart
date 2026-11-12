@@ -99,10 +99,9 @@ class SourceConfig {
     this.scanExclusions = const [],
     this.scanMode = ScanMode.manual,
     this.backgroundIndexing = false,
+    this.remote,
     this.remoteAccess,
-    this.remoteManaged = false,
     this.remoteRuntimePolicy,
-    this.remoteRequiredRevision = 0,
   });
   final String id;
   final SourceKind kind;
@@ -128,10 +127,13 @@ class SourceConfig {
 
   final ScanMode scanMode;
   final bool backgroundIndexing;
+
+  /// Persisted: the frpc proxy this source reaches through the Relay.
+  final SourceRemote? remote;
+
+  /// Runtime only: [remote] resolved against the App-wide Relay connection.
   final RemoteAccessConfig? remoteAccess;
-  final bool remoteManaged;
   final RemoteRuntimePolicy? remoteRuntimePolicy;
-  final int remoteRequiredRevision;
 
   /// Name shown when the connection appears in another place (pickers,
   /// filters, file source rows): always prefixed with the type. A blank name
@@ -179,11 +181,11 @@ class SourceConfig {
     List<String>? scanExclusions,
     ScanMode? scanMode,
     bool? backgroundIndexing,
+    SourceRemote? remote,
+    bool clearRemote = false,
     RemoteAccessConfig? remoteAccess,
     bool clearRemoteAccess = false,
-    bool? remoteManaged,
     RemoteRuntimePolicy? remoteRuntimePolicy,
-    int? remoteRequiredRevision,
   }) => SourceConfig(
     id: id,
     kind: kind,
@@ -210,14 +212,14 @@ class SourceConfig {
     scanExclusions: List.unmodifiable(scanExclusions ?? this.scanExclusions),
     scanMode: scanMode ?? this.scanMode,
     backgroundIndexing: backgroundIndexing ?? this.backgroundIndexing,
-    remoteAccess: clearRemoteAccess ? null : remoteAccess ?? this.remoteAccess,
-    remoteManaged: remoteManaged ?? this.remoteManaged,
+    remote: clearRemote ? null : remote ?? this.remote,
+    remoteAccess: clearRemote || clearRemoteAccess
+        ? null
+        : remoteAccess ?? this.remoteAccess,
     remoteRuntimePolicy: remoteRuntimePolicy ?? this.remoteRuntimePolicy,
-    remoteRequiredRevision:
-        remoteRequiredRevision ?? this.remoteRequiredRevision,
   );
 
-  Map<String, dynamic> toJson({bool includeRemoteAccess = true}) => {
+  Map<String, dynamic> toJson() => {
     'id': id,
     'kind': kind.name,
     'name': name,
@@ -241,11 +243,7 @@ class SourceConfig {
     'scanExclusions': scanExclusions,
     'scanMode': scanMode.name,
     'backgroundIndexing': backgroundIndexing,
-    if (includeRemoteAccess && remoteAccess != null)
-      'remoteAccess': remoteAccess!.toJson(),
-    if (remoteManaged) 'remoteManaged': true,
-    if (remoteRequiredRevision != 0)
-      'remoteRequiredRevision': remoteRequiredRevision,
+    if (remote != null) 'remote': remote!.toJson(),
   };
   factory SourceConfig.fromJson(Map<String, dynamic> j) {
     const keys = {
@@ -273,9 +271,7 @@ class SourceConfig {
       'scanExtensions', // legacy per-source value, now a global setting
       'scanMode',
       'backgroundIndexing',
-      'remoteAccess',
-      'remoteManaged',
-      'remoteRequiredRevision',
+      'remote',
     };
     if (j.keys.any((key) => !keys.contains(key))) {
       throw const FormatException('配置包含未知字段，原始配置必须保留。');
@@ -310,35 +306,28 @@ class SourceConfig {
       ),
       scanMode: ScanMode.values.byName(j['scanMode'] as String? ?? 'manual'),
       backgroundIndexing: j['backgroundIndexing'] as bool? ?? false,
-      remoteManaged: j['remoteManaged'] as bool? ?? false,
-      remoteRequiredRevision: j['remoteRequiredRevision'] as int? ?? 0,
-      remoteAccess: j['remoteAccess'] == null
+      remote: j['remote'] == null
           ? null
-          : RemoteAccessConfig.fromJson(
-              j['remoteAccess'] as Map<String, dynamic>,
-            ),
+          : SourceRemote.fromJson(j['remote'] as Map<String, dynamic>),
     );
   }
 
   void validate() {
-    if (remoteRequiredRevision < 0) throw const FormatException('远程生效修订无效。');
-    if (remoteAccess != null) {
+    if (remote != null) {
       if (!kind.mediaBrowser &&
           kind != SourceKind.plex &&
           kind != SourceKind.smb) {
         throw const FormatException('当前远程访问支持 Jellyfin、Emby、Plex 和 SMB。');
       }
-      remoteAccess!.validate();
-      final remoteUri = Uri.parse(remoteAccess!.remoteAddress);
+      remote!.validate();
+      final remoteUri = RemoteAccessConfig.endpoint(address);
       if (!kind.schemes.contains(remoteUri.scheme) ||
           (kind == SourceKind.smb &&
-              remoteAccess!.mode != RemoteConnectionMode.remoteOnly)) {
+              remote!.mode != RemoteConnectionMode.remoteOnly)) {
         throw const FormatException('远程服务协议不匹配；SMB 当前仅支持远程模式。');
       }
-      if (!remoteAccess!.credentialRef.startsWith('remote.$id.')) {
-        throw const FormatException('远程凭据引用不属于此来源。');
-      }
     }
+    remoteAccess?.validate();
     if (configVersion != 2) throw const FormatException('配置版本不兼容，不能覆盖保存。');
     if (id.isEmpty || address.trim().isEmpty) {
       throw const FormatException('请填写地址。');

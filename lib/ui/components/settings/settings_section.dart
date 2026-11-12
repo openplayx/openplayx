@@ -133,6 +133,7 @@ class SettingsRow extends StatelessWidget {
     this.description,
     this.control,
     this.icon,
+    this.leading,
     this.onTap,
     this.chevron = false,
     this.stacked = false,
@@ -143,6 +144,9 @@ class SettingsRow extends StatelessWidget {
   final String? description;
   final Widget? control;
   final IconData? icon;
+
+  /// A custom leading mark (e.g. a brand logo); takes precedence over [icon].
+  final Widget? leading;
   final VoidCallback? onTap;
   final bool chevron, stacked, destructive;
 
@@ -185,11 +189,14 @@ class SettingsRow extends StatelessWidget {
         ? Icon(AppIcons.next, size: 18, color: colors.mutedForeground)
         : null;
     final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
-    final leading = icon == null
+    final mark =
+        this.leading ??
+        (icon == null ? null : Icon(icon, size: 20, color: colors.foreground));
+    final leading = mark == null
         ? null
         : Padding(
             padding: const EdgeInsetsDirectional.only(end: AppSpacing.md),
-            child: Icon(icon, size: 20, color: colors.foreground),
+            child: mark,
           );
 
     Widget body;
@@ -404,13 +411,21 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.leading,
+    this.enabled = true,
   });
   final String title;
   final T value;
   final Map<T, String> options;
   final ValueChanged<T> onChanged;
+
+  /// Optional mark shown beside each option on the full-screen picker.
+  final Widget Function(T option)? leading;
+  final bool enabled;
   @override
-  Widget build(BuildContext context) => isCompactSettings(context)
+  Widget build(BuildContext context) => !enabled
+      ? SettingsRow(title: title, control: Text(options[value] ?? ''))
+      : isCompactSettings(context)
       ? SettingsRow(
           title: title,
           chevron: true,
@@ -422,6 +437,7 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
                   title: title,
                   value: value,
                   options: options,
+                  leading: leading,
                 ),
               ),
             );

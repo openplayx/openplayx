@@ -240,10 +240,12 @@ class SettingsChoicePage<T> extends StatelessWidget {
     required this.title,
     required this.value,
     required this.options,
+    this.leading,
   });
   final String title;
   final T value;
   final Map<T, String> options;
+  final Widget Function(T option)? leading;
   @override
   Widget build(BuildContext context) {
     final colors = ShadTheme.of(context).colorScheme;
@@ -257,6 +259,7 @@ class SettingsChoicePage<T> extends StatelessWidget {
                 SettingsRow(
                   key: ValueKey('choice-${option.key}'),
                   title: option.value,
+                  leading: leading?.call(option.key),
                   control: option.key == value
                       ? Icon(AppIcons.check, size: 20, color: colors.primary)
                       : null,

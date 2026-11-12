@@ -240,7 +240,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pumpAndSettle();
       expect(position.pixels, closeTo(pixels, 1));
-      await tester.tap(find.byTooltip('Expand on Home'));
+      await tester.tap(find.byTooltip('More'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('Expand on Home'));
+      await tester.pumpAndSettle();
       await tester.pumpWidget(const SizedBox());
       await tester.pumpWidget(host(view(c, controller: ui)));
       await tester.pumpAndSettle();

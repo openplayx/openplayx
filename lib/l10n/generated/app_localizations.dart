@@ -1861,7 +1861,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiConfigureFirst.
   ///
   /// In en, this message translates to:
-  /// **'Configure your model, API key and cloud consent in AI settings first.'**
+  /// **'Set the API domain, model name and key in model settings first.'**
   String get aiConfigureFirst;
 
   /// No description provided for @aiSendFailed.
@@ -1915,19 +1915,19 @@ abstract class AppLocalizations {
   /// No description provided for @aiProviderDescription.
   ///
   /// In en, this message translates to:
-  /// **'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.'**
+  /// **'Any OpenAI-compatible API, e.g. DeepSeek. The key is stored in the system keychain.'**
   String get aiProviderDescription;
 
   /// No description provided for @aiEndpoint.
   ///
   /// In en, this message translates to:
-  /// **'API base URL'**
+  /// **'API domain'**
   String get aiEndpoint;
 
   /// No description provided for @aiModel.
   ///
   /// In en, this message translates to:
-  /// **'Model ID'**
+  /// **'Model name'**
   String get aiModel;
 
   /// No description provided for @aiApiKey.
@@ -1948,66 +1948,6 @@ abstract class AppLocalizations {
   /// **'Key saved; leave blank to keep it'**
   String get aiKeySaved;
 
-  /// No description provided for @aiOutputLimit.
-  ///
-  /// In en, this message translates to:
-  /// **'Maximum output tokens (128–16384)'**
-  String get aiOutputLimit;
-
-  /// No description provided for @aiCloudConsent.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.'**
-  String get aiCloudConsent;
-
-  /// No description provided for @aiCloudConsentTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Allow this provider'**
-  String get aiCloudConsentTitle;
-
-  /// No description provided for @aiTestText.
-  ///
-  /// In en, this message translates to:
-  /// **'Test reply'**
-  String get aiTestText;
-
-  /// No description provided for @aiTestStream.
-  ///
-  /// In en, this message translates to:
-  /// **'Test streaming'**
-  String get aiTestStream;
-
-  /// No description provided for @aiTestTools.
-  ///
-  /// In en, this message translates to:
-  /// **'Test tool calls'**
-  String get aiTestTools;
-
-  /// No description provided for @aiTestPassed.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection test passed. Save to apply.'**
-  String get aiTestPassed;
-
-  /// No description provided for @aiTestFailed.
-  ///
-  /// In en, this message translates to:
-  /// **'Test failed. Check credentials and protocol support. Tool support must pass independently.'**
-  String get aiTestFailed;
-
-  /// No description provided for @aiToolsVerified.
-  ///
-  /// In en, this message translates to:
-  /// **'Tool calls verified. Available business tools will be enabled.'**
-  String get aiToolsVerified;
-
-  /// No description provided for @aiTextOnly.
-  ///
-  /// In en, this message translates to:
-  /// **'Conversation only until the tool-call test passes.'**
-  String get aiTextOnly;
-
   /// No description provided for @aiSaveFailed.
   ///
   /// In en, this message translates to:
@@ -2023,7 +1963,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAuthenticationFailed.
   ///
   /// In en, this message translates to:
-  /// **'Authentication failed. Update the API key in model settings.'**
+  /// **'Authentication failed. Check that the API key and API base URL belong to the same provider.'**
   String get aiAuthenticationFailed;
 
   /// No description provided for @aiRateLimited.
@@ -2433,23 +2373,23 @@ abstract class AppLocalizations {
   /// **'Home remote access'**
   String get remoteHomeAccess;
 
-  /// No description provided for @remotePairingHelp.
+  /// No description provided for @remoteProxy.
   ///
   /// In en, this message translates to:
-  /// **'Paste the App pairing configuration for this service from your relay. Importing confirms that this remote entry and this source refer to the same service.'**
-  String get remotePairingHelp;
+  /// **'Service (frpc proxy)'**
+  String get remoteProxy;
 
-  /// No description provided for @remotePairingJson.
+  /// No description provided for @remoteNoProxies.
   ///
   /// In en, this message translates to:
-  /// **'Service pairing JSON'**
-  String get remotePairingJson;
+  /// **'No proxies available yet: import the App configuration from your Relay in Settings → Remote access first.'**
+  String get remoteNoProxies;
 
-  /// No description provided for @remoteKeepCredentials.
+  /// No description provided for @remoteProxyMissing.
   ///
   /// In en, this message translates to:
-  /// **'Leave empty to keep the saved connection credentials'**
-  String get remoteKeepCredentials;
+  /// **'{name} (not in the current App configuration)'**
+  String remoteProxyMissing(String name);
 
   /// No description provided for @remoteLanAddress.
   ///
@@ -2708,6 +2648,72 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Remove from favorites'**
   String get removeFavorite;
+
+  /// No description provided for @aiMore.
+  ///
+  /// In en, this message translates to:
+  /// **'More'**
+  String get aiMore;
+
+  /// No description provided for @aiGreeting.
+  ///
+  /// In en, this message translates to:
+  /// **'What can I help with?'**
+  String get aiGreeting;
+
+  /// No description provided for @aiSuggestTonight.
+  ///
+  /// In en, this message translates to:
+  /// **'Recommend a movie for tonight'**
+  String get aiSuggestTonight;
+
+  /// No description provided for @aiSuggestContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue what I was watching'**
+  String get aiSuggestContinue;
+
+  /// No description provided for @aiSuggestSciFi.
+  ///
+  /// In en, this message translates to:
+  /// **'What sci-fi is in my library?'**
+  String get aiSuggestSciFi;
+
+  /// No description provided for @aiTestConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection'**
+  String get aiTestConnection;
+
+  /// No description provided for @aiCheckingConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Testing connection…'**
+  String get aiCheckingConnection;
+
+  /// No description provided for @aiConnectionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. The model can chat and use tools.'**
+  String get aiConnectionOk;
+
+  /// No description provided for @aiConnectionOkNoTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. This model cannot call tools, so it can only chat.'**
+  String get aiConnectionOkNoTools;
+
+  /// No description provided for @aiInvalidSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid HTTPS API domain and model name.'**
+  String get aiInvalidSettings;
+
+  /// No description provided for @remoteConnectionMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection mode'**
+  String get remoteConnectionMode;
 }
 
 class _AppLocalizationsDelegate

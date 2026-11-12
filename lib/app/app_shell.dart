@@ -40,6 +40,7 @@ import '../features/ai_assistant/ai_chat_controller.dart';
 import '../features/ai_assistant/ai_chat_panel.dart';
 import '../ui/icons/app_icons.dart';
 import '../features/ai_assistant/assistant_settings_page.dart';
+import '../ui/adaptive/assistant_action.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -233,9 +234,6 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       model: () async {
         final config = store.loadConfig();
         config.validate();
-        if (!config.cloudAllowed) {
-          throw const ModelFailure('configurationRequired');
-        }
         final key = await store.key(config);
         if (key.isEmpty) throw const ModelFailure('configurationRequired');
         return LangChainModel(
@@ -265,7 +263,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (mounted) setState(() {});
   }
 
-  Widget _assistantView() => AssistantView(
+  Widget _assistantView({VoidCallback? onBack}) => AssistantView(
+    onBack: onBack,
     coordinator: _assistant!,
     controller: _chat,
     toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
@@ -351,20 +350,36 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       await stream.release();
       return;
     }
+    _closeAssistant();
     await _play(
       SourceSelection(entry.name, stream, ref: entry.ref, entry: entry),
     );
   }
 
-  Future<void> _openAssistant() => showAiChatPanel(
+  Future<void> _openAssistant() => showAiChatPage(
     context,
-    playing: _showPlayer,
-    builder: (_) => _assistantView(),
+    builder: (_, close) => _assistantView(onBack: close),
   );
 
-  // Pinned to the top-right corner, aligned with the page header row. Page
-  // headers and the player top bar keep that corner free for it.
-  Widget _assistantButton(BuildContext context) => Positioned(
+  // Media opened from the chat plays in the shell, so leave the chat page.
+  void _closeAssistant() => Navigator.of(
+    context,
+    rootNavigator: true,
+  ).popUntil((r) => r.settings.name != aiChatRouteName && r is PageRoute);
+
+  // Pages draw the assistant button in their own header (see AppPage), so it
+  // moves with route transitions.
+  Widget _withAssistant(Widget child) => _assistant == null
+      ? child
+      : AssistantAction(
+          label: l.aiAssistant,
+          onPressed: _openAssistant,
+          child: child,
+        );
+
+  // The player is not a route: there the button is overlaid in the top-right
+  // corner, which the player top bar keeps free for it.
+  Widget _playerAssistantButton(BuildContext context) => Positioned(
     top: MediaQuery.paddingOf(context).top + AppSpacing.md,
     right: AppSpacing.page(context).right,
     child: Tooltip(
@@ -372,13 +387,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       child: Semantics(
         label: l.aiAssistant,
         button: true,
-        // Plain icon, no filled background. Over the (black) player it uses
-        // the dark theme so the icon stays visible.
-        child: _showPlayer
-            ? _withPlayerControls(
-                ShadTheme(data: AppTheme.dark, child: _assistantIcon()),
-              )
-            : _assistantIcon(),
+        // Dark theme so the icon stays visible over the (black) player.
+        child: _withPlayerControls(
+          ShadTheme(data: AppTheme.dark, child: _assistantIcon()),
+        ),
       ),
     ),
   );
@@ -592,12 +604,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                           child: Column(
                             children: [
                               Expanded(
-                                child: IndexedStack(
-                                  index: _destination,
-                                  children: [
-                                    for (final d in AppDestination.values)
-                                      _branch(d.index),
-                                  ],
+                                child: _withAssistant(
+                                  IndexedStack(
+                                    index: _destination,
+                                    children: [
+                                      for (final d in AppDestination.values)
+                                        _branch(d.index),
+                                    ],
+                                  ),
                                 ),
                               ),
                             ],
@@ -624,7 +638,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                if (_assistant != null) _assistantButton(context),
+                if (_assistant != null && _showPlayer)
+                  _playerAssistantButton(context),
               ],
             ),
             bottomNavigationBar:

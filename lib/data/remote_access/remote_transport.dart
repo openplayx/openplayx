@@ -12,34 +12,38 @@ import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_native.dart';
 
+/// Holds the App user's sing-box credential (`{"uuid": ...}`) for the
+/// App-wide Relay outbound. Only `remote.outbound.*` keys are accepted.
 class RemoteCredentialStore {
   static const _storage = FlutterSecureStorage();
-  static Future<String> stage(
-    String sourceId,
-    Map<String, dynamic> outbound,
-  ) async {
+  static const _prefix = 'remote.outbound.';
+  static bool owns(String ref) => ref.startsWith(_prefix);
+  static Future<String> stage(Map<String, dynamic> credential) async {
     final suffix = List.generate(
       16,
       (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    final ref = 'remote.$sourceId.$suffix';
-    await _storage.write(key: ref, value: jsonEncode(outbound));
+    final ref = '$_prefix$suffix';
+    await _storage.write(key: ref, value: jsonEncode(credential));
     return ref;
   }
 
-  static Future<Map<String, dynamic>> read(String sourceId, String ref) async {
-    if (!ref.startsWith('remote.$sourceId.')) {
-      throw const PluginException('permissionDenied', '远程凭据不属于此来源。');
+  static Future<Map<String, dynamic>> read(String ref) async {
+    if (!owns(ref)) {
+      throw const PluginException('permissionDenied', '远程凭据引用无效。');
     }
     final value = await _storage.read(key: ref);
     if (value == null) {
-      throw const PluginException('authRequired', '远程线路凭据不可用，请重新导入配对。');
+      throw const PluginException(
+        'authRequired',
+        '远程访问凭据不可用，请在设置 → 远程访问重新导入 App 配置。',
+      );
     }
     return jsonDecode(value) as Map<String, dynamic>;
   }
 
-  static Future<void> delete(String sourceId, String ref) async {
-    if (ref.startsWith('remote.$sourceId.')) await _storage.delete(key: ref);
+  static Future<void> delete(String ref) async {
+    if (owns(ref)) await _storage.delete(key: ref);
   }
 }
 
@@ -351,15 +355,9 @@ class RemoteTransport {
       key,
       () => _RemoteCoreEntry(
         (() async {
-          final out = await RemoteCredentialStore.read(
-            source.id,
-            c.credentialRef,
-          );
+          final out = await RemoteCredentialStore.read(c.credentialRef);
           final core = RemoteNative.instance;
-          return (
-            core,
-            core.start({...out, ...?c.outboundOptions}, c.remotePort),
-          );
+          return (core, core.start({...out, ...c.outbound}, c.remotePort));
         })(),
       ),
     );
@@ -377,7 +375,7 @@ class RemoteTransport {
     try {
       final (_, port) = await entry.ready;
       return RemotePathLease(
-        Uri.parse(c.remoteAddress),
+        Uri.parse(source.address),
         loopbackPort: port,
         onClose: release,
         beforeConnect: () => checkNetworkPolicy(

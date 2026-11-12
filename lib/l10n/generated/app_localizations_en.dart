@@ -963,7 +963,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiConfigureFirst =>
-      'Configure your model, API key and cloud consent in AI settings first.';
+      'Set the API domain, model name and key in model settings first.';
 
   @override
   String get aiSendFailed =>
@@ -999,13 +999,13 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProviderDescription =>
-      'OpenAI or an OpenAI-compatible HTTPS endpoint. API keys are kept in the system credential store.';
+      'Any OpenAI-compatible API, e.g. DeepSeek. The key is stored in the system keychain.';
 
   @override
-  String get aiEndpoint => 'API base URL';
+  String get aiEndpoint => 'API domain';
 
   @override
-  String get aiModel => 'Model ID';
+  String get aiModel => 'Model name';
 
   @override
   String get aiApiKey => 'API key';
@@ -1015,39 +1015,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiKeySaved => 'Key saved; leave blank to keep it';
-
-  @override
-  String get aiOutputLimit => 'Maximum output tokens (128–16384)';
-
-  @override
-  String get aiCloudConsent =>
-      'Allow this provider to receive conversation history, media titles, source names and playback summaries, and to request the listed media/playback tools.';
-
-  @override
-  String get aiCloudConsentTitle => 'Allow this provider';
-
-  @override
-  String get aiTestText => 'Test reply';
-
-  @override
-  String get aiTestStream => 'Test streaming';
-
-  @override
-  String get aiTestTools => 'Test tool calls';
-
-  @override
-  String get aiTestPassed => 'Connection test passed. Save to apply.';
-
-  @override
-  String get aiTestFailed =>
-      'Test failed. Check credentials and protocol support. Tool support must pass independently.';
-
-  @override
-  String get aiToolsVerified =>
-      'Tool calls verified. Available business tools will be enabled.';
-
-  @override
-  String get aiTextOnly => 'Conversation only until the tool-call test passes.';
 
   @override
   String get aiSaveFailed =>
@@ -1060,7 +1027,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiAuthenticationFailed =>
-      'Authentication failed. Update the API key in model settings.';
+      'Authentication failed. Check that the API key and API base URL belong to the same provider.';
 
   @override
   String get aiRateLimited => 'Provider rate limit reached. Try again later.';
@@ -1283,15 +1250,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remoteHomeAccess => 'Home remote access';
 
   @override
-  String get remotePairingHelp =>
-      'Paste the App pairing configuration for this service from your relay. Importing confirms that this remote entry and this source refer to the same service.';
+  String get remoteProxy => 'Service (frpc proxy)';
 
   @override
-  String get remotePairingJson => 'Service pairing JSON';
+  String get remoteNoProxies =>
+      'No proxies available yet: import the App configuration from your Relay in Settings → Remote access first.';
 
   @override
-  String get remoteKeepCredentials =>
-      'Leave empty to keep the saved connection credentials';
+  String remoteProxyMissing(String name) {
+    return '$name (not in the current App configuration)';
+  }
 
   @override
   String get remoteLanAddress => 'Paired LAN HTTPS address';
@@ -1448,4 +1416,39 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get removeFavorite => 'Remove from favorites';
+
+  @override
+  String get aiMore => 'More';
+
+  @override
+  String get aiGreeting => 'What can I help with?';
+
+  @override
+  String get aiSuggestTonight => 'Recommend a movie for tonight';
+
+  @override
+  String get aiSuggestContinue => 'Continue what I was watching';
+
+  @override
+  String get aiSuggestSciFi => 'What sci-fi is in my library?';
+
+  @override
+  String get aiTestConnection => 'Test connection';
+
+  @override
+  String get aiCheckingConnection => 'Testing connection…';
+
+  @override
+  String get aiConnectionOk => 'Connected. The model can chat and use tools.';
+
+  @override
+  String get aiConnectionOkNoTools =>
+      'Connected. This model cannot call tools, so it can only chat.';
+
+  @override
+  String get aiInvalidSettings =>
+      'Enter a valid HTTPS API domain and model name.';
+
+  @override
+  String get remoteConnectionMode => 'Connection mode';
 }

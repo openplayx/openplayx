@@ -166,12 +166,11 @@ class SmbPlugin
     CallContext context,
   ) async {
     checkOwnership(config.id, request.node, context);
-    final connection = await _access._connect();
     final path = _path(request.node?.id, directory: true);
     if (path == '/') {
       final List<SmbFile> shares;
       try {
-        shares = await connection.listShares();
+        shares = await _access.run((connection) => connection.listShares());
       } catch (_) {
         throw const PluginException(
           'permissionDenied',
@@ -199,11 +198,13 @@ class SmbPlugin
         request,
       );
     }
-    final folder = await connection.file(path);
-    if (!folder.isDirectory()) {
-      throw const PluginException('invalidInput', '请选择文件夹。');
-    }
-    final files = await connection.listFiles(folder);
+    final files = await _access.run((connection) async {
+      final folder = await connection.file(path);
+      if (!folder.isDirectory()) {
+        throw const PluginException('invalidInput', '请选择文件夹。');
+      }
+      return connection.listFiles(folder);
+    });
     return pageEntries(
       files
           .where(
@@ -235,16 +236,31 @@ class SmbPlugin
     CallContext context,
   ) async {
     checkOwnership(config.id, request.resource, context);
-    final connection = await _access._connect();
-    final file = await connection.file(_path(request.resource.id));
-    if (!file.isExists || file.isDirectory()) {
-      throw const PluginException('notFound', '无法播放该 SMB 文件。');
-    }
+    final path = _path(request.resource.id);
+    final (connection, file) = await _access.run((connection) async {
+      final file = await connection.file(path);
+      if (!file.isExists || file.isDirectory()) {
+        throw const PluginException('notFound', '无法播放该 SMB 文件。');
+      }
+      return (connection, file);
+    }, quick: true);
+    // Each player range request opens the file anew on whichever connection
+    // is live then, so playback resumed after the original connection died
+    // (paused in the background, network change) reconnects instead of
+    // failing on the dead one.
+    Future<SmbFile> fileOn(SmbConnect live) async =>
+        identical(live, connection) ? file : await live.file(path);
     return StreamGateway.randomAccess(
       length: file.size,
       filename: file.name,
-      open: () => connection.open(file),
-      progressiveOpen: (ramp) => connection.open(file, readRamp: ramp),
+      open: () => _access.run(
+        (live) async => live.open(await fileOn(live)),
+        quick: true,
+      ),
+      progressiveOpen: (ramp) => _access.run(
+        (live) async => live.open(await fileOn(live), readRamp: ramp),
+        quick: true,
+      ),
     );
   }
 
@@ -256,22 +272,24 @@ class SmbPlugin
   }) async {
     checkOwnership(config.id, ref, context);
     validateAttachment(ref, maxBytes);
-    final connection = await _access._connect();
-    final file = await connection.file(_path(ref.id));
-    if (!file.isExists || file.isDirectory()) {
-      throw const PluginException('notFound', '附件不存在');
-    }
-    if (file.size > maxBytes) {
-      throw const PluginException('quotaExceeded', '附件过大');
-    }
-    final bytes = <int>[];
-    await for (final chunk in await connection.openRead(file)) {
-      if (bytes.length + chunk.length > maxBytes) {
+    final path = _path(ref.id);
+    return _access.run((connection) async {
+      final file = await connection.file(path);
+      if (!file.isExists || file.isDirectory()) {
+        throw const PluginException('notFound', '附件不存在');
+      }
+      if (file.size > maxBytes) {
         throw const PluginException('quotaExceeded', '附件过大');
       }
-      bytes.addAll(chunk);
-    }
-    return bytes;
+      final bytes = <int>[];
+      await for (final chunk in await connection.openRead(file)) {
+        if (bytes.length + chunk.length > maxBytes) {
+          throw const PluginException('quotaExceeded', '附件过大');
+        }
+        bytes.addAll(chunk);
+      }
+      return bytes;
+    });
   }
 
   @override
@@ -281,30 +299,94 @@ class SmbPlugin
 }
 
 /// Host transport owns credentials; the plugin receives this scoped client.
+///
+/// One SMB connection is shared by browsing, resolving and playback reads. It
+/// is dropped as soon as its socket ends (mobile OSes abort a backgrounded
+/// app's sockets) or a call on it fails, and the next call reconnects, so a
+/// dead connection never keeps every later request waiting on timeouts.
 class SmbAccess {
-  SmbAccess(this.config, this._password);
+  SmbAccess(this.config, this._password, {this.connector});
   final SourceConfig config;
   final String _password;
+
+  /// Replaces the real SMB login in tests. It receives the disconnect hook.
+  final Future<SmbConnect> Function(void Function(SmbConnect) onDisconnect)?
+  connector;
   Future<SmbConnect>? _connection;
+  SmbConnect? _live;
   RemotePathLease? _path;
   bool _closed = false;
-  Future<SmbConnect> _connect() =>
-      _connection ??= _open().catchError((Object error) {
-        _connection = null;
-        throw error;
-      });
+
+  /// Bounds a quick call on a reused connection, which may be half-open
+  /// (no FIN after a network change), so the retry still fits in the
+  /// caller's request timeout.
+  static const staleCallTimeout = Duration(seconds: 8);
+
+  Future<SmbConnect> _connect() {
+    if (_live?.transport.isClosed ?? false) _discard(_live!);
+    final pending = _connection;
+    if (pending != null) return pending;
+    final opening = _open();
+    _connection = opening;
+    opening.then(
+      (connection) {
+        if (identical(_connection, opening)) _live = connection;
+      },
+      onError: (Object _) {
+        if (identical(_connection, opening)) _connection = null;
+      },
+    );
+    return opening;
+  }
+
+  /// Runs [action] on the shared connection. If it fails for a reason other
+  /// than a plugin-level answer, the connection is discarded and [action]
+  /// runs once more on a fresh one. [quick] bounds the first attempt by
+  /// [staleCallTimeout]; use it only for calls that make a few requests.
+  Future<T> run<T>(
+    Future<T> Function(SmbConnect connection) action, {
+    bool quick = false,
+  }) async {
+    final connection = await _connect();
+    try {
+      final attempt = action(connection);
+      return await (quick ? attempt.timeout(staleCallTimeout) : attempt);
+    } on PluginException {
+      rethrow;
+    } catch (_) {
+      _discard(connection);
+      if (_closed) rethrow;
+    }
+    return action(await _connect());
+  }
+
+  void _discard(SmbConnect connection) {
+    if (!identical(_live, connection)) return;
+    _live = null;
+    _connection = null;
+    final path = _path;
+    _path = null;
+    // Playback streams opened on it fail and are reopened by the player.
+    connection.close().catchError((Object _) {}).whenComplete(() {
+      path?.close();
+    });
+  }
+
   Future<SmbConnect> _open() async {
     if (_closed) throw const PluginException('cancelled', '连接已关闭。');
     final path = config.remoteAccess == null
         ? null
         : await RemoteTransport.acquire(config);
     final host = Uri.parse(config.address).host;
-    Future<SmbConnect> connect() => SmbConnect.connectAuth(
-      host: host,
-      username: config.username,
-      password: _password,
-      domain: config.domain,
-    );
+    Future<SmbConnect> connect() =>
+        connector?.call(_discard) ??
+        SmbConnect.connectAuth(
+          host: host,
+          username: config.username,
+          password: _password,
+          domain: config.domain,
+          onDisconnect: _discard,
+        );
     try {
       final connection = path == null
           ? await connect()
@@ -326,6 +408,7 @@ class SmbAccess {
     _closed = true;
     final connection = _connection;
     _connection = null;
+    _live = null;
     if (connection != null) {
       try {
         await (await connection).close();

@@ -9,8 +9,10 @@ import '../../ui/components/media/source_kind_icon.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../ui/components/media/content_row.dart';
-import '../../ui/adaptive/form_page.dart';
+import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/settings/settings_section.dart';
+import '../../ui/tokens/app_metrics.dart';
+import '../../ui/tokens/app_spacing.dart';
 import '../../ui/icons/app_icons.dart';
 
 import 'package:url_launcher/url_launcher.dart';
@@ -18,7 +20,6 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_config.dart';
 import '../../data/remote_access/remote_config.dart';
-import '../../data/remote_access/remote_transport.dart';
 import '../../data/sources/dlna_source.dart';
 import '../../data/sources/source_connection.dart';
 import '../../data/sources/source_manager.dart';
@@ -58,18 +59,19 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   final _path = TextEditingController();
   final _domain = TextEditingController();
   final _manualToken = TextEditingController();
-  final _pairing = TextEditingController();
   final _localEndpoint = TextEditingController();
   final _localFingerprint = TextEditingController();
   bool _remoteEnabled = false;
   RemoteConnectionMode _connectionMode = RemoteConnectionMode.remoteOnly;
-  RemoteAccessConfig? _preparedRemote;
+
+  /// frpc proxy name from the App-wide Relay connection.
+  String? _remoteProxy;
   bool _https = false;
   bool _busy = false;
   bool _authorizing = false;
   bool _showPassword = false;
   bool _manualPlex = false;
-  final _advancedController = ShadAccordionController<String>();
+  bool _advanced = false;
   String? _error;
   List<PlexServer> _servers = [];
   PlexServer? _server;
@@ -87,18 +89,13 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _kind = initial?.kind ?? SourceKind.local;
     _signIn = widget.signIn ?? SourceSignIn();
     _name.text = initial?.name ?? '';
-    _preparedRemote = initial?.remoteAccess;
-    _remoteEnabled = _preparedRemote != null;
-    _connectionMode = _preparedRemote?.mode ?? RemoteConnectionMode.remoteOnly;
-    _localEndpoint.text = _preparedRemote?.localAddress ?? '';
-    _localFingerprint.text = _preparedRemote?.localTlsSha256 ?? '';
+    final remote = initial?.remote;
+    _remoteEnabled = remote != null;
+    _remoteProxy = remote?.proxy;
+    _connectionMode = remote?.mode ?? RemoteConnectionMode.remoteOnly;
+    _localEndpoint.text = remote?.localAddress ?? '';
+    _localFingerprint.text = remote?.localTlsSha256 ?? '';
     if (initial != null) _fillConnection(initial);
-    _advancedController.addListener(() {
-      if (_advancedController.value.isNotEmpty && mounted) {
-        FocusScope.of(context).unfocus();
-        _normalizeAddress();
-      }
-    });
     _address.addListener(() {
       if (_kind == SourceKind.dlna && mounted) setState(() {});
     });
@@ -125,7 +122,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   void dispose() {
     _loginGeneration++;
     _addressFocus.dispose();
-    _advancedController.dispose();
     if (widget.signIn == null) _signIn.close();
     for (final c in [
       _name,
@@ -136,7 +132,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _path,
       _domain,
       _manualToken,
-      _pairing,
       _localEndpoint,
       _localFingerprint,
     ]) {
@@ -150,10 +145,10 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     setState(() {
       _kind = kind;
       _error = null;
-      _advancedController.value = [];
+      _advanced = false;
       _manualPlex = false;
       _remoteEnabled = false;
-      _preparedRemote = null;
+      _remoteProxy = null;
       _connectionMode = RemoteConnectionMode.remoteOnly;
       _server = null;
       _servers = [];
@@ -170,7 +165,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         _path,
         _domain,
         _manualToken,
-        _pairing,
         _localEndpoint,
         _localFingerprint,
       ]) {
@@ -239,8 +233,15 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       address: address,
       username: _username.text.trim(),
       domain: _domain.text.trim(),
-      remoteAccess: _preparedRemote,
-      clearRemoteAccess: !_remoteEnabled,
+      remote: _remoteEnabled && _remoteProxy != null
+          ? SourceRemote(
+              proxy: _remoteProxy!,
+              mode: _connectionMode,
+              localAddress: _localEndpoint.text.trim(),
+              localTlsSha256: _localFingerprint.text.trim(),
+            )
+          : null,
+      clearRemote: !_remoteEnabled || _remoteProxy == null,
     );
   }
 
@@ -314,48 +315,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       _busy = true;
       _error = null;
     });
-    String? stagedRemote;
-    var savedRemote = false;
     try {
-      if (_remoteEnabled) {
-        final pair = _pairing.text.trim().isEmpty
-            ? null
-            : RemotePairing.parse(_pairing.text);
-        final previous = widget.initial?.remoteAccess;
-        if (pair == null && previous == null) {
-          throw const FormatException('请粘贴 relay 生成的服务配对配置。');
-        }
-        final ref = pair == null
-            ? previous!.credentialRef
-            : (stagedRemote = await RemoteCredentialStore.stage(_id, {
-                'uuid': pair.outbound['uuid'],
-              }));
-        final j = pair?.data ?? previous!.toJson();
-        _preparedRemote = RemoteAccessConfig(
-          lineId: j['lineId'] as String,
-          homeId: j['homeId'] as String,
-          serviceId: j['serviceId'] as String,
-          remoteAddress: j['remoteAddress'] as String,
-          remotePort: j['remotePort'] as int,
-          credentialRef: ref,
-          mode: _connectionMode,
-          localAddress: _localEndpoint.text.trim(),
-          localTlsSha256: _localFingerprint.text.trim(),
-          outboundOptions: pair == null
-              ? previous?.outboundOptions
-              : ({...pair.outbound}..remove('uuid')),
-        );
-        _preparedRemote!.validate();
-        if (_address.text.trim().isEmpty) {
-          _fillConnection(
-            SourceConfig(
-              id: _id,
-              kind: _kind,
-              name: '',
-              address: _preparedRemote!.remoteAddress,
-            ),
-          );
-        }
+      if (_remoteEnabled && _remoteProxy == null) {
+        throw FormatException(l.remoteNoProxies);
       }
       var secret = '';
       if (_kind == SourceKind.plex && !_manualPlex && _server != null) {
@@ -391,9 +353,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               _password.text.isNotEmpty ||
               draft.username != initial.username ||
               draft.address != initial.address ||
-              stagedRemote != null;
+              draft.remote?.proxy != initial.remote?.proxy;
           if (reauthenticate) {
-            final session = await _signIn.jellyfin(draft, _password.text);
+            final session = await _signIn.jellyfin(
+              widget.manager.withRemoteRoute(draft),
+              _password.text,
+            );
             draft = draft.copyWith(userId: session.userId, clearExpiry: true);
             secret = session.token;
           }
@@ -409,7 +374,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       }
       if (!mounted) return;
       await widget.manager.save(draft, secret);
-      savedRemote = true;
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
@@ -422,23 +386,14 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         );
       }
     } finally {
-      if (stagedRemote != null && !savedRemote) {
-        await widget.manager.discardRemoteSecret(_id, stagedRemote);
-      }
       if (mounted) setState(() => _busy = false);
     }
   }
 
-  /// Kind name with its recognisable mark.
-  Widget _kindLabel(SourceKind kind) => Row(
-    mainAxisSize: MainAxisSize.min,
-    children: [
-      SourceKindIcon(kind, size: 24),
-      const SizedBox(width: 8),
-      Text(kind == SourceKind.local ? l.localFolder : kind.label),
-    ],
-  );
+  String _kindName(SourceKind kind) =>
+      kind == SourceKind.local ? l.localFolder : kind.label;
 
+  /// A labelled text field as one grouped-list row.
   Widget _field(
     TextEditingController c,
     String label, {
@@ -446,50 +401,91 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     String? help,
     bool password = false,
     bool number = false,
-  }) => Padding(
-    padding: EdgeInsets.only(top: 12),
-    child: Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(label, style: ShadTheme.of(context).textTheme.small),
-        SizedBox(height: 8),
-        ShadInput(
-          key: ValueKey(label),
-          controller: c,
-          focusNode: identical(c, _address) ? _addressFocus : null,
-          enabled: !_busy,
-          autocorrect: false,
-          enableSuggestions: !password,
-          obscureText: password && !_showPassword,
-          keyboardType: number ? TextInputType.number : TextInputType.text,
-          placeholder: hint == null ? null : Text(hint),
-          trailing: password
-              ? Tooltip(
-                  message: _showPassword ? l.hidePassword : l.showPassword,
-                  child: Semantics(
-                    button: true,
-                    label: _showPassword ? l.hidePassword : l.showPassword,
-                    child: ShadIconButton.ghost(
-                      onPressed: () =>
-                          setState(() => _showPassword = !_showPassword),
-                      icon: Icon(
-                        _showPassword
-                            ? AppIcons.hidePassword
-                            : AppIcons.showPassword,
-                      ),
-                    ),
+    int maxLines = 1,
+    Key? key,
+  }) => SettingsRow(
+    title: label,
+    description: help,
+    stacked: true,
+    control: ShadInput(
+      key: key ?? ValueKey(label),
+      controller: c,
+      focusNode: identical(c, _address) ? _addressFocus : null,
+      enabled: !_busy,
+      maxLines: maxLines,
+      autocorrect: false,
+      enableSuggestions: !password,
+      obscureText: password && !_showPassword,
+      keyboardType: number ? TextInputType.number : TextInputType.text,
+      placeholder: hint == null ? null : Text(hint),
+      trailing: password
+          ? Tooltip(
+              message: _showPassword ? l.hidePassword : l.showPassword,
+              child: Semantics(
+                button: true,
+                label: _showPassword ? l.hidePassword : l.showPassword,
+                child: ShadIconButton.ghost(
+                  onPressed: () =>
+                      setState(() => _showPassword = !_showPassword),
+                  icon: Icon(
+                    _showPassword
+                        ? AppIcons.hidePassword
+                        : AppIcons.showPassword,
                   ),
-                )
-              : null,
-        ),
-        if (help != null)
-          Padding(
-            padding: EdgeInsets.only(top: 4),
-            child: Text(help, style: ShadTheme.of(context).textTheme.muted),
-          ),
-      ],
+                ),
+              ),
+            )
+          : null,
     ),
   );
+
+  Widget _switchRow(
+    String title,
+    bool value,
+    ValueChanged<bool> onChanged, {
+    required Key key,
+  }) => SettingsRow(
+    title: title,
+    onTap: _busy ? null : () => onChanged(!value),
+    control: ShadSwitch(
+      key: key,
+      value: value,
+      enabled: !_busy,
+      onChanged: _busy ? null : onChanged,
+    ),
+  );
+
+  /// A row that reveals its section's less common fields in place.
+  Widget _advancedToggle() {
+    final open = _advanced;
+    return SettingsRow(
+      key: ValueKey('advanced-${_kind.name}'),
+      title: l.advanced,
+      control: Icon(open ? AppIcons.collapse : AppIcons.expand, size: 18),
+      onTap: () => setState(() {
+        _advanced = !open;
+        if (_advanced) {
+          FocusScope.of(context).unfocus();
+          _normalizeAddress(notify: false);
+        }
+      }),
+    );
+  }
+
+  /// A choosable item (device, server) with a check on the current one.
+  Widget _pickRow(String title, bool selected, VoidCallback onTap) =>
+      SettingsRow(
+        title: title,
+        onTap: _busy ? null : onTap,
+        control: selected
+            ? Icon(
+                AppIcons.check,
+                size: 20,
+                color: ShadTheme.of(context).colorScheme.primary,
+              )
+            : null,
+      );
+
   String get _addressHint => switch (_kind) {
     SourceKind.smb || SourceKind.ftp || SourceKind.sftp => '192.168.1.10',
     SourceKind.s3 => 's3.amazonaws.com',
@@ -512,75 +508,73 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
 
   Widget _pathField() => _field(_path, l.optionalPath, hint: _pathHint);
 
-  Widget _networkFields() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      _field(_address, l.address, hint: _addressHint),
-      _field(
-        _username,
-        _kind == SourceKind.s3 ? l.s3AccessKey : l.username,
-        help: _usernameHelp,
-      ),
-      _field(
-        _password,
-        _kind == SourceKind.s3 ? l.s3SecretKey : l.password,
-        password: true,
-        help: widget.initial != null ? l.keepCredentials : null,
-      ),
-      if (_kind == SourceKind.s3) ...[
-        _field(_domain, l.s3Region, hint: 'us-east-1'),
-        _pathField(),
+  List<Widget> _localSections() => [
+    SettingsSection(
+      footer: Platform.isAndroid || Platform.isIOS ? l.folderAccessHelp : null,
+      children: [
+        SettingsRow(
+          title: l.chooseFolder,
+          icon: AppIcons.openFolder,
+          accent: true,
+          description: _address.text.isEmpty ? null : _address.text,
+          onTap: _busy ? null : _pickDirectory,
+        ),
       ],
-      ShadAccordion<String>(
-        key: ValueKey('advanced-${_kind.name}'),
-        controller: _advancedController,
-        children: [
-          ShadAccordionItem(
-            value: 'advanced',
-            title: Text(l.advanced),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                if (_kind == SourceKind.smb)
-                  ContentRow(title: Text(l.port), trailing: Text('445'))
-                else if (!_kind.isHttp)
-                  _field(
-                    _port,
-                    l.port,
-                    number: true,
-                    hint: '${_kind.standardPort}',
-                  )
-                else ...[
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: ShadSwitch(
-                      enabled: !_busy,
-                      label: Text('HTTPS'),
-                      value: _https,
-                      onChanged: _busy
-                          ? null
-                          : (value) => setState(() {
-                              _https = value;
-                              _port.clear();
-                            }),
-                    ),
-                  ),
-                  _field(
-                    _port,
-                    l.port,
-                    number: true,
-                    hint: _https ? '443' : '${_kind.defaultPort ?? 80}',
-                  ),
-                ],
-                if (_kind != SourceKind.s3) _pathField(),
-                if (_kind == SourceKind.smb) _field(_domain, l.optionalDomain),
-              ],
-            ),
-          ),
+    ),
+  ];
+
+  List<Widget> _networkSections() => [
+    SettingsSection(
+      children: [
+        _field(_address, l.address, hint: _addressHint),
+        _field(
+          _username,
+          _kind == SourceKind.s3 ? l.s3AccessKey : l.username,
+          help: _usernameHelp,
+        ),
+        _field(
+          _password,
+          _kind == SourceKind.s3 ? l.s3SecretKey : l.password,
+          password: true,
+          help: widget.initial != null ? l.keepCredentials : null,
+        ),
+        if (_kind == SourceKind.s3) ...[
+          _field(_domain, l.s3Region, hint: 'us-east-1'),
+          _pathField(),
         ],
-      ),
-    ],
-  );
+      ],
+    ),
+    SettingsSection(
+      children: [
+        _advancedToggle(),
+        if (_advanced) ...[
+          if (_kind == SourceKind.smb)
+            SettingsRow(title: l.port, control: const Text('445'))
+          else if (!_kind.isHttp)
+            _field(_port, l.port, number: true, hint: '${_kind.standardPort}')
+          else ...[
+            _switchRow(
+              'HTTPS',
+              _https,
+              (value) => setState(() {
+                _https = value;
+                _port.clear();
+              }),
+              key: const ValueKey('https-switch'),
+            ),
+            _field(
+              _port,
+              l.port,
+              number: true,
+              hint: _https ? '443' : '${_kind.defaultPort ?? 80}',
+            ),
+          ],
+          if (_kind != SourceKind.s3) _pathField(),
+          if (_kind == SourceKind.smb) _field(_domain, l.optionalDomain),
+        ],
+      ],
+    ),
+  ];
 
   Future<void> _searchDlna() async {
     setState(() {
@@ -607,175 +601,152 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     if (device != null) _address.text = device.location.toString();
   }
 
-  Widget _dlnaFields() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(height: 12),
-      ShadButton.outline(
-        onPressed: _busy || _searching ? null : _searchDlna,
-        leading: Icon(AppIcons.search),
-        enabled: !(_busy || _searching),
-        child: Text(_searching ? l.dlnaSearching : l.dlnaSearch),
-      ),
-      if (_devices != null && _devices!.isEmpty)
-        Padding(
-          padding: EdgeInsets.only(top: 8),
-          child: Text(
-            l.dlnaNoDevices,
-            style: ShadTheme.of(context).textTheme.muted,
-          ),
+  List<Widget> _dlnaSections() => [
+    SettingsSection(
+      footer: _devices != null && _devices!.isEmpty ? l.dlnaNoDevices : null,
+      children: [
+        SettingsRow(
+          title: _searching ? l.dlnaSearching : l.dlnaSearch,
+          icon: AppIcons.search,
+          accent: true,
+          onTap: _busy || _searching ? null : _searchDlna,
         ),
-      if (_devices?.isNotEmpty == true)
-        Padding(
-          padding: EdgeInsets.only(top: 12),
-          child: ShadSelect<DlnaDevice>(
-            initialValue: _device,
-            onChanged: _busy ? null : (d) => setState(() => _selectDevice(d)),
-            selectedOptionBuilder: (_, device) => Text(device.name),
-            placeholder: Text(l.dlnaDevice),
-            key: ValueKey(_device?.location ?? 'dlna-device'),
-            options: _devices!
-                .map((d) => ShadOption(value: d, child: Text(d.name)))
-                .toList(),
-            maxWidth: 560,
-            enabled: !_busy,
+        for (final device in _devices ?? const <DlnaDevice>[])
+          _pickRow(
+            device.name,
+            device.location == _device?.location,
+            () => setState(() => _selectDevice(device)),
           ),
+      ],
+    ),
+    SettingsSection(
+      footer: l.dlnaAddressHelp,
+      children: [
+        _field(
+          _address,
+          l.dlnaAddress,
+          hint: 'http://192.168.1.10:8200/rootDesc.xml',
         ),
-      _field(
-        _address,
-        l.dlnaAddress,
-        hint: 'http://192.168.1.10:8200/rootDesc.xml',
-        help: l.dlnaAddressHelp,
-      ),
-    ],
-  );
+      ],
+    ),
+  ];
 
-  Widget _plexFields() => Column(
-    crossAxisAlignment: CrossAxisAlignment.start,
-    children: [
-      SizedBox(height: 12),
-      if (widget.initial != null && _servers.isEmpty)
-        ContentRow(
-          contentPadding: EdgeInsets.zero,
-          leading: Icon(AppIcons.server),
-          title: Text(widget.initial!.titleName),
-          subtitle: Text(Uri.parse(widget.initial!.address).host),
-        ),
-      ShadButton(
-        onPressed: _busy ? null : _loginPlex,
-        leading: Icon(AppIcons.signIn),
-        enabled: !(_busy),
-        child: Text(
-          _authorizing
+  List<Widget> _plexSections() => [
+    SettingsSection(
+      footer: l.plexBrowserHelp,
+      children: [
+        if (widget.initial != null && _servers.isEmpty)
+          SettingsRow(
+            icon: AppIcons.server,
+            title: widget.initial!.titleName,
+            description: Uri.parse(widget.initial!.address).host,
+          ),
+        SettingsRow(
+          title: _authorizing
               ? l.waitingPlex
               : widget.initial == null
               ? l.signInPlex
               : l.signInPlexAgain,
+          icon: AppIcons.signIn,
+          accent: true,
+          onTap: _busy ? null : _loginPlex,
         ),
-      ),
-      Padding(padding: EdgeInsets.only(top: 8), child: Text(l.plexBrowserHelp)),
-      if (_authorizing && _loginUri != null)
-        ShadButton.ghost(
-          onPressed: () =>
-              widget.openBrowser?.call(_loginUri!) ??
-              launchUrl(_loginUri!, mode: LaunchMode.externalApplication),
-          child: Text(l.reopenSignIn),
-        ),
-      if (_servers.isNotEmpty)
-        Padding(
-          padding: EdgeInsets.only(top: 12),
-          child: ShadSelect<PlexServer>(
-            initialValue: _server,
-            onChanged: _busy ? null : (s) => setState(() => _server = s),
-            selectedOptionBuilder: (_, server) => Text(server.name),
-            placeholder: Text(l.server),
-            key: ValueKey(_server?.id ?? 'plex-server'),
-            options: _servers
-                .map((s) => ShadOption(value: s, child: Text(s.name)))
-                .toList(),
-            maxWidth: 560,
-            enabled: !(_busy),
+        if (_authorizing && _loginUri != null)
+          SettingsRow(
+            title: l.reopenSignIn,
+            accent: true,
+            onTap: () =>
+                widget.openBrowser?.call(_loginUri!) ??
+                launchUrl(_loginUri!, mode: LaunchMode.externalApplication),
           ),
-        ),
-      ShadAccordion<String>(
+      ],
+    ),
+    if (_servers.isNotEmpty)
+      SettingsSection(
+        title: l.server,
         children: [
-          ShadAccordionItem(
-            value: 'advanced',
-            title: Text(l.advanced),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                Align(
-                  alignment: AlignmentDirectional.centerStart,
-                  child: ShadSwitch(
-                    enabled: !_busy,
-                    label: Text(l.manualServer),
-                    value: _manualPlex,
-                    onChanged: _busy
-                        ? null
-                        : (value) => setState(() => _manualPlex = value),
-                  ),
-                ),
-                if (_manualPlex) ...[
-                  _field(
-                    _address,
-                    l.serverAddress,
-                    hint: 'http://192.168.1.10:32400',
-                    help: l.portInAddress,
-                  ),
-                  _field(
-                    _manualToken,
-                    l.accessToken,
-                    password: true,
-                    help: widget.initial == null ? null : l.keepCredentials,
-                  ),
-                ],
-              ],
+          for (final server in _servers)
+            _pickRow(
+              server.name,
+              server.id == _server?.id,
+              () => setState(() => _server = server),
             ),
-          ),
         ],
       ),
-    ],
-  );
-  Widget _remoteFields() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
+    SettingsSection(
+      children: [
+        _advancedToggle(),
+        if (_advanced) ...[
+          _switchRow(
+            l.manualServer,
+            _manualPlex,
+            (value) => setState(() => _manualPlex = value),
+            key: const ValueKey('plex-manual'),
+          ),
+          if (_manualPlex) ...[
+            _field(
+              _address,
+              l.serverAddress,
+              hint: 'http://192.168.1.10:32400',
+              help: l.portInAddress,
+            ),
+            _field(
+              _manualToken,
+              l.accessToken,
+              password: true,
+              help: widget.initial == null ? null : l.keepCredentials,
+            ),
+          ],
+        ],
+      ],
+    ),
+  ];
+
+  Widget _remoteSection() => SettingsSection(
     children: [
-      const SizedBox(height: 16),
-      ShadSwitch(
-        value: _remoteEnabled,
-        enabled: !_busy,
-        label: Text(l.remoteHomeAccess),
-        onChanged: (v) => setState(() => _remoteEnabled = v),
+      _switchRow(
+        l.remoteHomeAccess,
+        _remoteEnabled,
+        (v) => setState(() {
+          _remoteEnabled = v;
+          _remoteProxy ??= RemoteProxy.defaultFor(
+            widget.manager.remoteNetwork.proxies,
+            _kind.name,
+          )?.name;
+        }),
+        key: const ValueKey('remote-switch'),
       ),
       if (_remoteEnabled) ...[
-        const SizedBox(height: 12),
-        Text(l.remotePairingHelp),
-        const SizedBox(height: 8),
-        ShadInput(
-          key: const ValueKey('remote-pairing'),
-          controller: _pairing,
-          maxLines: 6,
-          enabled: !_busy,
-          placeholder: Text(
-            widget.initial?.remoteAccess == null
-                ? l.remotePairingJson
-                : l.remoteKeepCredentials,
+        if (_remoteProxyOptions.isEmpty)
+          SettingsRow(
+            key: const ValueKey('remote-no-proxies'),
+            title: l.remoteNoProxies,
+          )
+        else
+          SettingsChoiceRow<String>(
+            key: const ValueKey('remote-proxy'),
+            title: l.remoteProxy,
+            value: _remoteProxy ?? '',
+            enabled: !_busy,
+            options: {
+              if (_remoteProxy == null) '': '—',
+              ..._remoteProxyOptions,
+            },
+            onChanged: (v) =>
+                setState(() => _remoteProxy = v.isEmpty ? null : v),
           ),
-          autocorrect: false,
-          enableSuggestions: false,
-        ),
-        const SizedBox(height: 12),
-        ShadSelect<RemoteConnectionMode>(
-          initialValue: _connectionMode,
-          enabled: !_busy,
-          onChanged: (v) => setState(() => _connectionMode = v!),
-          selectedOptionBuilder: (_, v) => Text(_modeLabel(v)),
-          options:
-              (_kind == SourceKind.smb
-                      ? [RemoteConnectionMode.remoteOnly]
-                      : RemoteConnectionMode.values)
-                  .map((v) => ShadOption(value: v, child: Text(_modeLabel(v))))
-                  .toList(),
+        SettingsChoiceRow<RemoteConnectionMode>(
+          title: l.remoteConnectionMode,
+          value: _connectionMode,
+          enabled: !_busy && _kind != SourceKind.smb,
+          options: {
+            for (final mode
+                in _kind == SourceKind.smb
+                    ? [RemoteConnectionMode.remoteOnly]
+                    : RemoteConnectionMode.values)
+              mode: _modeLabel(mode),
+          },
+          onChanged: (v) => setState(() => _connectionMode = v),
         ),
         if (_connectionMode != RemoteConnectionMode.remoteOnly) ...[
           _field(
@@ -792,99 +763,95 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       ],
     ],
   );
+
+  /// Proxies of the App-wide Relay connection; a saved proxy that is no
+  /// longer offered stays visible so the user notices.
+  Map<String, String> get _remoteProxyOptions {
+    final proxies = widget.manager.remoteNetwork.proxies;
+    return {
+      for (final p in proxies) p.name: '${p.name} · ${p.remotePort}',
+      if (_remoteProxy != null && !proxies.any((p) => p.name == _remoteProxy))
+        _remoteProxy!: l.remoteProxyMissing(_remoteProxy!),
+    };
+  }
+
   String _modeLabel(RemoteConnectionMode mode) => switch (mode) {
     RemoteConnectionMode.automatic => l.remoteAutomatic,
     RemoteConnectionMode.localOnly => l.remoteLocalOnly,
     RemoteConnectionMode.remoteOnly => l.remoteRemoteOnly,
   };
+
+  bool get _canSave =>
+      !(_busy ||
+          (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
+              _address.text.trim().isEmpty ||
+          _kind == SourceKind.plex &&
+              widget.initial == null &&
+              !_manualPlex &&
+              _server == null);
+
   @override
-  Widget build(BuildContext context) => FormPage(
+  Widget build(BuildContext context) => PopScope(
     // Leaving mid-save would orphan the request; Plex sign-in can be abandoned.
     canPop: !(_busy && !_authorizing),
-    title: Text(widget.initial == null ? l.addSource : l.editSource),
-    actions: [
-      ShadButton.ghost(
-        onPressed: _busy && !_authorizing ? null : () => Navigator.pop(context),
-        enabled: !(_busy && !_authorizing),
-        child: Text(l.cancel),
-      ),
-      ShadButton(
-        onPressed:
-            _busy ||
-                (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
-                    _address.text.trim().isEmpty ||
-                _kind == SourceKind.plex &&
-                    widget.initial == null &&
-                    !_manualPlex &&
-                    _server == null
-            ? null
-            : _save,
-        enabled:
-            !(_busy ||
-                (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
-                    _address.text.trim().isEmpty ||
-                _kind == SourceKind.plex &&
-                    widget.initial == null &&
-                    !_manualPlex &&
-                    _server == null),
-        child: Text(widget.initial == null ? l.add : l.save),
-      ),
-    ],
-    children: [
-      ShadSelect<SourceKind>(
-        initialValue: _kind,
-        onChanged: _busy || widget.initial != null
-            ? null
-            : (kind) => _changeKind(kind!),
-        selectedOptionBuilder: (_, kind) => _kindLabel(kind),
-        key: ValueKey('kind-${_kind.name}'),
-        placeholder: Text(l.type),
-        options: SourceKind.values
-            .map((kind) => ShadOption(value: kind, child: _kindLabel(kind)))
-            .toList(),
-        maxWidth: 560,
-        enabled: !(_busy || widget.initial != null),
-      ),
-      _field(_name, l.optionalName),
-      if (_kind == SourceKind.local) ...[
-        SizedBox(height: 12),
-        ShadButton.outline(
-          onPressed: _busy ? null : _pickDirectory,
-          leading: Icon(AppIcons.openFolder),
-          enabled: !(_busy),
-          child: Text(l.chooseFolder),
+    child: AppPage(
+      title: Text(widget.initial == null ? l.addSource : l.editSource),
+      trailing: [
+        ShadButton.ghost(
+          key: const ValueKey('source-save'),
+          onPressed: _canSave ? _save : null,
+          enabled: _canSave,
+          child: Text(widget.initial == null ? l.add : l.save),
         ),
-        if (_address.text.isNotEmpty)
-          Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(
-              _address.text,
-              maxLines: 3,
-              overflow: TextOverflow.ellipsis,
+      ],
+      body: SingleChildScrollView(
+        padding: AppSpacing.page(context),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: AppMetrics.formWidth),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                if (_busy) ...[
+                  const ShadProgress(),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                if (_error != null) ...[
+                  ShadAlert.destructive(title: Text(_error!)),
+                  const SizedBox(height: AppSpacing.md),
+                ],
+                SettingsSection(
+                  children: [
+                    SettingsChoiceRow<SourceKind>(
+                      key: const ValueKey('source-kind'),
+                      title: l.type,
+                      value: _kind,
+                      enabled: !_busy && widget.initial == null,
+                      options: {
+                        for (final kind in SourceKind.values)
+                          kind: _kindName(kind),
+                      },
+                      leading: (kind) => SourceKindIcon(kind, size: 28),
+                      onChanged: _changeKind,
+                    ),
+                    _field(_name, l.optionalName),
+                  ],
+                ),
+                ...switch (_kind) {
+                  SourceKind.local => _localSections(),
+                  SourceKind.plex => _plexSections(),
+                  SourceKind.dlna => _dlnaSections(),
+                  _ => _networkSections(),
+                },
+                if (_kind.mediaBrowser ||
+                    _kind == SourceKind.plex ||
+                    _kind == SourceKind.smb)
+                  _remoteSection(),
+              ],
             ),
           ),
-        if (Platform.isAndroid || Platform.isIOS)
-          Padding(
-            padding: EdgeInsets.only(top: 8),
-            child: Text(l.folderAccessHelp),
-          ),
-      ] else if (_kind == SourceKind.plex)
-        _plexFields()
-      else if (_kind == SourceKind.dlna)
-        _dlnaFields()
-      else
-        _networkFields(),
-      if (_kind.mediaBrowser ||
-          _kind == SourceKind.plex ||
-          _kind == SourceKind.smb)
-        _remoteFields(),
-      if (_error != null)
-        Padding(
-          padding: EdgeInsets.only(top: 12),
-          child: ShadAlert.destructive(title: Text(_error!)),
         ),
-      if (_busy)
-        Padding(padding: EdgeInsets.only(top: 12), child: ShadProgress()),
-    ],
+      ),
+    ),
   );
 }

@@ -4,6 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/app/app_shell.dart';
@@ -14,6 +15,9 @@ import '../player/player_page_test.dart' show FakeBackend;
 
 class MemorySources extends SourceManager {
   final saved = <SourceConfig>[];
+  RemoteNetwork network = const RemoteNetwork();
+  @override
+  RemoteNetwork get remoteNetwork => network;
   final secrets = <String>[];
   bool failBrowse = false;
   int releases = 0;
@@ -77,7 +81,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('添加源'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('SMB').last);
       await tester.pumpAndSettle();

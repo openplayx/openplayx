@@ -925,7 +925,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiToolFailed => '工具未完成';
 
   @override
-  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+  String get aiConfigureFirst => '请先在模型设置中填写 API 域名、模型名和 Key。';
 
   @override
   String get aiSendFailed => '无法发送，请检查输入长度后重试。';
@@ -955,13 +955,13 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiProviderDescription =>
-      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+      '支持 OpenAI 兼容接口，例如 DeepSeek。Key 保存在系统钥匙串中。';
 
   @override
-  String get aiEndpoint => 'API 基址';
+  String get aiEndpoint => 'API 域名';
 
   @override
-  String get aiModel => '模型 ID';
+  String get aiModel => '模型名';
 
   @override
   String get aiApiKey => 'API Key';
@@ -973,36 +973,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiKeySaved => '已保存凭据，留空保留';
 
   @override
-  String get aiOutputLimit => '输出 token 上限（128–16384）';
-
-  @override
-  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
-
-  @override
-  String get aiCloudConsentTitle => '允许发送给此供应商';
-
-  @override
-  String get aiTestText => '测试普通回复';
-
-  @override
-  String get aiTestStream => '测试流式回复';
-
-  @override
-  String get aiTestTools => '测试工具调用';
-
-  @override
-  String get aiTestPassed => '连接测试通过，保存后生效。';
-
-  @override
-  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
-
-  @override
-  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
-
-  @override
-  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
-
-  @override
   String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
 
   @override
@@ -1011,7 +981,7 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+  String get aiAuthenticationFailed => '认证失败，请检查 API Key 和 API 基址是否属于同一服务商。';
 
   @override
   String get aiRateLimited => '已达到供应商限流，请稍后重试。';
@@ -1224,14 +1194,15 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteHomeAccess => '家庭远程访问';
 
   @override
-  String get remotePairingHelp =>
-      '粘贴 relay 为此服务生成的 App 配对配置。导入表示确认该远程入口与当前来源属于同一服务。';
+  String get remoteProxy => '服务（frpc proxy）';
 
   @override
-  String get remotePairingJson => '服务配对 JSON';
+  String get remoteNoProxies => '还没有可用的 proxy：请先在 设置 → 远程访问 导入 Relay 的 App 配置。';
 
   @override
-  String get remoteKeepCredentials => '留空保留已保存的线路凭据';
+  String remoteProxyMissing(String name) {
+    return '$name（当前 App 配置中没有）';
+  }
 
   @override
   String get remoteLanAddress => '已配对的局域网 HTTPS 地址';
@@ -1378,6 +1349,39 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get removeFavorite => '取消收藏';
+
+  @override
+  String get aiMore => '更多';
+
+  @override
+  String get aiGreeting => '有什么可以帮你？';
+
+  @override
+  String get aiSuggestTonight => '推荐一部今晚看的电影';
+
+  @override
+  String get aiSuggestContinue => '继续看上次没看完的';
+
+  @override
+  String get aiSuggestSciFi => '我的片库里有哪些科幻片？';
+
+  @override
+  String get aiTestConnection => '测试连接';
+
+  @override
+  String get aiCheckingConnection => '正在测试连接…';
+
+  @override
+  String get aiConnectionOk => '连接成功，可以聊天和使用工具。';
+
+  @override
+  String get aiConnectionOkNoTools => '连接成功，但该模型不支持工具调用，只能纯聊天。';
+
+  @override
+  String get aiInvalidSettings => '请填写有效的 HTTPS API 域名和模型名。';
+
+  @override
+  String get remoteConnectionMode => '连接方式';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2300,7 +2304,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiToolFailed => '工具未完成';
 
   @override
-  String get aiConfigureFirst => '请先在 AI 设置中配置模型、API Key 并授权发送至云端。';
+  String get aiConfigureFirst => '请先在模型设置中填写 API 域名、模型名和 Key。';
 
   @override
   String get aiSendFailed => '无法发送，请检查输入长度后重试。';
@@ -2330,13 +2334,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aiProviderDescription =>
-      '使用 OpenAI 或兼容协议的 HTTPS 端点。API Key 保存在系统凭据存储中。';
+      '支持 OpenAI 兼容接口，例如 DeepSeek。Key 保存在系统钥匙串中。';
 
   @override
-  String get aiEndpoint => 'API 基址';
+  String get aiEndpoint => 'API 域名';
 
   @override
-  String get aiModel => '模型 ID';
+  String get aiModel => '模型名';
 
   @override
   String get aiApiKey => 'API Key';
@@ -2348,36 +2352,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiKeySaved => '已保存凭据，留空保留';
 
   @override
-  String get aiOutputLimit => '输出 token 上限（128–16384）';
-
-  @override
-  String get aiCloudConsent => '允许此供应商接收对话历史、媒体标题、来源名称及播放摘要，并请求已列出的媒体与播放工具。';
-
-  @override
-  String get aiCloudConsentTitle => '允许发送给此供应商';
-
-  @override
-  String get aiTestText => '测试普通回复';
-
-  @override
-  String get aiTestStream => '测试流式回复';
-
-  @override
-  String get aiTestTools => '测试工具调用';
-
-  @override
-  String get aiTestPassed => '连接测试通过，保存后生效。';
-
-  @override
-  String get aiTestFailed => '测试失败，请检查凭据及协议支持。工具调用须单独通过测试。';
-
-  @override
-  String get aiToolsVerified => '工具调用已验证，将启用实际可用的业务工具。';
-
-  @override
-  String get aiTextOnly => '工具调用测试通过前仅启用纯对话。';
-
-  @override
   String get aiSaveFailed => '保存失败，请检查配置及系统凭据存储权限。';
 
   @override
@@ -2386,7 +2360,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String get aiAuthenticationFailed => '认证失败，请在模型设置中更新 API Key。';
+  String get aiAuthenticationFailed => '认证失败，请检查 API Key 和 API 基址是否属于同一服务商。';
 
   @override
   String get aiRateLimited => '已达到供应商限流，请稍后重试。';
@@ -2599,14 +2573,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get remoteHomeAccess => '家庭远程访问';
 
   @override
-  String get remotePairingHelp =>
-      '粘贴 relay 为此服务生成的 App 配对配置。导入表示确认该远程入口与当前来源属于同一服务。';
+  String get remoteProxy => '服务（frpc proxy）';
 
   @override
-  String get remotePairingJson => '服务配对 JSON';
+  String get remoteNoProxies => '还没有可用的 proxy：请先在 设置 → 远程访问 导入 Relay 的 App 配置。';
 
   @override
-  String get remoteKeepCredentials => '留空保留已保存的线路凭据';
+  String remoteProxyMissing(String name) {
+    return '$name（当前 App 配置中没有）';
+  }
 
   @override
   String get remoteLanAddress => '已配对的局域网 HTTPS 地址';
@@ -2753,6 +2728,39 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get removeFavorite => '取消收藏';
+
+  @override
+  String get aiMore => '更多';
+
+  @override
+  String get aiGreeting => '有什么可以帮你？';
+
+  @override
+  String get aiSuggestTonight => '推荐一部今晚看的电影';
+
+  @override
+  String get aiSuggestContinue => '继续看上次没看完的';
+
+  @override
+  String get aiSuggestSciFi => '我的片库里有哪些科幻片？';
+
+  @override
+  String get aiTestConnection => '测试连接';
+
+  @override
+  String get aiCheckingConnection => '正在测试连接…';
+
+  @override
+  String get aiConnectionOk => '连接成功，可以聊天和使用工具。';
+
+  @override
+  String get aiConnectionOkNoTools => '连接成功，但该模型不支持工具调用，只能纯聊天。';
+
+  @override
+  String get aiInvalidSettings => '请填写有效的 HTTPS API 域名和模型名。';
+
+  @override
+  String get remoteConnectionMode => '连接方式';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3675,7 +3683,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiToolFailed => '工具未完成';
 
   @override
-  String get aiConfigureFirst => '請先在 AI 設定中設定模型、API Key 並授權傳送至雲端。';
+  String get aiConfigureFirst => '請先在模型設定中填寫 API 網域、模型名稱和 Key。';
 
   @override
   String get aiSendFailed => '無法傳送，請檢查輸入長度後重試。';
@@ -3705,13 +3713,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aiProviderDescription =>
-      '使用 OpenAI 或相容協定的 HTTPS 端點。API Key 儲存在系統憑據儲存區。';
+      '支援 OpenAI 相容介面，例如 DeepSeek。Key 儲存在系統鑰匙圈中。';
 
   @override
-  String get aiEndpoint => 'API 基址';
+  String get aiEndpoint => 'API 網域';
 
   @override
-  String get aiModel => '模型 ID';
+  String get aiModel => '模型名稱';
 
   @override
   String get aiApiKey => 'API Key';
@@ -3723,36 +3731,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiKeySaved => '已儲存憑據，留空保留';
 
   @override
-  String get aiOutputLimit => '輸出 token 上限（128–16384）';
-
-  @override
-  String get aiCloudConsent => '允許此供應商接收對話歷史、媒體標題、來源名稱及播放摘要，並請求已列出的媒體與播放工具。';
-
-  @override
-  String get aiCloudConsentTitle => '允許傳送給此供應商';
-
-  @override
-  String get aiTestText => '測試一般回覆';
-
-  @override
-  String get aiTestStream => '測試串流回覆';
-
-  @override
-  String get aiTestTools => '測試工具呼叫';
-
-  @override
-  String get aiTestPassed => '連線測試通過，儲存後生效。';
-
-  @override
-  String get aiTestFailed => '測試失敗，請檢查憑據及協定支援。工具呼叫須獨立通過測試。';
-
-  @override
-  String get aiToolsVerified => '工具呼叫已驗證，將啟用實際可用的業務工具。';
-
-  @override
-  String get aiTextOnly => '工具呼叫測試通過前僅啟用純對話。';
-
-  @override
   String get aiSaveFailed => '儲存失敗，請檢查設定及系統憑據儲存權限。';
 
   @override
@@ -3761,7 +3739,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String get aiAuthenticationFailed => '驗證失敗，請在模型設定中更新 API Key。';
+  String get aiAuthenticationFailed => '認證失敗，請檢查 API Key 和 API 基址是否屬於同一服務商。';
 
   @override
   String get aiRateLimited => '已達到供應商速率限制，請稍後重試。';
@@ -3974,14 +3952,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get remoteHomeAccess => '家庭遠端存取';
 
   @override
-  String get remotePairingHelp =>
-      '貼上 relay 為此服務產生的 App 配對設定。匯入表示確認此遠端入口與目前來源屬於同一服務。';
+  String get remoteProxy => '服務（frpc proxy）';
 
   @override
-  String get remotePairingJson => '服務配對 JSON';
+  String get remoteNoProxies => '還沒有可用的 proxy：請先在 設定 → 遠端存取 匯入 Relay 的 App 設定。';
 
   @override
-  String get remoteKeepCredentials => '留空保留已儲存的連線憑證';
+  String remoteProxyMissing(String name) {
+    return '$name（目前 App 設定中沒有）';
+  }
 
   @override
   String get remoteLanAddress => '已配對的區域網路 HTTPS 位址';
@@ -4128,4 +4107,37 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get removeFavorite => '取消收藏';
+
+  @override
+  String get aiMore => '更多';
+
+  @override
+  String get aiGreeting => '有什麼可以幫你？';
+
+  @override
+  String get aiSuggestTonight => '推薦一部今晚看的電影';
+
+  @override
+  String get aiSuggestContinue => '繼續看上次沒看完的';
+
+  @override
+  String get aiSuggestSciFi => '我的片庫裡有哪些科幻片？';
+
+  @override
+  String get aiTestConnection => '測試連線';
+
+  @override
+  String get aiCheckingConnection => '正在測試連線…';
+
+  @override
+  String get aiConnectionOk => '連線成功，可以聊天和使用工具。';
+
+  @override
+  String get aiConnectionOkNoTools => '連線成功，但該模型不支援工具呼叫，只能純聊天。';
+
+  @override
+  String get aiInvalidSettings => '請填寫有效的 HTTPS API 網域和模型名稱。';
+
+  @override
+  String get remoteConnectionMode => '連線方式';
 }

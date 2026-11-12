@@ -11,6 +11,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/adaptive/assistant_action.dart';
 import '../../ui/components/media/content_row.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
@@ -274,6 +275,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final wash = backdrop ?? poster;
     final developer = AppAppearance.maybeOf(context)?.developerMode ?? false;
     final top = MediaQuery.paddingOf(context).top;
+    final assistant = AssistantAction.maybeOf(context);
     return Scaffold(
       backgroundColor: _C.base,
       body: DefaultTextStyle.merge(
@@ -333,6 +335,28 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                 );
               },
             ),
+            // Resolving a remote file can take seconds; show it instead of
+            // silently ignoring taps. The back button stays usable above it.
+            if (_busy)
+              Positioned.fill(
+                child: ColoredBox(
+                  key: const ValueKey('media-opening'),
+                  color: Colors.black54,
+                  child: Center(
+                    child: Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        const SizedBox.square(
+                          dimension: 32,
+                          child: CircularProgressIndicator(strokeWidth: 3),
+                        ),
+                        const SizedBox(height: AppSpacing.md),
+                        Text(l.loading),
+                      ],
+                    ),
+                  ),
+                ),
+              ),
             Positioned(
               top: top + AppSpacing.md + 2,
               left: AppSpacing.md,
@@ -343,12 +367,24 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                 onPressed: () => Navigator.of(context).maybePop(),
               ),
             ),
+            if (assistant != null)
+              Positioned(
+                top: top + AppSpacing.md + 2,
+                right: AppSpacing.md,
+                child: _CircleButton(
+                  icon: AppIcons.assistant,
+                  iconSize: 20,
+                  tooltip: assistant.label,
+                  onPressed: assistant.onPressed,
+                ),
+              ),
             // Raw metadata editing is a debugging tool, hidden unless enabled.
-            // The top-right corner itself belongs to the assistant button.
             if (developer)
               Positioned(
                 top: top + AppSpacing.md + 2,
-                right: AppSpacing.page(context).right + 40 + AppSpacing.sm,
+                right:
+                    AppSpacing.md +
+                    (assistant != null ? 36 + AppSpacing.sm : 0),
                 child: _CircleButton(
                   key: const ValueKey('media-metadata'),
                   icon: Icons.more_horiz_rounded,

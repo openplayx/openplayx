@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/app/app_shell.dart';
 import 'package:openplayx/features/ai_assistant/assistant_page.dart';
 import 'package:openplayx/features/ai_assistant/assistant_settings_page.dart';
@@ -39,8 +40,11 @@ void main() {
         matching: find.byType(EditableText),
       );
       await tester.enterText(composer, '保留这个草稿');
-      Navigator.of(tester.element(find.byType(AssistantView))).pop();
+      // A full page: it hides the tab bar and closes from its back button.
+      expect(find.byTooltip('来源'), findsNothing);
+      await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
+      expect(find.byType(AssistantView), findsNothing);
       await tester.tap(find.byTooltip('来源').first);
       await tester.pumpAndSettle();
       await tester.tap(find.byTooltip('AI 助手'));
@@ -49,7 +53,9 @@ void main() {
       expect(identical(second.coordinator, first.coordinator), true);
       expect(identical(second.controller, first.controller), true);
       expect(find.text('保留这个草稿'), findsOneWidget);
-      await tester.tap(find.byTooltip('模型设置'));
+      await tester.tap(find.byTooltip('更多'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('模型设置').last);
       await tester.pumpAndSettle();
       expect(find.byType(AssistantSettingsPage), findsOneWidget);
       expect(find.text('模型设置'), findsOneWidget);
@@ -117,7 +123,7 @@ void main() {
         final inputs = tester
             .widgetList<EditableText>(find.byType(EditableText))
             .toList();
-        expect(inputs.length, 4);
+        expect(inputs.length, 3);
         expect(inputs[2].obscureText, true);
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
@@ -125,4 +131,34 @@ void main() {
       },
     );
   }
+  testWidgets(
+    'settings are three fields and one test; key alone enables chat',
+    (tester) async {
+      final db = sqlite3.openInMemory();
+      final store = AssistantStore(db);
+      await tester.pumpWidget(
+        TestApp(home: AssistantSettingsPage(store: store)),
+      );
+      await tester.pumpAndSettle();
+      expect(find.byType(ShadSwitch), findsNothing);
+      expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
+      final fields = find.byType(EditableText);
+      expect(fields, findsNWidgets(3));
+      await tester.enterText(fields.at(0), 'https://api.deepseek.com/');
+      await tester.enterText(fields.at(1), 'deepseek-chat');
+      // No key yet: saving asks for one and keeps nothing.
+      await tester.tap(find.byKey(const ValueKey('ai-save')));
+      await tester.pumpAndSettle();
+      expect(store.loadConfig().configured, false);
+      await tester.enterText(fields.at(2), 'sk-test');
+      await tester.tap(find.byKey(const ValueKey('ai-save')));
+      await tester.pumpAndSettle();
+      final saved = store.loadConfig();
+      expect(saved.endpoint, 'https://api.deepseek.com');
+      expect(saved.configured, true);
+      expect(await store.key(saved), 'sk-test');
+      await tester.pumpWidget(const SizedBox());
+      db.close();
+    },
+  );
 }

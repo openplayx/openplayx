@@ -52,61 +52,85 @@ class AiTextMessage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context), l = AppLocalizations.of(context);
-    return Container(
-      padding: const EdgeInsets.all(12),
-      decoration: isUser
-          ? BoxDecoration(
-              color: theme.colorScheme.muted,
-              borderRadius: AppMetrics.panelRadius,
-            )
-          : null,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          MarkdownBody(
-            data: text,
-            selectable: true,
-            softLineBreak: true,
-            styleSheet: MarkdownStyleSheet(
-              p: theme.textTheme.p,
-              h1: theme.textTheme.h3,
-              h2: theme.textTheme.h4,
-              h3: theme.textTheme.large,
-              code: theme.textTheme.small,
-              blockquote: theme.textTheme.muted,
-              codeblockDecoration: BoxDecoration(
-                color: theme.colorScheme.muted,
-                borderRadius: AppMetrics.controlRadius,
-              ),
+    final colors = theme.colorScheme;
+    final body = theme.textTheme.p.copyWith(height: 1.55);
+    // The user's turn: a soft rounded bubble on the right, like mainstream
+    // chat apps. The reply: plain text across the page, no bubble.
+    if (isUser) {
+      return LayoutBuilder(
+        builder: (context, box) => Align(
+          alignment: AlignmentDirectional.centerEnd,
+          child: Container(
+            constraints: BoxConstraints(maxWidth: box.maxWidth * 0.8),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+            decoration: BoxDecoration(
+              color: colors.muted,
+              borderRadius: BorderRadius.circular(20),
             ),
-            imageBuilder: (uri, title, alt) => Text(
-              alt?.isNotEmpty == true
-                  ? '${l.aiRemoteImageBlocked} · $alt'
-                  : l.aiRemoteImageBlocked,
-              style: theme.textTheme.muted,
-            ),
-            onTapLink: (_, href, _) => _link(context, href),
+            child: SelectableText(text, style: body),
           ),
-          if (streaming)
-            Text(l.aiReplying, style: theme.textTheme.muted)
-          else
-            Align(
-              alignment: AlignmentDirectional.centerEnd,
-              child: Tooltip(
-                message: l.shadCopy,
-                child: Semantics(
-                  button: true,
-                  label: l.shadCopy,
-                  child: ShadIconButton.ghost(
-                    icon: const Icon(AppIcons.copy, size: 16),
-                    onPressed: () =>
-                        Clipboard.setData(ClipboardData(text: text)),
-                  ),
+        ),
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        MarkdownBody(
+          data: text,
+          selectable: true,
+          softLineBreak: true,
+          styleSheet: MarkdownStyleSheet(
+            p: body,
+            listBullet: body,
+            h1: theme.textTheme.h3,
+            h2: theme.textTheme.h4,
+            h3: theme.textTheme.large,
+            code: theme.textTheme.small.copyWith(
+              fontFamily: 'monospace',
+              backgroundColor: colors.muted,
+            ),
+            blockquote: theme.textTheme.muted,
+            blockquoteDecoration: BoxDecoration(
+              border: Border(left: BorderSide(color: colors.border, width: 3)),
+            ),
+            codeblockPadding: const EdgeInsets.all(12),
+            codeblockDecoration: BoxDecoration(
+              color: colors.muted,
+              borderRadius: AppMetrics.panelRadius,
+            ),
+          ),
+          imageBuilder: (uri, title, alt) => Text(
+            alt?.isNotEmpty == true
+                ? '${l.aiRemoteImageBlocked} · $alt'
+                : l.aiRemoteImageBlocked,
+            style: theme.textTheme.muted,
+          ),
+          onTapLink: (_, href, _) => _link(context, href),
+        ),
+        if (streaming)
+          Padding(
+            padding: const EdgeInsets.only(top: 6),
+            child: Text(l.aiReplying, style: theme.textTheme.muted),
+          )
+        else
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: Tooltip(
+              message: l.shadCopy,
+              child: Semantics(
+                button: true,
+                label: l.shadCopy,
+                child: ShadIconButton.ghost(
+                  width: 32,
+                  height: 32,
+                  foregroundColor: colors.mutedForeground,
+                  icon: const Icon(AppIcons.copy, size: 15),
+                  onPressed: () => Clipboard.setData(ClipboardData(text: text)),
                 ),
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     );
   }
 }

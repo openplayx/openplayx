@@ -3,6 +3,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../icons/app_icons.dart';
 import '../tokens/app_spacing.dart';
+import 'assistant_action.dart';
 
 /// Page structure grows with text scaling and wraps actions on narrow windows.
 class AppPage extends StatelessWidget {
@@ -44,12 +45,10 @@ class AppPage extends StatelessWidget {
           children: [
             Container(
               width: double.infinity,
-              // The top-right corner is reserved for the app-wide assistant
-              // button (40pt) overlaid by the shell.
               padding: EdgeInsets.fromLTRB(
                 AppSpacing.page(context).left,
                 AppSpacing.md,
-                AppSpacing.page(context).right + 40 + AppSpacing.sm,
+                AppSpacing.page(context).right,
                 AppSpacing.md,
               ),
               decoration: BoxDecoration(
@@ -113,6 +112,11 @@ class AppPage extends StatelessWidget {
                       for (final widget in trailing) ...[
                         const SizedBox(width: AppSpacing.xs),
                         widget,
+                      ],
+                      // Part of the page, so it slides with route transitions.
+                      if (AssistantAction.maybeOf(context) != null) ...[
+                        const SizedBox(width: AppSpacing.sm),
+                        const AssistantButton(size: headerHeight),
                       ],
                     ],
                   ),

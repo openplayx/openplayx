@@ -26,6 +26,9 @@ class AssistantConfig {
   final bool textVerified;
   final bool streamVerified;
   final int maxTokens;
+
+  /// A saved key is all the assistant needs to start.
+  bool get configured => credentialRef != null;
   Map<String, dynamic> toJson() => {
     'endpoint': endpoint,
     'model': model,

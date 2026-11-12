@@ -65,6 +65,10 @@ dependencies:
 # which dartssh2 (SFTP) requires.
 dependency_overrides:
   pointycastle: ^4.0.0
+  # TEMPORARY: local smb_connect fork with fail-fast disconnect handling;
+  # replace by re-pinning the git ref once the fork commit is pushed.
+  smb_connect:
+    path: ../smb_connect
 
 dev_dependencies:
   integration_test:

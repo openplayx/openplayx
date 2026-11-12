@@ -16,7 +16,6 @@ import 'source_config.dart';
 import '../remote_access/remote_transport.dart';
 import '../remote_access/remote_access_service.dart';
 import '../remote_access/remote_native.dart';
-import '../remote_access/remote_config.dart';
 
 import 'dart:convert';
 
@@ -60,7 +59,8 @@ class SourceManager {
     FlutterSecureStorage? credentials,
     SourceConfigurationService? configuration,
     RemoteAccessService? remoteAccess,
-    Future<void> Function(RemoteAccessDocument)? remoteCoreValidator,
+    Future<void> Function(Map<String, dynamic> outbound, int port)?
+    remoteCoreValidator,
   }) : _configuration = configuration,
        _ownsConfiguration = configuration == null {
     _credentials = SourceCredentialBroker(() => _configuration!, credentials);
@@ -72,32 +72,24 @@ class SourceManager {
   SourceConfigurationService? _configuration;
   final bool _ownsConfiguration;
   late final SourceCredentialBroker _credentials;
-  late final Future<void> Function(RemoteAccessDocument) _remoteCoreValidator;
-  static Future<void> _checkRemoteCore(RemoteAccessDocument document) async {
-    for (final entry in document.bindings.entries) {
-      for (final route in [entry.value.primary, ...entry.value.backups]) {
-        if (route.mode == RemoteConnectionMode.localOnly) continue;
-        final secret = await RemoteCredentialStore.read(
-          entry.key,
-          route.credentialRef,
-        );
-        final core = RemoteNative.instance;
-        final port = core.start({
-          ...secret,
-          ...?route.outboundOptions,
-        }, route.remotePort);
-        core.stop(port);
-      }
-    }
+  late final Future<void> Function(Map<String, dynamic> outbound, int port)
+  _remoteCoreValidator;
+
+  /// Starts and stops the embedded sing-box core once with an imported
+  /// outbound, so a broken App file is rejected before it is saved.
+  static Future<void> _checkRemoteCore(
+    Map<String, dynamic> outbound,
+    int port,
+  ) async {
+    final core = RemoteNative.instance;
+    core.stop(core.start(outbound, port));
   }
 
   RemoteAccessService? _remote;
   Future<RemoteAccessService>? _openingRemote;
-  Future<RemoteAccessService> get remoteConfigurationForRecovery async =>
-      _remote ??= await RemoteAccessService.locate();
   Future<RemoteAccessService> get remoteSettings =>
       _openingRemote ??= (() async {
-        final service = await remoteConfigurationForRecovery;
+        final service = _remote ??= await RemoteAccessService.locate();
         try {
           await service.load();
           return service;
@@ -127,16 +119,6 @@ class SourceManager {
     _configuration ??= await SourceConfigurationService.open();
     final records = _configuration!.load();
     final remote = await remoteSettings;
-    await remote.migrate({
-      for (final c in records)
-        if (c.remoteAccess != null) c.id: c.remoteAccess!,
-    });
-    if (records.any((c) => c.remoteAccess != null)) {
-      _configuration!.clearLegacyRemoteConfiguration({
-        for (final c in records)
-          if (c.remoteAccess != null) c.id,
-      });
-    }
     _configs
       ..clear()
       ..addAll(records.map(remote.attach));
@@ -145,7 +127,6 @@ class SourceManager {
   Future<void> reload() async {
     await load();
     final remote = await remoteSettings;
-    await remote.refresh();
     final next = _configuration!.load().map(remote.attach).toList();
     for (final runtime in _runtimes.values.toList()) {
       if (!next.any(
@@ -180,15 +161,7 @@ class SourceManager {
       throw const PluginException('permissionDenied', '不能指定其他凭据引用。');
     }
     final remote = await remoteSettings;
-    final beforeRemote = remote.desired;
-    final previousBinding = beforeRemote.bindings[config.id];
-    final requested = config.remoteAccess;
-    final remoteChanged =
-        jsonEncode(previous?.remoteAccess?.toJson()) !=
-        jsonEncode(requested?.toJson());
-    RemoteAccessDocument? changedRemote;
     var saved = config.copyWith(
-      remoteManaged: requested != null || config.remoteManaged,
       pluginVersion: SourceSchemas.forKind(config.kind).version,
       credentialRef: previous?.credentialRef,
     );
@@ -216,42 +189,13 @@ class SourceManager {
           throw const PluginException('authRequired', '请填写访问令牌。');
         }
       }
-      if (remoteChanged) {
-        final nextBindings = Map<String, RemoteAccessBinding>.of(
-          beforeRemote.bindings,
-        );
-        if (requested == null) {
-          nextBindings.remove(config.id);
-        } else {
-          nextBindings[config.id] = RemoteAccessBinding(
-            requested,
-            backups: previousBinding?.backups ?? const [],
-          );
-        }
-        changedRemote = await remote.save(
-          beforeRemote.copyWith(bindings: nextBindings),
-          expectedRevision: beforeRemote.revision,
-        );
-      }
-      if (changedRemote != null) {
-        saved = saved.copyWith(remoteRequiredRevision: changedRemote.revision);
-      }
       saved = _configuration!.save(saved, expectedRevision: config.revision);
     } catch (_) {
       await _credentials.delete(config.id, staged);
-      if (changedRemote != null) {
-        await remote.save(
-          beforeRemote.copyWith(revision: changedRemote.revision),
-          expectedRevision: changedRemote.revision,
-        );
-      }
       rethrow;
     }
-    // Do not use a newly saved route or its media token until the JSON apply
-    // succeeds. Existing playback retains the retired provider's old lease.
-    saved = remoteChanged
-        ? saved.copyWith(clearRemoteAccess: true, remoteManaged: true)
-        : remote.attach(saved);
+    // Existing playback keeps the retired provider's lease.
+    saved = remote.attach(saved);
     final index = _configs.indexWhere((c) => c.id == saved.id);
     if (index < 0) {
       _configs.add(saved);
@@ -259,9 +203,6 @@ class SourceManager {
       _configs[index] = saved;
     }
     await _retire(saved.id);
-    if (remoteChanged) {
-      await applyRemoteSettings(changedRemote!.revision);
-    }
     if (staged != null && previous?.credentialRef != null) {
       // A committed configuration stays committed if old-key cleanup fails.
       try {
@@ -286,22 +227,9 @@ class SourceManager {
   Future<void> remove(String id) async {
     await load();
     final config = _config(id);
-    final remote = await remoteSettings;
-    if (remote.desired.bindings.containsKey(id)) {
-      final bindings = Map<String, RemoteAccessBinding>.of(
-        remote.desired.bindings,
-      )..remove(id);
-      await remote.save(
-        remote.desired.copyWith(bindings: bindings),
-        expectedRevision: remote.desired.revision,
-      );
-    }
     _configuration!.remove(id, config.revision);
     _configs.removeWhere((c) => c.id == id);
     await _retire(id);
-    if (remote.active.bindings.containsKey(id)) {
-      await applyRemoteSettings(remote.desired.revision);
-    }
     try {
       await _credentials.delete(id, config.credentialRef);
     } catch (_) {}
@@ -406,10 +334,7 @@ class SourceManager {
       _hasBookmarks = true;
       pluginConfig = pluginConfig.copyWith(address: path);
     }
-    if ((config.remoteManaged && config.remoteAccess == null) ||
-        config.remoteRequiredRevision > (_remote?.active.revision ?? 0)) {
-      throw const PluginException('remoteNotApplied', '此来源的远程配置尚未生效，请在设置中应用。');
-    }
+    pluginConfig = withRemoteRoute(pluginConfig);
     final storedSecret = await _credentials.readForHost(config);
     final secret = storedSecret ?? '';
     if ((config.credentialRef != null && storedSecret == null) ||
@@ -582,35 +507,49 @@ class SourceManager {
     );
   });
 
-  Future<void> discardRemoteSecret(String sourceId, String ref) async {
-    if (_remote == null) {
-      await RemoteCredentialStore.delete(sourceId, ref);
-      return;
+  /// The App-wide Relay connection (sing-box outbound + frpc proxies).
+  RemoteNetwork get remoteNetwork => _remote?.network ?? const RemoteNetwork();
+
+  /// [config] with its remote route resolved against [remoteNetwork]. A
+  /// source that asks for remote access never silently connects directly.
+  SourceConfig withRemoteRoute(SourceConfig config) {
+    final network = remoteNetwork;
+    final route = network.routeFor(config.remote);
+    if (config.remote != null && route == null) {
+      throw PluginException(
+        'remoteUnavailable',
+        '此来源使用远程访问 proxy「${config.remote!.proxy}」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。',
+      );
     }
-    await _remote!.cleanupStaged([(sourceId, ref)]);
+    return config.copyWith(
+      remoteAccess: route,
+      clearRemoteAccess: route == null,
+      remoteRuntimePolicy: network.runtimePolicy,
+    );
   }
 
-  Future<void> applyRemoteSettings(int revision) async {
-    await reload();
+  /// Imports the App file exported by Relay and re-resolves every source.
+  Future<void> importRemotePairing(String text) async {
     final remote = await remoteSettings;
-    if (remote.desired.revision != revision) {
-      throw const PluginException('conflict', '远程配置已变化，未应用其他修订。');
-    }
-    for (var i = 0; i < _configs.length; i++) {
-      final source = _configs[i];
-      final managed = remote.desired.bindings.containsKey(source.id);
-      if (source.remoteManaged != managed) {
-        _configs[i] = _configuration!.save(
-          source.copyWith(remoteManaged: managed),
-          expectedRevision: source.revision,
-        );
-      }
-    }
-    await remote.apply(
-      expectedRevision: revision,
-      sources: _configs,
-      check: _remoteCoreValidator,
-    );
+    await remote.importPairing(text, check: _remoteCoreValidator);
+    await _reattach();
+  }
+
+  Future<void> clearRemoteNetwork() async {
+    await (await remoteSettings).clear();
+    await _reattach();
+  }
+
+  Future<void> saveRemotePolicy(RemoteNetwork policy) async {
+    await (await remoteSettings).savePolicy(policy);
+    await _reattach();
+  }
+
+  /// Rebuilds runtime routes after the network layer changed; runtimes whose
+  /// route changed are retired (existing playback keeps its lease).
+  Future<void> _reattach() async {
+    await load();
+    final remote = await remoteSettings;
     final next = _configs.map(remote.attach).toList();
     for (final source in next) {
       if (jsonEncode(_runtimes[source.id]?.config.remoteAccess?.toJson()) !=
@@ -635,7 +574,9 @@ class SourceManager {
     if (existing != null && draft.revision != existing.revision) {
       throw const PluginException('conflict', '请重新加载配置后测试。');
     }
-    var config = SourceConfig.fromJson({...draft.toJson(), 'bookmark': null});
+    var config = withRemoteRoute(
+      SourceConfig.fromJson({...draft.toJson(), 'bookmark': null}),
+    );
     final value = secret.isNotEmpty
         ? secret
         : existing == null

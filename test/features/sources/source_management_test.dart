@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
+import 'package:openplayx/data/remote_access/remote_access_service.dart';
+import 'package:openplayx/data/remote_access/remote_config.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/features/sources/source_page.dart';
@@ -88,7 +90,7 @@ void main() {
       expect(find.textContaining('修订'), findsNothing);
       expect(find.text('实例与连接策略'), findsNothing);
       expect(find.text('目录范围与扫描策略'), findsNothing);
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jellyfin').last);
       await tester.pumpAndSettle();
@@ -102,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byKey(ValueKey('端口')), findsOneWidget);
       expect(find.byKey(ValueKey('路径（可选）')), findsOneWidget);
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
@@ -160,7 +162,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<ShadSwitch>(find.widgetWithText(ShadSwitch, 'HTTPS'))
+            .widget<ShadSwitch>(find.byKey(const ValueKey('https-switch')))
             .value,
         isTrue,
       );
@@ -209,7 +211,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Jellyfin').last);
       await tester.pumpAndSettle();
@@ -252,14 +254,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
       await tester.tap(find.text('高级'));
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.widgetWithText(ShadSwitch, '手动连接服务器'));
-      await tester.tap(find.widgetWithText(ShadSwitch, '手动连接服务器'));
+      await tester.ensureVisible(find.byKey(const ValueKey('plex-manual')));
+      await tester.tap(find.byKey(const ValueKey('plex-manual')));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(ValueKey('服务器地址')),
@@ -309,7 +311,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('Open'));
       await tester.pumpAndSettle();
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
+      await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('Plex').last);
       await tester.pumpAndSettle();
@@ -324,88 +326,68 @@ void main() {
       expect(manager.secrets.single, 'selected-server-token');
     },
   );
-  testWidgets(
-    'imports a service pairing and keeps outbound credentials in secure storage',
-    (tester) async {
-      FlutterSecureStorage.setMockInitialValues({});
-      final manager = MemorySources();
-      final signIn = _FakeSignIn();
-      addTearDown(signIn.close);
-      await tester.pumpWidget(
-        TestApp(
-          home: Scaffold(
-            body: Builder(
-              builder: (context) => TextButton(
-                onPressed: () => Navigator.of(context).push<bool>(
-                  MaterialPageRoute(
-                    builder: (_) =>
-                        SourceInstanceForm(manager: manager, signIn: signIn),
-                  ),
+  testWidgets('remote access picks a proxy of the App-wide Relay connection', (
+    tester,
+  ) async {
+    FlutterSecureStorage.setMockInitialValues({});
+    final manager = MemorySources()
+      ..network = const RemoteNetwork(
+        outbound: {
+          'type': 'vless',
+          'server': 'relay.example',
+          'server_port': 443,
+          'tls': {'enabled': true, 'server_name': 'relay.example'},
+        },
+        credentialRef: 'remote.outbound.fixture',
+        proxies: [RemoteProxy('smb', 18445), RemoteProxy('jellyfin', 18096)],
+      );
+    final signIn = _FakeSignIn();
+    addTearDown(signIn.close);
+    await tester.pumpWidget(
+      TestApp(
+        home: Scaffold(
+          body: Builder(
+            builder: (context) => TextButton(
+              onPressed: () => Navigator.of(context).push<bool>(
+                MaterialPageRoute(
+                  builder: (_) =>
+                      SourceInstanceForm(manager: manager, signIn: signIn),
                 ),
-                child: const Text('Open'),
               ),
+              child: const Text('Open'),
             ),
           ),
         ),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Open'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(ShadSelect<SourceKind>));
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('Jellyfin').last);
-      await tester.pumpAndSettle();
-      await tester.enterText(find.byKey(const ValueKey('用户名')), 'viewer');
-      await tester.enterText(
-        find.byKey(const ValueKey('密码')),
-        'media-password',
-      );
-      final toggle = find.widgetWithText(ShadSwitch, '家庭远程访问');
-      await tester.ensureVisible(toggle);
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('家庭远程访问'));
-      await tester.pumpAndSettle();
-      final outbound = {
-        'type': 'vless',
-        'server': 'relay.example',
-        'server_port': 443,
-        'uuid': '11111111-1111-4111-8111-111111111111',
-        'tls': {'enabled': true, 'server_name': 'relay.example'},
-      };
-      final pair = {
-        'version': 1,
-        'lineId': 'stable-line',
-        'homeId': 'stable-home',
-        'serviceId': 'jellyfin',
-        'remoteAddress': 'http://jellyfin.home.invalid:8096',
-        'remotePort': 18096,
-        'outbound': outbound,
-      };
-      await tester.enterText(
-        find.byKey(const ValueKey('remote-pairing')),
-        jsonEncode(pair),
-      );
-      await tester.tap(find.text('添加'));
-      await tester.pumpAndSettle();
-      expect(manager.saved, hasLength(1));
-      final saved = manager.saved.single;
-      expect(saved.address, 'http://jellyfin.home.invalid:8096');
-      expect(saved.remoteAccess!.serviceId, 'jellyfin');
-      expect(
-        saved.remoteAccess!.credentialRef,
-        startsWith('remote.${saved.id}.'),
-      );
-      expect(
-        jsonEncode(saved.toJson()),
-        isNot(contains(outbound['uuid'] as String)),
-      );
-      final secret = await const FlutterSecureStorage().read(
-        key: saved.remoteAccess!.credentialRef,
-      );
-      expect(jsonDecode(secret!), {'uuid': outbound['uuid']});
-      expect(manager.secrets.single, 'automatic-session-token');
-    },
-  );
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Open'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('source-kind')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Jellyfin').last);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.byKey(const ValueKey('地址')), '192.168.1.211');
+    await tester.enterText(find.byKey(const ValueKey('用户名')), 'viewer');
+    await tester.enterText(find.byKey(const ValueKey('密码')), 'media-password');
+    final toggle = find.byKey(const ValueKey('remote-switch'));
+    await tester.ensureVisible(toggle);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('家庭远程访问'));
+    await tester.pumpAndSettle();
+    // The kind's own proxy is preselected; no JSON is pasted per source.
+    expect(find.text('jellyfin · 18096'), findsOneWidget);
+    await tester.tap(find.text('添加'));
+    await tester.pumpAndSettle();
+    expect(manager.saved, hasLength(1));
+    final saved = manager.saved.single;
+    expect(saved.remote!.proxy, 'jellyfin');
+    expect(saved.remoteAccess, isNull);
+    expect(jsonEncode(saved.toJson()), isNot(contains('relay.example')));
+    // Sign-in already goes through the Relay route.
+    expect(signIn.lastConfig!.remoteAccess!.remotePort, 18096);
+    expect(manager.secrets.single, 'automatic-session-token');
+  });
   testWidgets('local source chooses a folder and generates its display name', (
     tester,
   ) async {
@@ -444,9 +426,11 @@ void main() {
 
 class _FakeSignIn extends SourceSignIn {
   String? password;
+  SourceConfig? lastConfig;
   @override
   Future<JellyfinSession> jellyfin(SourceConfig config, String value) async {
     password = value;
+    lastConfig = config;
     return const JellyfinSession(
       'automatic-user-id',
       'automatic-session-token',

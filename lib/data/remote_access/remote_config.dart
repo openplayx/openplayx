@@ -18,71 +18,101 @@ class RemoteRuntimePolicy {
 
 enum RemoteConnectionMode { automatic, localOnly, remoteOnly }
 
-/// Stable references and public endpoints only. The outbound (including its
-/// UUID) lives in secure storage under [credentialRef], never in source JSON.
-class RemoteAccessConfig {
-  const RemoteAccessConfig({
-    required this.lineId,
-    required this.homeId,
-    required this.serviceId,
-    required this.remoteAddress,
-    required this.remotePort,
-    required this.credentialRef,
+void _validateLocal(
+  RemoteConnectionMode mode,
+  String? localAddress,
+  String? localTlsSha256,
+) {
+  if (mode == RemoteConnectionMode.remoteOnly) return;
+  if (localAddress == null ||
+      RemoteAccessConfig.endpoint(localAddress).scheme != 'https' ||
+      !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(localTlsSha256 ?? '')) {
+    throw const FormatException('局域网自动访问需要 HTTPS 端点和配对确认的证书 SHA-256。');
+  }
+}
+
+/// What a source stores about remote access: which frpc [proxy] (registered
+/// by Home on the Relay's frps) it goes through, plus optional LAN switching.
+/// The Relay connection itself is App-wide, see `RemoteNetwork`.
+class SourceRemote {
+  const SourceRemote({
+    required this.proxy,
     this.mode = RemoteConnectionMode.remoteOnly,
     this.localAddress,
     this.localTlsSha256,
-    this.outboundOptions,
   });
-  final String lineId, homeId, serviceId, remoteAddress, credentialRef;
-  final int remotePort;
+  final String proxy;
   final RemoteConnectionMode mode;
   final String? localAddress, localTlsSha256;
-  final Map<String, dynamic>? outboundOptions;
+
   Map<String, dynamic> toJson() => {
-    'lineId': lineId,
-    'homeId': homeId,
-    'serviceId': serviceId,
-    'remoteAddress': remoteAddress,
-    'remotePort': remotePort,
-    'credentialRef': credentialRef,
+    'proxy': proxy,
     'mode': mode.name,
     if (localAddress?.isNotEmpty == true) 'localAddress': localAddress,
     if (localTlsSha256?.isNotEmpty == true) 'localTlsSha256': localTlsSha256,
-    if (outboundOptions != null) 'outboundOptions': outboundOptions,
   };
-  factory RemoteAccessConfig.fromJson(Map<String, dynamic> j) {
-    const keys = {
-      'lineId',
-      'homeId',
-      'serviceId',
-      'remoteAddress',
-      'remotePort',
-      'credentialRef',
-      'mode',
-      'localAddress',
-      'localTlsSha256',
-      'outboundOptions',
-    };
+
+  factory SourceRemote.fromJson(Map<String, dynamic> j) {
+    const keys = {'proxy', 'mode', 'localAddress', 'localTlsSha256'};
     if (j.keys.any((k) => !keys.contains(k))) {
-      throw const FormatException('未知远程连接字段。');
+      throw const FormatException('未知远程访问字段。');
     }
-    final c = RemoteAccessConfig(
-      lineId: j['lineId'] as String,
-      homeId: j['homeId'] as String,
-      serviceId: j['serviceId'] as String,
-      remoteAddress: j['remoteAddress'] as String,
-      remotePort: j['remotePort'] as int,
-      credentialRef: j['credentialRef'] as String,
+    final value = SourceRemote(
+      proxy: j['proxy'] as String,
       mode: RemoteConnectionMode.values.byName(
         j['mode'] as String? ?? 'remoteOnly',
       ),
       localAddress: j['localAddress'] as String?,
       localTlsSha256: j['localTlsSha256'] as String?,
-      outboundOptions: j['outboundOptions'] as Map<String, dynamic>?,
     );
-    c.validate();
-    return c;
+    value.validate();
+    return value;
   }
+
+  void validate() {
+    if (proxy.trim().isEmpty) {
+      throw const FormatException('请选择远程访问使用的 proxy。');
+    }
+    _validateLocal(mode, localAddress, localTlsSha256);
+  }
+}
+
+/// The resolved route a runtime uses: the source's [SourceRemote] joined with
+/// the App-wide Relay outbound and the proxy's [remotePort]. Built at load
+/// time, never persisted. The media endpoint is the source's own address.
+class RemoteAccessConfig {
+  const RemoteAccessConfig({
+    required this.proxy,
+    required this.remotePort,
+    required this.credentialRef,
+    required this.outbound,
+    this.mode = RemoteConnectionMode.remoteOnly,
+    this.localAddress,
+    this.localTlsSha256,
+  });
+
+  /// frpc proxy name / remotePort on the Relay's loopback.
+  final String proxy;
+  final int remotePort;
+
+  /// Secure storage key of the App user's `uuid`.
+  final String credentialRef;
+
+  /// Public sing-box outbound options (no `uuid`).
+  final Map<String, dynamic> outbound;
+  final RemoteConnectionMode mode;
+  final String? localAddress, localTlsSha256;
+
+  Map<String, dynamic> toJson() => {
+    'proxy': proxy,
+    'remotePort': remotePort,
+    'credentialRef': credentialRef,
+    'outbound': outbound,
+    'mode': mode.name,
+    if (localAddress?.isNotEmpty == true) 'localAddress': localAddress,
+    if (localTlsSha256?.isNotEmpty == true) 'localTlsSha256': localTlsSha256,
+  };
+
   static Uri endpoint(String address) {
     final u = Uri.parse(address);
     if (!['http', 'https', 'smb'].contains(u.scheme) ||
@@ -99,40 +129,48 @@ class RemoteAccessConfig {
   }
 
   void validate() {
-    if (outboundOptions != null) {
-      if (outboundOptions!.containsKey('uuid')) {
-        throw const FormatException('实际 UUID 只能保存在安全存储。');
-      }
-      // Reuse the import validator with a dummy, never-persisted identity.
-      RemotePairing.validateOutbound({
-        ...outboundOptions!,
-        'uuid': '11111111-1111-4111-8111-111111111111',
-      });
+    if (outbound.containsKey('uuid')) {
+      throw const FormatException('实际 UUID 只能保存在安全存储。');
     }
-    if ([
-          lineId,
-          homeId,
-          serviceId,
-          credentialRef,
-        ].any((v) => v.trim().isEmpty) ||
+    RemotePairing.validateOutbound({
+      ...outbound,
+      'uuid': '11111111-1111-4111-8111-111111111111',
+    });
+    if (proxy.trim().isEmpty ||
+        credentialRef.trim().isEmpty ||
         remotePort < 1 ||
         remotePort > 65535) {
-      throw const FormatException('远程访问引用或映射端口无效。');
+      throw const FormatException('proxy name、remotePort 或凭据引用无效。');
     }
-    endpoint(remoteAddress);
-    if (mode != RemoteConnectionMode.remoteOnly) {
-      if (localAddress == null ||
-          endpoint(localAddress!).scheme != 'https' ||
-          !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(localTlsSha256 ?? '')) {
-        throw const FormatException('局域网自动访问需要 HTTPS 端点和配对确认的证书 SHA-256。');
-      }
-    }
+    _validateLocal(mode, localAddress, localTlsSha256);
   }
 }
 
+/// One frpc proxy the App may use: Home registered it on Relay's frps under
+/// [name], reachable on Relay loopback at [remotePort].
+class RemoteProxy {
+  const RemoteProxy(this.name, this.remotePort);
+  final String name;
+  final int remotePort;
+
+  Map<String, dynamic> toJson() => {'name': name, 'remotePort': remotePort};
+
+  /// The proxy a new source of [kind] defaults to: the one named after the
+  /// kind (jellyfin, smb...), else the only one.
+  static RemoteProxy? defaultFor(List<RemoteProxy> proxies, String kind) =>
+      proxies.where((p) => p.name == kind).firstOrNull ??
+      (proxies.length == 1 ? proxies.single : null);
+}
+
+/// The App file exported by Relay, in sing-box / frp terms:
+/// `{"outbound": <sing-box VLESS outbound>, "proxies": [{"name", "remotePort"}]}`.
 class RemotePairing {
-  RemotePairing._(this.data, this.outbound);
-  final Map<String, dynamic> data, outbound;
+  RemotePairing._(this.outbound, this.proxies);
+
+  /// sing-box outbound including the App user's `uuid` (no `tag`).
+  final Map<String, dynamic> outbound;
+  final List<RemoteProxy> proxies;
+
   static void validateOutbound(Map<String, dynamic> out) {
     final server = out['server'];
     bool validHost(Object? value) =>
@@ -209,19 +247,47 @@ class RemotePairing {
   }
 
   factory RemotePairing.parse(String text) {
-    if (text.length > 65536) throw const FormatException('配对配置过大。');
-    final j = jsonDecode(text) as Map<String, dynamic>;
-    if (j['version'] != 1) throw const FormatException('不支持的配对版本。');
-    final out = j['outbound'] as Map<String, dynamic>;
+    if (text.length > 65536) throw const FormatException('配置过大。');
+    final Object? decoded;
+    try {
+      decoded = jsonDecode(text);
+    } on FormatException {
+      throw const FormatException('不是有效的 JSON，请粘贴 Relay 导出的完整 App 配置。');
+    }
+    if (decoded is! Map<String, dynamic> ||
+        decoded.keys.any((k) => k != 'outbound' && k != 'proxies') ||
+        decoded['outbound'] is! Map<String, dynamic> ||
+        decoded['proxies'] is! List) {
+      throw const FormatException(
+        'App 配置须为 {"outbound": {...}, "proxies": [...]}。',
+      );
+    }
+    // The sing-box tag only names the outbound inside one config file.
+    final out = Map<String, dynamic>.of(
+      decoded['outbound'] as Map<String, dynamic>,
+    )..remove('tag');
     validateOutbound(out);
-    RemoteAccessConfig(
-      lineId: j['lineId'] as String,
-      homeId: j['homeId'] as String,
-      serviceId: j['serviceId'] as String,
-      remoteAddress: j['remoteAddress'] as String,
-      remotePort: j['remotePort'] as int,
-      credentialRef: 'pending',
-    ).validate();
-    return RemotePairing._(j, out);
+    final proxies = <RemoteProxy>[];
+    for (final item in decoded['proxies'] as List) {
+      if (item is! Map ||
+          item.keys.any((k) => k != 'name' && k != 'remotePort') ||
+          item['name'] is! String ||
+          (item['name'] as String).trim().isEmpty ||
+          item['remotePort'] is! int ||
+          (item['remotePort'] as int) < 1 ||
+          (item['remotePort'] as int) > 65535) {
+        throw const FormatException(
+          'proxies 每项须为 {"name": 字符串, "remotePort": 端口}。',
+        );
+      }
+      proxies.add(
+        RemoteProxy(item['name'] as String, item['remotePort'] as int),
+      );
+    }
+    if (proxies.isEmpty ||
+        proxies.map((p) => p.name).toSet().length != proxies.length) {
+      throw const FormatException('proxies 不能为空，name 不能重复。');
+    }
+    return RemotePairing._(out, proxies);
   }
 }

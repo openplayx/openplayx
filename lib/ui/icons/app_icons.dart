@@ -7,12 +7,17 @@ abstract final class AppIcons {
   static const copy = LucideIcons.copy;
   static const assistant = LucideIcons.sparkles;
   static const chat = LucideIcons.messageCircle;
+  static const newChat = LucideIcons.squarePen;
+  static const sendUp = LucideIcons.arrowUp;
+  static const scrollDown = LucideIcons.arrowDown;
 
   static const home = LucideIcons.house;
   static const library = LucideIcons.libraryBig;
   static const folder = LucideIcons.folder;
   static const settings = LucideIcons.settings;
   static const next = LucideIcons.chevronRight;
+  static const expand = LucideIcons.chevronDown;
+  static const collapse = LucideIcons.chevronUp;
   static const previous = LucideIcons.chevronLeft;
   static const openFile = LucideIcons.fileVideo;
   static const info = LucideIcons.info;
