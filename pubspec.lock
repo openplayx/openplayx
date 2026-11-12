@@ -1043,10 +1043,11 @@ packages:
   smb_connect:
     dependency: "direct main"
     description:
-      name: smb_connect
-      sha256: "8d82b701f8ff8a736070f6eb5393fe983da1a0f4747a56c3a04bda68765b5e66"
-      url: "https://pub.dev"
-    source: hosted
+      path: "."
+      ref: da98f439ab7e10179c235439934d535a35aa667c
+      resolved-ref: da98f439ab7e10179c235439934d535a35aa667c
+      url: "git@github.com:openplayx/smb_connect.git"
+    source: git
     version: "0.0.9"
   source_span:
     dependency: transitive

@@ -34,7 +34,10 @@ dependencies:
   openplayx_playback:
     path: packages/playback
   file_selector: ^1.1.0
-  smb_connect: ^0.0.9
+  smb_connect:
+    git:
+      url: git@github.com:openplayx/smb_connect.git
+      ref: da98f439ab7e10179c235439934d535a35aa667c
   shared_preferences: ^2.5.6
   flutter_secure_storage: ^11.2.0
   sqlite3: ^3.3.1
