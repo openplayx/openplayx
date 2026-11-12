@@ -2,7 +2,14 @@ import 'dart:async';
 import 'dart:io';
 import 'dart:math';
 
+import 'package:smb_connect/smb_connect.dart';
+
 import '../../core/plugins/source_capability.dart';
+import 'progressive_read_session.dart';
+
+class _ReadCancellation {
+  bool cancelled = false;
+}
 
 /// Loopback-only, unguessable session URLs keep remote passwords/tokens out of
 /// libVLC, UI, history and diagnostics. Each handle owns its server/resources.
@@ -47,25 +54,40 @@ class StreamGateway {
     required int length,
     String? filename,
     required Future<RandomAccessFile> Function() open,
-  }) => ranged(
-    length: length,
-    filename: filename,
-    read: (start, end) async* {
-      final file = await open();
-      try {
-        await file.setPosition(start);
-        var remaining = end - start + 1;
-        while (remaining > 0) {
-          final bytes = await file.read(min(remaining, 256 * 1024));
-          if (bytes.isEmpty) throw const FileSystemException('Unexpected EOF');
-          yield bytes;
-          remaining -= bytes.length;
+    Future<RandomAccessFile> Function(SmbReadRamp ramp)? progressiveOpen,
+  }) {
+    final progress = progressiveOpen == null ? null : ProgressiveReadSession();
+    return _ranged(
+      length: length,
+      filename: filename,
+      read: (start, end, cancellation) async* {
+        if (cancellation.cancelled) return;
+        final cursor = progress?.begin(start);
+        final file = progressiveOpen == null
+            ? await open()
+            : await progressiveOpen(cursor!.ramp);
+        try {
+          if (cancellation.cancelled) return;
+          await file.setPosition(start);
+          var remaining = end - start + 1;
+          while (remaining > 0) {
+            if (cancellation.cancelled) return;
+            final size = min(256 * 1024, cursor?.ramp.readSize ?? 256 * 1024);
+            final bytes = await file.read(min(remaining, size));
+            if (cancellation.cancelled) return;
+            if (bytes.isEmpty) {
+              throw const FileSystemException('Unexpected EOF');
+            }
+            cursor?.advance(bytes.length);
+            yield bytes;
+            remaining -= bytes.length;
+          }
+        } finally {
+          await file.close();
         }
-      } finally {
-        await file.close();
-      }
-    },
-  );
+      },
+    );
+  }
 
   /// Serves a file of known [length] with HTTP range support; [read] yields
   /// the bytes from [start] to [end] (inclusive) and may yield more, which is
@@ -74,53 +96,110 @@ class StreamGateway {
     required int length,
     String? filename,
     required Stream<List<int>> Function(int start, int end) read,
-  }) => serve((request) async {
-    final response = request.response;
-    response.headers.set('Accept-Ranges', 'bytes');
-    response.headers.contentType =
-        filename?.toLowerCase().endsWith('.mp4') == true
-        ? ContentType('video', 'mp4')
-        : ContentType.binary;
-    var start = 0;
-    var end = length - 1;
-    final range = request.headers.value('range');
-    if (range != null) {
-      final match = RegExp(r'^bytes=(\d*)-(\d*)$').firstMatch(range);
-      if (match == null ||
-          length == 0 ||
-          (match[1]!.isEmpty && match[2]!.isEmpty)) {
-        response.statusCode = 416;
-        response.headers.set('Content-Range', 'bytes */$length');
-        return;
+  }) => _ranged(
+    length: length,
+    filename: filename,
+    read: (start, end, cancellation) => read(start, end),
+  );
+
+  static Future<PlayableStream> _ranged({
+    required int length,
+    String? filename,
+    required Stream<List<int>> Function(
+      int start,
+      int end,
+      _ReadCancellation cancellation,
+    )
+    read,
+  }) async {
+    final active = <_ReadCancellation>{};
+    var released = false;
+    final stream = await serve((request) async {
+      if (released) return;
+      final response = request.response;
+      response.headers.set('Accept-Ranges', 'bytes');
+      response.headers.contentType =
+          filename?.toLowerCase().endsWith('.mp4') == true
+          ? ContentType('video', 'mp4')
+          : ContentType.binary;
+      var start = 0;
+      var end = length - 1;
+      final range = request.headers.value('range');
+      if (range != null) {
+        final match = RegExp(r'^bytes=(\d*)-(\d*)$').firstMatch(range);
+        if (match == null ||
+            length == 0 ||
+            (match[1]!.isEmpty && match[2]!.isEmpty)) {
+          response.statusCode = 416;
+          response.headers.set('Content-Range', 'bytes */$length');
+          return;
+        }
+        if (match[1]!.isEmpty) {
+          start = max(0, length - int.parse(match[2]!));
+        } else {
+          start = int.parse(match[1]!);
+          if (match[2]!.isNotEmpty) end = min(end, int.parse(match[2]!));
+        }
+        if (start > end || start >= length) {
+          response.statusCode = 416;
+          response.headers.set('Content-Range', 'bytes */$length');
+          return;
+        }
+        response.statusCode = 206;
+        response.headers.set('Content-Range', 'bytes $start-$end/$length');
       }
-      if (match[1]!.isEmpty) {
-        start = max(0, length - int.parse(match[2]!));
-      } else {
-        start = int.parse(match[1]!);
-        if (match[2]!.isNotEmpty) end = min(end, int.parse(match[2]!));
+      response.contentLength = length == 0 ? 0 : end - start + 1;
+      if (request.method == 'HEAD' || length == 0) return;
+      final cancellation = _ReadCancellation();
+      active.add(cancellation);
+      unawaited(
+        response.done.then<void>(
+          (_) {
+            cancellation.cancelled = true;
+          },
+          onError: (Object error, StackTrace stack) {
+            cancellation.cancelled = true;
+          },
+        ),
+      );
+      try {
+        Stream<List<int>> output() async* {
+          var remaining = end - start + 1;
+          await for (final chunk in read(start, end, cancellation)) {
+            if (cancellation.cancelled) break;
+            final part = chunk.length > remaining
+                ? chunk.sublist(0, remaining)
+                : chunk;
+            remaining -= part.length;
+            yield part;
+            if (remaining <= 0) break;
+          }
+          if (remaining > 0 && !cancellation.cancelled) {
+            throw const FileSystemException('Unexpected EOF');
+          }
+        }
+
+        // addStream propagates socket failure/cancellation to its source.
+        // Repeated add()/flush() can silently discard output after a peer
+        // disconnect while continuing to pull the entire upstream movie.
+        response.bufferOutput = false;
+        await response.addStream(output());
+      } finally {
+        cancellation.cancelled = true;
+        active.remove(cancellation);
       }
-      if (start > end || start >= length) {
-        response.statusCode = 416;
-        response.headers.set('Content-Range', 'bytes */$length');
-        return;
-      }
-      response.statusCode = 206;
-      response.headers.set('Content-Range', 'bytes $start-$end/$length');
-    }
-    response.contentLength = length == 0 ? 0 : end - start + 1;
-    if (request.method == 'HEAD' || length == 0) return;
-    var remaining = end - start + 1;
-    await for (final chunk in read(start, end)) {
-      final part = chunk.length > remaining
-          ? chunk.sublist(0, remaining)
-          : chunk;
-      response.add(part);
-      await response.flush();
-      remaining -= part.length;
-      if (remaining <= 0) break;
-    }
-    if (remaining > 0) throw const FileSystemException('Unexpected EOF');
-  }, filename: filename);
+    }, filename: filename);
+    return PlayableStream(
+      stream.uri,
+      release: () async {
+        released = true;
+        for (final token in active) {
+          token.cancelled = true;
+        }
+        await stream.release();
+      },
+    );
+  }
 
   static Future<PlayableStream> http(
     Uri uri,

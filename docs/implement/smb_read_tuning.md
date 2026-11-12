@@ -6,7 +6,9 @@ GitHub SSH access. The fork retains the original history, attribution and
 license; its changes are on `feature/smb-read-tuning`.
 
 `SmbAccess` continues using `SmbConnect.connectAuth()` and the playback gateway
-continues calling `read(256 KiB)`. The fork's default internal buffer is now
+uses outputs of up to 256 KiB. SMB playback now opts into
+[progressive startup/seek reads](smb_progressive_reads.md), starting with a
+64 KiB output. The fork's maximum internal buffer remains
 1 MiB per open file, with real large-MTU SMB2 READ requests bounded by server
 limits and credits. Smaller requests are used for servers without multi-credit
 support. No unbounded concurrent prefetching is introduced.

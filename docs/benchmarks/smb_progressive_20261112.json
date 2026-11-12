@@ -1,0 +1,87 @@
+{
+  "date": "2026-11-12",
+  "libraryCommit": "da5acf63ad786b83aab547d4754ef80939dd5902",
+  "bytesPerSample": 33554432,
+  "offsetBytes": 1073741824,
+  "gateway": "addStream with progressive SMB output",
+  "summary": {
+    "fixed1MiB": {
+      "samples": 3,
+      "medianMBps": 8.948046583431047,
+      "medianFirstHttpBodyMs": 140.63
+    },
+    "progressive": {
+      "samples": 3,
+      "medianMBps": 8.728080130620382,
+      "medianFirstHttpBodyMs": 47.503
+    }
+  },
+  "samples": [
+    {
+      "bytes": 33554432,
+      "seconds": 3.867259,
+      "firstHttpBodyMs": 209.295,
+      "MBps": 8.676541188474834,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 1,
+      "mode": "fixed1MiB"
+    },
+    {
+      "bytes": 33554432,
+      "seconds": 3.817957,
+      "firstHttpBodyMs": 45.424,
+      "MBps": 8.788583003946876,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 1,
+      "mode": "progressive"
+    },
+    {
+      "bytes": 33554432,
+      "seconds": 3.844423,
+      "firstHttpBodyMs": 55.774,
+      "MBps": 8.728080130620382,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 2,
+      "mode": "progressive"
+    },
+    {
+      "bytes": 33554432,
+      "seconds": 3.749917,
+      "firstHttpBodyMs": 140.63,
+      "MBps": 8.948046583431047,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 2,
+      "mode": "fixed1MiB"
+    },
+    {
+      "bytes": 33554432,
+      "seconds": 3.739758,
+      "firstHttpBodyMs": 135.094,
+      "MBps": 8.972353826103186,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 3,
+      "mode": "fixed1MiB"
+    },
+    {
+      "bytes": 33554432,
+      "seconds": 4.995082,
+      "firstHttpBodyMs": 47.503,
+      "MBps": 6.7174937268297095,
+      "sha256": "acc82b169f570ddc8b1f782c8a50161426962400a35c0fe9a6638770e9626ed3",
+      "trial": 3,
+      "mode": "progressive"
+    }
+  ],
+  "checks": {
+    "rangeChecks": 5,
+    "head": true,
+    "adjacentWarmSeeds": [
+      0,
+      65536,
+      327680,
+      0,
+      0
+    ],
+    "dataVerified": true
+  }
+}

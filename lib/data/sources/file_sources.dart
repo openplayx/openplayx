@@ -244,6 +244,7 @@ class SmbPlugin
       length: file.size,
       filename: file.name,
       open: () => connection.open(file),
+      progressiveOpen: (ramp) => connection.open(file, readRamp: ramp),
     );
   }
 
