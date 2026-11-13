@@ -4,6 +4,7 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../l10n/generated/app_localizations.dart';
 import '../../services/ai_tools/torrent_tools.dart';
 import '../../services/torrent/torrent_service.dart';
 import '../../ui/adaptive/app_page.dart';
@@ -23,25 +24,29 @@ String formatBytes(num? bytes) {
   return '${v.toStringAsFixed(v < 10 ? 1 : 0)} ${units[i]}';
 }
 
-const torrentStateLabels = {
-  'metadata_pending': '获取元数据',
-  'queued': '排队中',
-  'downloading': '下载中',
-  'paused': '已暂停',
-  'checking': '校验中',
-  'stalled': '等待连接',
-  'completed': '服务器下载完成',
-  'seeding': '服务器下载完成 · 做种中',
-  'error': '出错',
-  'removed': '已移除',
-};
+String? torrentStateLabel(AppLocalizations l, Object? state) =>
+    switch (state) {
+      'metadata_pending' => l.torrentStateMetadataPending,
+      'queued' => l.torrentStateQueued,
+      'downloading' => l.torrentStateDownloading,
+      'paused' => l.torrentStatePaused,
+      'checking' => l.torrentStateChecking,
+      'stalled' => l.torrentStateStalled,
+      'completed' => l.torrentStateCompleted,
+      'seeding' => l.torrentStateSeeding,
+      'error' => l.torrentStateError,
+      'removed' => l.torrentStateRemoved,
+      _ => null,
+    };
 
-const torrentHoldLabels = {
-  'awaiting_start': '等待开始',
-  'quota_exceeded': '超出额度',
-  'disk_low': '磁盘空间不足',
-  'no_files_match_preset': '没有匹配的文件',
-};
+String? torrentHoldLabel(AppLocalizations l, Object? reason) =>
+    switch (reason) {
+      'awaiting_start' => l.torrentHoldAwaitingStart,
+      'quota_exceeded' => l.torrentHoldQuotaExceeded,
+      'disk_low' => l.torrentHoldDiskLow,
+      'no_files_match_preset' => l.torrentHoldNoFilesMatch,
+      _ => null,
+    };
 
 /// Settings → 来源与下载 → BitTorrent 服务. Downloads run on the server;
 /// this page shows them as server downloads, never as App library items.
@@ -64,6 +69,7 @@ class _TorrentServiceSettingsPageState
   final _magnet = TextEditingController();
 
   TorrentServiceStore get _store => widget.store;
+  AppLocalizations get _l => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -101,8 +107,8 @@ class _TorrentServiceSettingsPageState
           final caps = await client.capabilities();
           final engine = caps['engine'] as Map? ?? const {};
           _status[c.id] = engine['available'] == true
-              ? '可用 · qBittorrent ${engine['version']}'
-              : '服务在线，下载引擎不可用';
+              ? _l.torrentAvailable('${engine['version']}')
+              : _l.torrentEngineUnavailable;
         }
         // Every torrent in the engine, read live (WebUI-added ones too).
         final list = await client.list();
@@ -112,7 +118,7 @@ class _TorrentServiceSettingsPageState
         ];
       } on TorrentServiceException catch (e) {
         // Nothing is cached: an unreachable server shows no stale list.
-        _status[c.id] = '不可用（${e.code}）';
+        _status[c.id] = _l.torrentUnavailableCode(e.code);
         _tasks.remove(c.id);
       }
     }
@@ -132,7 +138,7 @@ class _TorrentServiceSettingsPageState
         _error = false;
       }
     } on TorrentServiceException catch (e) {
-      _message = '操作失败：${e.code}';
+      _message = _l.torrentOperationFailed(e.code);
       _error = true;
     } catch (e) {
       _message = e is FormatException ? e.message : '$e';
@@ -161,7 +167,7 @@ class _TorrentServiceSettingsPageState
     TorrentServiceConfig? picked;
     await showSettingsActionSheet(
       context,
-      title: '选择服务器',
+      title: _l.torrentChooseServer,
       actions: [
         for (final c in enabled) SettingsSheetAction(c.name, () => picked = c),
       ],
@@ -169,15 +175,16 @@ class _TorrentServiceSettingsPageState
     return picked;
   }
 
-  static const _magnetErrors = {
-    'invalid_magnet': 'Magnet 链接格式不正确',
-    'magnet_too_long': 'Magnet 链接过长',
-    'unsupported_magnet_parameter': 'Magnet 中含有不支持的参数（如 xs / as）',
-    'tracker_not_allowed': 'Magnet 中的 tracker 地址不被允许',
-    'too_many_trackers': 'Magnet 中的 tracker 过多',
-    'network_address_not_allowed': 'Magnet 中含有内网或本机地址，服务器不允许',
-    'duplicate_task': '这个下载已经在服务器上了',
-    'destination_not_allowed': '默认目标不存在，请检查服务配置',
+  String? _magnetError(String code) => switch (code) {
+    'invalid_magnet' => _l.torrentMagnetInvalid,
+    'magnet_too_long' => _l.torrentMagnetTooLong,
+    'unsupported_magnet_parameter' => _l.torrentMagnetUnsupportedParameter,
+    'tracker_not_allowed' => _l.torrentMagnetTrackerNotAllowed,
+    'too_many_trackers' => _l.torrentMagnetTooManyTrackers,
+    'network_address_not_allowed' => _l.torrentMagnetNetworkAddressNotAllowed,
+    'duplicate_task' => _l.torrentMagnetDuplicateTask,
+    'destination_not_allowed' => _l.torrentMagnetDestinationNotAllowed,
+    _ => null,
   };
 
   /// Paste a magnet link, preview it on the server, then start it there.
@@ -188,10 +195,10 @@ class _TorrentServiceSettingsPageState
     var videoOnly = false;
     final text = await pushSettingsPage<String>(
       context,
-      title: '添加 Magnet',
+      title: _l.torrentAddMagnet,
       children: (c) => [
         SettingsSection(
-          footer: '粘贴 magnet: 开头的链接。预览时不会连接任何节点；开始后服务器先获取文件列表，再按选择下载。',
+          footer: _l.torrentMagnetFooter,
           children: [
             Padding(
               padding: const EdgeInsets.all(12),
@@ -210,8 +217,8 @@ class _TorrentServiceSettingsPageState
           children: [
             StatefulBuilder(
               builder: (c, setLocal) => SettingsRow(
-                title: '只下载视频文件',
-                description: '获取到文件列表后只选中视频，跳过样片和其他文件。',
+                title: _l.torrentVideoOnly,
+                description: _l.torrentVideoOnlyDescription,
                 control: ShadSwitch(
                   key: const ValueKey('torrent-magnet-video'),
                   value: videoOnly,
@@ -226,14 +233,14 @@ class _TorrentServiceSettingsPageState
         ShadButton(
           key: const ValueKey('torrent-magnet-preview'),
           onPressed: () => Navigator.pop(c, _magnet.text.trim()),
-          child: const Text('预览'),
+          child: Text(_l.torrentPreview),
         ),
       ],
     );
     if (text == null || text.isEmpty || !mounted) return;
     if (!text.toLowerCase().startsWith('magnet:?')) {
       setState(() {
-        _message = '请粘贴以 magnet:? 开头的链接';
+        _message = _l.torrentMagnetPrefixRequired;
         _error = true;
       });
       return;
@@ -248,35 +255,35 @@ class _TorrentServiceSettingsPageState
           'selection_preset': videoOnly ? 'video' : 'all',
         });
       } on TorrentServiceException catch (e) {
-        final hint = _magnetErrors[e.code];
+        final hint = _magnetError(e.code);
         if (hint == null) rethrow;
         throw FormatException(hint);
       }
       if (!mounted) return;
       final name = (plan['name'] as String?)?.isNotEmpty == true
           ? plan['name']
-          : '（名称在获取元数据后显示）';
+          : _l.torrentNamePending;
       final removed = plan['removed_addresses'] as Map?;
       final skipped =
           ((removed?['private_or_local_address'] as num?) ?? 0) +
           ((removed?['unsupported_address'] as num?) ?? 0);
       final note = skipped > 0
-          ? '已忽略 $skipped 个指向内网/本机或不受支持的 tracker 地址，其余照常使用。\n'
+          ? '${_l.torrentTrackersSkipped(skipped.toInt())}\n'
           : '';
       final ok = await showSettingsConfirm(
         context,
-        title: '在服务器上下载？',
+        title: _l.torrentDownloadOnServer,
         message:
-            '$name\n${videoOnly ? '只下载视频文件' : '下载全部文件'} · 大小在获取元数据后确定\n$note'
-            '下载在「${server.name}」上进行，App 关闭后仍会继续；完成后不会自动进入媒体库。',
-        confirmLabel: '开始下载',
-        cancelLabel: '取消',
+            '$name\n${videoOnly ? _l.torrentVideoOnly : _l.torrentAllFiles} · ${_l.torrentSizePending}\n$note'
+            '${_l.torrentRunsOnServer(server.name)}',
+        confirmLabel: _l.torrentStartDownload,
+        cancelLabel: _l.cancel,
       );
       if (!ok) return;
       await client.create(plan['plan_ref'] as String);
       _magnet.clear();
       await _refresh(force: true);
-      _message = '已添加，服务器正在获取元数据。';
+      _message = _l.torrentAddedFetchingMetadata;
       _error = false;
     });
   }
@@ -299,7 +306,7 @@ class _TorrentServiceSettingsPageState
     if (file == null || !mounted) return;
     await _run(() async {
       final bytes = await file.readAsBytes();
-      if (bytes.length > 4 << 20) throw const FormatException('种子文件过大');
+      if (bytes.length > 4 << 20) throw FormatException(_l.torrentFileTooLarge);
       final client = await _store.client(server.id);
       final input = await client.uploadTorrent(bytes);
       TorrentToolsRegistry.current?.registerUpload(server.id, input);
@@ -311,21 +318,21 @@ class _TorrentServiceSettingsPageState
       if (!mounted) return;
       final ok = await showSettingsConfirm(
         context,
-        title: '在服务器上下载？',
+        title: _l.torrentDownloadOnServer,
         message:
-            '${plan['name']}\n${plan['file_count']} 个文件 · ${formatBytes(plan['selected_size'] as num?)}\n'
-            '下载在「${server.name}」上进行，App 关闭后仍会继续；完成后不会自动进入媒体库。',
-        confirmLabel: '开始下载',
-        cancelLabel: '稍后让助手处理',
+            '${plan['name']}\n${_l.torrentFileCount((plan['file_count'] as num? ?? 0).toInt())} · ${formatBytes(plan['selected_size'] as num?)}\n'
+            '${_l.torrentRunsOnServer(server.name)}',
+        confirmLabel: _l.torrentStartDownload,
+        cancelLabel: _l.torrentLetAssistantLater,
       );
       if (!ok) {
-        _message = '已上传。可以让 AI 助手“下载我刚上传的种子”。';
+        _message = _l.torrentUploaded;
         _error = false;
         return;
       }
       await client.create(plan['plan_ref'] as String);
       await _refresh(force: true);
-      _message = '已开始服务器下载。';
+      _message = _l.torrentServerDownloadStarted;
       _error = false;
     });
   }
@@ -355,28 +362,34 @@ class _TorrentServiceSettingsPageState
       context: context,
       builder: (c) => StatefulBuilder(
         builder: (c, setLocal) => ShadDialog(
-          title: Text(deleteFiles ? '移除任务并删除文件？' : '移除下载任务？'),
+          title: Text(
+            deleteFiles ? _l.torrentRemoveAndDeleteTitle : _l.torrentRemoveTitle,
+          ),
           description: Text(
             deleteFiles
-                ? '「${plan['task_name']}」将从服务器移除，并删除已下载的 $count 个文件（$size），不可恢复。媒体库不受影响。'
-                : '「${plan['task_name']}」将从服务器移除，已下载的 $size 文件保留在服务器上。',
+                ? _l.torrentRemoveAndDeleteMessage(
+                    '${plan['task_name']}',
+                    (count as num).toInt(),
+                    size,
+                  )
+                : _l.torrentRemoveMessage('${plan['task_name']}', size),
           ),
           actions: [
             ShadButton.ghost(
               key: const ValueKey('torrent-remove-cancel'),
               onPressed: () => Navigator.pop(c),
-              child: const Text('取消'),
+              child: Text(_l.cancel),
             ),
             deleteFiles
                 ? ShadButton.destructive(
                     key: const ValueKey('torrent-remove-confirm'),
                     onPressed: () => Navigator.pop(c, true),
-                    child: const Text('删除'),
+                    child: Text(_l.delete),
                   )
                 : ShadButton(
                     key: const ValueKey('torrent-remove-confirm'),
                     onPressed: () => Navigator.pop(c, false),
-                    child: const Text('移除'),
+                    child: Text(_l.remove),
                   ),
           ],
           child: Padding(
@@ -386,10 +399,10 @@ class _TorrentServiceSettingsPageState
               value: deleteFiles,
               enabled: server.allowDeleteFiles,
               onChanged: (v) => setLocal(() => deleteFiles = v),
-              label: Text('同时删除已下载的文件（$size）'),
+              label: Text(_l.torrentAlsoDeleteFiles(size)),
               sublabel: server.allowDeleteFiles
                   ? null
-                  : const Text('需先在服务设置中打开“允许删除服务器文件”'),
+                  : Text(_l.torrentDeleteFilesDisabledHint),
             ),
           ),
         ),
@@ -414,25 +427,29 @@ class _TorrentServiceSettingsPageState
     }
     final result = await client.remove(id, plan['plan_ref'] as String);
     await _refresh(force: true);
-    _message = result['data_deleted'] == true ? '已移除并删除文件。' : '已移除，文件保留在服务器上。';
+    _message = result['data_deleted'] == true
+        ? _l.torrentRemovedAndDeleted
+        : _l.torrentRemovedKeptFiles;
     _error = false;
   });
 
   Widget _task(TorrentServiceConfig server, Map<String, dynamic> t) {
     final theme = ShadTheme.of(context);
     final state = t['state'] as String? ?? '';
-    final hold = torrentHoldLabels[t['hold_reason']];
+    final hold = torrentHoldLabel(_l, t['hold_reason']);
     final progress = (t['progress'] as num? ?? 0).toDouble();
     final paused = state == 'paused' || state == 'completed';
     final parts = <String>[
-      t['added_via'] == 'other' ? '服务器下载（WebUI 添加）' : '服务器下载',
-      hold ?? torrentStateLabels[state] ?? state,
+      t['added_via'] == 'other'
+          ? _l.torrentServerDownloadWebUi
+          : _l.torrentServerDownload,
+      hold ?? torrentStateLabel(_l, state) ?? state,
       '${(progress * 100).toStringAsFixed(progress < 1 ? 1 : 0)}%',
       if ((t['download_speed'] as num? ?? 0) > 0)
         '↓${formatBytes(t['download_speed'] as num?)}/s',
       if ((t['upload_speed'] as num? ?? 0) > 0)
         '↑${formatBytes(t['upload_speed'] as num?)}/s',
-      if (t['stale'] == true) '状态未更新',
+      if (t['stale'] == true) _l.torrentStatusStale,
       if (t['error_code'] != null) '${t['error_code']}',
     ];
     return Padding(
@@ -455,12 +472,12 @@ class _TorrentServiceSettingsPageState
                 onPressed: _busy || state == 'error'
                     ? null
                     : () => _control(server, t, paused ? 'resume' : 'pause'),
-                child: Text(paused ? '恢复' : '暂停'),
+                child: Text(paused ? _l.torrentResume : _l.torrentPause),
               ),
               ShadButton.ghost(
                 size: ShadButtonSize.sm,
                 onPressed: _busy ? null : () => _remove(server, t),
-                child: const Text('移除'),
+                child: Text(_l.remove),
               ),
             ],
           ),
@@ -473,7 +490,7 @@ class _TorrentServiceSettingsPageState
   Widget build(BuildContext context) {
     final configs = _store.configs;
     return AppPage(
-      title: const Text('BitTorrent 服务'),
+      title: Text(_l.bitTorrentService),
       body: SettingsListView(
         children: [
           Padding(
@@ -484,7 +501,7 @@ class _TorrentServiceSettingsPageState
                   child: ShadButton(
                     key: const ValueKey('torrent-add-service'),
                     onPressed: _busy ? null : () => _edit(),
-                    child: const Text('添加服务'),
+                    child: Text(_l.torrentAddService),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -494,7 +511,7 @@ class _TorrentServiceSettingsPageState
                     onPressed: _busy || _store.enabled.isEmpty
                         ? null
                         : _addMagnet,
-                    child: const Text('添加 Magnet'),
+                    child: Text(_l.torrentAddMagnet),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -502,7 +519,7 @@ class _TorrentServiceSettingsPageState
                   child: ShadButton.outline(
                     key: const ValueKey('torrent-upload'),
                     onPressed: _busy || _store.enabled.isEmpty ? null : _upload,
-                    child: const Text('上传种子文件'),
+                    child: Text(_l.torrentUploadFile),
                   ),
                 ),
               ],
@@ -521,12 +538,12 @@ class _TorrentServiceSettingsPageState
                   : ShadAlert(title: Text(_message!)),
             ),
           if (_store.loaded && configs.isEmpty)
-            const SettingsSection(
-              footer: '连接你自己部署的 OpenPlayX BitTorrent 服务后，可在这里或通过 AI 助手添加 Magnet / 种子下载。下载在服务器上进行。',
+            SettingsSection(
+              footer: _l.torrentUnconfiguredFooter,
               children: [
                 SettingsRow(
-                  key: ValueKey('torrent-unconfigured'),
-                  title: '尚未配置',
+                  key: const ValueKey('torrent-unconfigured'),
+                  title: _l.torrentUnconfigured,
                 ),
               ],
             ),
@@ -534,17 +551,19 @@ class _TorrentServiceSettingsPageState
             SettingsSection(
               key: ValueKey('torrent-service-${c.id}'),
               title: c.name,
-              footer: '下载在服务器上进行，App 关闭不会停止；服务器下载完成不代表已进入媒体库或已离线到本机。',
+              footer: _l.torrentServiceFooter,
               children: [
                 SettingsRow(
-                  title: '地址',
+                  title: _l.torrentAddress,
                   control: Text(Uri.tryParse(c.baseUrl)?.host ?? ''),
                   chevron: true,
                   onTap: _busy ? null : () => _edit(c),
                 ),
                 SettingsRow(
-                  title: '状态',
-                  control: Text(c.enabled ? (_status[c.id] ?? '…') : '已停用'),
+                  title: _l.torrentStatus,
+                  control: Text(
+                    c.enabled ? (_status[c.id] ?? '…') : _l.torrentDisabled,
+                  ),
                 ),
                 for (final t in _tasks[c.id] ?? const <Map<String, dynamic>>[])
                   _task(c, t),
@@ -568,7 +587,7 @@ class TorrentServiceForm extends StatefulWidget {
 
 class _TorrentServiceFormState extends State<TorrentServiceForm> {
   late final _name = TextEditingController(
-    text: widget.config?.name ?? 'BitTorrent 服务器',
+    text: widget.config?.name ?? _l.torrentDefaultServerName,
   );
   late final _url = TextEditingController(text: widget.config?.baseUrl ?? '');
   final _token = TextEditingController();
@@ -583,6 +602,7 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
   bool _hasToken = false, _busy = false;
   String? _message;
   bool _error = false;
+  AppLocalizations get _l => AppLocalizations.of(context);
 
   @override
   void initState() {
@@ -605,7 +625,9 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
 
   TorrentServiceConfig _build() => TorrentServiceConfig(
     id: widget.config?.id ?? TorrentServiceStore.newId(),
-    name: _name.text.trim().isEmpty ? 'BitTorrent 服务器' : _name.text.trim(),
+    name: _name.text.trim().isEmpty
+        ? _l.torrentDefaultServerName
+        : _name.text.trim(),
     baseUrl: _url.text.trim().replaceAll(RegExp(r'/+$'), ''),
     defaultDestination: _dest.text.trim().isEmpty
         ? 'default'
@@ -627,7 +649,7 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
     }
     if (_token.text.trim().isEmpty && !_hasToken) {
       setState(() {
-        _message = '请填写 API Token';
+        _message = _l.torrentTokenRequired;
         _error = true;
       });
       return;
@@ -645,15 +667,15 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
             .capabilities();
         final engine = caps['engine'] as Map? ?? const {};
         _message = engine['available'] == true
-            ? '连接成功：qBittorrent ${engine['version']}'
-            : '服务可达，但下载引擎当前不可用';
+            ? _l.torrentConnected('${engine['version']}')
+            : _l.torrentReachableEngineUnavailable;
         _error = engine['available'] != true;
       } else if (mounted) {
         Navigator.pop(context, true);
         return;
       }
     } on TorrentServiceException catch (e) {
-      _message = '连接失败：${e.code}';
+      _message = _l.torrentConnectFailed(e.code);
       _error = true;
     } on FormatException catch (e) {
       _message = e.message;
@@ -666,10 +688,10 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
   Future<void> _delete() async {
     final ok = await showSettingsConfirm(
       context,
-      title: '移除此服务配置？',
-      message: '只移除 App 中的地址和 Token；服务器上的下载继续进行，文件不会被删除。',
-      confirmLabel: '移除',
-      cancelLabel: '取消',
+      title: _l.torrentRemoveConfigTitle,
+      message: _l.torrentRemoveConfigMessage,
+      confirmLabel: _l.remove,
+      cancelLabel: _l.cancel,
       destructive: true,
     );
     if (!ok || !mounted) return;
@@ -695,13 +717,13 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
   @override
   Widget build(BuildContext context) => AppPage(
     title: Text(
-      widget.config == null ? '添加 BitTorrent 服务' : '编辑 BitTorrent 服务',
+      widget.config == null ? _l.torrentAddServiceTitle : _l.torrentEditServiceTitle,
     ),
     trailing: [
       ShadButton(
         key: const ValueKey('torrent-save'),
         onPressed: _busy ? null : _save,
-        child: const Text('保存'),
+        child: Text(_l.save),
       ),
     ],
     body: SettingsListView(
@@ -714,12 +736,15 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
                 : ShadAlert(title: Text(_message!)),
           ),
         SettingsSection(
-          title: '连接',
-          footer: '公网地址必须使用 HTTPS；HTTP 仅允许局域网地址。Token 保存在系统安全存储中。',
+          title: _l.torrentConnection,
+          footer: _l.torrentConnectionFooter,
           children: [
-            SettingsFieldRow(title: '名称', field: _input('name', _name, '名称')),
             SettingsFieldRow(
-              title: '地址',
+              title: _l.torrentName,
+              field: _input('name', _name, _l.torrentName),
+            ),
+            SettingsFieldRow(
+              title: _l.torrentAddress,
               field: _input('url', _url, 'https://bt.example.com'),
             ),
             SettingsFieldRow(
@@ -727,35 +752,35 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
               field: _input(
                 'token',
                 _token,
-                _hasToken ? '已保存（留空不修改）' : 'obt_…',
+                _hasToken ? _l.torrentTokenSaved : 'obt_…',
                 secret: true,
               ),
             ),
           ],
         ),
         SettingsSection(
-          title: '下载与访问范围',
+          title: _l.torrentDownloadScope,
           children: [
             SettingsFieldRow(
-              title: '默认目标',
+              title: _l.torrentDefaultDestination,
               field: _input('destination', _dest, 'default'),
-              description: '服务端配置的逻辑目标名（destination_ref），不是服务器路径。',
+              description: _l.torrentDefaultDestinationDescription,
             ),
             SettingsFieldRow(
-              title: '刷新间隔',
+              title: _l.torrentPollInterval,
               field: _input('poll', _poll, '10'),
-              description: '秒（5–300）。任务列表与 AI 查询共用此间隔的缓存。',
+              description: _l.torrentPollIntervalDescription,
             ),
             SettingsRow(
-              title: '允许删除服务器文件',
-              description: '关闭时 AI 助手和此页面只能移除任务并保留文件。',
+              title: _l.torrentAllowDeleteFiles,
+              description: _l.torrentAllowDeleteFilesDescription,
               control: ShadSwitch(
                 value: _allowDelete,
                 onChanged: (v) => setState(() => _allowDelete = v),
               ),
             ),
             SettingsRow(
-              title: '启用',
+              title: _l.torrentEnabled,
               control: ShadSwitch(
                 value: _enabled,
                 onChanged: (v) => setState(() => _enabled = v),
@@ -769,7 +794,7 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
               child: ShadButton.outline(
                 key: const ValueKey('torrent-test'),
                 onPressed: _busy ? null : () => _save(test: true),
-                child: const Text('保存并测试连接'),
+                child: Text(_l.torrentSaveAndTest),
               ),
             ),
             if (widget.config != null) ...[
@@ -777,7 +802,7 @@ class _TorrentServiceFormState extends State<TorrentServiceForm> {
               Expanded(
                 child: ShadButton.destructive(
                   onPressed: _busy ? null : _delete,
-                  child: const Text('移除配置'),
+                  child: Text(_l.torrentRemoveConfig),
                 ),
               ),
             ],

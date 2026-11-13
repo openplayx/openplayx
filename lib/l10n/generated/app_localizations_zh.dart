@@ -1766,6 +1766,335 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get pluginManagement => '插件管理';
+
+  @override
+  String get pluginManagementDescription => '查看已包含的插件、实例、AI 可用范围与运行状态';
+
+  @override
+  String get remoteAccess => '远程访问';
+
+  @override
+  String get remoteAccessRoutes => '家庭与连接线路';
+
+  @override
+  String get bitTorrentService => 'BitTorrent 服务';
+
+  @override
+  String get sourcesAndDownloads => '来源与下载';
+
+  @override
+  String get bitTorrentServiceDescription => '在自己的服务器上下载 Magnet / 种子';
+
+  @override
+  String get torrentSearchService => 'Torrent 搜索服务';
+
+  @override
+  String get torrentSearchServiceDescription => '供 AI 助手搜索种子候选，只读，不会自动下载';
+
+  @override
+  String get torrentStateMetadataPending => '获取元数据';
+
+  @override
+  String get torrentStateQueued => '排队中';
+
+  @override
+  String get torrentStateDownloading => '下载中';
+
+  @override
+  String get torrentStatePaused => '已暂停';
+
+  @override
+  String get torrentStateChecking => '校验中';
+
+  @override
+  String get torrentStateStalled => '等待连接';
+
+  @override
+  String get torrentStateCompleted => '服务器下载完成';
+
+  @override
+  String get torrentStateSeeding => '服务器下载完成 · 做种中';
+
+  @override
+  String get torrentStateError => '出错';
+
+  @override
+  String get torrentStateRemoved => '已移除';
+
+  @override
+  String get torrentHoldAwaitingStart => '等待开始';
+
+  @override
+  String get torrentHoldQuotaExceeded => '超出额度';
+
+  @override
+  String get torrentHoldDiskLow => '磁盘空间不足';
+
+  @override
+  String get torrentHoldNoFilesMatch => '没有匹配的文件';
+
+  @override
+  String torrentAvailable(String version) {
+    return '可用 · qBittorrent $version';
+  }
+
+  @override
+  String get torrentEngineUnavailable => '服务在线，下载引擎不可用';
+
+  @override
+  String torrentUnavailableCode(String code) {
+    return '不可用（$code）';
+  }
+
+  @override
+  String torrentOperationFailed(String code) {
+    return '操作失败：$code';
+  }
+
+  @override
+  String get torrentChooseServer => '选择服务器';
+
+  @override
+  String get torrentMagnetInvalid => 'Magnet 链接格式不正确';
+
+  @override
+  String get torrentMagnetTooLong => 'Magnet 链接过长';
+
+  @override
+  String get torrentMagnetUnsupportedParameter => 'Magnet 中含有不支持的参数（如 xs / as）';
+
+  @override
+  String get torrentMagnetTrackerNotAllowed => 'Magnet 中的 tracker 地址不被允许';
+
+  @override
+  String get torrentMagnetTooManyTrackers => 'Magnet 中的 tracker 过多';
+
+  @override
+  String get torrentMagnetNetworkAddressNotAllowed =>
+      'Magnet 中含有内网或本机地址，服务器不允许';
+
+  @override
+  String get torrentMagnetDuplicateTask => '这个下载已经在服务器上了';
+
+  @override
+  String get torrentMagnetDestinationNotAllowed => '默认目标不存在，请检查服务配置';
+
+  @override
+  String get torrentAddMagnet => '添加 Magnet';
+
+  @override
+  String get torrentMagnetFooter =>
+      '粘贴 magnet: 开头的链接。预览时不会连接任何节点；开始后服务器先获取文件列表，再按选择下载。';
+
+  @override
+  String get torrentVideoOnly => '只下载视频文件';
+
+  @override
+  String get torrentVideoOnlyDescription => '获取到文件列表后只选中视频，跳过样片和其他文件。';
+
+  @override
+  String get torrentPreview => '预览';
+
+  @override
+  String get torrentMagnetPrefixRequired => '请粘贴以 magnet:? 开头的链接';
+
+  @override
+  String get torrentNamePending => '（名称在获取元数据后显示）';
+
+  @override
+  String torrentTrackersSkipped(int count) {
+    return '已忽略 $count 个指向内网/本机或不受支持的 tracker 地址，其余照常使用。';
+  }
+
+  @override
+  String get torrentDownloadOnServer => '在服务器上下载？';
+
+  @override
+  String get torrentAllFiles => '下载全部文件';
+
+  @override
+  String get torrentSizePending => '大小在获取元数据后确定';
+
+  @override
+  String torrentRunsOnServer(String server) {
+    return '下载在「$server」上进行，App 关闭后仍会继续；完成后不会自动进入媒体库。';
+  }
+
+  @override
+  String get torrentStartDownload => '开始下载';
+
+  @override
+  String get torrentAddedFetchingMetadata => '已添加，服务器正在获取元数据。';
+
+  @override
+  String get torrentFileTooLarge => '种子文件过大';
+
+  @override
+  String torrentFileCount(int count) {
+    return '$count 个文件';
+  }
+
+  @override
+  String get torrentLetAssistantLater => '稍后让助手处理';
+
+  @override
+  String get torrentUploaded => '已上传。可以让 AI 助手“下载我刚上传的种子”。';
+
+  @override
+  String get torrentServerDownloadStarted => '已开始服务器下载。';
+
+  @override
+  String get torrentRemoveAndDeleteTitle => '移除任务并删除文件？';
+
+  @override
+  String get torrentRemoveTitle => '移除下载任务？';
+
+  @override
+  String torrentRemoveAndDeleteMessage(String name, int count, String size) {
+    return '「$name」将从服务器移除，并删除已下载的 $count 个文件（$size），不可恢复。媒体库不受影响。';
+  }
+
+  @override
+  String torrentRemoveMessage(String name, String size) {
+    return '「$name」将从服务器移除，已下载的 $size 文件保留在服务器上。';
+  }
+
+  @override
+  String torrentAlsoDeleteFiles(String size) {
+    return '同时删除已下载的文件（$size）';
+  }
+
+  @override
+  String get torrentDeleteFilesDisabledHint => '需先在服务设置中打开“允许删除服务器文件”';
+
+  @override
+  String get torrentRemovedAndDeleted => '已移除并删除文件。';
+
+  @override
+  String get torrentRemovedKeptFiles => '已移除，文件保留在服务器上。';
+
+  @override
+  String get torrentServerDownloadWebUi => '服务器下载（WebUI 添加）';
+
+  @override
+  String get torrentServerDownload => '服务器下载';
+
+  @override
+  String get torrentStatusStale => '状态未更新';
+
+  @override
+  String get torrentResume => '恢复';
+
+  @override
+  String get torrentPause => '暂停';
+
+  @override
+  String get torrentAddService => '添加服务';
+
+  @override
+  String get torrentUploadFile => '上传种子文件';
+
+  @override
+  String get torrentUnconfiguredFooter =>
+      '连接你自己部署的 OpenPlayX BitTorrent 服务后，可在这里或通过 AI 助手添加 Magnet / 种子下载。下载在服务器上进行。';
+
+  @override
+  String get torrentUnconfigured => '尚未配置';
+
+  @override
+  String get torrentServiceFooter =>
+      '下载在服务器上进行，App 关闭不会停止；服务器下载完成不代表已进入媒体库或已离线到本机。';
+
+  @override
+  String get torrentAddress => '地址';
+
+  @override
+  String get torrentStatus => '状态';
+
+  @override
+  String get torrentDisabled => '已停用';
+
+  @override
+  String get torrentDefaultServerName => 'BitTorrent 服务器';
+
+  @override
+  String get torrentTokenRequired => '请填写 API Token';
+
+  @override
+  String torrentConnected(String version) {
+    return '连接成功：qBittorrent $version';
+  }
+
+  @override
+  String get torrentReachableEngineUnavailable => '服务可达，但下载引擎当前不可用';
+
+  @override
+  String torrentConnectFailed(String code) {
+    return '连接失败：$code';
+  }
+
+  @override
+  String get torrentRemoveConfigTitle => '移除此服务配置？';
+
+  @override
+  String get torrentRemoveConfigMessage =>
+      '只移除 App 中的地址和 Token；服务器上的下载继续进行，文件不会被删除。';
+
+  @override
+  String get torrentAddServiceTitle => '添加 BitTorrent 服务';
+
+  @override
+  String get torrentEditServiceTitle => '编辑 BitTorrent 服务';
+
+  @override
+  String get torrentConnection => '连接';
+
+  @override
+  String get torrentConnectionFooter =>
+      '公网地址必须使用 HTTPS；HTTP 仅允许局域网地址。Token 保存在系统安全存储中。';
+
+  @override
+  String get torrentName => '名称';
+
+  @override
+  String get torrentTokenSaved => '已保存（留空不修改）';
+
+  @override
+  String get torrentDownloadScope => '下载与访问范围';
+
+  @override
+  String get torrentDefaultDestination => '默认目标';
+
+  @override
+  String get torrentDefaultDestinationDescription =>
+      '服务端配置的逻辑目标名（destination_ref），不是服务器路径。';
+
+  @override
+  String get torrentPollInterval => '刷新间隔';
+
+  @override
+  String get torrentPollIntervalDescription => '秒（5–300）。任务列表与 AI 查询共用此间隔的缓存。';
+
+  @override
+  String get torrentAllowDeleteFiles => '允许删除服务器文件';
+
+  @override
+  String get torrentAllowDeleteFilesDescription => '关闭时 AI 助手和此页面只能移除任务并保留文件。';
+
+  @override
+  String get torrentEnabled => '启用';
+
+  @override
+  String get torrentSaveAndTest => '保存并测试连接';
+
+  @override
+  String get torrentRemoveConfig => '移除配置';
+
+  @override
+  String get torrentServerOnlyComplete => '仅在服务器上完成，尚未进入媒体库或下载到本机';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -3529,6 +3858,335 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get pluginManagement => '插件管理';
+
+  @override
+  String get pluginManagementDescription => '查看已包含的插件、实例、AI 可用范围与运行状态';
+
+  @override
+  String get remoteAccess => '远程访问';
+
+  @override
+  String get remoteAccessRoutes => '家庭与连接线路';
+
+  @override
+  String get bitTorrentService => 'BitTorrent 服务';
+
+  @override
+  String get sourcesAndDownloads => '来源与下载';
+
+  @override
+  String get bitTorrentServiceDescription => '在自己的服务器上下载 Magnet / 种子';
+
+  @override
+  String get torrentSearchService => 'Torrent 搜索服务';
+
+  @override
+  String get torrentSearchServiceDescription => '供 AI 助手搜索种子候选，只读，不会自动下载';
+
+  @override
+  String get torrentStateMetadataPending => '获取元数据';
+
+  @override
+  String get torrentStateQueued => '排队中';
+
+  @override
+  String get torrentStateDownloading => '下载中';
+
+  @override
+  String get torrentStatePaused => '已暂停';
+
+  @override
+  String get torrentStateChecking => '校验中';
+
+  @override
+  String get torrentStateStalled => '等待连接';
+
+  @override
+  String get torrentStateCompleted => '服务器下载完成';
+
+  @override
+  String get torrentStateSeeding => '服务器下载完成 · 做种中';
+
+  @override
+  String get torrentStateError => '出错';
+
+  @override
+  String get torrentStateRemoved => '已移除';
+
+  @override
+  String get torrentHoldAwaitingStart => '等待开始';
+
+  @override
+  String get torrentHoldQuotaExceeded => '超出额度';
+
+  @override
+  String get torrentHoldDiskLow => '磁盘空间不足';
+
+  @override
+  String get torrentHoldNoFilesMatch => '没有匹配的文件';
+
+  @override
+  String torrentAvailable(String version) {
+    return '可用 · qBittorrent $version';
+  }
+
+  @override
+  String get torrentEngineUnavailable => '服务在线，下载引擎不可用';
+
+  @override
+  String torrentUnavailableCode(String code) {
+    return '不可用（$code）';
+  }
+
+  @override
+  String torrentOperationFailed(String code) {
+    return '操作失败：$code';
+  }
+
+  @override
+  String get torrentChooseServer => '选择服务器';
+
+  @override
+  String get torrentMagnetInvalid => 'Magnet 链接格式不正确';
+
+  @override
+  String get torrentMagnetTooLong => 'Magnet 链接过长';
+
+  @override
+  String get torrentMagnetUnsupportedParameter => 'Magnet 中含有不支持的参数（如 xs / as）';
+
+  @override
+  String get torrentMagnetTrackerNotAllowed => 'Magnet 中的 tracker 地址不被允许';
+
+  @override
+  String get torrentMagnetTooManyTrackers => 'Magnet 中的 tracker 过多';
+
+  @override
+  String get torrentMagnetNetworkAddressNotAllowed =>
+      'Magnet 中含有内网或本机地址，服务器不允许';
+
+  @override
+  String get torrentMagnetDuplicateTask => '这个下载已经在服务器上了';
+
+  @override
+  String get torrentMagnetDestinationNotAllowed => '默认目标不存在，请检查服务配置';
+
+  @override
+  String get torrentAddMagnet => '添加 Magnet';
+
+  @override
+  String get torrentMagnetFooter =>
+      '粘贴 magnet: 开头的链接。预览时不会连接任何节点；开始后服务器先获取文件列表，再按选择下载。';
+
+  @override
+  String get torrentVideoOnly => '只下载视频文件';
+
+  @override
+  String get torrentVideoOnlyDescription => '获取到文件列表后只选中视频，跳过样片和其他文件。';
+
+  @override
+  String get torrentPreview => '预览';
+
+  @override
+  String get torrentMagnetPrefixRequired => '请粘贴以 magnet:? 开头的链接';
+
+  @override
+  String get torrentNamePending => '（名称在获取元数据后显示）';
+
+  @override
+  String torrentTrackersSkipped(int count) {
+    return '已忽略 $count 个指向内网/本机或不受支持的 tracker 地址，其余照常使用。';
+  }
+
+  @override
+  String get torrentDownloadOnServer => '在服务器上下载？';
+
+  @override
+  String get torrentAllFiles => '下载全部文件';
+
+  @override
+  String get torrentSizePending => '大小在获取元数据后确定';
+
+  @override
+  String torrentRunsOnServer(String server) {
+    return '下载在「$server」上进行，App 关闭后仍会继续；完成后不会自动进入媒体库。';
+  }
+
+  @override
+  String get torrentStartDownload => '开始下载';
+
+  @override
+  String get torrentAddedFetchingMetadata => '已添加，服务器正在获取元数据。';
+
+  @override
+  String get torrentFileTooLarge => '种子文件过大';
+
+  @override
+  String torrentFileCount(int count) {
+    return '$count 个文件';
+  }
+
+  @override
+  String get torrentLetAssistantLater => '稍后让助手处理';
+
+  @override
+  String get torrentUploaded => '已上传。可以让 AI 助手“下载我刚上传的种子”。';
+
+  @override
+  String get torrentServerDownloadStarted => '已开始服务器下载。';
+
+  @override
+  String get torrentRemoveAndDeleteTitle => '移除任务并删除文件？';
+
+  @override
+  String get torrentRemoveTitle => '移除下载任务？';
+
+  @override
+  String torrentRemoveAndDeleteMessage(String name, int count, String size) {
+    return '「$name」将从服务器移除，并删除已下载的 $count 个文件（$size），不可恢复。媒体库不受影响。';
+  }
+
+  @override
+  String torrentRemoveMessage(String name, String size) {
+    return '「$name」将从服务器移除，已下载的 $size 文件保留在服务器上。';
+  }
+
+  @override
+  String torrentAlsoDeleteFiles(String size) {
+    return '同时删除已下载的文件（$size）';
+  }
+
+  @override
+  String get torrentDeleteFilesDisabledHint => '需先在服务设置中打开“允许删除服务器文件”';
+
+  @override
+  String get torrentRemovedAndDeleted => '已移除并删除文件。';
+
+  @override
+  String get torrentRemovedKeptFiles => '已移除，文件保留在服务器上。';
+
+  @override
+  String get torrentServerDownloadWebUi => '服务器下载（WebUI 添加）';
+
+  @override
+  String get torrentServerDownload => '服务器下载';
+
+  @override
+  String get torrentStatusStale => '状态未更新';
+
+  @override
+  String get torrentResume => '恢复';
+
+  @override
+  String get torrentPause => '暂停';
+
+  @override
+  String get torrentAddService => '添加服务';
+
+  @override
+  String get torrentUploadFile => '上传种子文件';
+
+  @override
+  String get torrentUnconfiguredFooter =>
+      '连接你自己部署的 OpenPlayX BitTorrent 服务后，可在这里或通过 AI 助手添加 Magnet / 种子下载。下载在服务器上进行。';
+
+  @override
+  String get torrentUnconfigured => '尚未配置';
+
+  @override
+  String get torrentServiceFooter =>
+      '下载在服务器上进行，App 关闭不会停止；服务器下载完成不代表已进入媒体库或已离线到本机。';
+
+  @override
+  String get torrentAddress => '地址';
+
+  @override
+  String get torrentStatus => '状态';
+
+  @override
+  String get torrentDisabled => '已停用';
+
+  @override
+  String get torrentDefaultServerName => 'BitTorrent 服务器';
+
+  @override
+  String get torrentTokenRequired => '请填写 API Token';
+
+  @override
+  String torrentConnected(String version) {
+    return '连接成功：qBittorrent $version';
+  }
+
+  @override
+  String get torrentReachableEngineUnavailable => '服务可达，但下载引擎当前不可用';
+
+  @override
+  String torrentConnectFailed(String code) {
+    return '连接失败：$code';
+  }
+
+  @override
+  String get torrentRemoveConfigTitle => '移除此服务配置？';
+
+  @override
+  String get torrentRemoveConfigMessage =>
+      '只移除 App 中的地址和 Token；服务器上的下载继续进行，文件不会被删除。';
+
+  @override
+  String get torrentAddServiceTitle => '添加 BitTorrent 服务';
+
+  @override
+  String get torrentEditServiceTitle => '编辑 BitTorrent 服务';
+
+  @override
+  String get torrentConnection => '连接';
+
+  @override
+  String get torrentConnectionFooter =>
+      '公网地址必须使用 HTTPS；HTTP 仅允许局域网地址。Token 保存在系统安全存储中。';
+
+  @override
+  String get torrentName => '名称';
+
+  @override
+  String get torrentTokenSaved => '已保存（留空不修改）';
+
+  @override
+  String get torrentDownloadScope => '下载与访问范围';
+
+  @override
+  String get torrentDefaultDestination => '默认目标';
+
+  @override
+  String get torrentDefaultDestinationDescription =>
+      '服务端配置的逻辑目标名（destination_ref），不是服务器路径。';
+
+  @override
+  String get torrentPollInterval => '刷新间隔';
+
+  @override
+  String get torrentPollIntervalDescription => '秒（5–300）。任务列表与 AI 查询共用此间隔的缓存。';
+
+  @override
+  String get torrentAllowDeleteFiles => '允许删除服务器文件';
+
+  @override
+  String get torrentAllowDeleteFilesDescription => '关闭时 AI 助手和此页面只能移除任务并保留文件。';
+
+  @override
+  String get torrentEnabled => '启用';
+
+  @override
+  String get torrentSaveAndTest => '保存并测试连接';
+
+  @override
+  String get torrentRemoveConfig => '移除配置';
+
+  @override
+  String get torrentServerOnlyComplete => '仅在服务器上完成，尚未进入媒体库或下载到本机';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5292,4 +5950,333 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get pluginManagement => '外掛程式管理';
+
+  @override
+  String get pluginManagementDescription => '檢視內建外掛程式、實例、AI 可用範圍與執行狀態';
+
+  @override
+  String get remoteAccess => '遠端存取';
+
+  @override
+  String get remoteAccessRoutes => '家庭與連線路線';
+
+  @override
+  String get bitTorrentService => 'BitTorrent 服務';
+
+  @override
+  String get sourcesAndDownloads => '來源與下載';
+
+  @override
+  String get bitTorrentServiceDescription => '在自己的伺服器上下載 Magnet / 種子';
+
+  @override
+  String get torrentSearchService => 'Torrent 搜尋服務';
+
+  @override
+  String get torrentSearchServiceDescription => '供 AI 助手搜尋種子候選，唯讀，不會自動下載';
+
+  @override
+  String get torrentStateMetadataPending => '取得中繼資料';
+
+  @override
+  String get torrentStateQueued => '排隊中';
+
+  @override
+  String get torrentStateDownloading => '下載中';
+
+  @override
+  String get torrentStatePaused => '已暫停';
+
+  @override
+  String get torrentStateChecking => '校驗中';
+
+  @override
+  String get torrentStateStalled => '等待連線';
+
+  @override
+  String get torrentStateCompleted => '伺服器下載完成';
+
+  @override
+  String get torrentStateSeeding => '伺服器下載完成 · 做種中';
+
+  @override
+  String get torrentStateError => '出錯';
+
+  @override
+  String get torrentStateRemoved => '已移除';
+
+  @override
+  String get torrentHoldAwaitingStart => '等待開始';
+
+  @override
+  String get torrentHoldQuotaExceeded => '超出額度';
+
+  @override
+  String get torrentHoldDiskLow => '磁碟空間不足';
+
+  @override
+  String get torrentHoldNoFilesMatch => '沒有符合的檔案';
+
+  @override
+  String torrentAvailable(String version) {
+    return '可用 · qBittorrent $version';
+  }
+
+  @override
+  String get torrentEngineUnavailable => '服務在線，下載引擎無法使用';
+
+  @override
+  String torrentUnavailableCode(String code) {
+    return '無法使用（$code）';
+  }
+
+  @override
+  String torrentOperationFailed(String code) {
+    return '操作失敗：$code';
+  }
+
+  @override
+  String get torrentChooseServer => '選擇伺服器';
+
+  @override
+  String get torrentMagnetInvalid => 'Magnet 連結格式不正確';
+
+  @override
+  String get torrentMagnetTooLong => 'Magnet 連結過長';
+
+  @override
+  String get torrentMagnetUnsupportedParameter => 'Magnet 中含有不支援的參數（如 xs / as）';
+
+  @override
+  String get torrentMagnetTrackerNotAllowed => 'Magnet 中的 tracker 位址不被允許';
+
+  @override
+  String get torrentMagnetTooManyTrackers => 'Magnet 中的 tracker 過多';
+
+  @override
+  String get torrentMagnetNetworkAddressNotAllowed =>
+      'Magnet 中含有內網或本機位址，伺服器不允許';
+
+  @override
+  String get torrentMagnetDuplicateTask => '這個下載已經在伺服器上了';
+
+  @override
+  String get torrentMagnetDestinationNotAllowed => '預設目標不存在，請檢查服務設定';
+
+  @override
+  String get torrentAddMagnet => '新增 Magnet';
+
+  @override
+  String get torrentMagnetFooter =>
+      '貼上 magnet: 開頭的連結。預覽時不會連線任何節點；開始後伺服器先取得檔案清單，再依選擇下載。';
+
+  @override
+  String get torrentVideoOnly => '只下載影片檔案';
+
+  @override
+  String get torrentVideoOnlyDescription => '取得檔案清單後只選取影片，略過樣片和其他檔案。';
+
+  @override
+  String get torrentPreview => '預覽';
+
+  @override
+  String get torrentMagnetPrefixRequired => '請貼上以 magnet:? 開頭的連結';
+
+  @override
+  String get torrentNamePending => '（名稱在取得中繼資料後顯示）';
+
+  @override
+  String torrentTrackersSkipped(int count) {
+    return '已忽略 $count 個指向內網/本機或不受支援的 tracker 位址，其餘照常使用。';
+  }
+
+  @override
+  String get torrentDownloadOnServer => '在伺服器上下載？';
+
+  @override
+  String get torrentAllFiles => '下載全部檔案';
+
+  @override
+  String get torrentSizePending => '大小在取得中繼資料後確定';
+
+  @override
+  String torrentRunsOnServer(String server) {
+    return '下載在「$server」上進行，App 關閉後仍會繼續；完成後不會自動加入媒體庫。';
+  }
+
+  @override
+  String get torrentStartDownload => '開始下載';
+
+  @override
+  String get torrentAddedFetchingMetadata => '已新增，伺服器正在取得中繼資料。';
+
+  @override
+  String get torrentFileTooLarge => '種子檔案過大';
+
+  @override
+  String torrentFileCount(int count) {
+    return '$count 個檔案';
+  }
+
+  @override
+  String get torrentLetAssistantLater => '稍後讓助手處理';
+
+  @override
+  String get torrentUploaded => '已上傳。可以讓 AI 助手「下載我剛上傳的種子」。';
+
+  @override
+  String get torrentServerDownloadStarted => '已開始伺服器下載。';
+
+  @override
+  String get torrentRemoveAndDeleteTitle => '移除任務並刪除檔案？';
+
+  @override
+  String get torrentRemoveTitle => '移除下載任務？';
+
+  @override
+  String torrentRemoveAndDeleteMessage(String name, int count, String size) {
+    return '「$name」將從伺服器移除，並刪除已下載的 $count 個檔案（$size），無法復原。媒體庫不受影響。';
+  }
+
+  @override
+  String torrentRemoveMessage(String name, String size) {
+    return '「$name」將從伺服器移除，已下載的 $size 檔案保留在伺服器上。';
+  }
+
+  @override
+  String torrentAlsoDeleteFiles(String size) {
+    return '同時刪除已下載的檔案（$size）';
+  }
+
+  @override
+  String get torrentDeleteFilesDisabledHint => '需先在服務設定中開啟「允許刪除伺服器檔案」';
+
+  @override
+  String get torrentRemovedAndDeleted => '已移除並刪除檔案。';
+
+  @override
+  String get torrentRemovedKeptFiles => '已移除，檔案保留在伺服器上。';
+
+  @override
+  String get torrentServerDownloadWebUi => '伺服器下載（WebUI 新增）';
+
+  @override
+  String get torrentServerDownload => '伺服器下載';
+
+  @override
+  String get torrentStatusStale => '狀態未更新';
+
+  @override
+  String get torrentResume => '繼續';
+
+  @override
+  String get torrentPause => '暫停';
+
+  @override
+  String get torrentAddService => '新增服務';
+
+  @override
+  String get torrentUploadFile => '上傳種子檔案';
+
+  @override
+  String get torrentUnconfiguredFooter =>
+      '連線你自行部署的 OpenPlayX BitTorrent 服務後，可在這裡或透過 AI 助手新增 Magnet / 種子下載。下載在伺服器上進行。';
+
+  @override
+  String get torrentUnconfigured => '尚未設定';
+
+  @override
+  String get torrentServiceFooter =>
+      '下載在伺服器上進行，App 關閉不會停止；伺服器下載完成不代表已加入媒體庫或已離線到本機。';
+
+  @override
+  String get torrentAddress => '位址';
+
+  @override
+  String get torrentStatus => '狀態';
+
+  @override
+  String get torrentDisabled => '已停用';
+
+  @override
+  String get torrentDefaultServerName => 'BitTorrent 伺服器';
+
+  @override
+  String get torrentTokenRequired => '請填寫 API Token';
+
+  @override
+  String torrentConnected(String version) {
+    return '連線成功：qBittorrent $version';
+  }
+
+  @override
+  String get torrentReachableEngineUnavailable => '服務可連線，但下載引擎目前無法使用';
+
+  @override
+  String torrentConnectFailed(String code) {
+    return '連線失敗：$code';
+  }
+
+  @override
+  String get torrentRemoveConfigTitle => '移除此服務設定？';
+
+  @override
+  String get torrentRemoveConfigMessage =>
+      '只移除 App 中的位址和 Token；伺服器上的下載繼續進行，檔案不會被刪除。';
+
+  @override
+  String get torrentAddServiceTitle => '新增 BitTorrent 服務';
+
+  @override
+  String get torrentEditServiceTitle => '編輯 BitTorrent 服務';
+
+  @override
+  String get torrentConnection => '連線';
+
+  @override
+  String get torrentConnectionFooter =>
+      '公網位址必須使用 HTTPS；HTTP 僅允許區域網路位址。Token 儲存在系統安全儲存空間中。';
+
+  @override
+  String get torrentName => '名稱';
+
+  @override
+  String get torrentTokenSaved => '已儲存（留空不修改）';
+
+  @override
+  String get torrentDownloadScope => '下載與存取範圍';
+
+  @override
+  String get torrentDefaultDestination => '預設目標';
+
+  @override
+  String get torrentDefaultDestinationDescription =>
+      '伺服器端設定的邏輯目標名稱（destination_ref），不是伺服器路徑。';
+
+  @override
+  String get torrentPollInterval => '重新整理間隔';
+
+  @override
+  String get torrentPollIntervalDescription => '秒（5–300）。任務清單與 AI 查詢共用此間隔的快取。';
+
+  @override
+  String get torrentAllowDeleteFiles => '允許刪除伺服器檔案';
+
+  @override
+  String get torrentAllowDeleteFilesDescription => '關閉時 AI 助手和此頁面只能移除任務並保留檔案。';
+
+  @override
+  String get torrentEnabled => '啟用';
+
+  @override
+  String get torrentSaveAndTest => '儲存並測試連線';
+
+  @override
+  String get torrentRemoveConfig => '移除設定';
+
+  @override
+  String get torrentServerOnlyComplete => '僅在伺服器上完成，尚未加入媒體庫或下載到本機';
 }

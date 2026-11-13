@@ -1853,4 +1853,356 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recognizedSubtitleFull => 'Whole episode';
+
+  @override
+  String get pluginManagement => 'Plugins';
+
+  @override
+  String get pluginManagementDescription =>
+      'View bundled plugins, instances, AI access and status';
+
+  @override
+  String get remoteAccess => 'Remote access';
+
+  @override
+  String get remoteAccessRoutes => 'Homes and connection routes';
+
+  @override
+  String get bitTorrentService => 'BitTorrent service';
+
+  @override
+  String get sourcesAndDownloads => 'Sources and downloads';
+
+  @override
+  String get bitTorrentServiceDescription =>
+      'Download magnets / torrents on your own server';
+
+  @override
+  String get torrentSearchService => 'Torrent search service';
+
+  @override
+  String get torrentSearchServiceDescription =>
+      'Lets the AI assistant search torrent candidates. Read-only; never downloads automatically';
+
+  @override
+  String get torrentStateMetadataPending => 'Fetching metadata';
+
+  @override
+  String get torrentStateQueued => 'Queued';
+
+  @override
+  String get torrentStateDownloading => 'Downloading';
+
+  @override
+  String get torrentStatePaused => 'Paused';
+
+  @override
+  String get torrentStateChecking => 'Checking';
+
+  @override
+  String get torrentStateStalled => 'Waiting for peers';
+
+  @override
+  String get torrentStateCompleted => 'Finished on server';
+
+  @override
+  String get torrentStateSeeding => 'Finished on server · Seeding';
+
+  @override
+  String get torrentStateError => 'Error';
+
+  @override
+  String get torrentStateRemoved => 'Removed';
+
+  @override
+  String get torrentHoldAwaitingStart => 'Waiting to start';
+
+  @override
+  String get torrentHoldQuotaExceeded => 'Quota exceeded';
+
+  @override
+  String get torrentHoldDiskLow => 'Low disk space';
+
+  @override
+  String get torrentHoldNoFilesMatch => 'No matching files';
+
+  @override
+  String torrentAvailable(String version) {
+    return 'Available · qBittorrent $version';
+  }
+
+  @override
+  String get torrentEngineUnavailable =>
+      'Service online, download engine unavailable';
+
+  @override
+  String torrentUnavailableCode(String code) {
+    return 'Unavailable ($code)';
+  }
+
+  @override
+  String torrentOperationFailed(String code) {
+    return 'Operation failed: $code';
+  }
+
+  @override
+  String get torrentChooseServer => 'Choose a server';
+
+  @override
+  String get torrentMagnetInvalid => 'The magnet link is malformed';
+
+  @override
+  String get torrentMagnetTooLong => 'The magnet link is too long';
+
+  @override
+  String get torrentMagnetUnsupportedParameter =>
+      'The magnet contains unsupported parameters (such as xs / as)';
+
+  @override
+  String get torrentMagnetTrackerNotAllowed =>
+      'A tracker address in the magnet is not allowed';
+
+  @override
+  String get torrentMagnetTooManyTrackers => 'The magnet has too many trackers';
+
+  @override
+  String get torrentMagnetNetworkAddressNotAllowed =>
+      'The magnet contains private or local addresses, which the server does not allow';
+
+  @override
+  String get torrentMagnetDuplicateTask =>
+      'This download is already on the server';
+
+  @override
+  String get torrentMagnetDestinationNotAllowed =>
+      'The default destination does not exist. Check the service configuration';
+
+  @override
+  String get torrentAddMagnet => 'Add magnet';
+
+  @override
+  String get torrentMagnetFooter =>
+      'Paste a link starting with magnet:. Previewing does not contact any peers; once started, the server fetches the file list first, then downloads your selection.';
+
+  @override
+  String get torrentVideoOnly => 'Video files only';
+
+  @override
+  String get torrentVideoOnlyDescription =>
+      'After the file list arrives, select only videos and skip samples and other files.';
+
+  @override
+  String get torrentPreview => 'Preview';
+
+  @override
+  String get torrentMagnetPrefixRequired =>
+      'Paste a link starting with magnet:?';
+
+  @override
+  String get torrentNamePending => '(Name appears after metadata is fetched)';
+
+  @override
+  String torrentTrackersSkipped(int count) {
+    return 'Ignored $count tracker addresses that point to private/local networks or are unsupported; the rest are used as usual.';
+  }
+
+  @override
+  String get torrentDownloadOnServer => 'Download on the server?';
+
+  @override
+  String get torrentAllFiles => 'All files';
+
+  @override
+  String get torrentSizePending => 'Size known after metadata is fetched';
+
+  @override
+  String torrentRunsOnServer(String server) {
+    return 'The download runs on “$server” and continues after the App closes; it is not added to the library automatically when done.';
+  }
+
+  @override
+  String get torrentStartDownload => 'Start download';
+
+  @override
+  String get torrentAddedFetchingMetadata =>
+      'Added. The server is fetching metadata.';
+
+  @override
+  String get torrentFileTooLarge => 'The torrent file is too large';
+
+  @override
+  String torrentFileCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count files',
+      one: '1 file',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get torrentLetAssistantLater => 'Let the assistant handle it later';
+
+  @override
+  String get torrentUploaded =>
+      'Uploaded. You can ask the AI assistant to “download the torrent I just uploaded”.';
+
+  @override
+  String get torrentServerDownloadStarted => 'Server download started.';
+
+  @override
+  String get torrentRemoveAndDeleteTitle => 'Remove task and delete files?';
+
+  @override
+  String get torrentRemoveTitle => 'Remove download task?';
+
+  @override
+  String torrentRemoveAndDeleteMessage(String name, int count, String size) {
+    return '“$name” will be removed from the server and its $count downloaded files ($size) deleted. This cannot be undone. Your library is not affected.';
+  }
+
+  @override
+  String torrentRemoveMessage(String name, String size) {
+    return '“$name” will be removed from the server; the downloaded $size of files stay on the server.';
+  }
+
+  @override
+  String torrentAlsoDeleteFiles(String size) {
+    return 'Also delete downloaded files ($size)';
+  }
+
+  @override
+  String get torrentDeleteFilesDisabledHint =>
+      'Turn on “Allow deleting server files” in the service settings first';
+
+  @override
+  String get torrentRemovedAndDeleted => 'Removed and files deleted.';
+
+  @override
+  String get torrentRemovedKeptFiles => 'Removed. Files remain on the server.';
+
+  @override
+  String get torrentServerDownloadWebUi => 'Server download (added via WebUI)';
+
+  @override
+  String get torrentServerDownload => 'Server download';
+
+  @override
+  String get torrentStatusStale => 'Status not updated';
+
+  @override
+  String get torrentResume => 'Resume';
+
+  @override
+  String get torrentPause => 'Pause';
+
+  @override
+  String get torrentAddService => 'Add service';
+
+  @override
+  String get torrentUploadFile => 'Upload torrent file';
+
+  @override
+  String get torrentUnconfiguredFooter =>
+      'After connecting your own OpenPlayX BitTorrent service, you can add magnet / torrent downloads here or through the AI assistant. Downloads run on the server.';
+
+  @override
+  String get torrentUnconfigured => 'Not configured';
+
+  @override
+  String get torrentServiceFooter =>
+      'Downloads run on the server and keep going when the App closes. Finishing on the server does not mean it is in your library or saved to this device.';
+
+  @override
+  String get torrentAddress => 'Address';
+
+  @override
+  String get torrentStatus => 'Status';
+
+  @override
+  String get torrentDisabled => 'Disabled';
+
+  @override
+  String get torrentDefaultServerName => 'BitTorrent server';
+
+  @override
+  String get torrentTokenRequired => 'Enter the API token';
+
+  @override
+  String torrentConnected(String version) {
+    return 'Connected: qBittorrent $version';
+  }
+
+  @override
+  String get torrentReachableEngineUnavailable =>
+      'Service reachable, but the download engine is currently unavailable';
+
+  @override
+  String torrentConnectFailed(String code) {
+    return 'Connection failed: $code';
+  }
+
+  @override
+  String get torrentRemoveConfigTitle => 'Remove this service configuration?';
+
+  @override
+  String get torrentRemoveConfigMessage =>
+      'Only the address and token in the App are removed; downloads on the server continue and files are not deleted.';
+
+  @override
+  String get torrentAddServiceTitle => 'Add BitTorrent service';
+
+  @override
+  String get torrentEditServiceTitle => 'Edit BitTorrent service';
+
+  @override
+  String get torrentConnection => 'Connection';
+
+  @override
+  String get torrentConnectionFooter =>
+      'Public addresses must use HTTPS; HTTP is only allowed for LAN addresses. The token is kept in the system secure storage.';
+
+  @override
+  String get torrentName => 'Name';
+
+  @override
+  String get torrentTokenSaved => 'Saved (leave empty to keep)';
+
+  @override
+  String get torrentDownloadScope => 'Downloads and access scope';
+
+  @override
+  String get torrentDefaultDestination => 'Default destination';
+
+  @override
+  String get torrentDefaultDestinationDescription =>
+      'The logical destination name configured on the server (destination_ref), not a server path.';
+
+  @override
+  String get torrentPollInterval => 'Refresh interval';
+
+  @override
+  String get torrentPollIntervalDescription =>
+      'Seconds (5–300). The task list and AI queries share a cache for this interval.';
+
+  @override
+  String get torrentAllowDeleteFiles => 'Allow deleting server files';
+
+  @override
+  String get torrentAllowDeleteFilesDescription =>
+      'When off, the AI assistant and this page can only remove tasks and keep the files.';
+
+  @override
+  String get torrentEnabled => 'Enabled';
+
+  @override
+  String get torrentSaveAndTest => 'Save and test connection';
+
+  @override
+  String get torrentRemoveConfig => 'Remove configuration';
+
+  @override
+  String get torrentServerOnlyComplete =>
+      'Finished on the server only; not yet in the library or downloaded to this device';
 }

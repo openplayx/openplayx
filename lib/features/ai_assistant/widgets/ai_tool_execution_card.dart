@@ -5,7 +5,7 @@ import '../../../l10n/generated/app_localizations.dart';
 import '../../../services/conversations/conversation_coordinator.dart';
 import '../../../ui/icons/app_icons.dart';
 import '../../settings/torrent_service_settings_page.dart'
-    show torrentHoldLabels, torrentStateLabels;
+    show torrentHoldLabel, torrentStateLabel;
 import '../models/ai_chat_part.dart';
 import '../models/ai_tool_labels.dart';
 import 'ai_activity.dart';
@@ -85,17 +85,18 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
   Widget _torrentCard(Map<String, dynamic> t, ShadThemeData theme) {
     final progress = (t['progress'] as num? ?? 0).toDouble().clamp(0.0, 1.0);
     final state = t['state'] as String? ?? '';
+    final l = AppLocalizations.of(context);
     String speed(Object? v) =>
         '${((v as num? ?? 0) / (1 << 20)).toStringAsFixed(1)} MB/s';
     final status = [
-      '服务器下载 · ${_safe(t['server_name'] ?? '')}',
-      torrentStateLabels[state] ?? state,
-      if (torrentHoldLabels[t['hold_reason']] case final String hold) hold,
+      '${l.torrentServerDownload} · ${_safe(t['server_name'] ?? '')}',
+      torrentStateLabel(l, state) ?? state,
+      if (torrentHoldLabel(l, t['hold_reason']) case final String hold) hold,
       '${(progress * 100).toStringAsFixed(1)}%',
       if ((t['download_speed'] as num? ?? 0) > 0)
         '↓${speed(t['download_speed'])}',
       if ((t['upload_speed'] as num? ?? 0) > 0) '↑${speed(t['upload_speed'])}',
-      if (t['stale'] == true) '状态未更新',
+      if (t['stale'] == true) l.torrentStatusStale,
       if (t['error_code'] != null) _safe(t['error_code']),
     ].join(' · ');
     return Padding(
@@ -108,7 +109,7 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
           const SizedBox(height: 4),
           ShadProgress(value: progress),
           if (t['selected_files_complete'] == true)
-            Text('仅在服务器上完成，尚未进入媒体库或下载到本机', style: theme.textTheme.muted),
+            Text(l.torrentServerOnlyComplete, style: theme.textTheme.muted),
         ],
       ),
     );

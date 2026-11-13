@@ -3428,6 +3428,606 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Whole episode'**
   String get recognizedSubtitleFull;
+
+  /// No description provided for @pluginManagement.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugins'**
+  String get pluginManagement;
+
+  /// No description provided for @pluginManagementDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'View bundled plugins, instances, AI access and status'**
+  String get pluginManagementDescription;
+
+  /// No description provided for @remoteAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote access'**
+  String get remoteAccess;
+
+  /// No description provided for @remoteAccessRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Homes and connection routes'**
+  String get remoteAccessRoutes;
+
+  /// No description provided for @bitTorrentService.
+  ///
+  /// In en, this message translates to:
+  /// **'BitTorrent service'**
+  String get bitTorrentService;
+
+  /// No description provided for @sourcesAndDownloads.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources and downloads'**
+  String get sourcesAndDownloads;
+
+  /// No description provided for @bitTorrentServiceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Download magnets / torrents on your own server'**
+  String get bitTorrentServiceDescription;
+
+  /// No description provided for @torrentSearchService.
+  ///
+  /// In en, this message translates to:
+  /// **'Torrent search service'**
+  String get torrentSearchService;
+
+  /// No description provided for @torrentSearchServiceDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Lets the AI assistant search torrent candidates. Read-only; never downloads automatically'**
+  String get torrentSearchServiceDescription;
+
+  /// No description provided for @torrentStateMetadataPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Fetching metadata'**
+  String get torrentStateMetadataPending;
+
+  /// No description provided for @torrentStateQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get torrentStateQueued;
+
+  /// No description provided for @torrentStateDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading'**
+  String get torrentStateDownloading;
+
+  /// No description provided for @torrentStatePaused.
+  ///
+  /// In en, this message translates to:
+  /// **'Paused'**
+  String get torrentStatePaused;
+
+  /// No description provided for @torrentStateChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking'**
+  String get torrentStateChecking;
+
+  /// No description provided for @torrentStateStalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for peers'**
+  String get torrentStateStalled;
+
+  /// No description provided for @torrentStateCompleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished on server'**
+  String get torrentStateCompleted;
+
+  /// No description provided for @torrentStateSeeding.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished on server · Seeding'**
+  String get torrentStateSeeding;
+
+  /// No description provided for @torrentStateError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get torrentStateError;
+
+  /// No description provided for @torrentStateRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed'**
+  String get torrentStateRemoved;
+
+  /// No description provided for @torrentHoldAwaitingStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting to start'**
+  String get torrentHoldAwaitingStart;
+
+  /// No description provided for @torrentHoldQuotaExceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Quota exceeded'**
+  String get torrentHoldQuotaExceeded;
+
+  /// No description provided for @torrentHoldDiskLow.
+  ///
+  /// In en, this message translates to:
+  /// **'Low disk space'**
+  String get torrentHoldDiskLow;
+
+  /// No description provided for @torrentHoldNoFilesMatch.
+  ///
+  /// In en, this message translates to:
+  /// **'No matching files'**
+  String get torrentHoldNoFilesMatch;
+
+  /// No description provided for @torrentAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available · qBittorrent {version}'**
+  String torrentAvailable(String version);
+
+  /// No description provided for @torrentEngineUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Service online, download engine unavailable'**
+  String get torrentEngineUnavailable;
+
+  /// No description provided for @torrentUnavailableCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable ({code})'**
+  String torrentUnavailableCode(String code);
+
+  /// No description provided for @torrentOperationFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Operation failed: {code}'**
+  String torrentOperationFailed(String code);
+
+  /// No description provided for @torrentChooseServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a server'**
+  String get torrentChooseServer;
+
+  /// No description provided for @torrentMagnetInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The magnet link is malformed'**
+  String get torrentMagnetInvalid;
+
+  /// No description provided for @torrentMagnetTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'The magnet link is too long'**
+  String get torrentMagnetTooLong;
+
+  /// No description provided for @torrentMagnetUnsupportedParameter.
+  ///
+  /// In en, this message translates to:
+  /// **'The magnet contains unsupported parameters (such as xs / as)'**
+  String get torrentMagnetUnsupportedParameter;
+
+  /// No description provided for @torrentMagnetTrackerNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'A tracker address in the magnet is not allowed'**
+  String get torrentMagnetTrackerNotAllowed;
+
+  /// No description provided for @torrentMagnetTooManyTrackers.
+  ///
+  /// In en, this message translates to:
+  /// **'The magnet has too many trackers'**
+  String get torrentMagnetTooManyTrackers;
+
+  /// No description provided for @torrentMagnetNetworkAddressNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'The magnet contains private or local addresses, which the server does not allow'**
+  String get torrentMagnetNetworkAddressNotAllowed;
+
+  /// No description provided for @torrentMagnetDuplicateTask.
+  ///
+  /// In en, this message translates to:
+  /// **'This download is already on the server'**
+  String get torrentMagnetDuplicateTask;
+
+  /// No description provided for @torrentMagnetDestinationNotAllowed.
+  ///
+  /// In en, this message translates to:
+  /// **'The default destination does not exist. Check the service configuration'**
+  String get torrentMagnetDestinationNotAllowed;
+
+  /// No description provided for @torrentAddMagnet.
+  ///
+  /// In en, this message translates to:
+  /// **'Add magnet'**
+  String get torrentAddMagnet;
+
+  /// No description provided for @torrentMagnetFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link starting with magnet:. Previewing does not contact any peers; once started, the server fetches the file list first, then downloads your selection.'**
+  String get torrentMagnetFooter;
+
+  /// No description provided for @torrentVideoOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Video files only'**
+  String get torrentVideoOnly;
+
+  /// No description provided for @torrentVideoOnlyDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'After the file list arrives, select only videos and skip samples and other files.'**
+  String get torrentVideoOnlyDescription;
+
+  /// No description provided for @torrentPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview'**
+  String get torrentPreview;
+
+  /// No description provided for @torrentMagnetPrefixRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste a link starting with magnet:?'**
+  String get torrentMagnetPrefixRequired;
+
+  /// No description provided for @torrentNamePending.
+  ///
+  /// In en, this message translates to:
+  /// **'(Name appears after metadata is fetched)'**
+  String get torrentNamePending;
+
+  /// No description provided for @torrentTrackersSkipped.
+  ///
+  /// In en, this message translates to:
+  /// **'Ignored {count} tracker addresses that point to private/local networks or are unsupported; the rest are used as usual.'**
+  String torrentTrackersSkipped(int count);
+
+  /// No description provided for @torrentDownloadOnServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Download on the server?'**
+  String get torrentDownloadOnServer;
+
+  /// No description provided for @torrentAllFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All files'**
+  String get torrentAllFiles;
+
+  /// No description provided for @torrentSizePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Size known after metadata is fetched'**
+  String get torrentSizePending;
+
+  /// No description provided for @torrentRunsOnServer.
+  ///
+  /// In en, this message translates to:
+  /// **'The download runs on “{server}” and continues after the App closes; it is not added to the library automatically when done.'**
+  String torrentRunsOnServer(String server);
+
+  /// No description provided for @torrentStartDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Start download'**
+  String get torrentStartDownload;
+
+  /// No description provided for @torrentAddedFetchingMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Added. The server is fetching metadata.'**
+  String get torrentAddedFetchingMetadata;
+
+  /// No description provided for @torrentFileTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The torrent file is too large'**
+  String get torrentFileTooLarge;
+
+  /// No description provided for @torrentFileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 file} other{{count} files}}'**
+  String torrentFileCount(int count);
+
+  /// No description provided for @torrentLetAssistantLater.
+  ///
+  /// In en, this message translates to:
+  /// **'Let the assistant handle it later'**
+  String get torrentLetAssistantLater;
+
+  /// No description provided for @torrentUploaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploaded. You can ask the AI assistant to “download the torrent I just uploaded”.'**
+  String get torrentUploaded;
+
+  /// No description provided for @torrentServerDownloadStarted.
+  ///
+  /// In en, this message translates to:
+  /// **'Server download started.'**
+  String get torrentServerDownloadStarted;
+
+  /// No description provided for @torrentRemoveAndDeleteTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove task and delete files?'**
+  String get torrentRemoveAndDeleteTitle;
+
+  /// No description provided for @torrentRemoveTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove download task?'**
+  String get torrentRemoveTitle;
+
+  /// No description provided for @torrentRemoveAndDeleteMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be removed from the server and its {count} downloaded files ({size}) deleted. This cannot be undone. Your library is not affected.'**
+  String torrentRemoveAndDeleteMessage(String name, int count, String size);
+
+  /// No description provided for @torrentRemoveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'“{name}” will be removed from the server; the downloaded {size} of files stay on the server.'**
+  String torrentRemoveMessage(String name, String size);
+
+  /// No description provided for @torrentAlsoDeleteFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Also delete downloaded files ({size})'**
+  String torrentAlsoDeleteFiles(String size);
+
+  /// No description provided for @torrentDeleteFilesDisabledHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn on “Allow deleting server files” in the service settings first'**
+  String get torrentDeleteFilesDisabledHint;
+
+  /// No description provided for @torrentRemovedAndDeleted.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed and files deleted.'**
+  String get torrentRemovedAndDeleted;
+
+  /// No description provided for @torrentRemovedKeptFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Removed. Files remain on the server.'**
+  String get torrentRemovedKeptFiles;
+
+  /// No description provided for @torrentServerDownloadWebUi.
+  ///
+  /// In en, this message translates to:
+  /// **'Server download (added via WebUI)'**
+  String get torrentServerDownloadWebUi;
+
+  /// No description provided for @torrentServerDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Server download'**
+  String get torrentServerDownload;
+
+  /// No description provided for @torrentStatusStale.
+  ///
+  /// In en, this message translates to:
+  /// **'Status not updated'**
+  String get torrentStatusStale;
+
+  /// No description provided for @torrentResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume'**
+  String get torrentResume;
+
+  /// No description provided for @torrentPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get torrentPause;
+
+  /// No description provided for @torrentAddService.
+  ///
+  /// In en, this message translates to:
+  /// **'Add service'**
+  String get torrentAddService;
+
+  /// No description provided for @torrentUploadFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload torrent file'**
+  String get torrentUploadFile;
+
+  /// No description provided for @torrentUnconfiguredFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'After connecting your own OpenPlayX BitTorrent service, you can add magnet / torrent downloads here or through the AI assistant. Downloads run on the server.'**
+  String get torrentUnconfiguredFooter;
+
+  /// No description provided for @torrentUnconfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not configured'**
+  String get torrentUnconfigured;
+
+  /// No description provided for @torrentServiceFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads run on the server and keep going when the App closes. Finishing on the server does not mean it is in your library or saved to this device.'**
+  String get torrentServiceFooter;
+
+  /// No description provided for @torrentAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Address'**
+  String get torrentAddress;
+
+  /// No description provided for @torrentStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get torrentStatus;
+
+  /// No description provided for @torrentDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get torrentDisabled;
+
+  /// No description provided for @torrentDefaultServerName.
+  ///
+  /// In en, this message translates to:
+  /// **'BitTorrent server'**
+  String get torrentDefaultServerName;
+
+  /// No description provided for @torrentTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the API token'**
+  String get torrentTokenRequired;
+
+  /// No description provided for @torrentConnected.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected: qBittorrent {version}'**
+  String torrentConnected(String version);
+
+  /// No description provided for @torrentReachableEngineUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Service reachable, but the download engine is currently unavailable'**
+  String get torrentReachableEngineUnavailable;
+
+  /// No description provided for @torrentConnectFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed: {code}'**
+  String torrentConnectFailed(String code);
+
+  /// No description provided for @torrentRemoveConfigTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove this service configuration?'**
+  String get torrentRemoveConfigTitle;
+
+  /// No description provided for @torrentRemoveConfigMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the address and token in the App are removed; downloads on the server continue and files are not deleted.'**
+  String get torrentRemoveConfigMessage;
+
+  /// No description provided for @torrentAddServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Add BitTorrent service'**
+  String get torrentAddServiceTitle;
+
+  /// No description provided for @torrentEditServiceTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit BitTorrent service'**
+  String get torrentEditServiceTitle;
+
+  /// No description provided for @torrentConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection'**
+  String get torrentConnection;
+
+  /// No description provided for @torrentConnectionFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Public addresses must use HTTPS; HTTP is only allowed for LAN addresses. The token is kept in the system secure storage.'**
+  String get torrentConnectionFooter;
+
+  /// No description provided for @torrentName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get torrentName;
+
+  /// No description provided for @torrentTokenSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved (leave empty to keep)'**
+  String get torrentTokenSaved;
+
+  /// No description provided for @torrentDownloadScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloads and access scope'**
+  String get torrentDownloadScope;
+
+  /// No description provided for @torrentDefaultDestination.
+  ///
+  /// In en, this message translates to:
+  /// **'Default destination'**
+  String get torrentDefaultDestination;
+
+  /// No description provided for @torrentDefaultDestinationDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'The logical destination name configured on the server (destination_ref), not a server path.'**
+  String get torrentDefaultDestinationDescription;
+
+  /// No description provided for @torrentPollInterval.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh interval'**
+  String get torrentPollInterval;
+
+  /// No description provided for @torrentPollIntervalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Seconds (5–300). The task list and AI queries share a cache for this interval.'**
+  String get torrentPollIntervalDescription;
+
+  /// No description provided for @torrentAllowDeleteFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow deleting server files'**
+  String get torrentAllowDeleteFiles;
+
+  /// No description provided for @torrentAllowDeleteFilesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'When off, the AI assistant and this page can only remove tasks and keep the files.'**
+  String get torrentAllowDeleteFilesDescription;
+
+  /// No description provided for @torrentEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enabled'**
+  String get torrentEnabled;
+
+  /// No description provided for @torrentSaveAndTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Save and test connection'**
+  String get torrentSaveAndTest;
+
+  /// No description provided for @torrentRemoveConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove configuration'**
+  String get torrentRemoveConfig;
+
+  /// No description provided for @torrentServerOnlyComplete.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished on the server only; not yet in the library or downloaded to this device'**
+  String get torrentServerOnlyComplete;
 }
 
 class _AppLocalizationsDelegate

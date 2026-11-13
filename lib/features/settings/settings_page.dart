@@ -132,17 +132,17 @@ class SettingsPage extends StatelessWidget {
         if (plugins != null)
           _Category(
             icon: AppIcons.preferences,
-            title: '插件管理',
+            title: l.pluginManagement,
             onOpen: openPlugins,
             sections: [
               SettingsSection(
                 key: const ValueKey('plugins'),
-                title: '插件管理',
+                title: l.pluginManagement,
                 children: [
                   SettingsRow(
                     key: const ValueKey('plugin-management'),
-                    title: '插件管理',
-                    description: '查看已包含的插件、实例、AI 可用范围与运行状态',
+                    title: l.pluginManagement,
+                    description: l.pluginManagementDescription,
                     chevron: true,
                     onTap: openPlugins,
                   ),
@@ -170,15 +170,15 @@ class SettingsPage extends StatelessWidget {
         if (sources != null)
           _Category(
             icon: AppIcons.connection,
-            title: '远程访问',
+            title: l.remoteAccess,
             onOpen: openRemote,
             sections: [
               SettingsSection(
                 key: const ValueKey('remote'),
-                title: '远程访问',
+                title: l.remoteAccess,
                 children: [
                   SettingsRow(
-                    title: '家庭与连接线路',
+                    title: l.remoteAccessRoutes,
                     chevron: true,
                     onTap: openRemote,
                   ),
@@ -189,17 +189,17 @@ class SettingsPage extends StatelessWidget {
         // 来源与下载 → BitTorrent 服务 (downloads run on the user's server).
         _Category(
           icon: AppIcons.server,
-          title: 'BitTorrent 服务',
+          title: l.bitTorrentService,
           onOpen: openTorrent,
           sections: [
             SettingsSection(
               key: const ValueKey('torrent'),
-              title: '来源与下载',
+              title: l.sourcesAndDownloads,
               children: [
                 SettingsRow(
                   key: const ValueKey('torrent-settings'),
-                  title: 'BitTorrent 服务',
-                  description: '在自己的服务器上下载 Magnet / 种子',
+                  title: l.bitTorrentService,
+                  description: l.bitTorrentServiceDescription,
                   chevron: true,
                   onTap: openTorrent,
                 ),
@@ -211,17 +211,17 @@ class SettingsPage extends StatelessWidget {
         if (library != null)
           _Category(
             icon: AppIcons.search,
-            title: 'Torrent 搜索服务',
+            title: l.torrentSearchService,
             onOpen: openTorrentSearch,
             sections: [
               SettingsSection(
                 key: const ValueKey('torrent-search'),
-                title: '来源与下载',
+                title: l.sourcesAndDownloads,
                 children: [
                   SettingsRow(
                     key: const ValueKey('torrent-search-settings'),
-                    title: 'Torrent 搜索服务',
-                    description: '供 AI 助手搜索种子候选，只读，不会自动下载',
+                    title: l.torrentSearchService,
+                    description: l.torrentSearchServiceDescription,
                     chevron: true,
                     onTap: openTorrentSearch,
                   ),
