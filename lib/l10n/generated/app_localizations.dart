@@ -3174,7 +3174,7 @@ abstract class AppLocalizations {
   /// No description provided for @asrErrorModelMissing.
   ///
   /// In en, this message translates to:
-  /// **'Model not installed: install it in Settings → Speech recognition.'**
+  /// **'Model not installed.'**
   String get asrErrorModelMissing;
 
   /// No description provided for @asrErrorEngineUnavailable.
@@ -3362,6 +3362,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Audio would travel unencrypted. HTTPS certificate checks are never disabled.'**
   String get asrAllowHttpHint;
+
+  /// No description provided for @asrInstallModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Install or choose a model'**
+  String get asrInstallModel;
+
+  /// No description provided for @asrRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Check again'**
+  String get asrRecheck;
+
+  /// No description provided for @asrTranscribeBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognition unavailable: {reason}'**
+  String asrTranscribeBlocked(String reason);
 }
 
 class _AppLocalizationsDelegate

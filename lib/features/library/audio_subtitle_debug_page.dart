@@ -10,6 +10,8 @@ import '../../core/plugins/source_capability.dart';
 import '../../core/plugins/speech_recognition_capability.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/subtitles/asr_backend_config.dart';
+import '../settings/asr_settings_section.dart';
+import '../../ui/components/settings/settings_section.dart';
 import '../../services/subtitles/subtitle_format.dart';
 import '../../services/subtitles/subtitle_generation_service.dart';
 import '../../ui/adaptive/app_page.dart';
@@ -123,6 +125,14 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
   }
 
   Future<void> _refreshBackends() async {
+    final service = _service!;
+    setState(() {
+      _backends = service.backends.list();
+      if (!_backends.any((c) => c.id == _backendId)) {
+        _backendId = _backends.firstOrNull?.id;
+      }
+      _status.clear();
+    });
     for (final c in _backends) {
       final s = await _service!.backends.backend(c.id).status();
       if (!mounted) return;
@@ -158,7 +168,8 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
   static String bytes(int n) {
     if (n < 1024) return '$n B';
     if (n < 1024 * 1024) return '${(n / 1024).toStringAsFixed(1)} KB';
-    if (n < 1024 * 1024 * 1024) return '${(n / 1024 / 1024).toStringAsFixed(1)} MB';
+    if (n < 1024 * 1024 * 1024)
+      return '${(n / 1024 / 1024).toStringAsFixed(1)} MB';
     return '${(n / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
   }
 
@@ -196,6 +207,22 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     if (start == null || end == null || end <= start) return null;
     if (duration != null && start >= duration) return null;
     return (start, end);
+  }
+
+  /// Model install/selection without leaving the debug flow (design §6):
+  /// downloads still only start from an explicit action on that page.
+  Future<void> _openModelSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AppPage(
+          title: Text(l.asrSettingsTitle),
+          body: SettingsListView(
+            children: [AsrSettingsSection(registry: _service!.backends)],
+          ),
+        ),
+      ),
+    );
+    if (mounted) await _refreshBackends();
   }
 
   // ------------------------------------------------------------- actions
@@ -262,8 +289,14 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           ),
         ),
         actions: [
-          ShadButton.ghost(onPressed: () => Navigator.pop(c, false), child: Text(l.cancel)),
-          ShadButton(onPressed: () => Navigator.pop(c, true), child: Text(l.asrContinue)),
+          ShadButton.ghost(
+            onPressed: () => Navigator.pop(c, false),
+            child: Text(l.cancel),
+          ),
+          ShadButton(
+            onPressed: () => Navigator.pop(c, true),
+            child: Text(l.asrContinue),
+          ),
         ],
       ),
     );
@@ -284,7 +317,10 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           ),
         ),
         actions: [
-          ShadButton.ghost(onPressed: () => Navigator.pop(ctx, false), child: Text(l.cancel)),
+          ShadButton.ghost(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text(l.cancel),
+          ),
           ShadButton(
             key: const ValueKey('asr-upload-allow'),
             onPressed: () => Navigator.pop(ctx, true),
@@ -313,9 +349,13 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     final state = _state;
     if (state == null) return;
     final text = _service!.subtitleText(state.taskId, _preview);
-    final base = widget.target.resourceName.replaceAll('\\', '/').split('/').last;
+    final base = widget.target.resourceName
+        .replaceAll('\\', '/')
+        .split('/')
+        .last;
     final location = await getSaveLocation(
-      suggestedName: '${base.replaceAll(RegExp(r'\.[^.]+$'), '')}.${state.transcript!.language}.${_preview.extension}',
+      suggestedName:
+          '${base.replaceAll(RegExp(r'\.[^.]+$'), '')}.${state.transcript!.language}.${_preview.extension}',
     );
     if (location == null) return;
     await File(location.path).writeAsString(text);
@@ -330,7 +370,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     final service = _service;
     final Widget body;
     if (service == null || !service.media.available) {
-      body = Center(child: Text(l.ffmpegUnavailable, style: theme.textTheme.muted));
+      body = Center(
+        child: Text(l.ffmpegUnavailable, style: theme.textTheme.muted),
+      );
     } else {
       body = ListView(
         padding: AppSpacing.page(context),
@@ -341,7 +383,8 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           _section(l.asrSectionActions, _actions()),
           if (_state != null) _section(l.asrSectionStatus, _progress()),
           if (_state?.audio != null) _section(l.asrSectionAudio, _audio()),
-          if (_state?.transcript != null) _section(l.asrSectionSubtitles, _subtitles()),
+          if (_state?.transcript != null)
+            _section(l.asrSectionSubtitles, _subtitles()),
           if (_state != null) _section(l.asrSectionDebug, _debug()),
         ],
       );
@@ -353,7 +396,10 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     padding: const EdgeInsets.only(bottom: AppSpacing.md),
     child: ShadCard(
       title: Text(title, style: ShadTheme.of(context).textTheme.large),
-      child: Padding(padding: const EdgeInsets.only(top: AppSpacing.sm), child: child),
+      child: Padding(
+        padding: const EdgeInsets.only(top: AppSpacing.sm),
+        child: child,
+      ),
     ),
   );
 
@@ -362,7 +408,10 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     child: Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        SizedBox(width: 120, child: Text(k, style: ShadTheme.of(context).textTheme.muted)),
+        SizedBox(
+          width: 120,
+          child: Text(k, style: ShadTheme.of(context).textTheme.muted),
+        ),
         Expanded(child: SelectableText(v, key: key)),
       ],
     ),
@@ -377,12 +426,21 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
         _kv(l.asrTitle, t.title),
         if (t.episodeLabel != null) _kv(l.asrEpisode, t.episodeLabel!),
         _kv(l.asrVersion, t.versionLabel ?? t.resourceName.split('/').last),
-        _kv(l.asrDuration, _info == null ? '…' : d == null ? l.asrUnknown : clock(d)),
+        _kv(
+          l.asrDuration,
+          _info == null
+              ? '…'
+              : d == null
+              ? l.asrUnknown
+              : clock(d),
+        ),
         if (_inspectError != null)
           Text(
             _reason(_inspectError!),
             key: const ValueKey('asr-inspect-error'),
-            style: TextStyle(color: ShadTheme.of(context).colorScheme.destructive),
+            style: TextStyle(
+              color: ShadTheme.of(context).colorScheme.destructive,
+            ),
           ),
       ],
     );
@@ -391,7 +449,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
   Widget _input() {
     final info = _info;
     if (info == null) {
-      return _inspectError == null ? const ShadProgress() : const SizedBox.shrink();
+      return _inspectError == null
+          ? const ShadProgress()
+          : const SizedBox.shrink();
     }
     if (info.tracks.isEmpty) return Text(l.asrErrorNoAudio);
     String trackLabel(AudioTrackChoice t) => [
@@ -411,7 +471,8 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           initialValue: _trackRef,
           enabled: !_busy,
           options: [
-            for (final t in info.tracks) ShadOption(value: t.ref, child: Text(trackLabel(t))),
+            for (final t in info.tracks)
+              ShadOption(value: t.ref, child: Text(trackLabel(t))),
           ],
           selectedOptionBuilder: (_, v) =>
               Text(trackLabel(info.tracks.firstWhere((t) => t.ref == v))),
@@ -431,7 +492,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
                 enabled: !_busy && !_whole,
                 placeholder: Text(l.asrStart),
                 keyboardType: TextInputType.text,
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]'))],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]')),
+                ],
               ),
             ),
             SizedBox(
@@ -441,7 +504,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
                 controller: _end,
                 enabled: !_busy && !_whole,
                 placeholder: Text(l.asrEnd),
-                inputFormatters: [FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]'))],
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[0-9:.]')),
+                ],
               ),
             ),
             ShadCheckbox(
@@ -459,15 +524,21 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           style: ShadTheme.of(context).textTheme.muted,
         ),
         if (_rangeError != null)
-          Text(_rangeError!, style: TextStyle(color: ShadTheme.of(context).colorScheme.destructive)),
+          Text(
+            _rangeError!,
+            style: TextStyle(
+              color: ShadTheme.of(context).colorScheme.destructive,
+            ),
+          ),
       ],
     );
   }
 
   Widget _backendPicker() {
     if (_backends.isEmpty) return Text(l.asrNoBackends);
-    String label(AsrBackendConfig c) =>
-        '${c.kind == 'embedded' ? l.asrEmbedded : l.asrHttp} · ${c.name} · ${c.modelId}';
+    String label(AsrBackendConfig c) => c.kind == 'embedded'
+        ? '${l.asrEmbedded} · ${c.modelId}'
+        : '${l.asrHttp} · ${c.name} · ${c.modelId}';
     final status = _status[_backendId];
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -476,8 +547,12 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           key: const ValueKey('asr-backend'),
           initialValue: _backendId,
           enabled: !_busy,
-          options: [for (final c in _backends) ShadOption(value: c.id, child: Text(label(c)))],
-          selectedOptionBuilder: (_, v) => Text(label(_backends.firstWhere((c) => c.id == v))),
+          options: [
+            for (final c in _backends)
+              ShadOption(value: c.id, child: Text(label(c))),
+          ],
+          selectedOptionBuilder: (_, v) =>
+              Text(label(_backends.firstWhere((c) => c.id == v))),
           onChanged: (v) => setState(() => _backendId = v),
         ),
         const SizedBox(height: AppSpacing.xs),
@@ -485,11 +560,38 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           status == null
               ? l.asrChecking
               : status.available
-              ? l.asrBackendReady(status.engineVersion ?? '', status.modelRevision ?? '')
-              : l.asrBackendUnavailable(_reason(status.reason ?? 'unavailable')),
+              ? l.asrBackendReady(
+                  status.engineVersion ?? '',
+                  status.modelRevision ?? '',
+                )
+              : l.asrBackendUnavailable(
+                  _reason(status.reason ?? 'unavailable'),
+                ),
           key: const ValueKey('asr-backend-status'),
           style: ShadTheme.of(context).textTheme.muted,
         ),
+        if (status != null && !status.available) ...[
+          const SizedBox(height: AppSpacing.sm),
+          Wrap(
+            spacing: AppSpacing.sm,
+            children: [
+              if (_backends.firstWhere((c) => c.id == _backendId).kind ==
+                  'embedded')
+                ShadButton.outline(
+                  key: const ValueKey('asr-install-model'),
+                  size: ShadButtonSize.sm,
+                  onPressed: _busy ? null : _openModelSettings,
+                  child: Text(l.asrInstallModel),
+                ),
+              ShadButton.ghost(
+                key: const ValueKey('asr-recheck'),
+                size: ShadButtonSize.sm,
+                onPressed: _busy ? null : _refreshBackends,
+                child: Text(l.asrRecheck),
+              ),
+            ],
+          ),
+        ],
       ],
     );
   }
@@ -524,6 +626,17 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
             ),
           ],
         ),
+        if (ready && !_busy && !backendReady && _status[_backendId] != null)
+          Padding(
+            padding: const EdgeInsets.only(top: AppSpacing.sm),
+            child: Text(
+              l.asrTranscribeBlocked(
+                _reason(_status[_backendId]!.reason ?? 'unavailable'),
+              ),
+              key: const ValueKey('asr-transcribe-blocked'),
+              style: ShadTheme.of(context).textTheme.muted,
+            ),
+          ),
         if (_notice != null)
           Padding(
             padding: const EdgeInsets.only(top: AppSpacing.sm),
@@ -545,7 +658,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
       SubtitleRunStatus.cancelling => l.asrCancelling,
       SubtitleRunStatus.cancelled => l.asrCancelled,
       SubtitleRunStatus.succeeded => l.asrSucceeded,
-      SubtitleRunStatus.failed => l.asrFailed(_reason(s.error ?? 'internal_error')),
+      SubtitleRunStatus.failed => l.asrFailed(
+        _reason(s.error ?? 'internal_error'),
+      ),
       SubtitleRunStatus.interrupted => l.asrFailed('interrupted'),
     };
     return Column(
@@ -581,8 +696,15 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         _kv(l.asrAudioTrack, '#${a.trackIndex}'),
-        _kv(l.asrAudioFormat, '${a.sampleRate} Hz · ${l.asrChannels(a.channels)} · PCM s16 WAV'),
-        _kv(l.asrDuration, clock(a.durationMs), key: const ValueKey('asr-audio-duration')),
+        _kv(
+          l.asrAudioFormat,
+          '${a.sampleRate} Hz · ${l.asrChannels(a.channels)} · PCM s16 WAV',
+        ),
+        _kv(
+          l.asrDuration,
+          clock(a.durationMs),
+          key: const ValueKey('asr-audio-duration'),
+        ),
         _kv(l.asrAudioSize, bytes(a.bytes)),
         if (a.reused) _kv('', l.asrAudioReused),
       ],
@@ -601,7 +723,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(
-          t.wholeMedia ? l.asrWholeResult : l.asrPartialResult(clock(t.rangeStartMs), clock(t.rangeEndMs)),
+          t.wholeMedia
+              ? l.asrWholeResult
+              : l.asrPartialResult(clock(t.rangeStartMs), clock(t.rangeEndMs)),
           style: theme.textTheme.muted,
         ),
         const SizedBox(height: AppSpacing.sm),
@@ -621,7 +745,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
                         width: 210,
                         child: Text(
                           '${clock(seg.startMs)} → ${clock(seg.endMs)}',
-                          style: theme.textTheme.muted.copyWith(fontFeatures: const [FontFeature.tabularFigures()]),
+                          style: theme.textTheme.muted.copyWith(
+                            fontFeatures: const [FontFeature.tabularFigures()],
+                          ),
                         ),
                       ),
                       Expanded(child: SelectableText(seg.text)),

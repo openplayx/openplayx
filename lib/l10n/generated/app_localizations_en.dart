@@ -1706,8 +1706,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get asrErrorDurationUnknown => 'Duration unknown.';
 
   @override
-  String get asrErrorModelMissing =>
-      'Model not installed: install it in Settings → Speech recognition.';
+  String get asrErrorModelMissing => 'Model not installed.';
 
   @override
   String get asrErrorEngineUnavailable =>
@@ -1812,4 +1811,15 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get asrAllowHttpHint =>
       'Audio would travel unencrypted. HTTPS certificate checks are never disabled.';
+
+  @override
+  String get asrInstallModel => 'Install or choose a model';
+
+  @override
+  String get asrRecheck => 'Check again';
+
+  @override
+  String asrTranscribeBlocked(String reason) {
+    return 'Recognition unavailable: $reason';
+  }
 }

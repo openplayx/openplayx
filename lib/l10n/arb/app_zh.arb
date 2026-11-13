@@ -653,7 +653,7 @@
   "asrUploadAuthorized": "已授权上传",
   "asrErrorNoAudio": "该资源没有音轨。",
   "asrErrorDurationUnknown": "时长未知。",
-  "asrErrorModelMissing": "模型未安装：请在 设置 → 语音识别 中安装。",
+  "asrErrorModelMissing": "模型未安装。",
   "asrErrorEngineUnavailable": "此构建未包含本机识别引擎。",
   "asrErrorUnreachable": "服务不可达。",
   "asrErrorUnauthorized": "服务拒绝了凭据。",
@@ -684,5 +684,8 @@
   "asrServiceUrlInvalid": "请输入不含凭据的 https:// 地址（仅在下方允许时可用 http://）。",
   "asrServiceInvalid": "请检查模型与语言。",
   "asrAllowHttp": "允许未加密 HTTP（仅局域网）",
-  "asrAllowHttpHint": "音频将以明文传输。HTTPS 证书校验不会被关闭。"
+  "asrAllowHttpHint": "音频将以明文传输。HTTPS 证书校验不会被关闭。",
+  "asrInstallModel": "安装或选择模型",
+  "asrRecheck": "重新检查",
+  "asrTranscribeBlocked": "暂不能识别：{reason}"
 }

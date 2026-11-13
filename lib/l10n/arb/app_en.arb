@@ -753,7 +753,7 @@
   "asrUploadAuthorized": "uploads allowed",
   "asrErrorNoAudio": "This resource has no audio track.",
   "asrErrorDurationUnknown": "Duration unknown.",
-  "asrErrorModelMissing": "Model not installed: install it in Settings → Speech recognition.",
+  "asrErrorModelMissing": "Model not installed.",
   "asrErrorEngineUnavailable": "This build has no on-device recognizer.",
   "asrErrorUnreachable": "Service unreachable.",
   "asrErrorUnauthorized": "Service rejected the credentials.",
@@ -785,5 +785,9 @@
   "asrServiceUrlInvalid": "Enter an https:// URL without credentials (http:// only when allowed below).",
   "asrServiceInvalid": "Check the model and language.",
   "asrAllowHttp": "Allow plain HTTP (LAN only)",
-  "asrAllowHttpHint": "Audio would travel unencrypted. HTTPS certificate checks are never disabled."
+  "asrAllowHttpHint": "Audio would travel unencrypted. HTTPS certificate checks are never disabled.",
+  "asrInstallModel": "Install or choose a model",
+  "asrRecheck": "Check again",
+  "asrTranscribeBlocked": "Recognition unavailable: {reason}",
+  "@asrTranscribeBlocked": {"placeholders": {"reason": {"type": "String"}}}
 }

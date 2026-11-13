@@ -653,7 +653,7 @@
   "asrUploadAuthorized": "已授權上傳",
   "asrErrorNoAudio": "此資源沒有音軌。",
   "asrErrorDurationUnknown": "時長未知。",
-  "asrErrorModelMissing": "模型未安裝：請在 設定 → 語音辨識 中安裝。",
+  "asrErrorModelMissing": "模型未安裝。",
   "asrErrorEngineUnavailable": "此版本未包含本機辨識引擎。",
   "asrErrorUnreachable": "服務無法連線。",
   "asrErrorUnauthorized": "服務拒絕了憑證。",
@@ -684,5 +684,8 @@
   "asrServiceUrlInvalid": "請輸入不含憑證的 https:// 位址（僅在下方允許時可用 http://）。",
   "asrServiceInvalid": "請檢查模型與語言。",
   "asrAllowHttp": "允許未加密 HTTP（僅區域網路）",
-  "asrAllowHttpHint": "音訊將以明文傳輸。HTTPS 憑證驗證不會被關閉。"
+  "asrAllowHttpHint": "音訊將以明文傳輸。HTTPS 憑證驗證不會被關閉。",
+  "asrInstallModel": "安裝或選擇模型",
+  "asrRecheck": "重新檢查",
+  "asrTranscribeBlocked": "暫不能辨識：{reason}"
 }

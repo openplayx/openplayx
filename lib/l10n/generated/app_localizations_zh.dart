@@ -1630,7 +1630,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get asrErrorDurationUnknown => '时长未知。';
 
   @override
-  String get asrErrorModelMissing => '模型未安装：请在 设置 → 语音识别 中安装。';
+  String get asrErrorModelMissing => '模型未安装。';
 
   @override
   String get asrErrorEngineUnavailable => '此构建未包含本机识别引擎。';
@@ -1726,6 +1726,17 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get asrAllowHttpHint => '音频将以明文传输。HTTPS 证书校验不会被关闭。';
+
+  @override
+  String get asrInstallModel => '安装或选择模型';
+
+  @override
+  String get asrRecheck => '重新检查';
+
+  @override
+  String asrTranscribeBlocked(String reason) {
+    return '暂不能识别：$reason';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -3353,7 +3364,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get asrErrorDurationUnknown => '时长未知。';
 
   @override
-  String get asrErrorModelMissing => '模型未安装：请在 设置 → 语音识别 中安装。';
+  String get asrErrorModelMissing => '模型未安装。';
 
   @override
   String get asrErrorEngineUnavailable => '此构建未包含本机识别引擎。';
@@ -3449,6 +3460,17 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get asrAllowHttpHint => '音频将以明文传输。HTTPS 证书校验不会被关闭。';
+
+  @override
+  String get asrInstallModel => '安装或选择模型';
+
+  @override
+  String get asrRecheck => '重新检查';
+
+  @override
+  String asrTranscribeBlocked(String reason) {
+    return '暂不能识别：$reason';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5076,7 +5098,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get asrErrorDurationUnknown => '時長未知。';
 
   @override
-  String get asrErrorModelMissing => '模型未安裝：請在 設定 → 語音辨識 中安裝。';
+  String get asrErrorModelMissing => '模型未安裝。';
 
   @override
   String get asrErrorEngineUnavailable => '此版本未包含本機辨識引擎。';
@@ -5172,4 +5194,15 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get asrAllowHttpHint => '音訊將以明文傳輸。HTTPS 憑證驗證不會被關閉。';
+
+  @override
+  String get asrInstallModel => '安裝或選擇模型';
+
+  @override
+  String get asrRecheck => '重新檢查';
+
+  @override
+  String asrTranscribeBlocked(String reason) {
+    return '暫不能辨識：$reason';
+  }
 }
