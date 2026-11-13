@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import '../../core/plugins/source_capability.dart';
@@ -5,6 +6,7 @@ import '../../data/sources/source_manager.dart';
 import '../library/library_service.dart';
 import '../media_processing/media_processing_service.dart';
 import 'media_tools.dart';
+import 'task_wait.dart';
 import 'tool_registry.dart';
 import '../../core/plugins/plugin_gate.dart';
 
@@ -18,6 +20,7 @@ class MediaProcessingTools {
     required this.library,
     required this.sources,
     required this.entryForReference,
+    this.issueReference,
     this.canExecute,
   }) {
     _register();
@@ -28,6 +31,10 @@ class MediaProcessingTools {
   final LibraryService library;
   final SourceManager sources;
   final SourceEntry? Function(String) entryForReference;
+
+  /// Hands out a `ref` for a new entry (shared with browse/search refs), so
+  /// a clip saved to a source is usable by probe, subtitles and playback.
+  final Map<String, dynamic> Function(SourceEntry)? issueReference;
   final bool Function()? canExecute;
 
   /// Opaque track references → (resource key, stream index).
@@ -148,6 +155,8 @@ class MediaProcessingTools {
     Future<Map<String, dynamic>> Function(Map<String, dynamic>) execute, {
     bool readOnly = true,
     bool always = false,
+    bool confirmation = false,
+    Duration? timeout,
   }) => registry.register(
     RegisteredTool(
       name,
@@ -155,9 +164,49 @@ class MediaProcessingTools {
       fields,
       (a) => _guard(() => execute(a)),
       readOnly: readOnly,
+      confirmation: confirmation,
+      timeout: timeout,
       available: always ? null : () => service.available,
     ),
   );
+
+  /// Waits on a submitted task (see [TaskWait]); the task keeps running if
+  /// the wait ends first.
+  Future<Map<String, dynamic>> _wait(Map<String, dynamic> task, Object? s) =>
+      TaskWait.until(
+        taskId: task['task_id'] as String,
+        read: () => service.task(task['task_id'] as String),
+        changes: service.changes,
+        seconds: s as int? ?? TaskWait.defaultSeconds,
+      );
+
+  static String _clock(int ms) {
+    final s = ms ~/ 1000;
+    String two(int v) => v.toString().padLeft(2, '0');
+    return s >= 3600
+        ? '${s ~/ 3600}h${two(s ~/ 60 % 60)}m${two(s % 60)}s'
+        : '${two(s ~/ 60)}m${two(s % 60)}s';
+  }
+
+  /// Host-built name: source title + range, never model-provided text.
+  static String clipName(
+    String resourceName,
+    int? startMs,
+    int? endMs,
+    String ext,
+  ) {
+    final base = resourceName.replaceAll('\\', '/').split('/').last;
+    final dot = base.lastIndexOf('.');
+    var stem = (dot > 0 ? base.substring(0, dot) : base)
+        .replaceAll(RegExp(r'[/\\:*?"<>|\x00-\x1f]'), '_')
+        .trim();
+    if (stem.length > 120) stem = stem.substring(0, 120);
+    if (stem.isEmpty || stem.startsWith('.')) stem = 'clip$stem';
+    final range = startMs == null && endMs == null
+        ? 'clip'
+        : 'clip ${_clock(startMs ?? 0)}-${endMs == null ? 'end' : _clock(endMs)}';
+    return '$stem [$range].$ext';
+  }
 
   void _register() {
     _add(
@@ -271,9 +320,12 @@ class MediaProcessingTools {
         'end_ms': _ms,
         'audio_track_ref': _track,
         'subtitle_track_ref': _track,
+        'wait_seconds': TaskWait.field,
       },
-      (a) async => submit(a, MediaOperation.transcode),
+      (a) async =>
+          _wait(submit(a, MediaOperation.transcode), a['wait_seconds']),
       readOnly: false,
+      timeout: TaskWait.toolTimeout,
     );
     _add(
       'media_extract_audio',
@@ -285,9 +337,12 @@ class MediaProcessingTools {
         'audio_track_ref': _track,
         'start_ms': _ms,
         'end_ms': _ms,
+        'wait_seconds': TaskWait.field,
       },
-      (a) async => submit(a, MediaOperation.extractAudio),
+      (a) async =>
+          _wait(submit(a, MediaOperation.extractAudio), a['wait_seconds']),
       readOnly: false,
+      timeout: TaskWait.toolTimeout,
     );
     _add(
       'media_snapshot',
@@ -308,13 +363,66 @@ class MediaProcessingTools {
     );
     _add(
       'task_get',
-      'Get a media processing task: status, progress, error and artifact_ref.',
-      {'task_id': const ToolField('string', required: true, maxLength: 64)},
+      'Get a media processing task: status, progress, error and artifact_ref. wait_seconds (max 120) waits for it to finish; the task keeps running if the wait ends first.',
+      {
+        'task_id': const ToolField('string', required: true, maxLength: 64),
+        'wait_seconds': TaskWait.field,
+      },
       (a) async {
         final t = service.task(a['task_id'] as String);
         if (t == null) throw const ToolFailure('notFound');
-        return t;
+        return _wait(t, a['wait_seconds'] ?? 0);
       },
+      timeout: TaskWait.toolTimeout,
+    );
+    _add(
+      'media_save_to_source',
+      'Save a succeeded transcode (e.g. a clip) as a new file in the "OpenPlayX" folder of the same share as its source media. Never overwrites; asks the user to confirm. Returns a ref usable by media_probe, subtitle_generate and playback_open.',
+      {'task_id': const ToolField('string', required: true, maxLength: 64)},
+      (a) async {
+        if (!_active) throw const ToolFailure('cancelled');
+        final out = service.taskOutput(a['task_id'] as String);
+        if (out == null) throw const ToolFailure('taskNotSucceeded');
+        if (out.input.instanceId == '@local') {
+          throw const ToolFailure('sourceNotWritable');
+        }
+        final config = sources.configs
+            .where((c) => c.id == out.input.instanceId && c.enabled)
+            .firstOrNull;
+        if (config == null) throw const ToolFailure('unavailable');
+        if (!PluginGate.ai(
+          config.pluginId,
+          instanceId: config.id,
+          capability: 'source.write',
+        )) {
+          // Opt-in: Settings → 插件管理 → <source> → AI 调用 → 写入新文件.
+          throw const ToolFailure('permissionDenied:source.write');
+        }
+        final file = File(out.path);
+        final name = clipName(
+          out.name,
+          out.startMs,
+          out.endMs,
+          out.path.split('.').last,
+        );
+        final SourceEntry entry;
+        try {
+          entry = await sources.writeNewFile(out.input, name, file);
+        } on PluginException catch (e) {
+          throw ToolFailure(e.code);
+        }
+        return {
+          'saved': true,
+          'folder': SourceWriteCapability.folderName,
+          'name': MediaTools.safeText(entry.name),
+          'bytes': await file.length(),
+          ...?issueReference?.call(entry),
+        };
+      },
+      readOnly: false,
+      confirmation: true,
+      always: true,
+      timeout: const Duration(minutes: 30),
     );
     _add(
       'task_list',

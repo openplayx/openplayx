@@ -141,4 +141,65 @@ void main() {
     expect(find.text('识别字幕'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+
+  testWidgets('assistant shows the newest saved subtitle, a named one, or '
+      'none', (tester) async {
+    final library = LibraryService(sqlite3.openInMemory());
+    addTearDown(library.close);
+    _schema(library.db);
+    final srt = File('${tmp.path}/rec.srt')
+      ..writeAsStringSync('1\n00:00:01,000 --> 00:00:02,000\nhi\n');
+    _bind(library.db, 'b1', srt.path, '/demo.mp4');
+    final backend = _ExternalBackend();
+    await tester.pumpWidget(TestApp(
+      home: PlayerPage(
+        backend: backend,
+        libraryService: library,
+        pickMedia: () async => LocalMedia(Uri.file('/demo.mp4'), 'demo.mp4'),
+      ),
+    ));
+    await tester.pumpAndSettle();
+    final state = tester.state<PlayerPageState>(find.byType(PlayerPage));
+    await state.openFile();
+    await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 100)));
+    await tester.pumpAndSettle();
+    final session = state.assistantSnapshot()['session_id'];
+
+    Future<Map<String, dynamic>> control(Map<String, dynamic> args) async {
+      late Map<String, dynamic> result;
+      await tester.runAsync(() async {
+        result = await state.assistantControl('set_subtitle', {
+          'session_id': session,
+          ...args,
+        });
+      });
+      await tester.pumpAndSettle();
+      return result;
+    }
+
+    expect((await control({}))['subtitle'], {
+      'kind': 'recognized',
+      'binding_id': 'b1',
+    });
+    expect(backend.added, [Uri.file(srt.path)]);
+    expect((await control({'off': true}))['subtitle'], {
+      'kind': 'off_or_default',
+    });
+    await control({'binding_id': 'b1'});
+    expect(backend.added, hasLength(1)); // switched back without re-adding
+    Object? error;
+    await tester.runAsync(() async {
+      try {
+        await state.assistantControl('set_subtitle', {
+          'session_id': session,
+          'binding_id': 'other',
+        });
+      } catch (e) {
+        error = e;
+      }
+    });
+    expect(error, isA<StateError>());
+    expect((error as StateError).message, 'subtitleNotFound');
+    await tester.pumpWidget(const SizedBox());
+  });
 }

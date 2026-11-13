@@ -1,6 +1,6 @@
 # 前端设计系统接入
 
-依据工作区 `design/tech/frontend_design_system.md`，对现有 Flutter 前端统一接入 shadcn_ui。没有创建尚未实现的 AI、搜索、任务或插件界面入口。
+依据工作区 `design/ui/frontend_design_system.md`，对现有 Flutter 前端统一接入 shadcn_ui。没有创建尚未实现的 AI、搜索、任务或插件界面入口。
 
 ## 分支
 

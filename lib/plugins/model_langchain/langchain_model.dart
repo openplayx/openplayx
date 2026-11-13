@@ -63,6 +63,12 @@ class LangChainModel implements TextModelCapability {
             );
         if (receivedCharacters > 64000) throw const ModelFailure('outputLimit');
         merged = merged?.concat(chunk) ?? chunk;
+        for (final block
+            in chunk.output.content.whereType<AIChatMessageReasoningBlock>()) {
+          if (block.reasoning.isNotEmpty) {
+            yield ModelReasoningDelta(block.reasoning);
+          }
+        }
         for (final call in chunk.output.toolCalls) {
           yield ModelToolFragment(
             call.index,

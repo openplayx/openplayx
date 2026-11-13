@@ -539,6 +539,49 @@ class SourceManager {
     );
   });
 
+  /// Writes [source] as a new file into the host-chosen `OpenPlayX` folder
+  /// of [near]'s share and returns the new entry. Never overwrites. Uses its
+  /// own size-based timeout instead of the short browse timeout.
+  Future<SourceEntry> writeNewFile(
+    ResourceRef near,
+    String name,
+    File source,
+  ) async {
+    await load();
+    final config = _config(near.instanceId);
+    final runtime = await _runtime(near.instanceId);
+    final provider = runtime.provider;
+    if (provider is! SourceWriteCapability) {
+      throw const PluginException('unsupported', '此来源不支持写入。');
+    }
+    final bytes = await source.length();
+    // 30 s plus 1 MB/s worst case; a LAN SMB write is far faster.
+    final limit = Duration(seconds: 30 + bytes ~/ (1024 * 1024));
+    final entry = await runtime
+        .run(
+          () => (provider as SourceWriteCapability).writeNewFile(
+            near,
+            name,
+            source,
+            CallContext.forInstance(near.instanceId),
+          ),
+        )
+        .timeout(
+          limit,
+          onTimeout: () => throw const PluginException(
+            'timeout',
+            '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。',
+          ),
+        );
+    if (!_disposed &&
+        _configs.any(
+          (c) => c.id == config.id && c.revision == config.revision,
+        )) {
+      _configuration!.markApplication(config, 'ready');
+    }
+    return entry;
+  }
+
   /// The App-wide Relay connection (sing-box outbound + frpc proxies).
   RemoteNetwork get remoteNetwork => _remote?.network ?? const RemoteNetwork();
 

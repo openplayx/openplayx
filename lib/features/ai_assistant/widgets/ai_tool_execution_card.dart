@@ -7,6 +7,8 @@ import '../../../ui/icons/app_icons.dart';
 import '../../settings/torrent_service_settings_page.dart'
     show torrentHoldLabels, torrentStateLabels;
 import '../models/ai_chat_part.dart';
+import '../models/ai_tool_labels.dart';
+import 'ai_activity.dart';
 
 typedef OpenChatMedia = Future<void> Function(Map<String, dynamic> media);
 
@@ -169,10 +171,26 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
                     : AppIcons.preferences,
                 size: 18,
               ),
-              Text(l.aiToolResult, style: theme.textTheme.small),
+              Text(
+                p.tool == null
+                    ? l.aiToolResult
+                    : AiToolLabels.tool(context, p.tool),
+                style: theme.textTheme.small,
+              ),
               ShadBadge.secondary(child: Text(label)),
+              if (phase == AiToolPhase.running)
+                AiElapsed(
+                  since: p.turn.activitySince,
+                  style: theme.textTheme.muted,
+                ),
             ],
           ),
+          if (AiToolLabels.arguments(context, p.arguments)
+              case final String args when args.isNotEmpty)
+            Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Text(args, style: theme.textTheme.muted),
+            ),
           if (pending != null) ...[
             const SizedBox(height: 12),
             Text(l.aiConfirmAction, style: theme.textTheme.large),
@@ -215,11 +233,36 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
                 ),
               ],
             ),
-          ] else if (phase == AiToolPhase.running ||
+          ] else if (phase == AiToolPhase.running && p.progress != null)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  Text(
+                    AiToolLabels.progress(context, p.progress!),
+                    style: theme.textTheme.muted,
+                  ),
+                  const SizedBox(height: 4),
+                  ShadProgress(
+                    value: (p.progress!['progress'] as num?)?.toDouble(),
+                  ),
+                ],
+              ),
+            )
+          else if (phase == AiToolPhase.running ||
               phase == AiToolPhase.preparing)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(l.aiToolSummary, style: theme.textTheme.muted),
+              child: Row(
+                children: [
+                  const AiTypingDots(size: 4),
+                  const SizedBox(width: 8),
+                  Expanded(
+                    child: Text(l.aiToolSummary, style: theme.textTheme.muted),
+                  ),
+                ],
+              ),
             ),
           for (final t in _torrentRows(p.data)) _torrentCard(t, theme),
           for (final row in rows)
@@ -287,7 +330,21 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
           if (p.data['task_id'] is String)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(l.aiTaskSubmitted),
+              child: Text(
+                p.data['wait_timed_out'] == true
+                    ? '${AiToolLabels.stillRunning(context)} · ${AiToolLabels.progress(context, p.data)}'
+                    : p.data['status'] is String
+                    ? AiToolLabels.progress(context, p.data)
+                    : l.aiTaskSubmitted,
+              ),
+            ),
+          if (p.tool == 'media_save_to_source' && p.data['name'] is String)
+            Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: Text(
+                '${p.data['folder'] ?? 'OpenPlayX'}/${_safe(p.data['name'])}',
+                style: theme.textTheme.small,
+              ),
             ),
           if (p.data['next_offset'] != null ||
               p.data['library_next_offset'] != null)
@@ -295,7 +352,12 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
           if (phase == AiToolPhase.failed)
             Padding(
               padding: const EdgeInsets.only(top: 8),
-              child: Text(l.aiToolFailed, style: theme.textTheme.muted),
+              child: Text(
+                p.text.isEmpty
+                    ? l.aiToolFailed
+                    : '${l.aiToolFailed} · ${_safe(p.text)}',
+                style: theme.textTheme.muted,
+              ),
             ),
         ],
       ),

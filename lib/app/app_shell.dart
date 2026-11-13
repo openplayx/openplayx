@@ -255,6 +255,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               }
               try {
                 return await player.assistantControl(command, args);
+              } on StateError catch (e) {
+                // Short codes such as staleSession or noSavedSubtitle.
+                throw ToolFailure(
+                  RegExp(r'^[a-zA-Z]{1,40}$').hasMatch(e.message)
+                      ? e.message
+                      : 'playbackRejected',
+                );
               } catch (_) {
                 throw const ToolFailure('playbackRejected');
               }
@@ -304,6 +311,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         library: library,
         sources: _sources,
         entryForReference: tools.entryForReference,
+        issueReference: tools.issueReference,
         canExecute: () => _assistant?.acceptingActions ?? false,
       );
       final subtitles = _subtitles;

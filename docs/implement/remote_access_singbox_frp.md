@@ -1,6 +1,6 @@
 # sing-box + frp 远程来源访问
 
-对应设计：`design/tech/remote_access_singbox_frp.md`。本次实现采用设计中“先完成浏览与播放前路径选择”的顺序；真实跨境网络仍需验收。
+对应设计：`design/network/remote_access_singbox_frp.md`。本次实现采用设计中“先完成浏览与播放前路径选择”的顺序；真实跨境网络仍需验收。
 
 ## 已实现
 

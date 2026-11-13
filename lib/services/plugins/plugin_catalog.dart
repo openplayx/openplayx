@@ -45,6 +45,7 @@ class PluginCapabilityInfo {
     this.taskTools = const [],
     this.uploads = false,
     this.writes = false,
+    this.optIn = false,
   });
   final String id;
   final String label;
@@ -58,6 +59,10 @@ class PluginCapabilityInfo {
 
   /// Changes state outside the App (downloads, deletions on a server).
   final bool writes;
+
+  /// Never covered by an existing AI grant: the user turns it on explicitly
+  /// (so adding a capability in an update never widens access).
+  final bool optIn;
 
   bool get hasAiTools =>
       tools.isNotEmpty || routedTools.isNotEmpty || taskTools.isNotEmpty;
@@ -169,6 +174,14 @@ const _sourceCapabilities = {
     'metadata.lookup',
     '影视信息',
     '读取媒体服务器整理好的影视信息',
+  ),
+  'source.write': PluginCapabilityInfo(
+    'source.write',
+    '写入新文件',
+    '把 App 生成的片段写到同一共享的 OpenPlayX 文件夹；不覆盖、不删除，每次需确认',
+    routedTools: ['media_save_to_source'],
+    writes: true,
+    optIn: true,
   ),
 };
 

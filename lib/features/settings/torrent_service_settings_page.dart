@@ -342,49 +342,81 @@ class _TorrentServiceSettingsPageState
     await _refresh(force: true);
   });
 
+  /// One dialog: what is removed, with an opt-in "also delete files" box.
+  /// Returns null when cancelled, otherwise whether to delete the files.
+  Future<bool?> _confirmRemove(
+    TorrentServiceConfig server,
+    Map<String, dynamic> plan,
+  ) {
+    var deleteFiles = false;
+    final size = formatBytes(plan['bytes_on_disk'] as num?);
+    final count = plan['files_on_disk'] ?? 0;
+    return showShadDialog<bool>(
+      context: context,
+      builder: (c) => StatefulBuilder(
+        builder: (c, setLocal) => ShadDialog(
+          title: Text(deleteFiles ? '移除任务并删除文件？' : '移除下载任务？'),
+          description: Text(
+            deleteFiles
+                ? '「${plan['task_name']}」将从服务器移除，并删除已下载的 $count 个文件（$size），不可恢复。媒体库不受影响。'
+                : '「${plan['task_name']}」将从服务器移除，已下载的 $size 文件保留在服务器上。',
+          ),
+          actions: [
+            ShadButton.ghost(
+              key: const ValueKey('torrent-remove-cancel'),
+              onPressed: () => Navigator.pop(c),
+              child: const Text('取消'),
+            ),
+            deleteFiles
+                ? ShadButton.destructive(
+                    key: const ValueKey('torrent-remove-confirm'),
+                    onPressed: () => Navigator.pop(c, true),
+                    child: const Text('删除'),
+                  )
+                : ShadButton(
+                    key: const ValueKey('torrent-remove-confirm'),
+                    onPressed: () => Navigator.pop(c, false),
+                    child: const Text('移除'),
+                  ),
+          ],
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: ShadCheckbox(
+              key: const ValueKey('torrent-remove-delete-files'),
+              value: deleteFiles,
+              enabled: server.allowDeleteFiles,
+              onChanged: (v) => setLocal(() => deleteFiles = v),
+              label: Text('同时删除已下载的文件（$size）'),
+              sublabel: server.allowDeleteFiles
+                  ? null
+                  : const Text('需先在服务设置中打开“允许删除服务器文件”'),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Future<void> _remove(
     TorrentServiceConfig server,
     Map<String, dynamic> task,
-  ) async {
-    var deleteFiles = false;
-    if (server.allowDeleteFiles) {
-      String? choice;
-      await showSettingsActionSheet(
-        context,
-        title: '移除「${task['name']}」',
-        message: '移除服务器下载任务。默认保留已下载的文件。',
-        actions: [
-          SettingsSheetAction('移除任务，保留文件', () => choice = 'keep'),
-          SettingsSheetAction(
-            '移除任务并删除文件',
-            () => choice = 'delete',
-            destructive: true,
-          ),
-        ],
-      );
-      if (choice == null) return;
-      deleteFiles = choice == 'delete';
-    }
+  ) => _run(() async {
+    final client = await _store.client(server.id);
+    final id = task['id'] as String;
+    // Preview first (sizes, name), then ask once.
+    var plan = await client.removePlan(id, false);
     if (!mounted) return;
-    await _run(() async {
-      final client = await _store.client(server.id);
-      final plan = await client.removePlan(task['id'] as String, deleteFiles);
-      if (!mounted) return;
-      final ok = await showSettingsConfirm(
-        context,
-        title: deleteFiles ? '删除服务器上的文件？' : '移除下载任务？',
-        message: deleteFiles
-            ? '将删除「${plan['task_name']}」的 ${plan['files_on_disk']} 个文件（${formatBytes(plan['bytes_on_disk'] as num?)}），不可恢复。媒体库不受影响。'
-            : '任务从服务器移除，已下载的 ${formatBytes(plan['bytes_on_disk'] as num?)} 文件保留在服务器上。',
-        confirmLabel: deleteFiles ? '删除' : '移除',
-        cancelLabel: '取消',
-        destructive: deleteFiles,
-      );
-      if (!ok) return;
-      await client.remove(task['id'] as String, plan['plan_ref'] as String);
-      await _refresh(force: true);
-    }, done: '已移除。');
-  }
+    final deleteFiles = await _confirmRemove(server, plan);
+    if (deleteFiles == null) return;
+    if (deleteFiles) {
+      // The server binds the choice into the confirmation token.
+      plan = await client.removePlan(id, true);
+    }
+    final result = await client.remove(id, plan['plan_ref'] as String);
+    await _refresh(force: true);
+    _message = result['data_deleted'] == true ? '已移除并删除文件。' : '已移除，文件保留在服务器上。';
+    _error = false;
+  });
 
   Widget _task(TorrentServiceConfig server, Map<String, dynamic> t) {
     final theme = ShadTheme.of(context);

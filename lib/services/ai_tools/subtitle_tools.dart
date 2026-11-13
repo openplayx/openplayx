@@ -3,6 +3,7 @@ import '../subtitles/asr_backend_config.dart';
 import '../subtitles/subtitle_format.dart';
 import '../subtitles/subtitle_generation_service.dart';
 import 'media_processing_tools.dart';
+import 'task_wait.dart';
 import 'tool_registry.dart';
 
 /// `subtitle_generate` / `transcript_generate` (AI tool design) over the
@@ -32,6 +33,14 @@ class SubtitleTools {
 
   bool get _active => ToolExecution.active && (canExecute?.call() ?? true);
 
+  Future<Map<String, dynamic>> _wait(String taskId, Object? seconds) =>
+      TaskWait.until(
+        taskId: taskId,
+        read: () => service.task(taskId),
+        changes: service.changes,
+        seconds: seconds as int? ?? TaskWait.defaultSeconds,
+      );
+
   static bool _aiBackend(AsrBackendConfig c) => PluginGate.ai(
     c.pluginId,
     instanceId: c.id,
@@ -54,6 +63,7 @@ class SubtitleTools {
     Map<String, ToolField> fields,
     Future<Map<String, dynamic>> Function(Map<String, dynamic>) execute, {
     bool readOnly = true,
+    Duration? timeout,
   }) => registry.register(
     RegisteredTool(
       name,
@@ -61,6 +71,7 @@ class SubtitleTools {
       fields,
       (a) => _guard(() => execute(a)),
       readOnly: readOnly,
+      timeout: timeout,
       available: () => service.media.available,
     ),
   );
@@ -101,9 +112,11 @@ class SubtitleTools {
         subtitleOutput: subtitles,
       ),
     );
+    final task = await _wait(run.taskId, a['wait_seconds']);
     return {
-      ...service.task(run.taskId)!,
-      'note': 'Runs in the background. Poll subtitle_task_get sparingly (every 10 s or more). Results are not attached to the video until subtitle_save.',
+      ...task,
+      if (task['status'] == 'succeeded')
+        'next': 'Not attached to the video until subtitle_save.',
     };
   }
 
@@ -140,6 +153,7 @@ class SubtitleTools {
       'start_ms': _ms,
       'end_ms': _ms,
       'whole_media': const ToolField('boolean'),
+      'wait_seconds': TaskWait.field,
     };
     _add(
       'subtitle_generate',
@@ -147,6 +161,7 @@ class SubtitleTools {
       fields,
       (a) => _generate(a, subtitles: true),
       readOnly: false,
+      timeout: TaskWait.toolTimeout,
     );
     _add(
       'transcript_generate',
@@ -154,14 +169,14 @@ class SubtitleTools {
       fields,
       (a) => _generate(a, subtitles: false),
       readOnly: false,
+      timeout: TaskWait.toolTimeout,
     );
     _add(
       'subtitle_task_get',
-      'Get a subtitle/transcript task: status, stage, error, artifact refs.',
-      {'task_id': _id},
-      (a) async =>
-          service.task(a['task_id'] as String) ??
-          (throw const ToolFailure('notFound')),
+      'Get a subtitle/transcript task: status, stage, error, artifact refs. wait_seconds (max 120) waits for it to finish; the task keeps running if the wait ends first.',
+      {'task_id': _id, 'wait_seconds': TaskWait.field},
+      (a) async => _wait(a['task_id'] as String, a['wait_seconds'] ?? 0),
+      timeout: TaskWait.toolTimeout,
     );
     _add(
       'subtitle_task_cancel',

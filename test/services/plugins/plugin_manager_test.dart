@@ -216,6 +216,22 @@ void main() {
       );
     });
 
+    test('writing files is opt-in even for instances the AI already '
+        'uses', () async {
+      final manager = await _manager();
+      bool write() => manager.aiAllows(
+        'source.smb',
+        instanceId: 'home',
+        capability: 'source.write',
+      );
+      expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
+      expect(write(), isFalse);
+      manager.setAiCapability('source.smb', 'source.write', true);
+      expect(write(), isTrue);
+      manager.setAiCapability('source.smb', 'source.write', false);
+      expect(write(), isFalse);
+    });
+
     test('stale writes conflict instead of overwriting', () async {
       final store = MemoryPolicyStore();
       final manager = await _manager(store: store);

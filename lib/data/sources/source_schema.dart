@@ -11,6 +11,7 @@ class SourceSchemas {
       'source.browse',
       'source.resolve',
       if (kind != SourceKind.dlna) 'source.attachments',
+      if (kind == SourceKind.smb) 'source.write',
       if (kind.mediaBrowser || kind == SourceKind.plex) ...[
         'metadata.lookup',
         'search.media',

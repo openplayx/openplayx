@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'dart:io';
 
 import 'package:smb_connect/smb_connect.dart';
@@ -134,7 +135,11 @@ class LocalFolderPlugin
 }
 
 class SmbPlugin
-    implements Plugin, SourceCapability, SourceAttachmentCapability {
+    implements
+        Plugin,
+        SourceCapability,
+        SourceAttachmentCapability,
+        SourceWriteCapability {
   SmbPlugin(this.config, String password)
     : _access = SmbAccess(config, password);
   SmbPlugin.withAccess(this.config, this._access);
@@ -289,6 +294,103 @@ class SmbPlugin
         bytes.addAll(chunk);
       }
       return bytes;
+    });
+  }
+
+  static final _fileName = RegExp(r'^[^/\\:*?"<>|\x00-\x1f]{1,180}$');
+
+  @override
+  Future<SourceEntry> writeNewFile(
+    ResourceRef near,
+    String name,
+    File source,
+    CallContext context,
+  ) async {
+    checkOwnership(config.id, near, context);
+    final nearPath = _path(near.id);
+    if (!_fileName.hasMatch(name) || name.startsWith('.')) {
+      throw const PluginException('invalidInput', '文件名无效。');
+    }
+    final segments = nearPath.split('/').where((s) => s.isNotEmpty).toList();
+    if (segments.isEmpty) {
+      throw const PluginException('invalidInput', '无法确定要写入的共享。');
+    }
+    // Same share as the source media; the folder is fixed by the host.
+    final share = _root == '/' ? '/${segments.first}' : _root;
+    final folderPath = '$share/${SourceWriteCapability.folderName}';
+    _path(folderPath, directory: true);
+    _path('$folderPath/$name');
+    final length = await source.length();
+    final dot = name.lastIndexOf('.');
+    final stem = dot > 0 ? name.substring(0, dot) : name;
+    final ext = dot > 0 ? name.substring(dot) : '';
+    final token = List.generate(
+      12,
+      (_) => Random.secure().nextInt(16).toRadixString(16),
+    ).join();
+    final tmpPath = '$folderPath/.openplayx-$token.part';
+    return _access.run((c) async {
+      try {
+        final folder = await c.file(folderPath);
+        if (!folder.isExists) {
+          await c.createFolder(folderPath);
+        } else if (!folder.isDirectory()) {
+          throw const PluginException(
+            'conflict',
+            '共享中已有同名文件，无法创建 OpenPlayX 文件夹。',
+          );
+        }
+        var target = name;
+        for (var n = 2; (await c.file('$folderPath/$target')).isExists; n++) {
+          if (n > 99) {
+            throw const PluginException(
+              'conflict',
+              '同名文件过多，请先整理 OpenPlayX 文件夹。',
+            );
+          }
+          target = '$stem ($n)$ext';
+        }
+        if ((await c.file(tmpPath)).isExists) {
+          throw const PluginException('conflict', '临时文件名冲突，请重试。');
+        }
+        final tmp = await c.createFile(tmpPath);
+        try {
+          final sink = await c.openWrite(tmp);
+          try {
+            await sink.addStream(source.openRead());
+          } finally {
+            await sink.close();
+          }
+          final written = await c.file(tmpPath);
+          if (written.size != length) {
+            throw const PluginException('writeFailed', '上传不完整，已丢弃临时文件。');
+          }
+          // Server-side rename without replace: never overwrites a file
+          // that appeared meanwhile.
+          await c.rename(written, '$folderPath/$target');
+        } catch (_) {
+          try {
+            await c.delete(await c.file(tmpPath));
+          } catch (_) {}
+          rethrow;
+        }
+        final saved = await c.file('$folderPath/$target');
+        return SourceEntry(
+          ResourceRef(config.id, saved.path),
+          saved.name,
+          isFolder: false,
+        );
+      } on PluginException {
+        rethrow;
+      } catch (_) {
+        // Not retried by [SmbAccess.run]: a retry after a rename that did
+        // succeed would leave a duplicate copy.
+        throw const PluginException(
+          'writeFailed',
+          '写入 SMB 失败，请确认账号对该共享有写权限。',
+          retryable: true,
+        );
+      }
     });
   }
 

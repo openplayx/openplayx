@@ -166,6 +166,32 @@ class MediaProcessingService {
       _taskJson(row),
   ];
 
+  /// Input resource, range and output file of a finished task, for host
+  /// flows such as saving a clip back to the source. Null until the task
+  /// succeeded with an artifact on disk.
+  ({ResourceRef input, String name, int? startMs, int? endMs, String path})?
+  taskOutput(String taskId) {
+    final rows = db.select(
+      '''SELECT t.resource_source, t.resource_item, t.resource_name, t.params,
+         a.path FROM processing_tasks t JOIN media_artifacts a
+         ON a.id = t.artifact_id WHERE t.id=? AND t.state='succeeded' ''',
+      [taskId],
+    );
+    if (rows.isEmpty) return null;
+    final r = rows.first;
+    final p = jsonDecode(r['params'] as String) as Map<String, dynamic>;
+    return (
+      input: ResourceRef(
+        r['resource_source'] as String,
+        r['resource_item'] as String,
+      ),
+      name: r['resource_name'] as String,
+      startMs: (p['start_us'] as int?) == null ? null : p['start_us'] ~/ 1000,
+      endMs: (p['end_us'] as int?) == null ? null : p['end_us'] ~/ 1000,
+      path: r['path'] as String,
+    );
+  }
+
   /// Internal artifact location for host-side preview/export flows only.
   String? artifactPath(String artifactId) {
     final rows = db.select('SELECT path FROM media_artifacts WHERE id=?', [

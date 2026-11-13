@@ -6,7 +6,7 @@
 
 页面 → `SourceManager`（Plugin Manager）→ `SourceConfigurationService`（SQLite）及 `SourceCredentialBroker`（系统安全存储）。插件只获得当前实例的不可变配置快照、凭据引用和宿主创建的连接客户端；本地目录书签不传入插件，密码/令牌不进入配置 JSON。
 
-添加表单参考 `design/search/vidhub-infuse-file-source-research.md` 收敛：本地目录使用系统选择器；SMB 默认仅显示地址、用户名、密码，路径和工作组折叠在“高级”；Jellyfin 使用用户名和密码登录，HTTPS、端口和子路径置于“高级”；Plex 使用官方 PIN 授权后选择服务器，不要求手工提取 Token。名称留空时自动采用文件夹、主机或服务器名。SMB 未指定共享目录时通过 listShares 浏览共享列表。
+添加表单参考 `design/research/vidhub-infuse-file-source-research.md` 收敛：本地目录使用系统选择器；SMB 默认仅显示地址、用户名、密码，路径和工作组折叠在“高级”；Jellyfin 使用用户名和密码登录，HTTPS、端口和子路径置于“高级”；Plex 使用官方 PIN 授权后选择服务器，不要求手工提取 Token。名称留空时自动采用文件夹、主机或服务器名。SMB 未指定共享目录时通过 listShares 浏览共享列表。
 
 `SourceConnection` 负责把主机、端口、路径和安全方式组装到现有地址模型，接受粘贴完整 URL。`SourceSignIn` 负责 Jellyfin 登录及 Plex PIN、服务器发现和连接探测；Jellyfin 密码和 Plex 账号令牌只在内存中使用，安全存储仅保存对应服务器的会话凭据。旧的用户 ID/Token 配置继续可读，编辑原连接不要求重复输入。Plex 高级项保留手动连接以兼容既有配置。
 

@@ -399,11 +399,14 @@ class _PluginDetailViewState extends State<PluginDetailView> {
               key: ValueKey('plugin-ai-capability-${c.id}'),
               title: '能力：${c.label}',
               description: [
+                if (c.optIn) '需单独开启',
                 if (c.uploads) '会上传数据',
                 if (c.writes) '会改变状态',
               ].join(' · ').ifEmpty(null),
               control: ShadSwitch(
-                value: !ai.deniedCapabilities.contains(c.id),
+                value: c.optIn
+                    ? ai.grantedCapabilities.contains(c.id)
+                    : !ai.deniedCapabilities.contains(c.id),
                 onChanged: (v) =>
                     _run(() async => manager.setAiCapability(s.id, c.id, v)),
               ),

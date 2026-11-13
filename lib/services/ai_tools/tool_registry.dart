@@ -9,12 +9,20 @@ import '../../core/models/text_model.dart';
 /// A timed-out resolver cannot start playback later, even in a new user turn.
 class ToolExecution {
   static final Object _key = Object();
+  static final Object _progressKey = Object();
   static bool get active =>
       (Zone.current[_key] as bool Function()?)?.call() ?? true;
   static Future<T> run<T>(
     Future<T> Function() action,
-    bool Function() active,
-  ) => runZoned(action, zoneValues: {_key: active});
+    bool Function() active, {
+    void Function(Map<String, dynamic>)? progress,
+  }) => runZoned(action, zoneValues: {_key: active, _progressKey: ?progress});
+
+  /// Live progress of the running tool (e.g. a task it waits on), shown on
+  /// its card. Display only: never sent to the model.
+  static void report(Map<String, dynamic> progress) =>
+      (Zone.current[_progressKey] as void Function(Map<String, dynamic>)?)
+          ?.call(progress);
 }
 
 class ToolFailure implements Exception {
@@ -72,6 +80,7 @@ class RegisteredTool {
     this.available,
     this.confirmation = false,
     this.readOnly = true,
+    this.timeout,
   }) {
     if (!RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(name) ||
         fields.values.any(
@@ -87,6 +96,10 @@ class RegisteredTool {
   final bool Function()? available;
   final bool confirmation;
   final bool readOnly;
+
+  /// Overrides the gateway timeout for tools that wait on background work
+  /// or upload; the work itself must stay cancellable via [ToolExecution].
+  final Duration? timeout;
   ModelTool get model => ModelTool(name, description, {
     'type': 'object',
     'properties': fields.map((k, v) => MapEntry(k, v.schema)),
@@ -140,8 +153,8 @@ abstract interface class ToolPolicy {
 class ToolRegistry {
   /// Upper bound of tools offered to a model in one request. Registration
   /// fails beyond it, so no tool is ever silently truncated away.
-  /// Media 17 + processing 9 + subtitles 6 + BitTorrent 13 + search 6
-  /// + plugin status 1 = 52.
+  /// Media 18 (incl. set subtitle) + processing 10 (incl. save to source)
+  /// + subtitles 6 + BitTorrent 13 + search 6 + plugin status 1 = 54.
   /// Mainstream model APIs accept well over a hundred tools.
   static const maxTools = 56;
   final _tools = <String, RegisteredTool>{};
@@ -223,6 +236,7 @@ class ToolGateway {
     required Set<String> allowed,
     required bool Function() active,
     required Future<bool> Function(String, Map<String, dynamic>) confirm,
+    void Function(Map<String, dynamic>)? progress,
   }) async {
     try {
       if (!active()) return ToolResult(call.id, 'cancelled');
@@ -269,17 +283,16 @@ class ToolGateway {
         if (recorded != null) return recorded;
         journal?.record(operation, ToolResult(call.id, 'pending'));
       }
-      final future = _execute(tool, args, call.id, active, confirm).then((
-        result,
-      ) {
-        if (!tool.readOnly) {
-          journal?.record(operation, result);
-          if (result.error == 'executionUnknown') {
-            _uncertain['$turn:$identity'] = result;
-          }
-        }
-        return result;
-      });
+      final future = _execute(tool, args, call.id, active, confirm, progress)
+          .then((result) {
+            if (!tool.readOnly) {
+              journal?.record(operation, result);
+              if (result.error == 'executionUnknown') {
+                _uncertain['$turn:$identity'] = result;
+              }
+            }
+            return result;
+          });
       if (!tool.readOnly) _operations[operation] = future;
       return await future;
     } on ToolFailure catch (e) {
@@ -295,6 +308,7 @@ class ToolGateway {
     String callId,
     bool Function() active,
     Future<bool> Function(String, Map<String, dynamic>) confirm,
+    void Function(Map<String, dynamic>)? progress,
   ) async {
     var running = true;
     try {
@@ -316,7 +330,8 @@ class ToolGateway {
       final data = await ToolExecution.run(
         () => tool.execute(args),
         () => running && active(),
-      ).timeout(timeout);
+        progress: progress,
+      ).timeout(tool.timeout ?? timeout);
       // Each business binding returns an explicit allowlist of fields.
       if (jsonEncode(data).length > 24000) {
         throw const ToolFailure('resultTooLarge');

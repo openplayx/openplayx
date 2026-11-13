@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'config_schema.dart';
 
 /// The first implemented slice of the plugin SDK. Only supported capabilities
@@ -134,6 +136,20 @@ abstract interface class SourceAttachmentCapability {
     CallContext context, {
     required int maxBytes,
   });
+}
+
+/// Writes a new file next to the user's media. The host decides the target
+/// folder (a fixed `OpenPlayX` folder in the share of [near]); a plugin never
+/// overwrites, uploads to a temporary name first and renames without replace.
+abstract interface class SourceWriteCapability {
+  static const folderName = 'OpenPlayX';
+
+  Future<SourceEntry> writeNewFile(
+    ResourceRef near,
+    String name,
+    File source,
+    CallContext context,
+  );
 }
 
 /// Newest additions on a media server, for its shelf in the library.

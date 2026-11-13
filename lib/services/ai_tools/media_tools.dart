@@ -62,6 +62,9 @@ class MediaTools {
         PluginGate.ai(config.pluginId, instanceId: id, capability: capability);
   }
 
+  /// Issues a `ref` for an entry, like browse/search results.
+  Map<String, dynamic> issueReference(SourceEntry entry) => _entry(entry);
+
   Map<String, dynamic> _entry(SourceEntry entry) {
     if (_refs.length >= 2000) _refs.remove(_refs.keys.first);
     final token = 'ref-${Random.secure().nextInt(1 << 32)}-${_refs.length}';
@@ -393,10 +396,13 @@ class MediaTools {
         'seek',
         'set_speed',
         'set_volume',
+        'set_subtitle',
       ]) {
         _add(
           'playback_$name',
-          'Control only the exact current session; reject stale sessions.',
+          name == 'set_subtitle'
+              ? 'Show a saved recognised subtitle in the exact current session: binding_id from subtitle_save (omit for the newest saved one for this video), or off=true to hide subtitles. Use only when the user asked for it.'
+              : 'Control only the exact current session; reject stale sessions.',
           {
             'session_id': _id,
             if (name == 'seek')
@@ -419,6 +425,10 @@ class MediaTools {
                 minimum: 0,
                 maximum: 100,
               ),
+            if (name == 'set_subtitle') ...{
+              'binding_id': const ToolField('string', maxLength: 64),
+              'off': const ToolField('boolean'),
+            },
           },
           (a) => playbackControl!(name, a),
           readOnly: false,

@@ -125,6 +125,7 @@ void main() {
     await call('playback_seek', {'session_id': 'p1', 'position_ms': 1000});
     await call('playback_set_speed', {'session_id': 'p1', 'speed': 1.5});
     await call('playback_set_volume', {'session_id': 'p1', 'volume': 50});
+    await call('playback_set_subtitle', {'session_id': 'p1'});
     await call('playback_stop', {'session_id': 'p1'});
 
     for (final e in results.entries) {
@@ -139,7 +140,7 @@ void main() {
       isEmpty,
     );
     expect(library.db.select('SELECT favorite FROM media').single['favorite'], 1);
-    expect(controls, ['pause', 'resume', 'seek', 'set_speed', 'set_volume', 'stop']);
+    expect(controls, ['pause', 'resume', 'seek', 'set_speed', 'set_volume', 'set_subtitle', 'stop']);
     expect((results['progress_query']!.data['progress'] as List), isNotEmpty);
   });
 }

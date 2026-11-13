@@ -178,7 +178,7 @@ flutter test integration_test/source_storage_test.dart -d macos
 
 ### 设计文档
 
-完整设计独立维护在 [openplayx/design](https://github.com/openplayx/design) 仓库的 `tech/` 目录，无需克隆该仓库即可运行播放器。
+完整设计独立维护在 [openplayx/design](https://github.com/openplayx/design) 仓库，按主题分类，入口见 [设计文档目录](https://github.com/openplayx/design/blob/main/README.md)，无需克隆该仓库即可运行播放器。
 
 建议依次阅读：`architecture_draft.md`（总览）、`navigation_design.md`（导航）、`media_library.md`（媒体库）、`plugin_system.md`（插件）、`frontend_design_system.md`（主题与组件）。该目录还包含 AI 交互、数据管理、配置、多语言及同步设计。
 

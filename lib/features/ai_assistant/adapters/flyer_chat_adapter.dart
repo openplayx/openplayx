@@ -39,6 +39,16 @@ class FlyerChatAdapter {
             m.callId: m,
         };
         if (message.role != 'user' && message.role != 'assistant') continue;
+        if (message.reasoning.isNotEmpty) {
+          items.add(
+            AiChatPart(
+              id: '${message.id}:reasoning',
+              turn: turn,
+              kind: AiPartKind.reasoning,
+              text: message.reasoning,
+            ),
+          );
+        }
         if (message.text.isNotEmpty) {
           items.add(
             AiChatPart(
@@ -53,6 +63,12 @@ class FlyerChatAdapter {
         for (final call in message.calls) {
           final result = results[call.id];
           Map<String, dynamic> value = const {};
+          Map<String, dynamic> arguments = const {};
+          try {
+            arguments = Map<String, dynamic>.from(
+              jsonDecode(call.arguments) as Map,
+            );
+          } catch (_) {}
           if (result != null) {
             try {
               value = jsonDecode(result.text) as Map<String, dynamic>;
@@ -87,10 +103,23 @@ class FlyerChatAdapter {
               data: value['data'] is Map
                   ? Map<String, dynamic>.from(value['data'] as Map)
                   : const {},
+              arguments: arguments,
+              progress: phase == AiToolPhase.running ? turn.toolProgress : null,
               confirmation: waiting ? pending : null,
             ),
           );
         }
+      }
+      if (turn.reasoning.isNotEmpty) {
+        items.add(
+          AiChatPart(
+            id: '${turn.streamingMessageId}:reasoning',
+            turn: turn,
+            kind: AiPartKind.reasoning,
+            text: turn.reasoning,
+            streaming: true,
+          ),
+        );
       }
       if (turn.streaming.isNotEmpty) {
         items.add(
@@ -100,6 +129,21 @@ class FlyerChatAdapter {
             kind: AiPartKind.text,
             text: turn.streaming,
             streaming: true,
+          ),
+        );
+      }
+      // Always say the turn is still running, whatever step it is in.
+      if (identical(coordinator.currentTurn, turn) && turn.activity != null) {
+        items.add(
+          AiChatPart(
+            id: '${turn.id}:activity',
+            turn: turn,
+            kind: AiPartKind.activity,
+            text: turn.activity!,
+            tool: turn.activity == 'tool' || turn.activity == 'confirm'
+                ? turn.executingTool
+                : turn.preparingTool,
+            data: {'step': turn.step},
           ),
         );
       }

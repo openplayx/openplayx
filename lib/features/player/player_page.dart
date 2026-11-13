@@ -633,9 +633,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
-  /// Loads a saved recognised subtitle into the current playback (only on
-  /// the user's choice; nothing is loaded automatically).
-  Future<void> _selectRecognized(RecognizedSubtitle s) async {
+  /// Loads a saved recognised subtitle into the current playback — on the
+  /// user's choice in the panel, or when the user asked the assistant to
+  /// (`playback_set_subtitle`); nothing is loaded automatically otherwise.
+  Future<bool> _selectRecognized(RecognizedSubtitle s) async {
     final known = _recognizedTracks[s.bindingId];
     final ref = _currentRef;
     bool ok;
@@ -659,13 +660,49 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         await Future<void>.delayed(const Duration(milliseconds: 100));
       }
     }
-    if (!mounted || _currentRef != ref) return;
+    if (!mounted || _currentRef != ref) return false;
     if (ok) {
       setState(() {
         _selectedRecognized = s.bindingId;
         _selectedSubtitleTrack = _recognizedTracks[s.bindingId];
       });
     }
+    return ok;
+  }
+
+  /// Assistant subtitle choice: a saved recognised subtitle of the current
+  /// resource (newest when [bindingId] is null), or off.
+  Future<void> _assistantSubtitle(String? bindingId, bool off) async {
+    // Right after opening, the native player may not accept a subtitle yet.
+    for (var i = 0; i < 100 && mounted; i++) {
+      final status = _backend.value.status;
+      if (status == PlaybackStatus.playing || status == PlaybackStatus.paused) {
+        break;
+      }
+      if (status == PlaybackStatus.error || status == PlaybackStatus.ended) {
+        throw StateError('playbackNotActive');
+      }
+      await Future<void>.delayed(const Duration(milliseconds: 100));
+    }
+    if (off) {
+      if (!await _adjust(() => _backend.disableSubtitle())) {
+        throw StateError('subtitleFailed');
+      }
+      if (mounted) {
+        setState(() {
+          _selectedSubtitleTrack = -1;
+          _selectedRecognized = null;
+        });
+      }
+      return;
+    }
+    final saved = await _recognizedSubtitles();
+    if (saved.isEmpty) throw StateError('noSavedSubtitle');
+    final choice = bindingId == null
+        ? saved.first
+        : saved.where((s) => s.bindingId == bindingId).firstOrNull ??
+              (throw StateError('subtitleNotFound'));
+    if (!await _selectRecognized(choice)) throw StateError('subtitleFailed');
   }
 
   @override
@@ -851,6 +888,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       'can_seek': value.canSeek,
       'speed': value.speed,
       'volume': value.volume,
+      'subtitle': _selectedRecognized != null
+          ? {'kind': 'recognized', 'binding_id': _selectedRecognized}
+          : _selectedSubtitleTrack == null || _selectedSubtitleTrack! < 0
+          ? {'kind': 'off_or_default'}
+          : {'kind': 'embedded'},
     };
   }
 
@@ -899,6 +941,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         if (mounted) setState(() => _speed = speed);
       case 'set_volume':
         await _backend.setVolume(args['volume'] as int);
+      case 'set_subtitle':
+        await _assistantSubtitle(
+          args['binding_id'] as String?,
+          args['off'] == true,
+        );
       default:
         throw StateError('unsupportedCommand');
     }

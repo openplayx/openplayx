@@ -8,6 +8,7 @@ class PluginAiPolicy {
     this.allowed = false,
     this.instances = const {},
     this.deniedCapabilities = const {},
+    this.grantedCapabilities = const {},
   });
 
   /// Plugin-level permission for AI calls.
@@ -20,20 +21,26 @@ class PluginAiPolicy {
   /// Capabilities the user excluded from AI use.
   final Set<String> deniedCapabilities;
 
+  /// Opt-in capabilities (e.g. writing files) the user explicitly allowed.
+  final Set<String> grantedCapabilities;
+
   PluginAiPolicy copyWith({
     bool? allowed,
     Set<String>? instances,
     Set<String>? deniedCapabilities,
+    Set<String>? grantedCapabilities,
   }) => PluginAiPolicy(
     allowed: allowed ?? this.allowed,
     instances: instances ?? this.instances,
     deniedCapabilities: deniedCapabilities ?? this.deniedCapabilities,
+    grantedCapabilities: grantedCapabilities ?? this.grantedCapabilities,
   );
 
   Map<String, dynamic> toJson() => {
     'allowed': allowed,
     'instances': (instances.toList()..sort()),
     'deniedCapabilities': (deniedCapabilities.toList()..sort()),
+    'grantedCapabilities': (grantedCapabilities.toList()..sort()),
   };
 
   factory PluginAiPolicy.fromJson(Map<String, dynamic> j) => PluginAiPolicy(
@@ -41,6 +48,9 @@ class PluginAiPolicy {
     instances: {...(j['instances'] as List? ?? const []).cast<String>()},
     deniedCapabilities: {
       ...(j['deniedCapabilities'] as List? ?? const []).cast<String>(),
+    },
+    grantedCapabilities: {
+      ...(j['grantedCapabilities'] as List? ?? const []).cast<String>(),
     },
   );
 }

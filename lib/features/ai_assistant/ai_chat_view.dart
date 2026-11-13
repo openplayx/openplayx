@@ -18,6 +18,7 @@ import 'widgets/ai_composer.dart';
 import 'widgets/ai_failure_message.dart';
 import 'widgets/ai_text_message.dart';
 import 'widgets/ai_tool_execution_card.dart';
+import 'widgets/ai_activity.dart';
 
 class AiChatView extends StatefulWidget {
   const AiChatView({
@@ -119,7 +120,10 @@ class _AiChatViewState extends State<AiChatView> {
 
   void _onUpdate() {
     final turn = widget.coordinator.currentTurn;
-    final revision = '${turn?.id}:${turn?.streaming}:${turn?.executingCallId}';
+    final revision =
+        '${turn?.id}:${turn?.streaming.length}:${turn?.reasoning.length}:'
+        '${turn?.executingCallId}:${turn?.activity}:${turn?.preparingTool}:'
+        '${turn?.toolProgress}';
     if (_atBottom && _lastRevision != revision) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
         if (mounted && _atBottom && _scroll.hasClients) {
@@ -348,6 +352,16 @@ class _AiChatViewState extends State<AiChatView> {
         text: part.text,
         isUser: part.isUser,
         streaming: part.streaming,
+      ),
+      AiPartKind.reasoning => AiReasoningBlock(
+        text: part.text,
+        streaming: part.streaming,
+      ),
+      AiPartKind.activity => AiActivityRow(
+        turn: part.turn,
+        activity: part.text,
+        tool: part.tool,
+        step: part.data['step'] as int? ?? 0,
       ),
       AiPartKind.tool => AiToolExecutionCard(
         part: part,

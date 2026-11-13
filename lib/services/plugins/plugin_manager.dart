@@ -658,8 +658,13 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     final d = catalog[pluginId]!;
     final ai = _policy.aiFor(pluginId);
     if (!ai.allowed) return false;
-    if (capability != null && ai.deniedCapabilities.contains(capability)) {
-      return false;
+    if (capability != null) {
+      final optIn = d.capability(capability)?.optIn ?? false;
+      if (optIn
+          ? !ai.grantedCapabilities.contains(capability)
+          : ai.deniedCapabilities.contains(capability)) {
+        return false;
+      }
     }
     if (d.multiInstance && instanceId != null) {
       return ai.instances.contains(instanceId);
@@ -733,8 +738,20 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   void setAiCapability(String pluginId, String capability, bool allowed) {
     final ai = _policy.aiFor(pluginId);
     final denied = ai.deniedCapabilities.toSet();
-    allowed ? denied.remove(capability) : denied.add(capability);
-    _write(_policy.withAi(pluginId, ai.copyWith(deniedCapabilities: denied)));
+    final granted = ai.grantedCapabilities.toSet();
+    if (allowed) {
+      denied.remove(capability);
+      granted.add(capability);
+    } else {
+      denied.add(capability);
+      granted.remove(capability);
+    }
+    _write(
+      _policy.withAi(
+        pluginId,
+        ai.copyWith(deniedCapabilities: denied, grantedCapabilities: granted),
+      ),
+    );
   }
 
   /// Revokes upload consent of an HTTP recognition instance. Takes effect

@@ -1,6 +1,6 @@
 # AI 聊天前端
 
-依据 `design/tech/ai_chat_frontend.md`，并沿用 AI 交互、前端设计系统和 LangChain 集成文档的职责划分。
+依据 `design/ai/ai_chat_frontend.md`，并沿用 AI 交互、前端设计系统和 LangChain 集成文档的职责划分。
 
 ## 已接入
 

@@ -1,6 +1,6 @@
 # OpenPlayX 应用图标
 
-采用设计仓库 `design/icon/` 中的 J 橙色 X 方案，保留黑底和播放三角形留白。字标颜色未修改。
+采用设计仓库 `design/assets/icon/` 中的 J 橙色 X 方案，保留黑底和播放三角形留白。字标颜色未修改。
 
 - `app_icon.png`：4096 × 4096 不透明正方形母版。
 - `app_icon_foreground.png`：4096 × 4096 透明前景，用于 Android 自适应图标。

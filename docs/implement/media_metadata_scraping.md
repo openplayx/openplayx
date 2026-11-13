@@ -1,6 +1,6 @@
 # 影视元数据与刮削
 
-基于工作区 `design/tech/media_metadata_scraping.md` 实现本机 NFO 导入、TMDB 在线识别与人工纠错，复用现有媒体、资源、媒体库和来源实例。
+基于工作区 `design/media/media_metadata_scraping.md` 实现本机 NFO 导入、TMDB 在线识别与人工纠错，复用现有媒体、资源、媒体库和来源实例。
 
 ## 分支
 

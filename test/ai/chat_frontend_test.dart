@@ -157,14 +157,19 @@ void main() {
           .toList();
       expect(id, contains('Hello'));
       final projection = FlyerChatAdapter(c);
-      final messageId = projection.chat.messages.last.id;
+      String streamingId() => projection.chat.messages
+          .map((m) => m.id)
+          .firstWhere((id) => id.contains(':response:'));
+      final messageId = streamingId();
       events.add(const ModelTextDelta(' world'));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pump(const Duration(milliseconds: 50));
       await tester.pump();
-      expect(projection.chat.messages.last.id, messageId);
-      expect(projection.chat.messages.length, 2);
+      expect(streamingId(), messageId);
+      // User message, the streaming reply and the "still running" row.
+      expect(projection.chat.messages.length, 3);
+      expect(projection.chat.messages.last.id, endsWith(':activity'));
       await tester.enterText(
         find.descendant(
           of: find.byKey(const ValueKey('ai-composer-input')),
