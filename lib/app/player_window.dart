@@ -44,6 +44,72 @@ Future<bool> runPlayerWindowIfRequested(List<String> args) async {
 
 /// Opens playback requests from the main window in their own OS windows.
 class PlayerWindows {
+  WindowController? _active;
+  Map<String, dynamic>? lastSnapshot;
+  bool get hasActive => _active != null;
+
+  /// Ask the actual playback engine rather than the main window's idle
+  /// embedded player. Wait only when opening while the child engine starts.
+  Future<Map<String, dynamic>> snapshot({bool waitForSession = false}) async {
+    final window = _active;
+    if (window == null) return {'status': 'idle', 'session_id': null};
+    for (var i = 0; i < (waitForSession ? 100 : 1); i++) {
+      try {
+        final raw = await window
+            .invokeMethod<Map>('assistant_snapshot')
+            .timeout(const Duration(seconds: 2));
+        if (_active != window) throw StateError('staleSession');
+        if (raw != null) {
+          lastSnapshot = Map<String, dynamic>.from(raw);
+          if (!waitForSession || lastSnapshot!['session_id'] != null) {
+            return lastSnapshot!;
+          }
+        }
+      } on PlatformException {
+        // The child may not have installed its handler yet.
+      } on MissingPluginException {
+        // The child engine is still starting.
+      } on WindowChannelException catch (e) {
+        if (!waitForSession ||
+            !{
+              'CHANNEL_NOT_FOUND',
+              'CHANNEL_UNREGISTERED',
+              'NO_HANDLER',
+            }.contains(e.code)) {
+          rethrow;
+        }
+      } on TimeoutException {
+        if (!waitForSession) rethrow;
+      }
+      if (waitForSession) {
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    throw StateError('playbackNotReady');
+  }
+
+  Future<Map<String, dynamic>> control(
+    String command,
+    Map<String, dynamic> args,
+  ) async {
+    final window = _active;
+    if (window == null) throw StateError('staleSession');
+    try {
+      final raw = await window.invokeMethod<Map>('assistant_control', {
+        'command': command,
+        'arguments': args,
+      });
+      if (_active != window || raw == null) throw StateError('staleSession');
+      return lastSnapshot = Map<String, dynamic>.from(raw);
+    } on WindowChannelException catch (e) {
+      throw StateError(
+        RegExp(r'^[a-zA-Z]{1,40}$').hasMatch(e.code)
+            ? e.code
+            : 'playbackRejected',
+      );
+    }
+  }
+
   /// Returns false when the window could not be created, so the caller can fall
   /// back to the embedded player. [selection]'s stream stays owned by the main
   /// window and is released once the player window closes.
@@ -63,6 +129,8 @@ class PlayerWindows {
           }),
         ),
       );
+      _active = controller;
+      lastSnapshot = null;
       unawaited(_releaseWhenClosed(controller.windowId, selection.stream));
       return true;
     } catch (_) {
@@ -73,18 +141,17 @@ class PlayerWindows {
   Future<void> _releaseWhenClosed(String id, PlayableStream stream) async {
     try {
       // The window exists as soon as create() returns; wait until it is gone.
-      var seen = false;
       await for (final _ in onWindowsChanged) {
         final open = (await WindowController.getAll()).any(
           (w) => w.windowId == id,
         );
-        if (open) {
-          seen = true;
-        } else if (seen) {
-          break;
-        }
+        if (!open) break;
       }
     } finally {
+      if (_active?.windowId == id) {
+        _active = null;
+        lastSnapshot = null;
+      }
       await stream.release();
     }
   }
@@ -126,6 +193,27 @@ class _PlayerWindowPageState extends State<PlayerWindowPage> {
           : ResourceRef(ref['instance'] as String, ref['id'] as String),
     );
     final window = await WindowController.fromCurrentEngine();
+    await window.setWindowMethodHandler((call) async {
+      final player = _player.currentState;
+      if (player == null || _closing) {
+        throw PlatformException(code: 'staleSession');
+      }
+      if (call.method == 'assistant_snapshot') {
+        return player.assistantSnapshot();
+      }
+      if (call.method == 'assistant_control') {
+        final args = Map<String, dynamic>.from(call.arguments as Map);
+        try {
+          return await player.assistantControl(
+            args['command'] as String,
+            Map<String, dynamic>.from(args['arguments'] as Map),
+          );
+        } on StateError catch (e) {
+          throw PlatformException(code: e.message);
+        }
+      }
+      throw MissingPluginException();
+    });
     await window.show();
     await _player.currentState?.playSelection(selection);
   }

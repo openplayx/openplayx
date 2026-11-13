@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 
 import '../../core/plugins/plugin_gate.dart';
@@ -23,7 +24,7 @@ class MediaTools {
   final LibraryService library;
   final SourceManager sources;
   final Map<String, dynamic> Function() context;
-  final Map<String, dynamic> Function()? playbackSnapshot;
+  final FutureOr<Map<String, dynamic>> Function()? playbackSnapshot;
   final Future<Map<String, dynamic>> Function(String, Map<String, dynamic>)?
   playbackControl;
   final Future<Map<String, dynamic>> Function(SourceEntry)? openResource;

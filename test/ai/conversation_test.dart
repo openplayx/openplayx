@@ -36,6 +36,7 @@ void main() {
     TextModelCapability model, {
     int requests = 8,
     int calls = 12,
+    int tokens = 256000,
     Duration timeout = const Duration(seconds: 120),
   }) => ConversationCoordinator(
     store: store,
@@ -44,6 +45,7 @@ void main() {
     context: () => {'page': 'home'},
     maxRequests: requests,
     maxCalls: calls,
+    maxTokens: tokens,
     turnTimeout: timeout,
   );
 
@@ -85,6 +87,155 @@ void main() {
     expect(restored.turns.single.status, 'completed');
     expect(fake.requests.length, 2);
     restored.dispose();
+  });
+
+  test('multi-step input usage fits default budget while explicit limits still stop calls', () async {
+    var executions = 0;
+    registry.register(
+      RegisteredTool('lookup', 'Lookup', {}, (_) async {
+        executions++;
+        return {};
+      }),
+    );
+    FakeModel model() {
+      var round = 0;
+      return FakeModel((_) async* {
+        if (round++ < 2) {
+          yield ModelToolDelta(ModelToolCall('c$round', 'lookup', '{}'));
+          yield const ModelCompleted('toolCalls', totalTokens: 40000);
+        } else {
+          yield const ModelTextDelta('Done');
+          yield const ModelCompleted('stop', totalTokens: 1000);
+        }
+      });
+    }
+
+    final c = coordinator(model());
+    await c.send('Multi-step workflow', toolsEnabled: true);
+    expect(c.turns.single.status, 'completed');
+    expect(c.turns.single.tokens, 81000);
+    expect(executions, 2);
+    c.dispose();
+    final limited = coordinator(model(), tokens: 70000);
+    await limited.send('Limited workflow', toolsEnabled: true);
+    expect(limited.turns.last.error, 'tokenBudget');
+    expect(executions, 3); // Second call was rejected before execution.
+    limited.dispose();
+  });
+
+  const printedCall =
+      '我先列出共享内容。\n'
+      '<tool_calls>\n<invoke name="smb_list">\n'
+      '<parameter name="share">movie</parameter>\n'
+      '</invoke>\n</tool_calls>';
+
+  test(
+    'printed XML call is corrected to a native call and workflow continues',
+    () async {
+      var executions = 0;
+      registry.register(
+        RegisteredTool('source_list', 'List sources', {}, (_) async {
+          executions++;
+          return {
+            'sources': ['movie'],
+          };
+        }),
+      );
+      var round = 0;
+      final fake = FakeModel((request) async* {
+        switch (round++) {
+          case 0:
+            // Split across deltas, as in a real streaming response.
+            yield ModelTextDelta(printedCall.substring(0, 40));
+            yield ModelTextDelta(printedCall.substring(40));
+            yield const ModelCompleted('stop', totalTokens: 3);
+          case 1:
+            expect(executions, 0);
+            expect(request.messages.last.role, 'system');
+            expect(
+              request.messages.last.text,
+              contains('No tool was executed'),
+            );
+            expect(request.tools.single.name, 'source_list');
+            yield const ModelToolDelta(
+              ModelToolCall('native', 'source_list', '{}'),
+            );
+            yield const ModelCompleted('toolCalls', totalTokens: 4);
+          default:
+            expect(
+              request.messages.where((m) => m.role == 'tool').single.callId,
+              'native',
+            );
+            yield const ModelTextDelta('已列出共享。');
+            yield const ModelCompleted('stop', totalTokens: 2);
+        }
+      });
+      final c = coordinator(fake);
+      await c.send('列出共享', toolsEnabled: true);
+      expect(executions, 1);
+      expect(fake.requests.length, 3);
+      expect(c.turns.single.status, 'completed');
+      expect(c.turns.single.tokens, 9);
+      expect(c.turns.single.messages.last.text, '已列出共享。');
+      // The correction is transient, not persisted into future conversations.
+      expect(c.turns.single.messages.any((m) => m.role == 'system'), false);
+      c.dispose();
+    },
+  );
+
+  test(
+    'repeated printed calls fail visibly after one retry without execution',
+    () async {
+      var executions = 0;
+      registry.register(
+        RegisteredTool('lookup', 'Lookup', {}, (_) async {
+          executions++;
+          return {};
+        }),
+      );
+      final fake = FakeModel((_) async* {
+        yield const ModelTextDelta(printedCall);
+        yield const ModelCompleted('stop');
+      });
+      final c = coordinator(fake);
+      await c.send('List', toolsEnabled: true);
+      expect(fake.requests.length, 2);
+      expect(executions, 0);
+      expect(c.turns.single.status, 'failed');
+      expect(c.turns.single.error, 'textToolCall');
+      expect(c.busy, false);
+      c.dispose();
+    },
+  );
+
+  test('text call recovery respects the model request budget', () async {
+    registry.register(RegisteredTool('lookup', 'Lookup', {}, (_) async => {}));
+    final fake = FakeModel((_) async* {
+      yield const ModelTextDelta(printedCall);
+      yield const ModelCompleted('stop');
+    });
+    final c = coordinator(fake, requests: 1);
+    await c.send('List', toolsEnabled: true);
+    expect(fake.requests.length, 1);
+    expect(c.turns.single.error, 'textToolCall');
+    c.dispose();
+  });
+
+  test('tool examples and disabled tools do not trigger recovery', () async {
+    registry.register(RegisteredTool('lookup', 'Lookup', {}, (_) async => {}));
+    for (final enabled in [false, true]) {
+      final fake = FakeModel((_) async* {
+        yield ModelTextDelta(
+          enabled ? 'Example:\n```xml\n$printedCall\n```' : printedCall,
+        );
+        yield const ModelCompleted('stop');
+      });
+      final c = coordinator(fake);
+      await c.send('Explain this format', toolsEnabled: enabled);
+      expect(fake.requests.length, 1);
+      expect(c.turns.last.status, 'completed');
+      c.dispose();
+    }
   });
 
   test('only host confirmation authorizes writes; semantic duplicate call IDs execute once', () async {

@@ -230,8 +230,20 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Map<String, dynamic> _aiContext() => {
     'page': _showPlayer ? 'player' : AppDestination.values[_destination].name,
-    'playback': _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
+    'playback':
+        _playerWindows?.lastSnapshot ??
+        _player.currentState?.assistantSnapshot() ??
+        {'status': 'idle'},
   };
+
+  Future<Map<String, dynamic>> _playbackSnapshot({
+    bool waitForSession = false,
+  }) async {
+    if (_playerWindows?.hasActive ?? false) {
+      return _playerWindows!.snapshot(waitForSession: waitForSession);
+    }
+    return _player.currentState?.assistantSnapshot() ?? {'status': 'idle'};
+  }
 
   void _initializeAssistant(LibraryService library) {
     final store = _assistantStore = AssistantStore(library.db);
@@ -240,13 +252,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       library: library,
       sources: _sources,
       context: _aiContext,
-      playbackSnapshot: _backend == null
-          ? null
-          : () =>
-                _player.currentState?.assistantSnapshot() ?? {'status': 'idle'},
+      playbackSnapshot: _backend == null ? null : _playbackSnapshot,
       playbackControl: _backend == null
           ? null
           : (command, args) async {
+              if (_playerWindows?.hasActive ?? false) {
+                try {
+                  return await _playerWindows!.control(command, args);
+                } on StateError catch (e) {
+                  throw ToolFailure(e.message);
+                }
+              }
               final player = _player.currentState;
               if (player == null ||
                   player.assistantSnapshot()['session_id'] !=
@@ -294,9 +310,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               await _play(
                 SourceSelection(entry.name, stream, ref: ref, entry: entry),
               );
-              final result =
-                  _player.currentState?.assistantSnapshot() ??
-                  {'status': 'idle'};
+              final result = await _playbackSnapshot(waitForSession: true);
               if (result['status'] == 'error') {
                 throw const ToolFailure('playbackFailed');
               }
@@ -404,7 +418,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     onBack: onBack,
     coordinator: _assistant!,
     controller: _chat,
-    toolsEnabled: () => _assistantStore!.loadConfig().toolsSupported,
+    // toolsSupported records a connection probe, not a user permission.
+    // A skipped/failed/stale probe must not silently turn actions into chat.
+    // The registry and gateway still enforce per-plugin AI permissions.
+    toolsEnabled: () => _assistantStore!.loadConfig().configured,
     onSettings: _modelSettings,
     onOpenMedia: _openChatMedia,
     onFavorite: (id) async {

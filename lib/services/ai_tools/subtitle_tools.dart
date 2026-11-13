@@ -142,7 +142,11 @@ class SubtitleTools {
               };
             }(),
         ],
-        'limits': {'translation': false, 'timestamp_level': 'segment'},
+        'limits': {
+          'translation': false,
+          'timestamp_level': 'segment',
+          'language_format': 'ISO 639-1 (e.g. en, zh) or auto; not media track codes such as eng or zho',
+        },
       },
     );
     final fields = {
@@ -157,7 +161,7 @@ class SubtitleTools {
     };
     _add(
       'subtitle_generate',
-      'Generate subtitles (original language, no translation) for an explicit range of a resource (start_ms/end_ms, or whole_media=true). Returns task_id; on success the task lists subtitle_artifact_ref and transcript_artifact_ref.',
+      'Generate subtitles (original language, no translation) for an explicit range of a resource (start_ms/end_ms, or whole_media=true). Omit language for automatic detection, or use ISO 639-1 (en, zh), never track codes such as eng. Returns task_id; on success the task lists subtitle_artifact_ref and transcript_artifact_ref.',
       fields,
       (a) => _generate(a, subtitles: true),
       readOnly: false,
@@ -165,7 +169,7 @@ class SubtitleTools {
     );
     _add(
       'transcript_generate',
-      'Generate a timestamped transcript for an explicit range of a resource. Returns task_id; on success the task lists transcript_artifact_ref.',
+      'Generate a timestamped transcript for an explicit range of a resource. Omit language for automatic detection, or use ISO 639-1 (en, zh), never track codes such as eng. Returns task_id; on success the task lists transcript_artifact_ref.',
       fields,
       (a) => _generate(a, subtitles: false),
       readOnly: false,

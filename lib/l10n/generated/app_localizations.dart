@@ -1978,6 +1978,12 @@ abstract class AppLocalizations {
   /// **'The endpoint or model does not support this request. Check connection tests.'**
   String get aiProtocolMismatch;
 
+  /// No description provided for @aiTextToolCall.
+  ///
+  /// In en, this message translates to:
+  /// **'The model returned tool calls as text instead of executing them, even after retrying. Check that the model and endpoint support tool calling.'**
+  String get aiTextToolCall;
+
   /// No description provided for @metadataAutomaticQueued.
   ///
   /// In en, this message translates to:
@@ -2712,7 +2718,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiConnectionOkNoTools.
   ///
   /// In en, this message translates to:
-  /// **'Connected. This model cannot call tools, so it can only chat.'**
+  /// **'Connected. The tool-call test did not pass; tasks will still attempt registered tools.'**
   String get aiConnectionOkNoTools;
 
   /// No description provided for @aiInvalidSettings.

@@ -1037,6 +1037,10 @@ class AppLocalizationsEn extends AppLocalizations {
       'The endpoint or model does not support this request. Check connection tests.';
 
   @override
+  String get aiTextToolCall =>
+      'The model returned tool calls as text instead of executing them, even after retrying. Check that the model and endpoint support tool calling.';
+
+  @override
   String get metadataAutomaticQueued => 'Queued for identification';
 
   @override
@@ -1450,7 +1454,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiConnectionOkNoTools =>
-      'Connected. This model cannot call tools, so it can only chat.';
+      'Connected. The tool-call test did not pass; tasks will still attempt registered tools.';
 
   @override
   String get aiInvalidSettings =>

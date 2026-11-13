@@ -990,6 +990,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
 
   @override
+  String get aiTextToolCall => '模型在重试后仍把工具调用输出为文字，工具未执行。请检查模型及端点是否支持工具调用。';
+
+  @override
   String get metadataAutomaticQueued => '等待自动识别';
 
   @override
@@ -1382,7 +1385,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiConnectionOk => '连接成功，可以聊天和使用工具。';
 
   @override
-  String get aiConnectionOkNoTools => '连接成功，但该模型不支持工具调用，只能纯聊天。';
+  String get aiConnectionOkNoTools => '连接成功，工具调用测试未通过；实际任务仍会尝试调用已注册的工具。';
 
   @override
   String get aiInvalidSettings => '请填写有效的 HTTPS API 域名和模型名。';
@@ -2750,6 +2753,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiProtocolMismatch => '端点或模型不支持此请求，请检查连接测试结果。';
 
   @override
+  String get aiTextToolCall => '模型在重试后仍把工具调用输出为文字，工具未执行。请检查模型及端点是否支持工具调用。';
+
+  @override
   String get metadataAutomaticQueued => '等待自动识别';
 
   @override
@@ -3142,7 +3148,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiConnectionOk => '连接成功，可以聊天和使用工具。';
 
   @override
-  String get aiConnectionOkNoTools => '连接成功，但该模型不支持工具调用，只能纯聊天。';
+  String get aiConnectionOkNoTools => '连接成功，工具调用测试未通过；实际任务仍会尝试调用已注册的工具。';
 
   @override
   String get aiInvalidSettings => '请填写有效的 HTTPS API 域名和模型名。';
@@ -4510,6 +4516,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiProtocolMismatch => '端點或模型不支援此請求，請檢查連線測試結果。';
 
   @override
+  String get aiTextToolCall => '模型在重試後仍把工具呼叫輸出為文字，工具未執行。請檢查模型及端點是否支援工具呼叫。';
+
+  @override
   String get metadataAutomaticQueued => '等待自動識別';
 
   @override
@@ -4902,7 +4911,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiConnectionOk => '連線成功，可以聊天和使用工具。';
 
   @override
-  String get aiConnectionOkNoTools => '連線成功，但該模型不支援工具呼叫，只能純聊天。';
+  String get aiConnectionOkNoTools => '連線成功，工具呼叫測試未通過；實際任務仍會嘗試呼叫已註冊的工具。';
 
   @override
   String get aiInvalidSettings => '請填寫有效的 HTTPS API 網域和模型名稱。';

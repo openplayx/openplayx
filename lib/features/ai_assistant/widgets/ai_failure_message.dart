@@ -7,6 +7,7 @@ String aiFailureMessage(String code, AppLocalizations l) => switch (code) {
   'authenticationFailed' => l.aiAuthenticationFailed,
   'rateLimited' => l.aiRateLimited,
   'protocolMismatch' => l.aiProtocolMismatch,
+  'textToolCall' => l.aiTextToolCall,
   'turnTimeout' || 'requestTimeout' => l.aiTimeout,
   'requestBudget' ||
   'toolBudget' ||

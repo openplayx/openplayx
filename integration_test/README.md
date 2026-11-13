@@ -46,6 +46,18 @@ flutter test integration_test/playback_test.dart -d macos
 - 本目录中的测试与主项目代码、插件注册及平台构建环境紧密关联，因此保留在主项目中。
 - 从应用外部操作完整产品的端到端测试、验收场景、跨平台矩阵及可追溯报告，放在独立的 `openplayx-test` 仓库；本目录的执行结果可以作为其验收证据的一部分。
 
+## 真实 AI 电影处理流程
+
+`assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交 SMB 电影截取、存回共享、本地识别字幕、保存、播放并选择字幕的原始提问。使用应用当前保存的模型、凭据、SMB 源、插件权限和本地识别模型，不模拟模型或工具。默认跳过；必须显式开启：
+
+```sh
+flutter drive --driver=test_driver/integration_test.dart --target=integration_test/assistant_movie_flow_test.dart -d macos --dart-define=LIVE_ASSISTANT_FLOW=true
+```
+
+这里使用 `flutter drive`，让桌面播放子窗口收到真实 Dart 入口参数；`flutter test` 的包装入口会丢弃子窗口参数，不适合验证多窗口流程。这会调用付费模型 API，并在 SMB 共享的 `OpenPlayX` 文件夹新增视频、在应用中保存字幕和测试聊天。测试只自动批准原提问中 `media_save_to_source` 的确认，不覆盖或删除已有媒体。运行前需要配置好真实源、识别模型及对应 AI 权限。失败时日志包含逐步工具调用与实际结果；测试检查各阶段成功，而不把助手的“已完成”文字当成成功证据。测试结束恢复之前选中的聊天，测试聊天保留便于排查。
+
+`player_window_test.dart` 是不调用模型的原生小测试，使用相同驱动命令并更换 `--target` 即可运行。默认验证本地素材；开启 `LIVE_ASSISTANT_FLOW` 后，还会读取已有 SMB 子视频及其已保存字幕，验证独立窗口的真实播放状态和字幕绑定，不新增 SMB 文件。
+
 ## 媒体源集成测试
 
 `sources_test.dart` 验证本地文件夹、SMB、Plex、Jellyfin 的真实浏览、资源解析、完整文件/Range 读取和原生 libVLC 播放、暂停、Seek。临时服务启动、初始化及清理步骤见 [source_services/README.md](../tool/source_services/README.md)。未设置 `SOURCE_SERVICES` 时只运行本地文件夹测试，其他源明确跳过。

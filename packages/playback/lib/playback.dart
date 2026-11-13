@@ -99,6 +99,7 @@ class LibVlcBackend extends PlayerBackend {
   bool _disposed = false;
   bool _hasStarted = false;
   bool _ended = false;
+  PlaybackStatus? _subtitlePlaybackStatus;
   Uri? _source;
   late final Timer _statsTimer;
   final _statsClock = Stopwatch()..start();
@@ -162,6 +163,17 @@ class LibVlcBackend extends PlayerBackend {
     final native = _controller.value;
     if (native.state == VlcPlaybackState.playing) _hasStarted = true;
     if (native.state == VlcPlaybackState.ended) _ended = true;
+    if (_subtitlePlaybackStatus != null) {
+      if (native.state == VlcPlaybackState.playing) {
+        _subtitlePlaybackStatus = PlaybackStatus.playing;
+      } else if (native.state == VlcPlaybackState.paused) {
+        _subtitlePlaybackStatus = PlaybackStatus.paused;
+      } else if (native.state == VlcPlaybackState.stopped ||
+          native.state == VlcPlaybackState.error ||
+          native.state == VlcPlaybackState.ended) {
+        _subtitlePlaybackStatus = null;
+      }
+    }
     if ([
       VlcPlaybackState.idle,
       VlcPlaybackState.stopped,
@@ -173,7 +185,15 @@ class LibVlcBackend extends PlayerBackend {
     }
     value = PlayerSnapshot(
       status: switch (native.state) {
-        VlcPlaybackState.idle || VlcPlaybackState.stopped =>
+        // VLCKit reports ESAdded after adding an external subtitle; vlc_player
+        // maps that unknown enum to idle even while playback time advances.
+        // Preserve the active state for that subtitle load only. Explicit
+        // stop, pause, end and error events still take precedence.
+        VlcPlaybackState.idle =>
+          _ended
+              ? PlaybackStatus.ended
+              : _subtitlePlaybackStatus ?? PlaybackStatus.idle,
+        VlcPlaybackState.stopped =>
           _ended ? PlaybackStatus.ended : PlaybackStatus.idle,
         VlcPlaybackState.opening => PlaybackStatus.opening,
         // VLCKit may keep reporting buffering while time and video advance.
@@ -203,6 +223,7 @@ class LibVlcBackend extends PlayerBackend {
     _readSpeedMBps = null;
     _hasStarted = false;
     _ended = false;
+    _subtitlePlaybackStatus = null;
     _source = uri;
     return _controller.setMedia(
       VlcMediaSource(
@@ -241,6 +262,7 @@ class LibVlcBackend extends PlayerBackend {
   @override
   Future<void> stop() async {
     _session++;
+    _subtitlePlaybackStatus = null;
     if (_controller.isAttached) await _controller.stop();
     _source = null;
     _hasStarted = false;
@@ -287,7 +309,16 @@ class LibVlcBackend extends PlayerBackend {
   @override
   bool get supportsExternalSubtitles => true;
   @override
-  Future<void> addExternalSubtitle(Uri file) => _controller.addSubtitle(file);
+  Future<void> addExternalSubtitle(Uri file) async {
+    final before = value.status;
+    await _controller.addSubtitle(file);
+    if (defaultTargetPlatform == TargetPlatform.macOS &&
+        [PlaybackStatus.playing, PlaybackStatus.paused].contains(before)) {
+      _subtitlePlaybackStatus = before;
+      _onValue();
+    }
+  }
+
   @override
   Widget buildVideo() => VlcPlayer(controller: _controller);
   @override
