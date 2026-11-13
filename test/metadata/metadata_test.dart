@@ -64,6 +64,34 @@ void main() {
     expect(parser.parse('Film.1080p.mkv').year, isNull);
     expect(parser.parse('三体 第2季第3集.mkv').episodes, [3]);
   });
+  test('resolutions are not years and leading years/tags are not title', () {
+    final bond = parser.parse(
+      '1997.Tomorrow.Never.Dies.1920x820.BDRip.x264.DTS-HD.MA.mkv',
+    );
+    expect(bond.title, 'Tomorrow Never Dies');
+    expect(bond.year, 1997);
+    expect(bond.tags, contains('1920x820'));
+    final hp = parser.parse(
+      'Harry.Potter.And.The.Chamber.Of.Secrets.2002.1920x802.BDRip.mkv',
+    );
+    expect(
+      (hp.title, hp.year),
+      ('Harry Potter And The Chamber Of Secrets', 2002),
+    );
+    final anime = parser.parse(
+      "[AnimeRG] Kiki's Delivery Service (1989) Witch's Delivery Service [1080p].mkv",
+    );
+    expect((anime.title, anime.year), ("Kiki's Delivery Service", 1989));
+    final site = parser.parse('[www.example.com]Some.Film.2004.720p.mkv');
+    expect((site.title, site.year), ('Some Film', 2004));
+    // Numeric titles keep their number when nothing else follows or a later
+    // year is the release year.
+    expect(parser.parse('1917.mkv').title, '1917');
+    expect(parser.parse('1917.1080p.mkv').year, isNull);
+    final numeric = parser.parse('1917.2019.1080p.mkv');
+    expect((numeric.title, numeric.year), ('1917', 2019));
+    expect(parser.parse('[Group].mkv').title, 'Group');
+  });
   test('NFO parses supported data, typed IDs, provenance and diagnostics', () {
     final plugin = NfoMetadataPlugin(
       (ref, {int maxBytes = 1024 * 1024}) async => [],

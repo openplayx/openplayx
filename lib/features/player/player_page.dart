@@ -548,6 +548,31 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     _library = widget.libraryService;
     _backend.addListener(_onPlayback);
     WidgetsBinding.instance.addObserver(this);
+    _enterImmersive();
+  }
+
+  /// Hides the status and navigation bars on phones so the video gets the
+  /// whole screen; a swipe from the edge brings them back temporarily.
+  void _enterImmersive() {
+    if (!_mobileDisplay) return;
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.immersiveSticky,
+      ).catchError((Object error) {
+        debugPrint('Could not enter immersive mode: $error');
+      }),
+    );
+  }
+
+  void _exitImmersive() {
+    if (!_mobileDisplay) return;
+    unawaited(
+      SystemChrome.setEnabledSystemUIMode(
+        SystemUiMode.edgeToEdge,
+      ).catchError((Object error) {
+        debugPrint('Could not restore system UI: $error');
+      }),
+    );
   }
 
   void _onPlayback() {
@@ -605,6 +630,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     if (_background || state == AppLifecycleState.inactive) _endBoost();
     if (_background) _checkpoint(force: true);
     if (_background && _name != null) unawaited(_command(_backend.pause));
+    // The OS may restore the bars while the app is away.
+    if (state == AppLifecycleState.resumed) _enterImmersive();
   }
 
   Future<void> _command(Future<void> Function() action) async {
@@ -859,6 +886,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _exitImmersive();
     unawaited(
       _orientationSession.restore().catchError((Object error) {
         debugPrint('Could not restore screen orientation: $error');

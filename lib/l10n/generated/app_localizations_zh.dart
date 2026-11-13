@@ -1382,6 +1382,350 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remoteConnectionMode => '连接方式';
+
+  @override
+  String get ffmpegSnapshotDebug => 'FFmpeg 截图调试';
+
+  @override
+  String get ffmpegSnapshotAgain => '再截一张';
+
+  @override
+  String ffmpegSnapshotAt(String time, String duration) {
+    return '截图时间点 $time / $duration';
+  }
+
+  @override
+  String ffmpegSnapshotFailed(String reason) {
+    return '截图失败（$reason）。';
+  }
+
+  @override
+  String get ffmpegUnavailable => '此构建未包含 FFmpeg 媒体处理模块。';
+
+  @override
+  String get asrDebugTitle => '音频与字幕调试';
+
+  @override
+  String get asrChooseEpisode => '选择单集';
+
+  @override
+  String get asrSectionResource => '当前资源';
+
+  @override
+  String get asrSectionInput => '输入选择';
+
+  @override
+  String get asrSectionBackend => '识别方式';
+
+  @override
+  String get asrSectionActions => '操作';
+
+  @override
+  String get asrSectionStatus => '执行状态';
+
+  @override
+  String get asrSectionAudio => '音频结果';
+
+  @override
+  String get asrSectionSubtitles => '字幕结果';
+
+  @override
+  String get asrSectionDebug => '调试信息';
+
+  @override
+  String get asrTitle => '剧名';
+
+  @override
+  String get asrEpisode => '季/集';
+
+  @override
+  String get asrVersion => '媒体版本';
+
+  @override
+  String get asrDuration => '时长';
+
+  @override
+  String get asrUnknown => '未知';
+
+  @override
+  String get asrStart => '开始（秒或 分:秒）';
+
+  @override
+  String get asrEnd => '结束（秒或 分:秒）';
+
+  @override
+  String get asrWhole => '整集';
+
+  @override
+  String get asrRangeHint => '默认处理开头 60 秒；整集需主动选择。';
+
+  @override
+  String get asrWholeUnavailable => '时长未知，暂不支持整集处理。';
+
+  @override
+  String get asrRangeInvalid => '区间无效：结束须晚于开始且在媒体时长内。';
+
+  @override
+  String asrChannels(int n) {
+    return '$n 声道';
+  }
+
+  @override
+  String get asrNotDecodable => '无法解码';
+
+  @override
+  String get asrEmbedded => '本机内嵌';
+
+  @override
+  String get asrHttp => 'HTTP 服务';
+
+  @override
+  String get asrNoBackends => '未配置识别后端。';
+
+  @override
+  String get asrChecking => '检查中…';
+
+  @override
+  String asrBackendReady(String engine, String revision) {
+    return '可用 · $engine · 模型 $revision';
+  }
+
+  @override
+  String asrBackendUnavailable(String reason) {
+    return '不可用：$reason';
+  }
+
+  @override
+  String get asrExtractOnly => '仅提取音频';
+
+  @override
+  String get asrExtractAndTranscribe => '提取并识别字幕';
+
+  @override
+  String get asrStagePreparing => '资源准备';
+
+  @override
+  String get asrStageExtracting => '音频提取';
+
+  @override
+  String get asrStageUploading => '上传';
+
+  @override
+  String get asrStageQueued => '排队';
+
+  @override
+  String get asrStageTranscribing => '识别';
+
+  @override
+  String get asrStageFormatting => '字幕生成';
+
+  @override
+  String get asrCancelling => '取消中…';
+
+  @override
+  String get asrCancelled => '已取消';
+
+  @override
+  String get asrSucceeded => '已完成';
+
+  @override
+  String asrFailed(String reason) {
+    return '失败：$reason';
+  }
+
+  @override
+  String get asrAudioTrack => '实际音轨';
+
+  @override
+  String get asrAudioFormat => '格式';
+
+  @override
+  String get asrAudioSize => '大小';
+
+  @override
+  String get asrAudioReused => '复用了配置一致的已有提取结果';
+
+  @override
+  String get asrNoSpeech => '此区间未识别到语音。';
+
+  @override
+  String get asrWholeResult => '整集';
+
+  @override
+  String asrPartialResult(String start, String end) {
+    return '部分区间：$start – $end（非整集）';
+  }
+
+  @override
+  String get asrSave => '保存字幕';
+
+  @override
+  String get asrExport => '导出…';
+
+  @override
+  String get asrExported => '已导出。';
+
+  @override
+  String get asrSaved => '已保存为此版本的新字幕。';
+
+  @override
+  String get asrSavedPartial => '已保存为此版本的新字幕（部分区间）。';
+
+  @override
+  String get asrSaveHint => '未保存的结果离开页面后清除；保存不会替换已有字幕或影响播放。';
+
+  @override
+  String get asrTaskId => '任务 ID';
+
+  @override
+  String get asrBackendLabel => '后端';
+
+  @override
+  String get asrModel => '模型';
+
+  @override
+  String get asrEngine => '引擎';
+
+  @override
+  String get asrLanguage => '语言（auto / zh / en …）';
+
+  @override
+  String get asrRemoteJob => '远端任务';
+
+  @override
+  String get asrError => '错误';
+
+  @override
+  String get asrContinue => '继续';
+
+  @override
+  String get asrWholeTitle => '处理整集？';
+
+  @override
+  String asrWholeBody(String duration, String size) {
+    return '时长 $duration，音频约 $size。识别可能耗时较长。';
+  }
+
+  @override
+  String get asrUploadTitle => '上传音频到识别服务？';
+
+  @override
+  String asrUploadBody(String host, String range, String insecure) {
+    return '将上传 $range 的音频到 $host。$insecure';
+  }
+
+  @override
+  String get asrUploadInsecure => '该服务使用未加密的 HTTP，音频传输不加密。';
+
+  @override
+  String get asrUploadAllow => '允许上传';
+
+  @override
+  String get asrUploadAuthorized => '已授权上传';
+
+  @override
+  String get asrErrorNoAudio => '该资源没有音轨。';
+
+  @override
+  String get asrErrorDurationUnknown => '时长未知。';
+
+  @override
+  String get asrErrorModelMissing => '模型未安装：请在 设置 → 语音识别 中安装。';
+
+  @override
+  String get asrErrorEngineUnavailable => '此构建未包含本机识别引擎。';
+
+  @override
+  String get asrErrorUnreachable => '服务不可达。';
+
+  @override
+  String get asrErrorUnauthorized => '服务拒绝了凭据。';
+
+  @override
+  String get asrErrorUploadConsent => '尚未授权上传到该服务。';
+
+  @override
+  String get asrErrorTls => '无法验证服务证书。';
+
+  @override
+  String get asrErrorRemoteStream => '该来源暂不支持本机读取。';
+
+  @override
+  String get asrErrorTrackChanged => '文件已变化，请重新选择音轨。';
+
+  @override
+  String get asrSettingsTitle => '语音识别';
+
+  @override
+  String get asrModelFooter => '本机 Whisper 多语言模型。文件按大小与 SHA-256 校验后启用，不会自动下载。';
+
+  @override
+  String get asrModelDownload => '下载';
+
+  @override
+  String asrModelDownloading(String done, String total) {
+    return '下载中 $done / $total';
+  }
+
+  @override
+  String get asrModelDownloadFailed => '下载失败或文件校验未通过。';
+
+  @override
+  String get asrModelImport => '导入模型文件…';
+
+  @override
+  String get asrModelImportRejected => '不是已知的模型文件（大小或校验值不符）。';
+
+  @override
+  String get asrModelInstalled => '已安装';
+
+  @override
+  String get asrModelInUse => '已安装 · 使用中';
+
+  @override
+  String get asrModelNotInstalled => '未安装';
+
+  @override
+  String get asrModelUse => '使用';
+
+  @override
+  String get asrModelRemove => '删除';
+
+  @override
+  String get asrServicesTitle => '识别服务';
+
+  @override
+  String get asrAddService => '添加 HTTP 服务';
+
+  @override
+  String get asrEditService => '编辑服务';
+
+  @override
+  String get asrRemoveService => '删除';
+
+  @override
+  String get asrServicePrivacy => '仅在你允许后上传提取的音频，不发送视频链接或 NAS 凭据。';
+
+  @override
+  String get asrServiceName => '名称';
+
+  @override
+  String get asrServiceUrl => '服务地址（https://…）';
+
+  @override
+  String get asrServiceToken => '访问令牌';
+
+  @override
+  String get asrServiceUrlInvalid => '请输入不含凭据的 https:// 地址（仅在下方允许时可用 http://）。';
+
+  @override
+  String get asrServiceInvalid => '请检查模型与语言。';
+
+  @override
+  String get asrAllowHttp => '允许未加密 HTTP（仅局域网）';
+
+  @override
+  String get asrAllowHttpHint => '音频将以明文传输。HTTPS 证书校验不会被关闭。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2761,6 +3105,350 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get remoteConnectionMode => '连接方式';
+
+  @override
+  String get ffmpegSnapshotDebug => 'FFmpeg 截图调试';
+
+  @override
+  String get ffmpegSnapshotAgain => '再截一张';
+
+  @override
+  String ffmpegSnapshotAt(String time, String duration) {
+    return '截图时间点 $time / $duration';
+  }
+
+  @override
+  String ffmpegSnapshotFailed(String reason) {
+    return '截图失败（$reason）。';
+  }
+
+  @override
+  String get ffmpegUnavailable => '此构建未包含 FFmpeg 媒体处理模块。';
+
+  @override
+  String get asrDebugTitle => '音频与字幕调试';
+
+  @override
+  String get asrChooseEpisode => '选择单集';
+
+  @override
+  String get asrSectionResource => '当前资源';
+
+  @override
+  String get asrSectionInput => '输入选择';
+
+  @override
+  String get asrSectionBackend => '识别方式';
+
+  @override
+  String get asrSectionActions => '操作';
+
+  @override
+  String get asrSectionStatus => '执行状态';
+
+  @override
+  String get asrSectionAudio => '音频结果';
+
+  @override
+  String get asrSectionSubtitles => '字幕结果';
+
+  @override
+  String get asrSectionDebug => '调试信息';
+
+  @override
+  String get asrTitle => '剧名';
+
+  @override
+  String get asrEpisode => '季/集';
+
+  @override
+  String get asrVersion => '媒体版本';
+
+  @override
+  String get asrDuration => '时长';
+
+  @override
+  String get asrUnknown => '未知';
+
+  @override
+  String get asrStart => '开始（秒或 分:秒）';
+
+  @override
+  String get asrEnd => '结束（秒或 分:秒）';
+
+  @override
+  String get asrWhole => '整集';
+
+  @override
+  String get asrRangeHint => '默认处理开头 60 秒；整集需主动选择。';
+
+  @override
+  String get asrWholeUnavailable => '时长未知，暂不支持整集处理。';
+
+  @override
+  String get asrRangeInvalid => '区间无效：结束须晚于开始且在媒体时长内。';
+
+  @override
+  String asrChannels(int n) {
+    return '$n 声道';
+  }
+
+  @override
+  String get asrNotDecodable => '无法解码';
+
+  @override
+  String get asrEmbedded => '本机内嵌';
+
+  @override
+  String get asrHttp => 'HTTP 服务';
+
+  @override
+  String get asrNoBackends => '未配置识别后端。';
+
+  @override
+  String get asrChecking => '检查中…';
+
+  @override
+  String asrBackendReady(String engine, String revision) {
+    return '可用 · $engine · 模型 $revision';
+  }
+
+  @override
+  String asrBackendUnavailable(String reason) {
+    return '不可用：$reason';
+  }
+
+  @override
+  String get asrExtractOnly => '仅提取音频';
+
+  @override
+  String get asrExtractAndTranscribe => '提取并识别字幕';
+
+  @override
+  String get asrStagePreparing => '资源准备';
+
+  @override
+  String get asrStageExtracting => '音频提取';
+
+  @override
+  String get asrStageUploading => '上传';
+
+  @override
+  String get asrStageQueued => '排队';
+
+  @override
+  String get asrStageTranscribing => '识别';
+
+  @override
+  String get asrStageFormatting => '字幕生成';
+
+  @override
+  String get asrCancelling => '取消中…';
+
+  @override
+  String get asrCancelled => '已取消';
+
+  @override
+  String get asrSucceeded => '已完成';
+
+  @override
+  String asrFailed(String reason) {
+    return '失败：$reason';
+  }
+
+  @override
+  String get asrAudioTrack => '实际音轨';
+
+  @override
+  String get asrAudioFormat => '格式';
+
+  @override
+  String get asrAudioSize => '大小';
+
+  @override
+  String get asrAudioReused => '复用了配置一致的已有提取结果';
+
+  @override
+  String get asrNoSpeech => '此区间未识别到语音。';
+
+  @override
+  String get asrWholeResult => '整集';
+
+  @override
+  String asrPartialResult(String start, String end) {
+    return '部分区间：$start – $end（非整集）';
+  }
+
+  @override
+  String get asrSave => '保存字幕';
+
+  @override
+  String get asrExport => '导出…';
+
+  @override
+  String get asrExported => '已导出。';
+
+  @override
+  String get asrSaved => '已保存为此版本的新字幕。';
+
+  @override
+  String get asrSavedPartial => '已保存为此版本的新字幕（部分区间）。';
+
+  @override
+  String get asrSaveHint => '未保存的结果离开页面后清除；保存不会替换已有字幕或影响播放。';
+
+  @override
+  String get asrTaskId => '任务 ID';
+
+  @override
+  String get asrBackendLabel => '后端';
+
+  @override
+  String get asrModel => '模型';
+
+  @override
+  String get asrEngine => '引擎';
+
+  @override
+  String get asrLanguage => '语言（auto / zh / en …）';
+
+  @override
+  String get asrRemoteJob => '远端任务';
+
+  @override
+  String get asrError => '错误';
+
+  @override
+  String get asrContinue => '继续';
+
+  @override
+  String get asrWholeTitle => '处理整集？';
+
+  @override
+  String asrWholeBody(String duration, String size) {
+    return '时长 $duration，音频约 $size。识别可能耗时较长。';
+  }
+
+  @override
+  String get asrUploadTitle => '上传音频到识别服务？';
+
+  @override
+  String asrUploadBody(String host, String range, String insecure) {
+    return '将上传 $range 的音频到 $host。$insecure';
+  }
+
+  @override
+  String get asrUploadInsecure => '该服务使用未加密的 HTTP，音频传输不加密。';
+
+  @override
+  String get asrUploadAllow => '允许上传';
+
+  @override
+  String get asrUploadAuthorized => '已授权上传';
+
+  @override
+  String get asrErrorNoAudio => '该资源没有音轨。';
+
+  @override
+  String get asrErrorDurationUnknown => '时长未知。';
+
+  @override
+  String get asrErrorModelMissing => '模型未安装：请在 设置 → 语音识别 中安装。';
+
+  @override
+  String get asrErrorEngineUnavailable => '此构建未包含本机识别引擎。';
+
+  @override
+  String get asrErrorUnreachable => '服务不可达。';
+
+  @override
+  String get asrErrorUnauthorized => '服务拒绝了凭据。';
+
+  @override
+  String get asrErrorUploadConsent => '尚未授权上传到该服务。';
+
+  @override
+  String get asrErrorTls => '无法验证服务证书。';
+
+  @override
+  String get asrErrorRemoteStream => '该来源暂不支持本机读取。';
+
+  @override
+  String get asrErrorTrackChanged => '文件已变化，请重新选择音轨。';
+
+  @override
+  String get asrSettingsTitle => '语音识别';
+
+  @override
+  String get asrModelFooter => '本机 Whisper 多语言模型。文件按大小与 SHA-256 校验后启用，不会自动下载。';
+
+  @override
+  String get asrModelDownload => '下载';
+
+  @override
+  String asrModelDownloading(String done, String total) {
+    return '下载中 $done / $total';
+  }
+
+  @override
+  String get asrModelDownloadFailed => '下载失败或文件校验未通过。';
+
+  @override
+  String get asrModelImport => '导入模型文件…';
+
+  @override
+  String get asrModelImportRejected => '不是已知的模型文件（大小或校验值不符）。';
+
+  @override
+  String get asrModelInstalled => '已安装';
+
+  @override
+  String get asrModelInUse => '已安装 · 使用中';
+
+  @override
+  String get asrModelNotInstalled => '未安装';
+
+  @override
+  String get asrModelUse => '使用';
+
+  @override
+  String get asrModelRemove => '删除';
+
+  @override
+  String get asrServicesTitle => '识别服务';
+
+  @override
+  String get asrAddService => '添加 HTTP 服务';
+
+  @override
+  String get asrEditService => '编辑服务';
+
+  @override
+  String get asrRemoveService => '删除';
+
+  @override
+  String get asrServicePrivacy => '仅在你允许后上传提取的音频，不发送视频链接或 NAS 凭据。';
+
+  @override
+  String get asrServiceName => '名称';
+
+  @override
+  String get asrServiceUrl => '服务地址（https://…）';
+
+  @override
+  String get asrServiceToken => '访问令牌';
+
+  @override
+  String get asrServiceUrlInvalid => '请输入不含凭据的 https:// 地址（仅在下方允许时可用 http://）。';
+
+  @override
+  String get asrServiceInvalid => '请检查模型与语言。';
+
+  @override
+  String get asrAllowHttp => '允许未加密 HTTP（仅局域网）';
+
+  @override
+  String get asrAllowHttpHint => '音频将以明文传输。HTTPS 证书校验不会被关闭。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4140,4 +4828,348 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remoteConnectionMode => '連線方式';
+
+  @override
+  String get ffmpegSnapshotDebug => 'FFmpeg 截圖除錯';
+
+  @override
+  String get ffmpegSnapshotAgain => '再截一張';
+
+  @override
+  String ffmpegSnapshotAt(String time, String duration) {
+    return '截圖時間點 $time / $duration';
+  }
+
+  @override
+  String ffmpegSnapshotFailed(String reason) {
+    return '截圖失敗（$reason）。';
+  }
+
+  @override
+  String get ffmpegUnavailable => '此版本未包含 FFmpeg 媒體處理模組。';
+
+  @override
+  String get asrDebugTitle => '音訊與字幕除錯';
+
+  @override
+  String get asrChooseEpisode => '選擇單集';
+
+  @override
+  String get asrSectionResource => '目前資源';
+
+  @override
+  String get asrSectionInput => '輸入選擇';
+
+  @override
+  String get asrSectionBackend => '辨識方式';
+
+  @override
+  String get asrSectionActions => '操作';
+
+  @override
+  String get asrSectionStatus => '執行狀態';
+
+  @override
+  String get asrSectionAudio => '音訊結果';
+
+  @override
+  String get asrSectionSubtitles => '字幕結果';
+
+  @override
+  String get asrSectionDebug => '除錯資訊';
+
+  @override
+  String get asrTitle => '劇名';
+
+  @override
+  String get asrEpisode => '季/集';
+
+  @override
+  String get asrVersion => '媒體版本';
+
+  @override
+  String get asrDuration => '時長';
+
+  @override
+  String get asrUnknown => '未知';
+
+  @override
+  String get asrStart => '開始（秒或 分:秒）';
+
+  @override
+  String get asrEnd => '結束（秒或 分:秒）';
+
+  @override
+  String get asrWhole => '整集';
+
+  @override
+  String get asrRangeHint => '預設處理開頭 60 秒；整集需主動選擇。';
+
+  @override
+  String get asrWholeUnavailable => '時長未知，暫不支援整集處理。';
+
+  @override
+  String get asrRangeInvalid => '區間無效：結束須晚於開始且在媒體時長內。';
+
+  @override
+  String asrChannels(int n) {
+    return '$n 聲道';
+  }
+
+  @override
+  String get asrNotDecodable => '無法解碼';
+
+  @override
+  String get asrEmbedded => '本機內嵌';
+
+  @override
+  String get asrHttp => 'HTTP 服務';
+
+  @override
+  String get asrNoBackends => '未設定辨識後端。';
+
+  @override
+  String get asrChecking => '檢查中…';
+
+  @override
+  String asrBackendReady(String engine, String revision) {
+    return '可用 · $engine · 模型 $revision';
+  }
+
+  @override
+  String asrBackendUnavailable(String reason) {
+    return '無法使用：$reason';
+  }
+
+  @override
+  String get asrExtractOnly => '僅擷取音訊';
+
+  @override
+  String get asrExtractAndTranscribe => '擷取並辨識字幕';
+
+  @override
+  String get asrStagePreparing => '資源準備';
+
+  @override
+  String get asrStageExtracting => '音訊擷取';
+
+  @override
+  String get asrStageUploading => '上傳';
+
+  @override
+  String get asrStageQueued => '排隊';
+
+  @override
+  String get asrStageTranscribing => '辨識';
+
+  @override
+  String get asrStageFormatting => '字幕產生';
+
+  @override
+  String get asrCancelling => '取消中…';
+
+  @override
+  String get asrCancelled => '已取消';
+
+  @override
+  String get asrSucceeded => '已完成';
+
+  @override
+  String asrFailed(String reason) {
+    return '失敗：$reason';
+  }
+
+  @override
+  String get asrAudioTrack => '實際音軌';
+
+  @override
+  String get asrAudioFormat => '格式';
+
+  @override
+  String get asrAudioSize => '大小';
+
+  @override
+  String get asrAudioReused => '重用了設定一致的既有擷取結果';
+
+  @override
+  String get asrNoSpeech => '此區間未辨識到語音。';
+
+  @override
+  String get asrWholeResult => '整集';
+
+  @override
+  String asrPartialResult(String start, String end) {
+    return '部分區間：$start – $end（非整集）';
+  }
+
+  @override
+  String get asrSave => '儲存字幕';
+
+  @override
+  String get asrExport => '匯出…';
+
+  @override
+  String get asrExported => '已匯出。';
+
+  @override
+  String get asrSaved => '已儲存為此版本的新字幕。';
+
+  @override
+  String get asrSavedPartial => '已儲存為此版本的新字幕（部分區間）。';
+
+  @override
+  String get asrSaveHint => '未儲存的結果離開頁面後清除；儲存不會取代既有字幕或影響播放。';
+
+  @override
+  String get asrTaskId => '任務 ID';
+
+  @override
+  String get asrBackendLabel => '後端';
+
+  @override
+  String get asrModel => '模型';
+
+  @override
+  String get asrEngine => '引擎';
+
+  @override
+  String get asrLanguage => '語言（auto / zh / en …）';
+
+  @override
+  String get asrRemoteJob => '遠端任務';
+
+  @override
+  String get asrError => '錯誤';
+
+  @override
+  String get asrContinue => '繼續';
+
+  @override
+  String get asrWholeTitle => '處理整集？';
+
+  @override
+  String asrWholeBody(String duration, String size) {
+    return '時長 $duration，音訊約 $size。辨識可能耗時較長。';
+  }
+
+  @override
+  String get asrUploadTitle => '上傳音訊到辨識服務？';
+
+  @override
+  String asrUploadBody(String host, String range, String insecure) {
+    return '將上傳 $range 的音訊到 $host。$insecure';
+  }
+
+  @override
+  String get asrUploadInsecure => '此服務使用未加密的 HTTP，音訊傳輸不加密。';
+
+  @override
+  String get asrUploadAllow => '允許上傳';
+
+  @override
+  String get asrUploadAuthorized => '已授權上傳';
+
+  @override
+  String get asrErrorNoAudio => '此資源沒有音軌。';
+
+  @override
+  String get asrErrorDurationUnknown => '時長未知。';
+
+  @override
+  String get asrErrorModelMissing => '模型未安裝：請在 設定 → 語音辨識 中安裝。';
+
+  @override
+  String get asrErrorEngineUnavailable => '此版本未包含本機辨識引擎。';
+
+  @override
+  String get asrErrorUnreachable => '服務無法連線。';
+
+  @override
+  String get asrErrorUnauthorized => '服務拒絕了憑證。';
+
+  @override
+  String get asrErrorUploadConsent => '尚未授權上傳到此服務。';
+
+  @override
+  String get asrErrorTls => '無法驗證服務憑證。';
+
+  @override
+  String get asrErrorRemoteStream => '此來源暫不支援本機讀取。';
+
+  @override
+  String get asrErrorTrackChanged => '檔案已變更，請重新選擇音軌。';
+
+  @override
+  String get asrSettingsTitle => '語音辨識';
+
+  @override
+  String get asrModelFooter => '本機 Whisper 多語言模型。檔案依大小與 SHA-256 驗證後啟用，不會自動下載。';
+
+  @override
+  String get asrModelDownload => '下載';
+
+  @override
+  String asrModelDownloading(String done, String total) {
+    return '下載中 $done / $total';
+  }
+
+  @override
+  String get asrModelDownloadFailed => '下載失敗或檔案驗證未通過。';
+
+  @override
+  String get asrModelImport => '匯入模型檔案…';
+
+  @override
+  String get asrModelImportRejected => '不是已知的模型檔案（大小或校驗值不符）。';
+
+  @override
+  String get asrModelInstalled => '已安裝';
+
+  @override
+  String get asrModelInUse => '已安裝 · 使用中';
+
+  @override
+  String get asrModelNotInstalled => '未安裝';
+
+  @override
+  String get asrModelUse => '使用';
+
+  @override
+  String get asrModelRemove => '刪除';
+
+  @override
+  String get asrServicesTitle => '辨識服務';
+
+  @override
+  String get asrAddService => '新增 HTTP 服務';
+
+  @override
+  String get asrEditService => '編輯服務';
+
+  @override
+  String get asrRemoveService => '刪除';
+
+  @override
+  String get asrServicePrivacy => '僅在你允許後上傳擷取的音訊，不傳送影片連結或 NAS 憑證。';
+
+  @override
+  String get asrServiceName => '名稱';
+
+  @override
+  String get asrServiceUrl => '服務位址（https://…）';
+
+  @override
+  String get asrServiceToken => '存取權杖';
+
+  @override
+  String get asrServiceUrlInvalid => '請輸入不含憑證的 https:// 位址（僅在下方允許時可用 http://）。';
+
+  @override
+  String get asrServiceInvalid => '請檢查模型與語言。';
+
+  @override
+  String get asrAllowHttp => '允許未加密 HTTP（僅區域網路）';
+
+  @override
+  String get asrAllowHttpHint => '音訊將以明文傳輸。HTTPS 憑證驗證不會被關閉。';
 }

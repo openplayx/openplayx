@@ -393,7 +393,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   String _kindName(SourceKind kind) =>
       kind == SourceKind.local ? l.localFolder : kind.label;
 
-  /// A labelled text field as one grouped-list row.
+  /// A labelled text field as one grouped-list row: label beside a
+  /// borderless field, or above a boxed one for multi-line input.
   Widget _field(
     TextEditingController c,
     String label, {
@@ -403,11 +404,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     bool number = false,
     int maxLines = 1,
     Key? key,
-  }) => SettingsRow(
-    title: label,
-    description: help,
-    stacked: true,
-    control: ShadInput(
+  }) {
+    final inline = maxLines == 1;
+    final input = ShadInput(
       key: key ?? ValueKey(label),
       controller: c,
       focusNode: identical(c, _address) ? _addressFocus : null,
@@ -417,6 +416,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       enableSuggestions: !password,
       obscureText: password && !_showPassword,
       keyboardType: number ? TextInputType.number : TextInputType.text,
+      decoration: inline ? ShadDecoration.none : null,
+      padding: inline ? EdgeInsets.zero : null,
       placeholder: hint == null ? null : Text(hint),
       trailing: password
           ? Tooltip(
@@ -425,6 +426,10 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                 button: true,
                 label: _showPassword ? l.hidePassword : l.showPassword,
                 child: ShadIconButton.ghost(
+                  width: 32,
+                  height: 32,
+                  iconSize: 18,
+                  padding: EdgeInsets.zero,
                   onPressed: () =>
                       setState(() => _showPassword = !_showPassword),
                   icon: Icon(
@@ -436,8 +441,16 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               ),
             )
           : null,
-    ),
-  );
+    );
+    return inline
+        ? SettingsFieldRow(title: label, description: help, field: input)
+        : SettingsRow(
+            title: label,
+            description: help,
+            stacked: true,
+            control: input,
+          );
+  }
 
   Widget _switchRow(
     String title,

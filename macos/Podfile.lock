@@ -1,5 +1,9 @@
 PODS:
   - FlutterMacOS (1.0.0)
+  - openplayx_ffmpeg (0.1.0):
+    - FlutterMacOS
+  - openplayx_whisper (0.1.0):
+    - FlutterMacOS
   - OpenPlayXRemote (0.1.0)
   - vlc_player (2.1.2):
     - FlutterMacOS
@@ -8,6 +12,8 @@ PODS:
 
 DEPENDENCIES:
   - FlutterMacOS (from `Flutter/ephemeral`)
+  - openplayx_ffmpeg (from `Flutter/ephemeral/.symlinks/plugins/openplayx_ffmpeg/macos`)
+  - openplayx_whisper (from `Flutter/ephemeral/.symlinks/plugins/openplayx_whisper/macos`)
   - OpenPlayXRemote (from `../native/remote_access`)
   - vlc_player (from `Flutter/ephemeral/.symlinks/plugins/vlc_player/macos`)
 
@@ -18,6 +24,10 @@ SPEC REPOS:
 EXTERNAL SOURCES:
   FlutterMacOS:
     :path: Flutter/ephemeral
+  openplayx_ffmpeg:
+    :path: Flutter/ephemeral/.symlinks/plugins/openplayx_ffmpeg/macos
+  openplayx_whisper:
+    :path: Flutter/ephemeral/.symlinks/plugins/openplayx_whisper/macos
   OpenPlayXRemote:
     :path: "../native/remote_access"
   vlc_player:
@@ -25,6 +35,8 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
+  openplayx_ffmpeg: edd4627b875dff013e825dbd628f3f74ea62b282
+  openplayx_whisper: 3e208db57eda54735192477ff744fdedebadd829
   OpenPlayXRemote: c83c9371562b585271307a71acf990f70034df47
   vlc_player: df3d40f7ce152bd88c2d156e656ae9ef8359e2ad
   VLCKit: 4f2c462daaab6de88b93ab7609bdefbada557a4d

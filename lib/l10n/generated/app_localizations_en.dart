@@ -1451,4 +1451,365 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remoteConnectionMode => 'Connection mode';
+
+  @override
+  String get ffmpegSnapshotDebug => 'FFmpeg snapshot debug';
+
+  @override
+  String get ffmpegSnapshotAgain => 'Take another';
+
+  @override
+  String ffmpegSnapshotAt(String time, String duration) {
+    return 'Frame at $time of $duration';
+  }
+
+  @override
+  String ffmpegSnapshotFailed(String reason) {
+    return 'Snapshot failed ($reason).';
+  }
+
+  @override
+  String get ffmpegUnavailable =>
+      'FFmpeg processing is not available in this build.';
+
+  @override
+  String get asrDebugTitle => 'Audio & subtitle debug';
+
+  @override
+  String get asrChooseEpisode => 'Choose an episode';
+
+  @override
+  String get asrSectionResource => 'Current resource';
+
+  @override
+  String get asrSectionInput => 'Input';
+
+  @override
+  String get asrSectionBackend => 'Recognition';
+
+  @override
+  String get asrSectionActions => 'Actions';
+
+  @override
+  String get asrSectionStatus => 'Status';
+
+  @override
+  String get asrSectionAudio => 'Audio result';
+
+  @override
+  String get asrSectionSubtitles => 'Subtitles';
+
+  @override
+  String get asrSectionDebug => 'Debug info';
+
+  @override
+  String get asrTitle => 'Title';
+
+  @override
+  String get asrEpisode => 'Episode';
+
+  @override
+  String get asrVersion => 'Version';
+
+  @override
+  String get asrDuration => 'Duration';
+
+  @override
+  String get asrUnknown => 'Unknown';
+
+  @override
+  String get asrStart => 'Start (s or mm:ss)';
+
+  @override
+  String get asrEnd => 'End (s or mm:ss)';
+
+  @override
+  String get asrWhole => 'Whole episode';
+
+  @override
+  String get asrRangeHint =>
+      'Defaults to the first 60 seconds. Whole episode must be chosen explicitly.';
+
+  @override
+  String get asrWholeUnavailable =>
+      'Duration unknown: whole-episode processing is not supported.';
+
+  @override
+  String get asrRangeInvalid =>
+      'Invalid range: the end must be after the start and within the media.';
+
+  @override
+  String asrChannels(int n) {
+    return '$n ch';
+  }
+
+  @override
+  String get asrNotDecodable => 'not decodable';
+
+  @override
+  String get asrEmbedded => 'On device';
+
+  @override
+  String get asrHttp => 'HTTP service';
+
+  @override
+  String get asrNoBackends => 'No recognition backend configured.';
+
+  @override
+  String get asrChecking => 'Checking…';
+
+  @override
+  String asrBackendReady(String engine, String revision) {
+    return 'Ready · $engine · model $revision';
+  }
+
+  @override
+  String asrBackendUnavailable(String reason) {
+    return 'Unavailable: $reason';
+  }
+
+  @override
+  String get asrExtractOnly => 'Extract audio only';
+
+  @override
+  String get asrExtractAndTranscribe => 'Extract and recognise subtitles';
+
+  @override
+  String get asrStagePreparing => 'Preparing resource';
+
+  @override
+  String get asrStageExtracting => 'Extracting audio';
+
+  @override
+  String get asrStageUploading => 'Uploading';
+
+  @override
+  String get asrStageQueued => 'Queued';
+
+  @override
+  String get asrStageTranscribing => 'Recognising';
+
+  @override
+  String get asrStageFormatting => 'Building subtitles';
+
+  @override
+  String get asrCancelling => 'Cancelling…';
+
+  @override
+  String get asrCancelled => 'Cancelled';
+
+  @override
+  String get asrSucceeded => 'Finished';
+
+  @override
+  String asrFailed(String reason) {
+    return 'Failed: $reason';
+  }
+
+  @override
+  String get asrAudioTrack => 'Track';
+
+  @override
+  String get asrAudioFormat => 'Format';
+
+  @override
+  String get asrAudioSize => 'Size';
+
+  @override
+  String get asrAudioReused => 'Reused an identical earlier extraction';
+
+  @override
+  String get asrNoSpeech => 'No speech recognised in this range.';
+
+  @override
+  String get asrWholeResult => 'Whole episode';
+
+  @override
+  String asrPartialResult(String start, String end) {
+    return 'Partial: $start – $end (not the whole episode)';
+  }
+
+  @override
+  String get asrSave => 'Save subtitle';
+
+  @override
+  String get asrExport => 'Export…';
+
+  @override
+  String get asrExported => 'Exported.';
+
+  @override
+  String get asrSaved => 'Saved as a new subtitle for this version.';
+
+  @override
+  String get asrSavedPartial =>
+      'Saved as a new partial subtitle for this version.';
+
+  @override
+  String get asrSaveHint =>
+      'Unsaved results are discarded when you leave. Saving never replaces existing subtitles or changes playback.';
+
+  @override
+  String get asrTaskId => 'Task ID';
+
+  @override
+  String get asrBackendLabel => 'Backend';
+
+  @override
+  String get asrModel => 'Model';
+
+  @override
+  String get asrEngine => 'Engine';
+
+  @override
+  String get asrLanguage => 'Language (auto / zh / en …)';
+
+  @override
+  String get asrRemoteJob => 'Remote job';
+
+  @override
+  String get asrError => 'Error';
+
+  @override
+  String get asrContinue => 'Continue';
+
+  @override
+  String get asrWholeTitle => 'Process the whole episode?';
+
+  @override
+  String asrWholeBody(String duration, String size) {
+    return 'Duration $duration, about $size of audio. Recognition can take a long time.';
+  }
+
+  @override
+  String get asrUploadTitle => 'Upload audio to a recognition service?';
+
+  @override
+  String asrUploadBody(String host, String range, String insecure) {
+    return 'Audio of $range will be uploaded to $host. $insecure';
+  }
+
+  @override
+  String get asrUploadInsecure =>
+      'This service uses plain HTTP: the audio is not encrypted in transit.';
+
+  @override
+  String get asrUploadAllow => 'Allow upload';
+
+  @override
+  String get asrUploadAuthorized => 'uploads allowed';
+
+  @override
+  String get asrErrorNoAudio => 'This resource has no audio track.';
+
+  @override
+  String get asrErrorDurationUnknown => 'Duration unknown.';
+
+  @override
+  String get asrErrorModelMissing =>
+      'Model not installed: install it in Settings → Speech recognition.';
+
+  @override
+  String get asrErrorEngineUnavailable =>
+      'This build has no on-device recognizer.';
+
+  @override
+  String get asrErrorUnreachable => 'Service unreachable.';
+
+  @override
+  String get asrErrorUnauthorized => 'Service rejected the credentials.';
+
+  @override
+  String get asrErrorUploadConsent =>
+      'Upload to this service has not been authorised.';
+
+  @override
+  String get asrErrorTls => 'The service certificate could not be verified.';
+
+  @override
+  String get asrErrorRemoteStream => 'This source cannot be read locally yet.';
+
+  @override
+  String get asrErrorTrackChanged =>
+      'The file changed; choose the audio track again.';
+
+  @override
+  String get asrSettingsTitle => 'Speech recognition';
+
+  @override
+  String get asrModelFooter =>
+      'On-device Whisper models (multilingual). Files are verified by size and SHA-256 before use; nothing is downloaded automatically.';
+
+  @override
+  String get asrModelDownload => 'Download';
+
+  @override
+  String asrModelDownloading(String done, String total) {
+    return 'Downloading $done / $total';
+  }
+
+  @override
+  String get asrModelDownloadFailed =>
+      'Download failed or the file did not verify.';
+
+  @override
+  String get asrModelImport => 'Import model file…';
+
+  @override
+  String get asrModelImportRejected =>
+      'Not a known model file (size/checksum mismatch).';
+
+  @override
+  String get asrModelInstalled => 'Installed';
+
+  @override
+  String get asrModelInUse => 'Installed · in use';
+
+  @override
+  String get asrModelNotInstalled => 'Not installed';
+
+  @override
+  String get asrModelUse => 'Use';
+
+  @override
+  String get asrModelRemove => 'Remove';
+
+  @override
+  String get asrServicesTitle => 'Recognition services';
+
+  @override
+  String get asrAddService => 'Add HTTP service';
+
+  @override
+  String get asrEditService => 'Edit service';
+
+  @override
+  String get asrRemoveService => 'Remove';
+
+  @override
+  String get asrServicePrivacy =>
+      'Only extracted audio is uploaded, after you allow it. Video links and NAS credentials are never sent.';
+
+  @override
+  String get asrServiceName => 'Name';
+
+  @override
+  String get asrServiceUrl => 'Service URL (https://…)';
+
+  @override
+  String get asrServiceToken => 'Access token';
+
+  @override
+  String get asrServiceUrlInvalid =>
+      'Enter an https:// URL without credentials (http:// only when allowed below).';
+
+  @override
+  String get asrServiceInvalid => 'Check the model and language.';
+
+  @override
+  String get asrAllowHttp => 'Allow plain HTTP (LAN only)';
+
+  @override
+  String get asrAllowHttpHint =>
+      'Audio would travel unencrypted. HTTPS certificate checks are never disabled.';
 }

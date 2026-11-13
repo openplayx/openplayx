@@ -33,6 +33,12 @@ dependencies:
 
   openplayx_playback:
     path: packages/playback
+  # In-process FFmpeg media processing (FFI, no ffmpeg processes).
+  openplayx_ffmpeg:
+    path: ../ffmpeg-package
+  # In-process whisper.cpp speech recognition (FFI, no CLI/server process).
+  openplayx_whisper:
+    path: ../whisper-package
   file_selector: ^1.1.0
   smb_connect:
     git:

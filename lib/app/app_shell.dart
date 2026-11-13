@@ -31,7 +31,18 @@ import 'theme/app_theme.dart';
 
 import '../core/models/text_model.dart';
 import '../plugins/model_langchain/langchain_model.dart';
+import '../services/ai_tools/media_processing_tools.dart';
 import '../services/ai_tools/media_tools.dart';
+import '../services/ai_tools/torrent_tools.dart';
+import '../services/ai_tools/torrent_search_tools.dart';
+import '../services/torrent_search/torrent_search_config.dart';
+import '../services/torrent/torrent_service.dart';
+import '../features/settings/torrent_service_settings_page.dart';
+import '../services/ai_tools/subtitle_tools.dart';
+import '../services/subtitles/asr_backend_config.dart';
+import '../services/subtitles/asr_model_store.dart';
+import '../services/subtitles/subtitle_generation_service.dart';
+import '../services/media_processing/media_processing_service.dart';
 import '../services/ai_tools/tool_registry.dart';
 import '../services/conversations/assistant_store.dart';
 import '../services/conversations/conversation_coordinator.dart';
@@ -80,6 +91,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   ConversationCoordinator? _assistant;
   AiChatController? _chat;
   MediaTools? _mediaTools;
+  MediaProcessingService? _mediaProcessing;
+  SubtitleGenerationService? _subtitles;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
@@ -112,6 +125,29 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       }
       setState(() {
         _library = library;
+        final media = _mediaProcessing = MediaProcessingService(
+          db: library.db,
+          sources: _sources,
+          root: MediaProcessingService.defaultRoot(),
+        );
+        MediaProcessingService.current = media;
+        unawaited(media.recover().catchError((_) {}));
+        try {
+          final subtitles = _subtitles = SubtitleGenerationService(
+            db: library.db,
+            media: media,
+            backends: AsrBackendRegistry(
+              db: library.db,
+              models: AsrModelStore(asrModelRoot()),
+            ),
+            root: SubtitleGenerationService.defaultRoot(),
+          );
+          SubtitleGenerationService.current = subtitles;
+          unawaited(subtitles.recover().catchError((_) {}));
+        } catch (_) {
+          // Optional: subtitle generation must not block playback.
+          _subtitles = null;
+        }
         _artwork = ArtworkService(
           _sources,
           retainedArtwork: () => library.metadata.retainedArtwork,
@@ -143,6 +179,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _chat?.dispose();
     _assistant?.dispose();
     _assistantStore?.close();
+    if (SubtitleGenerationService.current == _subtitles) {
+      SubtitleGenerationService.current = null;
+    }
+    _subtitles?.dispose();
+    if (MediaProcessingService.current == _mediaProcessing) {
+      MediaProcessingService.current = null;
+    }
+    _mediaProcessing?.dispose();
     _revision.dispose();
     if (widget.library == null) _library?.close();
     if (widget.sources == null) unawaited(_sources.dispose());
@@ -217,11 +261,54 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               return {'command_status': 'submitted', 'playback': result};
             },
     );
+    final media = _mediaProcessing;
+    if (media != null) {
+      final mediaTools = MediaProcessingTools(
+        registry: tools.registry,
+        service: media,
+        library: library,
+        sources: _sources,
+        entryForReference: tools.entryForReference,
+        canExecute: () => _assistant?.acceptingActions ?? false,
+      );
+      final subtitles = _subtitles;
+      if (subtitles != null) {
+        SubtitleTools(
+          registry: tools.registry,
+          service: subtitles,
+          media: mediaTools,
+          canExecute: () => _assistant?.acceptingActions ?? false,
+        );
+      }
+    }
+    // Server-side BitTorrent downloads: offered only once a service is
+    // configured in Settings → BitTorrent 服务.
+    final torrentStore = TorrentServiceStore.current ??= TorrentServiceStore();
+    if (!torrentStore.loaded) unawaited(torrentStore.load().catchError((_) {}));
+    final torrentTools = TorrentToolsRegistry.current = TorrentTools(
+      registry: tools.registry,
+      store: torrentStore,
+      userTexts: () => (_assistant?.turns ?? const <ConversationTurn>[])
+          .expand((t) => t.messages)
+          .where((m) => m.role == 'user')
+          .map((m) => m.text),
+      canExecute: () => _assistant?.acceptingActions ?? false,
+    );
+    // Read-only torrent index search (Settings → Torrent 搜索服务); offered
+    // only once a search service is configured and enabled.
+    TorrentSearchTools(
+      registry: tools.registry,
+      services: TorrentSearchRegistry.forDb(library.db),
+      canExecute: () => _assistant?.acceptingActions ?? false,
+    );
     _assistant = ConversationCoordinator(
       store: store,
       gateway: ToolGateway(tools.registry, journal: store),
       context: _aiContext,
-      confirmationTarget: (_, arguments) {
+      confirmationTarget: (tool, arguments) {
+        if (tool.startsWith('torrent_')) {
+          return torrentTools.describe(tool, arguments);
+        }
         final id = arguments['media_id'];
         if (id is! String) return null;
         final rows = _library!.db.select('SELECT title FROM media WHERE id=?', [

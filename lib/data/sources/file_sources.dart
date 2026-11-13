@@ -322,6 +322,12 @@ class SmbAccess {
   /// caller's request timeout.
   static const staleCallTimeout = Duration(seconds: 8);
 
+  /// A connection silent this long is probed before reuse: after the app was
+  /// suspended the socket is often half-open, and every request on it would
+  /// otherwise wait out the library's retries (~15 s) before failing.
+  static const idleBeforeProbe = Duration(seconds: 15);
+  static const probeTimeout = Duration(seconds: 3);
+
   Future<SmbConnect> _connect() {
     if (_live?.transport.isClosed ?? false) _discard(_live!);
     final pending = _connection;
@@ -347,17 +353,34 @@ class SmbAccess {
     Future<T> Function(SmbConnect connection) action, {
     bool quick = false,
   }) async {
-    final connection = await _connect();
+    final connection = await _liveConnection();
     try {
       final attempt = action(connection);
       return await (quick ? attempt.timeout(staleCallTimeout) : attempt);
     } on PluginException {
       rethrow;
-    } catch (_) {
+    } catch (e) {
+      print('DIAG smb run failed ${e.runtimeType}, retrying'); // DIAG
       _discard(connection);
       if (_closed) rethrow;
     }
     return action(await _connect());
+  }
+
+  Future<SmbConnect> _liveConnection() async {
+    final connection = await _connect();
+    print('DIAG smb idle=${connection.transport.idleFor.inSeconds}s closed=${connection.transport.isClosed}'); // DIAG
+    if (connection.transport.idleFor < idleBeforeProbe) return connection;
+    try {
+      await connection.echo().timeout(probeTimeout);
+      print('DIAG smb probe ok'); // DIAG
+      return connection;
+    } catch (e) {
+      print('DIAG smb probe failed ${e.runtimeType}'); // DIAG
+      _discard(connection);
+      if (_closed) rethrow;
+      return _connect();
+    }
   }
 
   void _discard(SmbConnect connection) {

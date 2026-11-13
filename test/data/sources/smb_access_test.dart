@@ -14,6 +14,8 @@ class _FakeTransport implements SmbTransport {
   @override
   bool isClosed = false;
   @override
+  Duration idleFor = Duration.zero;
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
@@ -22,6 +24,15 @@ class _FakeConnect implements SmbConnect {
   final int id;
   final File? media;
   bool closed = false;
+  int echoes = 0;
+
+  /// A half-open socket: requests are sent but never answered.
+  bool silent = false;
+  @override
+  Future<void> echo() {
+    echoes++;
+    return silent ? Completer<void>().future : Future.value();
+  }
   @override
   Future<SmbFile> file(String path) async {
     final size = media?.lengthSync() ?? 0;
@@ -164,5 +175,29 @@ void main() {
     expect(response.statusCode, 200);
     expect(body, media.readAsBytesSync());
     expect(connections, hasLength(2));
+  });
+
+  test('a fresh connection is used without probing', () async {
+    await access.run((c) async {});
+    await access.run((c) async {});
+    expect(opened.single.echoes, 0);
+  });
+
+  test('an idle connection that still answers is kept', () async {
+    await access.run((c) async {});
+    opened.single.transport.idleFor = const Duration(minutes: 3);
+    expect(await access.run((c) async => (c as _FakeConnect).id), 0);
+    expect(opened.single.echoes, 1);
+  });
+
+  test('an idle half-open connection is replaced after the probe', () async {
+    await access.run((c) async {});
+    opened.single
+      ..transport.idleFor = const Duration(minutes: 3)
+      ..silent = true;
+    final watch = Stopwatch()..start();
+    expect(await access.run((c) async => (c as _FakeConnect).id), 1);
+    expect(watch.elapsed, lessThan(SmbAccess.probeTimeout * 2));
+    expect(opened.first.closed, isTrue);
   });
 }

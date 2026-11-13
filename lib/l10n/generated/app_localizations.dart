@@ -2714,6 +2714,654 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Connection mode'**
   String get remoteConnectionMode;
+
+  /// No description provided for @ffmpegSnapshotDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'FFmpeg snapshot debug'**
+  String get ffmpegSnapshotDebug;
+
+  /// No description provided for @ffmpegSnapshotAgain.
+  ///
+  /// In en, this message translates to:
+  /// **'Take another'**
+  String get ffmpegSnapshotAgain;
+
+  /// No description provided for @ffmpegSnapshotAt.
+  ///
+  /// In en, this message translates to:
+  /// **'Frame at {time} of {duration}'**
+  String ffmpegSnapshotAt(String time, String duration);
+
+  /// No description provided for @ffmpegSnapshotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot failed ({reason}).'**
+  String ffmpegSnapshotFailed(String reason);
+
+  /// No description provided for @ffmpegUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'FFmpeg processing is not available in this build.'**
+  String get ffmpegUnavailable;
+
+  /// No description provided for @asrDebugTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio & subtitle debug'**
+  String get asrDebugTitle;
+
+  /// No description provided for @asrChooseEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an episode'**
+  String get asrChooseEpisode;
+
+  /// No description provided for @asrSectionResource.
+  ///
+  /// In en, this message translates to:
+  /// **'Current resource'**
+  String get asrSectionResource;
+
+  /// No description provided for @asrSectionInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input'**
+  String get asrSectionInput;
+
+  /// No description provided for @asrSectionBackend.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognition'**
+  String get asrSectionBackend;
+
+  /// No description provided for @asrSectionActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions'**
+  String get asrSectionActions;
+
+  /// No description provided for @asrSectionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Status'**
+  String get asrSectionStatus;
+
+  /// No description provided for @asrSectionAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio result'**
+  String get asrSectionAudio;
+
+  /// No description provided for @asrSectionSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get asrSectionSubtitles;
+
+  /// No description provided for @asrSectionDebug.
+  ///
+  /// In en, this message translates to:
+  /// **'Debug info'**
+  String get asrSectionDebug;
+
+  /// No description provided for @asrTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get asrTitle;
+
+  /// No description provided for @asrEpisode.
+  ///
+  /// In en, this message translates to:
+  /// **'Episode'**
+  String get asrEpisode;
+
+  /// No description provided for @asrVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version'**
+  String get asrVersion;
+
+  /// No description provided for @asrDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get asrDuration;
+
+  /// No description provided for @asrUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown'**
+  String get asrUnknown;
+
+  /// No description provided for @asrStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start (s or mm:ss)'**
+  String get asrStart;
+
+  /// No description provided for @asrEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'End (s or mm:ss)'**
+  String get asrEnd;
+
+  /// No description provided for @asrWhole.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole episode'**
+  String get asrWhole;
+
+  /// No description provided for @asrRangeHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Defaults to the first 60 seconds. Whole episode must be chosen explicitly.'**
+  String get asrRangeHint;
+
+  /// No description provided for @asrWholeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration unknown: whole-episode processing is not supported.'**
+  String get asrWholeUnavailable;
+
+  /// No description provided for @asrRangeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid range: the end must be after the start and within the media.'**
+  String get asrRangeInvalid;
+
+  /// No description provided for @asrChannels.
+  ///
+  /// In en, this message translates to:
+  /// **'{n} ch'**
+  String asrChannels(int n);
+
+  /// No description provided for @asrNotDecodable.
+  ///
+  /// In en, this message translates to:
+  /// **'not decodable'**
+  String get asrNotDecodable;
+
+  /// No description provided for @asrEmbedded.
+  ///
+  /// In en, this message translates to:
+  /// **'On device'**
+  String get asrEmbedded;
+
+  /// No description provided for @asrHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'HTTP service'**
+  String get asrHttp;
+
+  /// No description provided for @asrNoBackends.
+  ///
+  /// In en, this message translates to:
+  /// **'No recognition backend configured.'**
+  String get asrNoBackends;
+
+  /// No description provided for @asrChecking.
+  ///
+  /// In en, this message translates to:
+  /// **'Checking…'**
+  String get asrChecking;
+
+  /// No description provided for @asrBackendReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready · {engine} · model {revision}'**
+  String asrBackendReady(String engine, String revision);
+
+  /// No description provided for @asrBackendUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable: {reason}'**
+  String asrBackendUnavailable(String reason);
+
+  /// No description provided for @asrExtractOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract audio only'**
+  String get asrExtractOnly;
+
+  /// No description provided for @asrExtractAndTranscribe.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract and recognise subtitles'**
+  String get asrExtractAndTranscribe;
+
+  /// No description provided for @asrStagePreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing resource'**
+  String get asrStagePreparing;
+
+  /// No description provided for @asrStageExtracting.
+  ///
+  /// In en, this message translates to:
+  /// **'Extracting audio'**
+  String get asrStageExtracting;
+
+  /// No description provided for @asrStageUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'Uploading'**
+  String get asrStageUploading;
+
+  /// No description provided for @asrStageQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Queued'**
+  String get asrStageQueued;
+
+  /// No description provided for @asrStageTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognising'**
+  String get asrStageTranscribing;
+
+  /// No description provided for @asrStageFormatting.
+  ///
+  /// In en, this message translates to:
+  /// **'Building subtitles'**
+  String get asrStageFormatting;
+
+  /// No description provided for @asrCancelling.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelling…'**
+  String get asrCancelling;
+
+  /// No description provided for @asrCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled'**
+  String get asrCancelled;
+
+  /// No description provided for @asrSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'Finished'**
+  String get asrSucceeded;
+
+  /// No description provided for @asrFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Failed: {reason}'**
+  String asrFailed(String reason);
+
+  /// No description provided for @asrAudioTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Track'**
+  String get asrAudioTrack;
+
+  /// No description provided for @asrAudioFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get asrAudioFormat;
+
+  /// No description provided for @asrAudioSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Size'**
+  String get asrAudioSize;
+
+  /// No description provided for @asrAudioReused.
+  ///
+  /// In en, this message translates to:
+  /// **'Reused an identical earlier extraction'**
+  String get asrAudioReused;
+
+  /// No description provided for @asrNoSpeech.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech recognised in this range.'**
+  String get asrNoSpeech;
+
+  /// No description provided for @asrWholeResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole episode'**
+  String get asrWholeResult;
+
+  /// No description provided for @asrPartialResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial: {start} – {end} (not the whole episode)'**
+  String asrPartialResult(String start, String end);
+
+  /// No description provided for @asrSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save subtitle'**
+  String get asrSave;
+
+  /// No description provided for @asrExport.
+  ///
+  /// In en, this message translates to:
+  /// **'Export…'**
+  String get asrExport;
+
+  /// No description provided for @asrExported.
+  ///
+  /// In en, this message translates to:
+  /// **'Exported.'**
+  String get asrExported;
+
+  /// No description provided for @asrSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new subtitle for this version.'**
+  String get asrSaved;
+
+  /// No description provided for @asrSavedPartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved as a new partial subtitle for this version.'**
+  String get asrSavedPartial;
+
+  /// No description provided for @asrSaveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsaved results are discarded when you leave. Saving never replaces existing subtitles or changes playback.'**
+  String get asrSaveHint;
+
+  /// No description provided for @asrTaskId.
+  ///
+  /// In en, this message translates to:
+  /// **'Task ID'**
+  String get asrTaskId;
+
+  /// No description provided for @asrBackendLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'Backend'**
+  String get asrBackendLabel;
+
+  /// No description provided for @asrModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Model'**
+  String get asrModel;
+
+  /// No description provided for @asrEngine.
+  ///
+  /// In en, this message translates to:
+  /// **'Engine'**
+  String get asrEngine;
+
+  /// No description provided for @asrLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language (auto / zh / en …)'**
+  String get asrLanguage;
+
+  /// No description provided for @asrRemoteJob.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote job'**
+  String get asrRemoteJob;
+
+  /// No description provided for @asrError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get asrError;
+
+  /// No description provided for @asrContinue.
+  ///
+  /// In en, this message translates to:
+  /// **'Continue'**
+  String get asrContinue;
+
+  /// No description provided for @asrWholeTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Process the whole episode?'**
+  String get asrWholeTitle;
+
+  /// No description provided for @asrWholeBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration {duration}, about {size} of audio. Recognition can take a long time.'**
+  String asrWholeBody(String duration, String size);
+
+  /// No description provided for @asrUploadTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload audio to a recognition service?'**
+  String get asrUploadTitle;
+
+  /// No description provided for @asrUploadBody.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio of {range} will be uploaded to {host}. {insecure}'**
+  String asrUploadBody(String host, String range, String insecure);
+
+  /// No description provided for @asrUploadInsecure.
+  ///
+  /// In en, this message translates to:
+  /// **'This service uses plain HTTP: the audio is not encrypted in transit.'**
+  String get asrUploadInsecure;
+
+  /// No description provided for @asrUploadAllow.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow upload'**
+  String get asrUploadAllow;
+
+  /// No description provided for @asrUploadAuthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'uploads allowed'**
+  String get asrUploadAuthorized;
+
+  /// No description provided for @asrErrorNoAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'This resource has no audio track.'**
+  String get asrErrorNoAudio;
+
+  /// No description provided for @asrErrorDurationUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration unknown.'**
+  String get asrErrorDurationUnknown;
+
+  /// No description provided for @asrErrorModelMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Model not installed: install it in Settings → Speech recognition.'**
+  String get asrErrorModelMissing;
+
+  /// No description provided for @asrErrorEngineUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'This build has no on-device recognizer.'**
+  String get asrErrorEngineUnavailable;
+
+  /// No description provided for @asrErrorUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Service unreachable.'**
+  String get asrErrorUnreachable;
+
+  /// No description provided for @asrErrorUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'Service rejected the credentials.'**
+  String get asrErrorUnauthorized;
+
+  /// No description provided for @asrErrorUploadConsent.
+  ///
+  /// In en, this message translates to:
+  /// **'Upload to this service has not been authorised.'**
+  String get asrErrorUploadConsent;
+
+  /// No description provided for @asrErrorTls.
+  ///
+  /// In en, this message translates to:
+  /// **'The service certificate could not be verified.'**
+  String get asrErrorTls;
+
+  /// No description provided for @asrErrorRemoteStream.
+  ///
+  /// In en, this message translates to:
+  /// **'This source cannot be read locally yet.'**
+  String get asrErrorRemoteStream;
+
+  /// No description provided for @asrErrorTrackChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The file changed; choose the audio track again.'**
+  String get asrErrorTrackChanged;
+
+  /// No description provided for @asrSettingsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech recognition'**
+  String get asrSettingsTitle;
+
+  /// No description provided for @asrModelFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device Whisper models (multilingual). Files are verified by size and SHA-256 before use; nothing is downloaded automatically.'**
+  String get asrModelFooter;
+
+  /// No description provided for @asrModelDownload.
+  ///
+  /// In en, this message translates to:
+  /// **'Download'**
+  String get asrModelDownload;
+
+  /// No description provided for @asrModelDownloading.
+  ///
+  /// In en, this message translates to:
+  /// **'Downloading {done} / {total}'**
+  String asrModelDownloading(String done, String total);
+
+  /// No description provided for @asrModelDownloadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Download failed or the file did not verify.'**
+  String get asrModelDownloadFailed;
+
+  /// No description provided for @asrModelImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import model file…'**
+  String get asrModelImport;
+
+  /// No description provided for @asrModelImportRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Not a known model file (size/checksum mismatch).'**
+  String get asrModelImportRejected;
+
+  /// No description provided for @asrModelInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed'**
+  String get asrModelInstalled;
+
+  /// No description provided for @asrModelInUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Installed · in use'**
+  String get asrModelInUse;
+
+  /// No description provided for @asrModelNotInstalled.
+  ///
+  /// In en, this message translates to:
+  /// **'Not installed'**
+  String get asrModelNotInstalled;
+
+  /// No description provided for @asrModelUse.
+  ///
+  /// In en, this message translates to:
+  /// **'Use'**
+  String get asrModelUse;
+
+  /// No description provided for @asrModelRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get asrModelRemove;
+
+  /// No description provided for @asrServicesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognition services'**
+  String get asrServicesTitle;
+
+  /// No description provided for @asrAddService.
+  ///
+  /// In en, this message translates to:
+  /// **'Add HTTP service'**
+  String get asrAddService;
+
+  /// No description provided for @asrEditService.
+  ///
+  /// In en, this message translates to:
+  /// **'Edit service'**
+  String get asrEditService;
+
+  /// No description provided for @asrRemoveService.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove'**
+  String get asrRemoveService;
+
+  /// No description provided for @asrServicePrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Only extracted audio is uploaded, after you allow it. Video links and NAS credentials are never sent.'**
+  String get asrServicePrivacy;
+
+  /// No description provided for @asrServiceName.
+  ///
+  /// In en, this message translates to:
+  /// **'Name'**
+  String get asrServiceName;
+
+  /// No description provided for @asrServiceUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'Service URL (https://…)'**
+  String get asrServiceUrl;
+
+  /// No description provided for @asrServiceToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token'**
+  String get asrServiceToken;
+
+  /// No description provided for @asrServiceUrlInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an https:// URL without credentials (http:// only when allowed below).'**
+  String get asrServiceUrlInvalid;
+
+  /// No description provided for @asrServiceInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the model and language.'**
+  String get asrServiceInvalid;
+
+  /// No description provided for @asrAllowHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow plain HTTP (LAN only)'**
+  String get asrAllowHttp;
+
+  /// No description provided for @asrAllowHttpHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio would travel unencrypted. HTTPS certificate checks are never disabled.'**
+  String get asrAllowHttpHint;
 }
 
 class _AppLocalizationsDelegate

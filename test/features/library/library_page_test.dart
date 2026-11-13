@@ -294,6 +294,17 @@ void main() {
         find.byKey(const ValueKey('media-metadata')),
         developer ? findsOneWidget : findsNothing,
       );
+      // FFmpeg random-snapshot debug entry sits beside it, developer only.
+      expect(
+        find.byKey(const ValueKey('media-ffmpeg-snapshot')),
+        developer ? findsOneWidget : findsNothing,
+      );
+      if (developer) {
+        await tester.tap(find.byKey(const ValueKey('media-ffmpeg-snapshot')));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 400));
+        expect(find.text('FFmpeg 截图调试'), findsOneWidget);
+      }
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

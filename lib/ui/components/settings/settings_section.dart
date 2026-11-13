@@ -255,6 +255,78 @@ class SettingsRow extends StatelessWidget {
   }
 }
 
+/// iOS-style form row: the label on the left and a borderless text field
+/// filling the rest, with optional help below. Stacks at large text sizes.
+class SettingsFieldRow extends StatelessWidget with SettingsRowContent {
+  const SettingsFieldRow({
+    super.key,
+    required this.title,
+    required this.field,
+    this.description,
+  });
+  final String title;
+
+  /// Usually a [ShadInput] with [ShadDecoration.none].
+  final Widget field;
+  final String? description;
+
+  static const labelWidth = 104.0;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = ShadTheme.of(context);
+    final label = Text(
+      title,
+      style: theme.textTheme.p.copyWith(
+        height: 1.3,
+        color: theme.colorScheme.foreground,
+      ),
+    );
+    final largeText = MediaQuery.textScalerOf(context).scale(16) > 24;
+    return ConstrainedBox(
+      constraints: const BoxConstraints(minHeight: 52),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(
+          horizontal: AppSpacing.lg,
+          vertical: AppSpacing.xs,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (largeText) ...[
+              const SizedBox(height: AppSpacing.xs),
+              label,
+              field,
+            ] else
+              ConstrainedBox(
+                constraints: const BoxConstraints(minHeight: 44),
+                child: Row(
+                  children: [
+                    SizedBox(width: labelWidth, child: label),
+                    const SizedBox(width: AppSpacing.sm),
+                    Expanded(child: field),
+                  ],
+                ),
+              ),
+            if (description != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+                child: Text(
+                  description!,
+                  style: theme.textTheme.muted.copyWith(
+                    fontSize: 12,
+                    height: 1.35,
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 /// Width-limited scrolling body shared by every settings page, so the root
 /// page and its sub-pages line up.
 class SettingsListView extends StatelessWidget {

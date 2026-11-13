@@ -120,16 +120,21 @@ class RegisteredTool {
 }
 
 class ToolRegistry {
+  /// Upper bound of tools offered to a model in one request. Registration
+  /// fails beyond it, so no tool is ever silently truncated away.
+  /// Media 17 + processing 9 + subtitles 6 + BitTorrent 13 + search 6 = 51.
+  /// Mainstream model APIs accept well over a hundred tools.
+  static const maxTools = 56;
   final _tools = <String, RegisteredTool>{};
   void register(RegisteredTool tool) {
     if (_tools.containsKey(tool.name)) throw ArgumentError('Duplicate tool');
+    if (_tools.length >= maxTools) throw StateError('Tool limit exceeded');
     _tools[tool.name] = tool;
   }
 
   RegisteredTool? operator [](String name) => _tools[name];
   List<ModelTool> get available => _tools.values
       .where((t) => t.available?.call() ?? true)
-      .take(20)
       .map((t) => t.model)
       .toList();
 }

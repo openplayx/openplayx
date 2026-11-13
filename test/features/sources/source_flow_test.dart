@@ -1,6 +1,5 @@
 import '../../app_test_host.dart';
 
-import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';

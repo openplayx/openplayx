@@ -28,7 +28,6 @@ class StreamGateway {
     ).join();
     final path = '/$key/${Uri.encodeComponent(filename ?? 'media')}';
     server.listen((request) async {
-      print('DIAG gateway $port ${request.method} range=${request.headers.value('range')}'); // DIAG
       try {
         if (request.uri.path != path ||
             !['GET', 'HEAD'].contains(request.method)) {
@@ -36,8 +35,7 @@ class StreamGateway {
         } else {
           await handler(request);
         }
-      } catch (e) {
-        print('DIAG gateway $port handler error ${e.runtimeType}'); // DIAG
+      } catch (_) {
         // Never forward exception text (it can contain upstream credentials).
         try {
           request.response.statusCode = HttpStatus.badGateway;
@@ -47,8 +45,7 @@ class StreamGateway {
           await request.response.close();
         } catch (_) {}
       }
-    }, onError: (Object e) => print('DIAG gateway $port server error $e'), // DIAG
-    onDone: () => print('DIAG gateway $port server done')); // DIAG
+    });
     return PlayableStream(
       Uri.parse('http://127.0.0.1:$port$path'),
       release: () async => server.close(force: true),
@@ -67,6 +64,7 @@ class StreamGateway {
       filename: filename,
       read: (start, end, cancellation) async* {
         if (cancellation.cancelled) return;
+        print('DIAG gateway read $start-$end'); // DIAG
         final cursor = progress?.begin(start);
         final file = progressiveOpen == null
             ? await open()

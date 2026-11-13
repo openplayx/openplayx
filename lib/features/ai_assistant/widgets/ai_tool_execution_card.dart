@@ -4,6 +4,8 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../services/conversations/conversation_coordinator.dart';
 import '../../../ui/icons/app_icons.dart';
+import '../../settings/torrent_service_settings_page.dart'
+    show torrentHoldLabels, torrentStateLabels;
 import '../models/ai_chat_part.dart';
 
 typedef OpenChatMedia = Future<void> Function(Map<String, dynamic> media);
@@ -67,6 +69,47 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
       }
     }
     return result.take(20).toList();
+  }
+
+  /// Server-side BitTorrent tasks from torrent_* tools.
+  List<Map<String, dynamic>> _torrentRows(Map<String, dynamic> data) => [
+    if (data['torrent_task'] case final Map t) Map<String, dynamic>.from(t),
+    if (data['task'] case final Map t when t['location'] == 'server')
+      Map<String, dynamic>.from(t),
+    if (data['torrent_tasks'] case final List list)
+      ...list.whereType<Map>().take(20).map(Map<String, dynamic>.from),
+  ];
+
+  Widget _torrentCard(Map<String, dynamic> t, ShadThemeData theme) {
+    final progress = (t['progress'] as num? ?? 0).toDouble().clamp(0.0, 1.0);
+    final state = t['state'] as String? ?? '';
+    String speed(Object? v) =>
+        '${((v as num? ?? 0) / (1 << 20)).toStringAsFixed(1)} MB/s';
+    final status = [
+      '服务器下载 · ${_safe(t['server_name'] ?? '')}',
+      torrentStateLabels[state] ?? state,
+      if (torrentHoldLabels[t['hold_reason']] case final String hold) hold,
+      '${(progress * 100).toStringAsFixed(1)}%',
+      if ((t['download_speed'] as num? ?? 0) > 0)
+        '↓${speed(t['download_speed'])}',
+      if ((t['upload_speed'] as num? ?? 0) > 0) '↑${speed(t['upload_speed'])}',
+      if (t['stale'] == true) '状态未更新',
+      if (t['error_code'] != null) _safe(t['error_code']),
+    ].join(' · ');
+    return Padding(
+      padding: const EdgeInsets.only(top: 12),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Text(_safe(t['name']), style: theme.textTheme.small),
+          Text(status, style: theme.textTheme.muted),
+          const SizedBox(height: 4),
+          ShadProgress(value: progress),
+          if (t['selected_files_complete'] == true)
+            Text('仅在服务器上完成，尚未进入媒体库或下载到本机', style: theme.textTheme.muted),
+        ],
+      ),
+    );
   }
 
   Future<void> _action(Future<void> Function() action) async {
@@ -178,6 +221,7 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
               padding: const EdgeInsets.only(top: 8),
               child: Text(l.aiToolSummary, style: theme.textTheme.muted),
             ),
+          for (final t in _torrentRows(p.data)) _torrentCard(t, theme),
           for (final row in rows)
             Padding(
               padding: const EdgeInsets.only(top: 12),

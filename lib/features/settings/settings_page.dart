@@ -16,6 +16,14 @@ import 'scan_extensions_row.dart';
 import 'scrape_management_section.dart';
 import 'tmdb_settings_section.dart';
 import 'remote_access_settings_page.dart';
+import 'torrent_service_settings_page.dart';
+import 'torrent_search_settings_page.dart';
+import '../../services/torrent/torrent_service.dart';
+import '../../services/torrent_search/torrent_search_config.dart';
+import 'asr_settings_section.dart';
+import '../../services/subtitles/asr_backend_config.dart';
+import '../../services/subtitles/asr_model_store.dart';
+import '../../services/subtitles/subtitle_generation_service.dart';
 
 /// One settings category. On phones it is a row in the root menu that opens
 /// [sections] on a sub-page (or runs [onOpen] for categories that already
@@ -49,6 +57,20 @@ class SettingsPage extends StatelessWidget {
     void openRemote() => Navigator.of(context).push(
       MaterialPageRoute<void>(
         builder: (_) => RemoteAccessSettingsPage(sources: sources!),
+      ),
+    );
+    void openTorrent() => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TorrentServiceSettingsPage(
+          store: TorrentServiceStore.current ??= TorrentServiceStore(),
+        ),
+      ),
+    );
+    void openTorrentSearch() => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => TorrentSearchSettingsPage(
+          registry: TorrentSearchRegistry.forDb(library!.db),
+        ),
       ),
     );
     return [
@@ -89,6 +111,49 @@ class SettingsPage extends StatelessWidget {
               ),
             ],
           ),
+        // 来源与下载 → BitTorrent 服务 (downloads run on the user's server).
+        _Category(
+          icon: AppIcons.server,
+          title: 'BitTorrent 服务',
+          onOpen: openTorrent,
+          sections: [
+            SettingsSection(
+              key: const ValueKey('torrent'),
+              title: '来源与下载',
+              children: [
+                SettingsRow(
+                  key: const ValueKey('torrent-settings'),
+                  title: 'BitTorrent 服务',
+                  description: '在自己的服务器上下载 Magnet / 种子',
+                  chevron: true,
+                  onTap: openTorrent,
+                ),
+              ],
+            ),
+          ],
+        ),
+        // 来源与下载 → Torrent 搜索服务 (read-only index search for the assistant).
+        if (library != null)
+          _Category(
+            icon: AppIcons.search,
+            title: 'Torrent 搜索服务',
+            onOpen: openTorrentSearch,
+            sections: [
+              SettingsSection(
+                key: const ValueKey('torrent-search'),
+                title: '来源与下载',
+                children: [
+                  SettingsRow(
+                    key: const ValueKey('torrent-search-settings'),
+                    title: 'Torrent 搜索服务',
+                    description: '供 AI 助手搜索种子候选，只读，不会自动下载',
+                    chevron: true,
+                    onTap: openTorrentSearch,
+                  ),
+                ],
+              ),
+            ],
+          ),
       ],
       [
         if (library != null)
@@ -111,6 +176,22 @@ class SettingsPage extends StatelessWidget {
                 key: const ValueKey('scrape'),
                 library: library!,
                 sources: sources!,
+              ),
+            ],
+          ),
+        if (library != null)
+          _Category(
+            icon: AppIcons.assistant,
+            title: l.asrSettingsTitle,
+            sections: [
+              AsrSettingsSection(
+                key: const ValueKey('asr'),
+                registry:
+                    SubtitleGenerationService.current?.backends ??
+                    AsrBackendRegistry(
+                      db: library!.db,
+                      models: AsrModelStore(asrModelRoot()),
+                    ),
               ),
             ],
           ),

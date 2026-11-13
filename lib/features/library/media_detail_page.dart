@@ -7,7 +7,9 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../app/theme/app_theme_controller.dart';
 import '../../core/plugins/metadata_capability.dart';
 import '../../data/sources/source_manager.dart';
+import '../../core/plugins/source_capability.dart';
 import '../../l10n/generated/app_localizations.dart';
+import '../../services/media_processing/media_processing_service.dart';
 import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
 import '../../ui/adaptive/app_page.dart';
@@ -16,6 +18,9 @@ import '../../ui/components/media/content_row.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
 import 'country_names.dart';
+import 'audio_subtitle_debug_page.dart';
+import 'ffmpeg_snapshot_debug_page.dart';
+import '../../services/subtitles/subtitle_generation_service.dart';
 import 'metadata_artwork.dart';
 import 'metadata_page.dart';
 import 'title_logo.dart';
@@ -200,6 +205,136 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
       ),
     );
     if (mounted) setState(() {});
+  }
+
+  /// The media whose versions the debug snapshot uses: the movie itself,
+  /// or the episode the play button would start.
+  String? get _snapshotMedia => _series ? _nextEpisode() : _id;
+  bool get _debuggable {
+    final media = _snapshotMedia;
+    return media != null && service.resources(media).isNotEmpty;
+  }
+
+  Future<void> _openSnapshotDebug() async {
+    final media = _snapshotMedia;
+    if (media == null || _busy) return;
+    final resources = service.resources(media);
+    if (resources.isEmpty) return;
+    // Keep the chosen version; ask only when several exist. Never re-pick.
+    final resource = resources.length == 1
+        ? resources.first
+        : await _chooseVersion(media);
+    if (resource == null || !mounted) return;
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => FfmpegSnapshotDebugPage(
+          service: MediaProcessingService.current,
+          resource: ResourceRef(
+            resource['source'] as String,
+            resource['item'] as String,
+          ),
+          title: resource['name'] as String,
+        ),
+      ),
+    );
+  }
+
+  /// Series/season: choose a season and an episode first; a whole series
+  /// is never processed as one video (design §3.1).
+  Future<dynamic> _pickEpisode() async {
+    final seasons = _seasons;
+    final groups = [
+      for (final season in seasons.isEmpty ? [null] : seasons)
+        (
+          season,
+          _episodesOf(season)
+              .where((e) => service.resources(e['id'] as String).isNotEmpty)
+              .toList(),
+        ),
+    ].where((g) => g.$2.isNotEmpty).toList();
+    if (groups.isEmpty) return null;
+    return showShadDialog<dynamic>(
+      context: context,
+      builder: (c) => ShadDialog(
+        title: Text(l.asrChooseEpisode),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 480, maxHeight: 420),
+          child: ListView(
+            shrinkWrap: true,
+            children: [
+              for (final (season, episodes) in groups) ...[
+                if (season != null)
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(8, 12, 8, 4),
+                    child: Text(
+                      l.seasonLabel(_number(season['season'])),
+                      style: ShadTheme.of(c).textTheme.small,
+                    ),
+                  ),
+                for (final e in episodes)
+                  ContentRow(
+                    key: ValueKey('asr-episode-${e['id']}'),
+                    title: Text(
+                      _number(e['episode']) > 0
+                          ? '${l.episodeLabel(_number(e['episode']))}  ${e['title']}'
+                          : '${e['title']}',
+                    ),
+                    onTap: () => Navigator.pop(c, e),
+                  ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openAudioSubtitleDebug() async {
+    if (_busy) return;
+    dynamic episode;
+    String? media = _id;
+    if (_series) {
+      episode = await _pickEpisode();
+      if (episode == null || !mounted) return;
+      media = episode['id'] as String;
+    }
+    final resources = service.resources(media);
+    if (resources.isEmpty) return;
+    // Show the chosen version explicitly; never switch sources silently.
+    final resource = resources.length == 1
+        ? resources.first
+        : await _chooseVersion(media);
+    if (resource == null || !mounted) return;
+    final title = (_fields['title'] ?? widget.media['title']).toString();
+    String? episodeLabel;
+    if (episode != null) {
+      final fields = service.metadata.fields(media);
+      final season = fields['season'];
+      final number = _number(episode['episode']);
+      episodeLabel = [
+        if (season is int) l.seasonLabel(season),
+        if (number > 0) l.episodeLabel(number),
+        '${episode['title']}',
+      ].join(' · ');
+    }
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => AudioSubtitleDebugPage(
+          service: SubtitleGenerationService.current,
+          target: AudioSubtitleTarget(
+            resource: ResourceRef(
+              resource['source'] as String,
+              resource['item'] as String,
+            ),
+            title: title,
+            resourceName: resource['name'] as String,
+            episodeLabel: episodeLabel,
+            versionLabel:
+                '${resource['name']} · ${widget.resourceLabel(resource)}',
+          ),
+        ),
+      ),
+    );
   }
 
   void _openMedia(dynamic media) {
@@ -390,6 +525,39 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                   icon: Icons.more_horiz_rounded,
                   tooltip: l.metadata,
                   onPressed: _openMetadata,
+                ),
+              ),
+            // FFmpeg random-snapshot debug entry (developer tool, §9.1).
+            if (developer && _debuggable)
+              Positioned(
+                top: top + AppSpacing.md + 2,
+                right:
+                    AppSpacing.md +
+                    (assistant != null ? 36 + AppSpacing.sm : 0) +
+                    36 +
+                    AppSpacing.sm,
+                child: _CircleButton(
+                  key: const ValueKey('media-ffmpeg-snapshot'),
+                  icon: Icons.camera_alt_outlined,
+                  iconSize: 18,
+                  tooltip: l.ffmpegSnapshotDebug,
+                  onPressed: _openSnapshotDebug,
+                ),
+              ),
+            // Audio extraction / subtitle recognition debug (developer, §3).
+            if (developer && _debuggable)
+              Positioned(
+                top: top + AppSpacing.md + 2,
+                right:
+                    AppSpacing.md +
+                    (assistant != null ? 36 + AppSpacing.sm : 0) +
+                    (36 + AppSpacing.sm) * 2,
+                child: _CircleButton(
+                  key: const ValueKey('media-audio-subtitle-debug'),
+                  icon: Icons.subtitles_outlined,
+                  iconSize: 18,
+                  tooltip: l.asrDebugTitle,
+                  onPressed: _openAudioSubtitleDebug,
                 ),
               ),
           ],

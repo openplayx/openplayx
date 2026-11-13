@@ -19,7 +19,7 @@ class MediaNameEvidence {
   final List<int> episodes;
   final List<String> tags;
   final List<String> evidence;
-  static const ruleVersion = '1';
+  static const ruleVersion = '2';
 }
 
 class MediaNameParser {
@@ -70,12 +70,23 @@ class MediaNameParser {
       }
     }
     final normalized = text.replaceAll(RegExp(r'[._]'), ' ');
-    final years = RegExp(r'(?<!\d)(?:19|20)\d{2}(?!\d)').allMatches(normalized);
+    // Leading release-group/site tags ("[Group] Title", "【站点】Title") are not
+    // part of the title; skip them when something follows.
+    final lead = RegExp(r'^(?:\s*[\[【][^\]】]*[\]】])+\s*')
+        .firstMatch(normalized);
+    final start = lead != null && lead.end < normalized.length ? lead.end : 0;
+    if (start > 0) evidence.add('leadingTag:${lead![0]!.trim()}');
+    // A year must not be part of a resolution such as 1920x800.
+    final years = RegExp(
+      r'(?<!\d)(?<!\dx)(?:19|20)\d{2}(?!\d)(?!x\d)',
+      caseSensitive: false,
+    ).allMatches(normalized);
+    final maxYear = DateTime.now().year + 1;
     // A numeric title such as 1917 is not itself evidence of a release year.
     for (final match in years) {
-      if (match.start > 0 &&
-          normalized.substring(0, match.start).trim().isNotEmpty &&
-          int.parse(match[0]!) <= DateTime.now().year + 1) {
+      if (match.start > start &&
+          normalized.substring(start, match.start).trim().isNotEmpty &&
+          int.parse(match[0]!) <= maxYear) {
         year = int.parse(match[0]!);
         cut = cut < match.start ? cut : match.start;
         evidence.add('year:$year');
@@ -83,15 +94,31 @@ class MediaNameParser {
       }
     }
     final technical = RegExp(
-      r'\b(?:2160p|1080p|720p|480p|4K|BluRay|BDRip|WEB[ ._-]?DL|WEBRip|HDR10\+?|HDR|DV|x26[45]|H[ .]?26[45]|HEVC|AV1|REMUX|AAC|DTS)\b',
+      r'\b(?:2160p|1080p|720p|480p|4K|BluRay|BDRip|WEB[ ._-]?DL|WEBRip|HDR10\+?|HDR|DV|x26[45]|H[ .]?26[45]|HEVC|AV1|REMUX|AAC|DTS|\d{3,4}x\d{3,4})\b',
       caseSensitive: false,
     );
     for (final match in technical.allMatches(normalized)) {
+      if (match.start < start) continue;
       tags.add(match[0]!);
       cut = cut < match.start ? cut : match.start;
     }
+    // "1997.Tomorrow.Never.Dies.1920x820": a leading year is the release year
+    // only when no other year exists and title words follow before the tags.
+    var titleStart = start;
+    if (year == null) {
+      final leading = RegExp(r'(?:19|20)\d{2}\s+')
+          .matchAsPrefix(normalized, start);
+      if (leading != null &&
+          leading.end < cut &&
+          normalized.substring(leading.end, cut).trim().isNotEmpty &&
+          int.parse(leading[0]!.trim()) <= maxYear) {
+        year = int.parse(leading[0]!.trim());
+        titleStart = leading.end;
+        evidence.add('year:$year');
+      }
+    }
     text = normalized
-        .substring(0, cut)
+        .substring(titleStart < cut ? titleStart : 0, cut)
         .replaceAll(RegExp(r'^[\s\[\]()\-]+|[\s\[\]()\-]+$'), '')
         .trim();
     return MediaNameEvidence(
