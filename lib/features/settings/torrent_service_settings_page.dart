@@ -37,7 +37,7 @@ const torrentStateLabels = {
 };
 
 const torrentHoldLabels = {
-  'awaiting_selection': '等待开始',
+  'awaiting_start': '等待开始',
   'quota_exceeded': '超出额度',
   'disk_low': '磁盘空间不足',
   'no_files_match_preset': '没有匹配的文件',
@@ -61,6 +61,7 @@ class _TorrentServiceSettingsPageState
   Timer? _timer;
   final _status = <String, String>{};
   final _tasks = <String, List<Map<String, dynamic>>>{};
+  final _magnet = TextEditingController();
 
   TorrentServiceStore get _store => widget.store;
 
@@ -88,6 +89,7 @@ class _TorrentServiceSettingsPageState
   @override
   void dispose() {
     _timer?.cancel();
+    _magnet.dispose();
     super.dispose();
   }
 
@@ -102,14 +104,16 @@ class _TorrentServiceSettingsPageState
               ? '可用 · qBittorrent ${engine['version']}'
               : '服务在线，下载引擎不可用';
         }
-        final list = await client.list(force: force);
+        // Every torrent in the engine, read live (WebUI-added ones too).
+        final list = await client.list();
         _tasks[c.id] = [
           for (final t in list['items'] as List)
-            if ((t as Map)['state'] != 'removed') Map<String, dynamic>.from(t),
+            Map<String, dynamic>.from(t as Map),
         ];
       } on TorrentServiceException catch (e) {
-        // Keep the last known tasks; an unreachable server deletes nothing.
+        // Nothing is cached: an unreachable server shows no stale list.
         _status[c.id] = '不可用（${e.code}）';
+        _tasks.remove(c.id);
       }
     }
     if (mounted) setState(() {});
@@ -165,6 +169,118 @@ class _TorrentServiceSettingsPageState
     return picked;
   }
 
+  static const _magnetErrors = {
+    'invalid_magnet': 'Magnet 链接格式不正确',
+    'magnet_too_long': 'Magnet 链接过长',
+    'unsupported_magnet_parameter': 'Magnet 中含有不支持的参数（如 xs / as）',
+    'tracker_not_allowed': 'Magnet 中的 tracker 地址不被允许',
+    'too_many_trackers': 'Magnet 中的 tracker 过多',
+    'network_address_not_allowed': 'Magnet 中含有内网或本机地址，服务器不允许',
+    'duplicate_task': '这个下载已经在服务器上了',
+    'destination_not_allowed': '默认目标不存在，请检查服务配置',
+  };
+
+  /// Paste a magnet link, preview it on the server, then start it there.
+  Future<void> _addMagnet() async {
+    final server = await _pickServer();
+    if (server == null || !mounted) return;
+    _magnet.clear();
+    var videoOnly = false;
+    final text = await pushSettingsPage<String>(
+      context,
+      title: '添加 Magnet',
+      children: (c) => [
+        SettingsSection(
+          footer: '粘贴 magnet: 开头的链接。预览时不会连接任何节点；开始后服务器先获取文件列表，再按选择下载。',
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(12),
+              child: ShadInput(
+                key: const ValueKey('torrent-magnet-input'),
+                controller: _magnet,
+                maxLines: 5,
+                placeholder: const Text('magnet:?xt=urn:btih:…'),
+                autocorrect: false,
+                enableSuggestions: false,
+              ),
+            ),
+          ],
+        ),
+        SettingsSection(
+          children: [
+            StatefulBuilder(
+              builder: (c, setLocal) => SettingsRow(
+                title: '只下载视频文件',
+                description: '获取到文件列表后只选中视频，跳过样片和其他文件。',
+                control: ShadSwitch(
+                  key: const ValueKey('torrent-magnet-video'),
+                  value: videoOnly,
+                  onChanged: (v) => setLocal(() => videoOnly = v),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ],
+      trailing: (c) => [
+        ShadButton(
+          key: const ValueKey('torrent-magnet-preview'),
+          onPressed: () => Navigator.pop(c, _magnet.text.trim()),
+          child: const Text('预览'),
+        ),
+      ],
+    );
+    if (text == null || text.isEmpty || !mounted) return;
+    if (!text.toLowerCase().startsWith('magnet:?')) {
+      setState(() {
+        _message = '请粘贴以 magnet:? 开头的链接';
+        _error = true;
+      });
+      return;
+    }
+    await _run(() async {
+      final client = await _store.client(server.id);
+      final Map<String, dynamic> plan;
+      try {
+        plan = await client.plan({
+          'source': {'type': 'magnet', 'magnet': text},
+          'destination_ref': server.defaultDestination,
+          'selection_preset': videoOnly ? 'video' : 'all',
+        });
+      } on TorrentServiceException catch (e) {
+        final hint = _magnetErrors[e.code];
+        if (hint == null) rethrow;
+        throw FormatException(hint);
+      }
+      if (!mounted) return;
+      final name = (plan['name'] as String?)?.isNotEmpty == true
+          ? plan['name']
+          : '（名称在获取元数据后显示）';
+      final removed = plan['removed_addresses'] as Map?;
+      final skipped =
+          ((removed?['private_or_local_address'] as num?) ?? 0) +
+          ((removed?['unsupported_address'] as num?) ?? 0);
+      final note = skipped > 0
+          ? '已忽略 $skipped 个指向内网/本机或不受支持的 tracker 地址，其余照常使用。\n'
+          : '';
+      final ok = await showSettingsConfirm(
+        context,
+        title: '在服务器上下载？',
+        message:
+            '$name\n${videoOnly ? '只下载视频文件' : '下载全部文件'} · 大小在获取元数据后确定\n$note'
+            '下载在「${server.name}」上进行，App 关闭后仍会继续；完成后不会自动进入媒体库。',
+        confirmLabel: '开始下载',
+        cancelLabel: '取消',
+      );
+      if (!ok) return;
+      await client.create(plan['plan_ref'] as String);
+      _magnet.clear();
+      await _refresh(force: true);
+      _message = '已添加，服务器正在获取元数据。';
+      _error = false;
+    });
+  }
+
   /// Upload a .torrent the user picked; the assistant can then plan it via
   /// its input_ref, or the user starts it here directly.
   Future<void> _upload() async {
@@ -207,15 +323,7 @@ class _TorrentServiceSettingsPageState
         _error = false;
         return;
       }
-      var op = await client.create(
-        plan['plan_ref'] as String,
-        (plan['revision'] as num).toInt(),
-        'app-ui-${plan['plan_ref']}',
-      );
-      op = await client.settle(op);
-      if (op['status'] == 'failed') {
-        throw TorrentServiceException('${op['error_code']}');
-      }
+      await client.create(plan['plan_ref'] as String);
       await _refresh(force: true);
       _message = '已开始服务器下载。';
       _error = false;
@@ -228,15 +336,9 @@ class _TorrentServiceSettingsPageState
     String action,
   ) => _run(() async {
     final client = await _store.client(server.id);
-    final key =
-        'app-ui-$action-${task['id']}-${DateTime.now().microsecondsSinceEpoch}';
-    var op = action == 'pause'
-        ? await client.pause(task['id'] as String, key)
-        : await client.resume(task['id'] as String, key);
-    op = await client.settle(op);
-    if (op['status'] == 'failed') {
-      throw TorrentServiceException('${op['error_code']}');
-    }
+    action == 'pause'
+        ? await client.pause(task['id'] as String)
+        : await client.resume(task['id'] as String);
     await _refresh(force: true);
   });
 
@@ -279,15 +381,7 @@ class _TorrentServiceSettingsPageState
         destructive: deleteFiles,
       );
       if (!ok) return;
-      var op = await client.remove(
-        task['id'] as String,
-        plan['plan_ref'] as String,
-        'app-ui-rm-${plan['plan_ref']}',
-      );
-      op = await client.settle(op);
-      if (op['status'] == 'failed') {
-        throw TorrentServiceException('${op['error_code']}');
-      }
+      await client.remove(task['id'] as String, plan['plan_ref'] as String);
       await _refresh(force: true);
     }, done: '已移除。');
   }
@@ -299,7 +393,7 @@ class _TorrentServiceSettingsPageState
     final progress = (t['progress'] as num? ?? 0).toDouble();
     final paused = state == 'paused' || state == 'completed';
     final parts = <String>[
-      '服务器下载',
+      t['added_via'] == 'other' ? '服务器下载（WebUI 添加）' : '服务器下载',
       hold ?? torrentStateLabels[state] ?? state,
       '${(progress * 100).toStringAsFixed(progress < 1 ? 1 : 0)}%',
       if ((t['download_speed'] as num? ?? 0) > 0)
@@ -359,6 +453,16 @@ class _TorrentServiceSettingsPageState
                     key: const ValueKey('torrent-add-service'),
                     onPressed: _busy ? null : () => _edit(),
                     child: const Text('添加服务'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ShadButton.outline(
+                    key: const ValueKey('torrent-add-magnet'),
+                    onPressed: _busy || _store.enabled.isEmpty
+                        ? null
+                        : _addMagnet,
+                    child: const Text('添加 Magnet'),
                   ),
                 ),
                 const SizedBox(width: 12),

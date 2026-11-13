@@ -1,5 +1,6 @@
 import 'dart:math';
 
+import '../../core/plugins/plugin_gate.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_schema.dart';
@@ -49,10 +50,18 @@ class MediaTools {
     'title': safeText(row['title'] as String),
     'favorite': row['favorite'] == 1,
   };
-  bool _enabled(String id) =>
-      ToolExecution.active &&
-      (canExecute?.call() ?? true) &&
-      sources.configs.any((s) => s.id == id && s.enabled);
+
+  /// Instance enabled, its plugin enabled, and the user's AI scope allows
+  /// [capability] on it. Checked on every call, not when tools were listed.
+  bool _enabled(String id, [String capability = 'source.browse']) {
+    if (!ToolExecution.active || !(canExecute?.call() ?? true)) return false;
+    final config = sources.configs
+        .where((s) => s.id == id && s.enabled)
+        .firstOrNull;
+    return config != null &&
+        PluginGate.ai(config.pluginId, instanceId: id, capability: capability);
+  }
+
   Map<String, dynamic> _entry(SourceEntry entry) {
     if (_refs.length >= 2000) _refs.remove(_refs.keys.first);
     final token = 'ref-${Random.secure().nextInt(1 << 32)}-${_refs.length}';
@@ -99,7 +108,15 @@ class MediaTools {
         await sources.load();
         return {
           'sources': [
-            for (final s in sources.configs.where((c) => c.enabled))
+            for (final s in sources.configs.where(
+              (c) =>
+                  c.enabled &&
+                  PluginGate.ai(
+                    c.pluginId,
+                    instanceId: c.id,
+                    capability: 'source.browse',
+                  ),
+            ))
               {
                 'source_id': s.id,
                 'name': safeText(s.name),
@@ -205,7 +222,8 @@ class MediaTools {
           ..._media(rows.first),
           'resources': [
             for (final r in library.resources(a['media_id'] as String).take(20))
-              if (r['source'] == '@local' || _enabled(r['source'] as String))
+              if (r['source'] == '@local' ||
+                  _enabled(r['source'] as String, 'source.resolve'))
                 {
                   'resource_id': r['id'],
                   'name': safeText(r['name'] as String),
@@ -235,7 +253,12 @@ class MediaTools {
               (s) =>
                   s.enabled &&
                   SourceSchemas.forKind(s.kind).capabilities
-                      .contains('search.media'),
+                      .contains('search.media') &&
+                  PluginGate.ai(
+                    s.pluginId,
+                    instanceId: s.id,
+                    capability: 'search.media',
+                  ),
             )
             .take(12)
             .toList();
@@ -255,7 +278,7 @@ class MediaTools {
                     offset: offset,
                     limit: limit,
                   );
-                  if (!_enabled(source.id)) {
+                  if (!_enabled(source.id, 'search.media')) {
                     throw const ToolFailure('unavailable');
                   }
                   return {
@@ -354,7 +377,7 @@ class MediaTools {
             throw const ToolFailure('staleReference');
           }
           if (entry.ref.instanceId != '@local' &&
-              !_enabled(entry.ref.instanceId)) {
+              !_enabled(entry.ref.instanceId, 'source.resolve')) {
             throw const ToolFailure('unavailable');
           }
           return openResource!(entry);

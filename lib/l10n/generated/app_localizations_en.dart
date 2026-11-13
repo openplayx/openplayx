@@ -1334,6 +1334,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String get scrapeClearFailed => 'Could not clear. Try again later.';
 
   @override
+  String get artworkCacheLimit => 'Image cache limit';
+
+  @override
+  String get artworkCacheLimitDescription =>
+      'Posters, backdrops and cast photos. The oldest images are removed when the limit is reached; locked artwork is kept.';
+
+  @override
   String get metadataProgressDone => 'Scraping done';
 
   @override

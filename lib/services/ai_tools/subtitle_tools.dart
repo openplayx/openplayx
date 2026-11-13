@@ -1,3 +1,5 @@
+import '../../core/plugins/plugin_gate.dart';
+import '../subtitles/asr_backend_config.dart';
 import '../subtitles/subtitle_format.dart';
 import '../subtitles/subtitle_generation_service.dart';
 import 'media_processing_tools.dart';
@@ -29,6 +31,12 @@ class SubtitleTools {
   static const _id = ToolField('string', required: true, maxLength: 64);
 
   bool get _active => ToolExecution.active && (canExecute?.call() ?? true);
+
+  static bool _aiBackend(AsrBackendConfig c) => PluginGate.ai(
+    c.pluginId,
+    instanceId: c.id,
+    capability: 'speech.transcribe',
+  );
 
   Future<Map<String, dynamic>> _guard(
     Future<Map<String, dynamic>> Function() action,
@@ -70,6 +78,8 @@ class SubtitleTools {
     final backendId = a['backend_id'] as String? ?? 'embedded';
     final config = service.backends.get(backendId);
     if (config == null) throw const ToolFailure('backend_not_configured');
+    // Never silently switch to another backend or execution location.
+    if (!_aiBackend(config)) throw const ToolFailure('permissionDenied');
     String? trackRef;
     final index = media.trackIndex(a['audio_track_ref'], ref);
     if (index != null) {
@@ -104,7 +114,7 @@ class SubtitleTools {
       {},
       (_) async => {
         'backends': [
-          for (final c in service.backends.list())
+          for (final c in service.backends.list().where(_aiBackend))
             await () async {
               final s = await service.backends.backend(c.id).status();
               return {

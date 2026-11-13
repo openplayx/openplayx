@@ -3,6 +3,7 @@ import 'dart:math';
 import '../torrent_search/torrent_search_client.dart';
 import '../torrent_search/torrent_search_config.dart';
 import 'tool_registry.dart';
+import '../../core/plugins/plugin_gate.dart';
 
 /// `torrent_search*` tools (Torrent Search design §5) over configured
 /// torrent-search services. Read-only: the model sees candidate cards with
@@ -65,12 +66,18 @@ class TorrentSearchTools {
 
   bool get _active => ToolExecution.active && (canExecute?.call() ?? true);
 
+  /// Services the AI may use: enabled, plugin enabled and in AI scope.
+  List<TorrentSearchConfig> get _services => [
+    for (final c in services.enabled)
+      if (PluginGate.ai(TorrentSearchRegistry.pluginId, instanceId: c.id)) c,
+  ];
+
   TorrentSearchClient _client(TorrentSearchConfig c) =>
       _clientFor?.call(c) ??
       TorrentSearchClient(config: c, token: () => services.credential(c));
 
   TorrentSearchConfig _service(Object? serverRef) {
-    final enabled = services.enabled;
+    final enabled = _services;
     if (serverRef is String) {
       return enabled.where((c) => c.id == serverRef).firstOrNull ??
           (throw const ToolFailure('server_not_configured'));
@@ -180,7 +187,7 @@ class TorrentSearchTools {
       description,
       fields,
       execute,
-      available: () => services.enabled.isNotEmpty,
+      available: () => _services.isNotEmpty,
     ),
   );
 
@@ -197,7 +204,7 @@ class TorrentSearchTools {
         if (!_active) throw const ToolFailure('cancelled');
         final configs = a['server_ref'] is String
             ? [_service(a['server_ref'])]
-            : services.enabled;
+            : _services;
         return {
           'servers': [
             for (final c in configs)
@@ -346,7 +353,7 @@ class TorrentSearchTools {
     if (!issued(serverRef, resultRef)) {
       throw const TorrentSearchException('not_found');
     }
-    final c = services.enabled.where((s) => s.id == serverRef).firstOrNull;
+    final c = _services.where((s) => s.id == serverRef).firstOrNull;
     if (c == null) throw const TorrentSearchException('server_not_configured');
     return _client(c).resolve(resultRef);
   }

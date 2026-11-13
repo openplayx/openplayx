@@ -44,6 +44,9 @@ import '../services/subtitles/asr_model_store.dart';
 import '../services/subtitles/subtitle_generation_service.dart';
 import '../services/media_processing/media_processing_service.dart';
 import '../services/ai_tools/tool_registry.dart';
+import '../services/ai_tools/plugin_tools.dart';
+import '../services/metadata/tmdb_credentials.dart';
+import '../services/plugins/plugin_manager.dart';
 import '../services/conversations/assistant_store.dart';
 import '../services/conversations/conversation_coordinator.dart';
 import '../features/ai_assistant/assistant_page.dart';
@@ -93,6 +96,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   MediaTools? _mediaTools;
   MediaProcessingService? _mediaProcessing;
   SubtitleGenerationService? _subtitles;
+  PluginManager? _plugins;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
@@ -148,6 +152,36 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           // Optional: subtitle generation must not block playback.
           _subtitles = null;
         }
+        // Plugin Manager adapts the services above; it installs the host
+        // gate so plugin switches apply to every business path.
+        final plugins = _plugins = PluginManager(
+          sources: _sources,
+          asr: () => _subtitles?.backends,
+          torrent: () => TorrentServiceStore.current ??= TorrentServiceStore(),
+          torrentSearch: () => TorrentSearchRegistry.forDb(library.db),
+          media: () => _mediaProcessing,
+          tmdbConfigured: () async {
+            try {
+              return (await tmdbCredentialStorage.read(key: tmdbTokenKey))
+                      ?.trim()
+                      .isNotEmpty ==
+                  true;
+            } catch (_) {
+              return false;
+            }
+          },
+          model: () {
+            final store = _assistantStore;
+            if (store == null) return null;
+            final config = store.loadConfig();
+            final host = Uri.tryParse(config.endpoint)?.host ?? '';
+            return (
+              host.isEmpty ? config.model : '${config.model} · $host',
+              config.configured,
+            );
+          },
+        )..install();
+        unawaited(plugins.refresh().catchError((_) {}));
         _artwork = ArtworkService(
           _sources,
           retainedArtwork: () => library.metadata.retainedArtwork,
@@ -179,6 +213,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _chat?.dispose();
     _assistant?.dispose();
     _assistantStore?.close();
+    _plugins?.dispose();
     if (SubtitleGenerationService.current == _subtitles) {
       SubtitleGenerationService.current = null;
     }
@@ -301,6 +336,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       services: TorrentSearchRegistry.forDb(library.db),
       canExecute: () => _assistant?.acceptingActions ?? false,
     );
+    final plugins = _plugins;
+    if (plugins != null) {
+      // One tool catalog; the plugin policy narrows it per request and the
+      // gateway re-checks it before every execution.
+      tools.registry.policy = plugins;
+      PluginTools(registry: tools.registry, plugins: plugins);
+    }
     _assistant = ConversationCoordinator(
       store: store,
       gateway: ToolGateway(tools.registry, journal: store),
@@ -608,6 +650,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Widget _settings() => SettingsPage(
     library: _library,
     sources: _sources,
+    plugins: _plugins,
     onModelSettings: _assistantStore == null ? null : _modelSettings,
   );
 

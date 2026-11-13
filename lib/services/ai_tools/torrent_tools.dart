@@ -1,10 +1,8 @@
-import 'dart:convert';
 import 'dart:math';
-
-import 'package:crypto/crypto.dart';
 
 import '../torrent/torrent_service.dart';
 import 'tool_registry.dart';
+import '../../core/plugins/plugin_gate.dart';
 
 /// Business tools over configured bittorrent-server instances. The model
 /// only handles host-issued references (server_ref, task_ref, file_ref,
@@ -92,10 +90,17 @@ class TorrentTools {
 
   // Offered only when a server is configured, so users without one keep
   // the same tool set.
-  bool get _available => store.enabled.isNotEmpty;
+  bool get _available => _servers.isNotEmpty;
+
+  /// Servers the AI may use: enabled, plugin enabled, and in the user's AI
+  /// instance scope. Traditional pages use the store directly.
+  List<TorrentServiceConfig> get _servers => [
+    for (final c in store.enabled)
+      if (PluginGate.ai(TorrentServiceStore.pluginId, instanceId: c.id)) c,
+  ];
 
   TorrentServiceConfig _server(Object? ref) {
-    final enabled = store.enabled;
+    final enabled = _servers;
     if (ref == null) {
       if (enabled.length == 1) return enabled.single;
       throw ToolFailure(
@@ -144,14 +149,6 @@ class TorrentTools {
     ),
   );
 
-  String _nonce(String scope) =>
-      'app-$scope-${_random.nextInt(1 << 32).toRadixString(36)}${DateTime.now().microsecondsSinceEpoch.toRadixString(36)}';
-
-  /// Deterministic keys only where the request is single-use by nature
-  /// (a plan, a removal plan, a selection on one files revision).
-  static String _key(String scope, Object value) =>
-      'app-$scope-${sha256.convert(utf8.encode(jsonEncode(value))).toString().substring(0, 32)}';
-
   /// Explicit field allowlist for the model and the chat task card.
   Map<String, dynamic> _project(TorrentServiceConfig server, Map task) {
     final ref = _issueTask(
@@ -165,6 +162,7 @@ class TorrentTools {
       'server_ref': server.id,
       'server_name': server.name,
       'location': 'server',
+      'added_via': task['added_via'],
       'name': _safe(task['name']),
       'state': task['state'],
       'hold_reason': ?task['hold_reason'],
@@ -224,7 +222,7 @@ class TorrentTools {
       {'server_ref': _serverRef},
       (a) async {
         final servers = a['server_ref'] == null
-            ? store.enabled
+            ? _servers
             : [_server(a['server_ref'])];
         final out = <Map<String, dynamic>>[];
         for (final s in servers) {
@@ -317,7 +315,6 @@ class TorrentTools {
           _plans[ref] = _PlanRef(
             server.id,
             plan['plan_ref'] as String,
-            (plan['revision'] as num).toInt(),
             _safe(plan['name']),
           );
           return {
@@ -343,6 +340,9 @@ class TorrentTools {
             'destination': (plan['destination'] as Map?)?['name'],
             'selection_preset': plan['selection_preset'],
             'auto_start': plan['auto_start'],
+            'trackers': plan['trackers'],
+            // Dropped by the server's network policy; the rest still works.
+            'removed_addresses': ?plan['removed_addresses'],
             'warnings': plan['warnings'],
             'expires_at': plan['expires_at'],
           };
@@ -366,52 +366,31 @@ class TorrentTools {
         if (plan == null) throw const ToolFailure('staleReference');
         final server = _server(plan.server);
         final client = await store.client(server.id);
-        var op = await client.create(
-          plan.serverRef,
-          plan.revision,
-          _key('create', plan.serverRef),
-        );
-        op = await client.settle(op);
-        if (op['status'] == 'failed') {
-          throw ToolFailure('${op['error_code'] ?? 'createFailed'}');
-        }
-        final taskId = op['task_id'] as String;
-        final ref = _issueTask(server.id, taskId, plan.name);
-        if (op['status'] == 'pending') {
-          return {
-            'task_ref': ref,
-            'status': 'submitted',
-            'location': 'server',
-            'name': plan.name,
-          };
-        }
-        return {
-          'status': 'created',
-          'task': _project(server, await client.task(taskId)),
-        };
+        // Returns once the engine lists the torrent; repeating the same
+        // plan returns the existing torrent.
+        final task = await client.create(plan.serverRef);
+        return {'status': 'created', 'task': _project(server, task)};
       },
       readOnly: false,
     );
 
     _add(
       'torrent_list',
-      'List server downloads with progress. Results are cached for the server\'s query interval; '
-          'do not poll repeatedly.',
-      {'server_ref': _serverRef, 'include_removed': const ToolField('boolean')},
+      'List every download on the server, read live (including ones added in the WebUI; '
+          'added_via tells them apart). All are controllable with their task_ref. Do not poll repeatedly.',
+      {'server_ref': _serverRef},
       (a) async {
         final servers = a['server_ref'] == null
-            ? store.enabled
+            ? _servers
             : [_server(a['server_ref'])];
         final tasks = <Map<String, dynamic>>[];
         final errors = <Map<String, dynamic>>[];
         for (final s in servers) {
           try {
-            final list = await (await store.client(s.id)).list();
+            final client = await store.client(s.id);
+            final list = await client.list();
             for (final t in (list['items'] as List)) {
               final m = t as Map;
-              if (m['state'] == 'removed' && a['include_removed'] != true) {
-                continue;
-              }
               tasks.add(_project(s, m));
             }
           } on TorrentServiceException catch (e) {
@@ -496,7 +475,7 @@ class TorrentTools {
         if (files['metadata_known'] != true) {
           throw const ToolFailure('metadata_pending');
         }
-        final revision = (files['files_revision'] as num).toInt();
+        final revision = files['files_revision'] as String;
         List<String>? ids;
         if (fileRef != null) {
           final f = _files[fileRef];
@@ -515,19 +494,18 @@ class TorrentTools {
           if (set.isEmpty) throw const ToolFailure('empty_selection');
           ids = set.toList()..sort();
         }
-        var op = await client.select(
+        final after = await client.select(
           id,
           revision,
           preset: preset,
           fileIds: ids,
-          idempotencyKey: _key('select', [id, revision, preset, ids]),
         );
-        op = await client.settle(op);
-        if (op['status'] == 'failed') throw ToolFailure('${op['error_code']}');
         return {
           'task_ref': ref,
-          'status': op['status'],
-          'result': op['result'],
+          'status': 'updated',
+          'selected_count': (after['files'] as List)
+              .where((f) => (f as Map)['selected'] == true)
+              .length,
         };
       },
       readOnly: false,
@@ -544,21 +522,10 @@ class TorrentTools {
         (a) async {
           final (server, id, ref) = _task(a['task_ref']);
           final client = await store.client(server.id);
-          // A fresh key per intent: ToolGateway already collapses duplicate
-          // calls, and pause→resume→pause must really pause twice.
-          final key = _nonce(action);
-          var op = action == 'pause'
-              ? await client.pause(id, key)
-              : await client.resume(id, key);
-          op = await client.settle(op);
-          if (op['status'] == 'failed') {
-            throw ToolFailure('${op['error_code']}');
-          }
-          return {
-            'task_ref': ref,
-            'status': op['status'],
-            'state': (op['result'] as Map?)?['state'],
-          };
+          final task = action == 'pause'
+              ? await client.pause(id)
+              : await client.resume(id);
+          return {'task_ref': ref, 'torrent_task': _project(server, task)};
         },
         readOnly: false,
       );
@@ -587,14 +554,8 @@ class TorrentTools {
         final client = await store.client(server.id);
         final dl = (a['download_kib'] as int) * 1024,
             ul = (a['upload_kib'] as int) * 1024;
-        var op = await client.limits(id, dl, ul, _nonce('limits'));
-        op = await client.settle(op);
-        if (op['status'] == 'failed') throw ToolFailure('${op['error_code']}');
-        return {
-          'task_ref': ref,
-          'status': op['status'],
-          'result': op['result'],
-        };
+        final task = await client.limits(id, dl, ul);
+        return {'task_ref': ref, 'torrent_task': _project(server, task)};
       },
       readOnly: false,
     );
@@ -650,15 +611,13 @@ class TorrentTools {
           throw const ToolFailure('deleteFilesNotAllowed');
         }
         final client = await store.client(server.id);
-        var op = await client.remove(
-          r.task,
-          r.planRef,
-          _key('remove', r.planRef),
-        );
-        op = await client.settle(op);
-        if (op['status'] == 'failed') throw ToolFailure('${op['error_code']}');
+        final result = await client.remove(r.task, r.planRef);
         _removals.remove(a['removal_ref']);
-        return {'status': op['status'], 'name': r.name, 'result': op['result']};
+        return {
+          'status': 'removed',
+          'name': r.name,
+          'data_deleted': result['data_deleted'],
+        };
       },
       readOnly: false,
       confirmation: true,
@@ -667,9 +626,8 @@ class TorrentTools {
 }
 
 class _PlanRef {
-  const _PlanRef(this.server, this.serverRef, this.revision, this.name);
+  const _PlanRef(this.server, this.serverRef, this.name);
   final String server, serverRef, name;
-  final int revision;
 }
 
 class _RemovalRef {

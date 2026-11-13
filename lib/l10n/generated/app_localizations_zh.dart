@@ -1273,6 +1273,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scrapeClearFailed => '清除失败，请稍后重试。';
 
   @override
+  String get artworkCacheLimit => '图片缓存上限';
+
+  @override
+  String get artworkCacheLimitDescription =>
+      '海报、背景图和演职人员照片。达到上限时先删除最早下载的图片，已锁定的图片不会删除。';
+
+  @override
   String get metadataProgressDone => '刮削完成';
 
   @override
@@ -3026,6 +3033,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get scrapeClearFailed => '清除失败，请稍后重试。';
 
   @override
+  String get artworkCacheLimit => '图片缓存上限';
+
+  @override
+  String get artworkCacheLimitDescription =>
+      '海报、背景图和演职人员照片。达到上限时先删除最早下载的图片，已锁定的图片不会删除。';
+
+  @override
   String get metadataProgressDone => '刮削完成';
 
   @override
@@ -4777,6 +4791,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get scrapeClearFailed => '清除失敗，請稍後再試。';
+
+  @override
+  String get artworkCacheLimit => '圖片快取上限';
+
+  @override
+  String get artworkCacheLimitDescription =>
+      '海報、背景圖和演職人員照片。達到上限時先刪除最早下載的圖片，已鎖定的圖片不會刪除。';
 
   @override
   String get metadataProgressDone => '刮削完成';

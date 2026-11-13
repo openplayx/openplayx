@@ -48,6 +48,7 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
   StreamSubscription<void>? _changes;
   Timer? _debounce;
   int? _count, _databaseBytes, _artworkBytes;
+  late int _quotaMb = widget.sources.artworkCacheQuotaMb;
   bool _busy = false;
   String? _message;
   bool _failed = false;
@@ -86,6 +87,29 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
       _databaseBytes = stats.bytes;
       _artworkBytes = artwork;
     });
+  }
+
+  Future<void> _setQuota(int value) async {
+    final previous = _quotaMb;
+    setState(() {
+      _quotaMb = value;
+      _message = null;
+      _failed = false;
+    });
+    try {
+      await widget.sources.setArtworkCacheQuotaMb(value);
+      // A lower limit applies now, not only on the next download.
+      if (value < previous) await _artwork.trim();
+    } catch (_) {
+      if (!mounted) return;
+      setState(() {
+        _quotaMb = previous;
+        _failed = true;
+        _message = AppLocalizations.of(context).preferenceSaveFailed;
+      });
+      return;
+    }
+    await _refresh();
   }
 
   Future<void> _clear() async {
@@ -153,6 +177,18 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
                 : l.scrapeLoading,
             key: const ValueKey('scrape-size'),
           ),
+        ),
+        SettingsChoiceRow<int>(
+          key: const ValueKey('artwork-cache-limit'),
+          title: l.artworkCacheLimit,
+          description: l.artworkCacheLimitDescription,
+          value: _quotaMb,
+          enabled: !_busy,
+          options: {
+            for (final mb in SourceManager.artworkCacheQuotaChoicesMb)
+              mb: mb >= 1024 ? '${mb ~/ 1024} GB' : '$mb MB',
+          },
+          onChanged: _setQuota,
         ),
         SettingsRow(
           key: const ValueKey('scrape-clear'),

@@ -43,6 +43,9 @@ class AsrBackendConfig {
   final DateTime? uploadConsentAt;
 
   bool get uploads => kind == 'http';
+
+  /// Plugin implementing this instance (see the plugin catalog).
+  String get pluginId => kind == 'http' ? 'asr.http' : 'asr.whisper';
   String get credentialKey => 'openplayx.asr.$id.token';
   String get host => url == null ? '' : Uri.parse(url!).host;
 

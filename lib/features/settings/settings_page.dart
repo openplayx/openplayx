@@ -21,6 +21,8 @@ import 'torrent_search_settings_page.dart';
 import '../../services/torrent/torrent_service.dart';
 import '../../services/torrent_search/torrent_search_config.dart';
 import 'asr_settings_section.dart';
+import 'plugins/plugin_management_page.dart';
+import '../../services/plugins/plugin_manager.dart';
 import '../../services/subtitles/asr_backend_config.dart';
 import '../../services/subtitles/asr_model_store.dart';
 import '../../services/subtitles/subtitle_generation_service.dart';
@@ -47,8 +49,10 @@ class SettingsPage extends StatelessWidget {
     this.onModelSettings,
     this.library,
     this.sources,
+    this.plugins,
   });
   final LibraryService? library;
+  final PluginManager? plugins;
   final SourceManager? sources;
   final VoidCallback? onModelSettings;
 
@@ -73,8 +77,79 @@ class SettingsPage extends StatelessWidget {
         ),
       ),
     );
+    AsrBackendRegistry asrRegistry() =>
+        SubtitleGenerationService.current?.backends ??
+        AsrBackendRegistry(
+          db: library!.db,
+          models: AsrModelStore(asrModelRoot()),
+        );
+    // Dedicated editors stay the single place their configuration lives;
+    // plugin management links to them instead of keeping a copy.
+    Future<void> openEditor(BuildContext context, String pluginId) async {
+      Widget page(String title, Widget section) =>
+          _SettingsSubPage(title: title, sections: [section]);
+      final Widget? target = switch (pluginId) {
+        'torrent.download' => TorrentServiceSettingsPage(
+          store: TorrentServiceStore.current ??= TorrentServiceStore(),
+        ),
+        'torrent.search' when library != null => TorrentSearchSettingsPage(
+          registry: TorrentSearchRegistry.forDb(library!.db),
+        ),
+        'asr.whisper' || 'asr.http' when library != null => page(
+          l.asrSettingsTitle,
+          AsrSettingsSection(registry: asrRegistry()),
+        ),
+        'metadata.tmdb' when library != null => page(
+          'TMDB',
+          TmdbSettingsSection(library: library!),
+        ),
+        'metadata.nfo' when library != null && sources != null => page(
+          l.scrapeManagement,
+          ScrapeManagementSection(library: library!, sources: sources!),
+        ),
+        _ => null,
+      };
+      if (pluginId == 'model.llm') {
+        onModelSettings?.call();
+        return;
+      }
+      if (target == null) return;
+      await Navigator.of(context)
+          .push(MaterialPageRoute<void>(builder: (_) => target));
+    }
+
+    void openPlugins() => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (_) => PluginManagementPage(
+          manager: plugins!,
+          sources: sources,
+          openEditor: openEditor,
+        ),
+      ),
+    );
     return [
       [
+        if (plugins != null)
+          _Category(
+            icon: AppIcons.preferences,
+            title: '插件管理',
+            onOpen: openPlugins,
+            sections: [
+              SettingsSection(
+                key: const ValueKey('plugins'),
+                title: '插件管理',
+                children: [
+                  SettingsRow(
+                    key: const ValueKey('plugin-management'),
+                    title: '插件管理',
+                    description: '查看已包含的插件、实例、AI 可用范围与运行状态',
+                    chevron: true,
+                    onTap: openPlugins,
+                  ),
+                ],
+              ),
+            ],
+          ),
         _Category(
           icon: AppIcons.theme,
           title: l.appearance,
@@ -186,12 +261,7 @@ class SettingsPage extends StatelessWidget {
             sections: [
               AsrSettingsSection(
                 key: const ValueKey('asr'),
-                registry:
-                    SubtitleGenerationService.current?.backends ??
-                    AsrBackendRegistry(
-                      db: library!.db,
-                      models: AsrModelStore(asrModelRoot()),
-                    ),
+                registry: asrRegistry(),
               ),
             ],
           ),

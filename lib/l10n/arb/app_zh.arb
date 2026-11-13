@@ -544,6 +544,8 @@
   "scrapeClearDescription": "将删除从 TMDB 和 NFO 获取的影视信息、匹配结果和已下载的海报，无法撤销。视频文件、播放进度、媒体服务器提供的信息和你手动修改的内容都会保留。如果已配置 TMDB，后台会重新开始刮削。",
   "scrapeCleared": "已清除全部刮削信息。",
   "scrapeClearFailed": "清除失败，请稍后重试。",
+  "artworkCacheLimit": "图片缓存上限",
+  "artworkCacheLimitDescription": "海报、背景图和演职人员照片。达到上限时先删除最早下载的图片，已锁定的图片不会删除。",
   "metadataProgressDone": "刮削完成",
   "edit": "编辑",
   "refresh": "刷新",

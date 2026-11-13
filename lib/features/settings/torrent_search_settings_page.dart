@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../services/torrent_search/torrent_search_client.dart';
@@ -6,6 +7,7 @@ import '../../services/torrent_search/torrent_search_config.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
+import 'torrent_service_settings_page.dart' show formatBytes;
 
 typedef TorrentSearchClientFactory = TorrentSearchClient Function(
   TorrentSearchConfig config,
@@ -135,6 +137,19 @@ class _TorrentSearchSettingsPageState extends State<TorrentSearchSettingsPage> {
                   control: Text(c.enabled ? (_status[c.id] ?? '…') : '已停用'),
                 ),
                 SettingsRow(title: '默认分类', control: Text(c.defaultCategory)),
+                if (c.enabled)
+                  SettingsRow(
+                    key: ValueKey('tsearch-try-${c.id}'),
+                    title: '测试搜索',
+                    description: '直接查询此服务，查看返回的候选（只读，不会下载）',
+                    chevron: true,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        builder: (_) =>
+                            TorrentSearchTryPage(config: c, client: _client(c)),
+                      ),
+                    ),
+                  ),
               ],
             ),
         ],
@@ -382,4 +397,362 @@ class _TorrentSearchFormState extends State<TorrentSearchForm> {
       ],
     ),
   );
+}
+
+/// Settings → Torrent 搜索服务 → 测试搜索. Queries the service directly so the
+/// configuration can be checked without the assistant. Read-only: shows
+/// candidates and their detail, never resolves or downloads.
+class TorrentSearchTryPage extends StatefulWidget {
+  const TorrentSearchTryPage({
+    super.key,
+    required this.config,
+    required this.client,
+  });
+  final TorrentSearchConfig config;
+  final TorrentSearchClient client;
+  @override
+  State<TorrentSearchTryPage> createState() => _TorrentSearchTryPageState();
+}
+
+class _TorrentSearchTryPageState extends State<TorrentSearchTryPage> {
+  static const _sorts = {
+    'relevance': '相关度',
+    'seeders_desc': '做种最多',
+    'size_desc': '体积最大',
+    'size_asc': '体积最小',
+    'date_desc': '最新上传',
+  };
+  final _query = TextEditingController();
+  late String _category = widget.config.defaultCategory;
+  String _sort = 'relevance';
+  List<String> _categories = const [];
+  Map<String, dynamic>? _page;
+  final _details = <String, Map<String, dynamic>>{};
+  final _magnets = <String, String>{};
+  final _magnetErrors = <String, String>{};
+  String? _resolving;
+  bool _busy = false;
+  String? _error;
+
+  @override
+  void initState() {
+    super.initState();
+    widget.client
+        .categories()
+        .then((cats) {
+          if (!mounted) return;
+          setState(() {
+            _categories = [
+              for (final k in (cats['categories'] as List? ?? const []))
+                if (k is Map && k['key'] is String) k['key'] as String,
+            ];
+            if (!_categories.contains(_category)) _category = 'all';
+          });
+        })
+        .catchError((Object e) {
+          if (mounted && e is TorrentSearchException) {
+            setState(() => _error = torrentSearchErrorText(e.code));
+          }
+        });
+  }
+
+  @override
+  void dispose() {
+    _query.dispose();
+    super.dispose();
+  }
+
+  Future<void> _search({int page = 1}) async {
+    final query = _query.text.trim();
+    if (query.isEmpty || _busy) return;
+    setState(() {
+      _busy = true;
+      _error = null;
+    });
+    try {
+      final result = await widget.client.search(
+        query: query,
+        category: _category,
+        sort: _sort,
+        page: page,
+      );
+      _page = result;
+      _details.clear();
+      _magnets.clear();
+      _magnetErrors.clear();
+    } on TorrentSearchException catch (e) {
+      _error = torrentSearchErrorText(e.code);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
+  Future<void> _detail(String ref) async {
+    if (_details.containsKey(ref)) {
+      setState(() => _details.remove(ref));
+      return;
+    }
+    try {
+      final d = await widget.client.detail(ref);
+      if (mounted) setState(() => _details[ref] = d);
+    } on TorrentSearchException catch (e) {
+      if (mounted) setState(() => _error = torrentSearchErrorText(e.code));
+    }
+  }
+
+  /// Asks the service to re-check the item and return its validated magnet
+  /// (needs the token's resolve scope). Only on an explicit tap.
+  Future<void> _resolve(String ref) async {
+    setState(() {
+      _resolving = ref;
+      _magnetErrors.remove(ref);
+    });
+    try {
+      final r = await widget.client.resolve(ref);
+      _magnets[ref] = r.magnet;
+    } on TorrentSearchException catch (e) {
+      _magnetErrors[ref] = switch (e.code) {
+        'service_forbidden' => 'Token 没有 resolve 权限',
+        'candidate_changed' => '条目在来源上已变化，请重新搜索',
+        'no_valid_magnet' => '该条目没有有效的 Magnet',
+        'result_expired' => '结果已过期，请重新搜索',
+        _ => torrentSearchErrorText(e.code),
+      };
+    } finally {
+      if (mounted) setState(() => _resolving = null);
+    }
+  }
+
+  Future<void> _copy(String magnet) async {
+    await Clipboard.setData(ClipboardData(text: magnet));
+    if (!mounted) return;
+    ScaffoldMessenger.maybeOf(context)
+        ?.showSnackBar(const SnackBar(content: Text('已复制 Magnet 地址')));
+  }
+
+  Widget _magnet(String ref, Map<String, dynamic> detail) {
+    final theme = ShadTheme.of(context);
+    final magnet = _magnets[ref];
+    final error = _magnetErrors[ref];
+    if (detail['has_magnet'] != true) {
+      return Text('该条目没有 Magnet', style: theme.textTheme.muted);
+    }
+    if (magnet == null) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ShadButton.outline(
+            key: ValueKey('tsearch-magnet-get-$ref'),
+            size: ShadButtonSize.sm,
+            onPressed: _resolving != null ? null : () => _resolve(ref),
+            child: Text(_resolving == ref ? '获取中…' : '获取 Magnet'),
+          ),
+          if (error != null)
+            Text(
+              error,
+              style: theme.textTheme.muted.copyWith(
+                color: theme.colorScheme.destructive,
+              ),
+            ),
+        ],
+      );
+    }
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        SelectableText(
+          magnet,
+          key: ValueKey('tsearch-magnet-$ref'),
+          maxLines: 4,
+          style: theme.textTheme.muted.copyWith(fontFamily: 'monospace'),
+        ),
+        const SizedBox(height: 6),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: ShadButton.outline(
+            key: ValueKey('tsearch-magnet-copy-$ref'),
+            size: ShadButtonSize.sm,
+            onPressed: () => _copy(magnet),
+            child: const Text('复制 Magnet'),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _item(Map item) {
+    final theme = ShadTheme.of(context);
+    final ref = item['result_ref'] as String? ?? '';
+    final detail = _details[ref];
+    final meta = <String>[
+      if (item['size_bytes'] is num) formatBytes(item['size_bytes'] as num),
+      '做种 ${item['seeders'] ?? '?'} · 下载 ${item['leechers'] ?? '?'}',
+      if ((item['uploaded_date'] ?? item['uploaded_text']) != null)
+        '${item['uploaded_date'] ?? item['uploaded_text']}',
+      if (item['category'] != null) '${item['category']}',
+      if (item['has_magnet'] != true) '无 Magnet',
+    ];
+    return InkWell(
+      key: ValueKey('tsearch-result-$ref'),
+      onTap: ref.isEmpty ? null : () => _detail(ref),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            Text('${item['title']}', style: theme.textTheme.small),
+            const SizedBox(height: 4),
+            Text(meta.join(' · '), style: theme.textTheme.muted),
+            if (detail != null) ...[
+              const SizedBox(height: 8),
+              Text(
+                [
+                  if (detail['size_bytes'] is num)
+                    '大小 ${formatBytes(detail['size_bytes'] as num)}'
+                        '${detail['size_exact'] == true ? '（${detail['size_bytes']} 字节）' : ''}',
+                  if (detail['file_count'] != null)
+                    '${detail['file_count']} 个文件',
+                  if (detail['uploaded_at'] != null)
+                    '上传于 ${detail['uploaded_at']}',
+                  if (detail['uploader'] != null) '上传者 ${detail['uploader']}',
+                  if (detail['source_trusted'] == true) '来源标记：trusted',
+                  if (detail['source_vip'] == true) '来源标记：VIP',
+                  if (detail['changed'] == true) '注意：条目已变化',
+                ].join(' · '),
+                style: theme.textTheme.muted,
+              ),
+              if (detail['description'] is String) ...[
+                const SizedBox(height: 6),
+                Text(
+                  detail['description'] as String,
+                  maxLines: 12,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.muted,
+                ),
+              ],
+              const SizedBox(height: 8),
+              _magnet(ref, detail),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final page = _page;
+    final items = (page?['items'] as List? ?? const []).whereType<Map>();
+    final sourcePage = page?['source_page'] as int? ?? 1;
+    return AppPage(
+      title: Text('测试搜索 · ${widget.config.name}'),
+      body: SettingsListView(
+        children: [
+          SettingsSection(
+            title: '查询',
+            footer: '结果来自外部索引，名称、大小和做种数未经验证。点按条目查看详情，可获取并复制 Magnet；此页不会下载。',
+            children: [
+              SettingsFieldRow(
+                title: '关键词',
+                field: ShadInput(
+                  key: const ValueKey('tsearch-try-query'),
+                  controller: _query,
+                  placeholder: const Text('例如 ubuntu'),
+                  autocorrect: false,
+                  decoration: ShadDecoration.none,
+                  onSubmitted: (_) => _search(),
+                ),
+              ),
+              SettingsRow(
+                title: '分类',
+                control: ShadSelect<String>(
+                  key: const ValueKey('tsearch-try-category'),
+                  initialValue: _category,
+                  enabled: !_busy && _categories.isNotEmpty,
+                  options: [
+                    for (final k in _categories)
+                      ShadOption(value: k, child: Text(k)),
+                  ],
+                  selectedOptionBuilder: (_, v) => Text(v),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _category = v);
+                  },
+                ),
+              ),
+              SettingsRow(
+                title: '排序',
+                control: ShadSelect<String>(
+                  key: const ValueKey('tsearch-try-sort'),
+                  initialValue: _sort,
+                  enabled: !_busy,
+                  options: [
+                    for (final e in _sorts.entries)
+                      ShadOption(value: e.key, child: Text(e.value)),
+                  ],
+                  selectedOptionBuilder: (_, v) => Text(_sorts[v] ?? v),
+                  onChanged: (v) {
+                    if (v != null) setState(() => _sort = v);
+                  },
+                ),
+              ),
+            ],
+          ),
+          Padding(
+            padding: const EdgeInsets.only(bottom: 16),
+            child: ShadButton(
+              key: const ValueKey('tsearch-try-run'),
+              onPressed: _busy ? null : _search,
+              child: const Text('搜索'),
+            ),
+          ),
+          if (_busy)
+            const Padding(
+              padding: EdgeInsets.only(bottom: 16),
+              child: ShadProgress(),
+            ),
+          if (_error != null)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: ShadAlert.destructive(title: Text(_error!)),
+            ),
+          if (page != null)
+            SettingsSection(
+              key: const ValueKey('tsearch-try-results'),
+              title:
+                  '第 $sourcePage / ${page['page_count']} 页 · ${page['result_count']} 条'
+                  '${(page['cache'] as Map?)?['hit'] == true ? ' · 缓存' : ''}',
+              children: [
+                if (items.isEmpty)
+                  const SettingsRow(title: '没有结果')
+                else
+                  for (final item in items) _item(item),
+              ],
+            ),
+          if (page != null)
+            Row(
+              children: [
+                Expanded(
+                  child: ShadButton.outline(
+                    onPressed: _busy || sourcePage <= 1
+                        ? null
+                        : () => _search(page: sourcePage - 1),
+                    child: const Text('上一页'),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: ShadButton.outline(
+                    key: const ValueKey('tsearch-try-next'),
+                    onPressed: _busy || page['has_next_page'] != true
+                        ? null
+                        : () => _search(page: sourcePage + 1),
+                    child: const Text('下一页'),
+                  ),
+                ),
+              ],
+            ),
+        ],
+      ),
+    );
+  }
 }

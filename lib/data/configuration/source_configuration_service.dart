@@ -322,6 +322,24 @@ class SourceConfigurationService {
     );
   });
 
+  /// Device-local artwork disk cache limit in MiB; null means never customized.
+  int? artworkCacheQuotaMb() {
+    final rows = _db.select(
+      "SELECT value_json FROM settings WHERE namespace='artwork' AND scope='device' AND owner_id='local' AND key='cacheQuotaMb'",
+    );
+    return rows.isEmpty
+        ? null
+        : jsonDecode(rows.first['value_json'] as String) as int?;
+  }
+
+  void saveArtworkCacheQuotaMb(int value) => _transaction(() {
+    _db.execute(
+      "INSERT INTO settings VALUES ('artwork','device','local','cacheQuotaMb',?,1) "
+      'ON CONFLICT(namespace,scope,owner_id,key) DO UPDATE SET value_json=excluded.value_json, revision=settings.revision+1',
+      [jsonEncode(value)],
+    );
+  });
+
   String? appearance(String key) {
     final rows = _db.select(
       "SELECT value_json FROM settings WHERE namespace='appearance' AND scope='user' AND owner_id='local' AND key=?",
@@ -338,6 +356,42 @@ class SourceConfigurationService {
       'ON CONFLICT(namespace,scope,owner_id,key) DO UPDATE SET value_json=excluded.value_json, revision=settings.revision+1',
       [key, jsonEncode(value)],
     );
+  });
+
+  /// A typed device-local settings document and its revision (0 when absent).
+  (Map<String, dynamic>?, int) readDocument(String namespace, String key) {
+    final rows = _db.select(
+      "SELECT value_json, revision FROM settings WHERE namespace=? AND scope='device' AND owner_id='local' AND key=?",
+      [namespace, key],
+    );
+    if (rows.isEmpty) return (null, 0);
+    return (
+      jsonDecode(rows.first['value_json'] as String) as Map<String, dynamic>,
+      rows.first['revision'] as int,
+    );
+  }
+
+  /// Compare-and-set write: fails with `conflict` when another window saved
+  /// first, so two editors never silently overwrite each other.
+  int writeDocument(
+    String namespace,
+    String key,
+    Map<String, dynamic> value, {
+    required int expectedRevision,
+  }) => _transaction(() {
+    final (_, revision) = readDocument(namespace, key);
+    if (revision != expectedRevision) {
+      throw const PluginException('conflict', '设置已被其他窗口修改，请重新加载。');
+    }
+    _db.execute('INSERT OR REPLACE INTO settings VALUES (?,?,?,?,?,?)', [
+      namespace,
+      'device',
+      'local',
+      key,
+      jsonEncode(value),
+      revision + 1,
+    ]);
+    return revision + 1;
   });
 
   String? readSecret(String ref) {

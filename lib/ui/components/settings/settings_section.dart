@@ -483,10 +483,12 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
     required this.value,
     required this.options,
     required this.onChanged,
+    this.description,
     this.leading,
     this.enabled = true,
   });
   final String title;
+  final String? description;
   final T value;
   final Map<T, String> options;
   final ValueChanged<T> onChanged;
@@ -496,10 +498,15 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
   final bool enabled;
   @override
   Widget build(BuildContext context) => !enabled
-      ? SettingsRow(title: title, control: Text(options[value] ?? ''))
+      ? SettingsRow(
+          title: title,
+          description: description,
+          control: Text(options[value] ?? ''),
+        )
       : isCompactSettings(context)
       ? SettingsRow(
           title: title,
+          description: description,
           chevron: true,
           control: Text(options[value] ?? ''),
           onTap: () async {
@@ -518,6 +525,7 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
         )
       : SettingsMenuRow(
           title: title,
+          description: description,
           value: options[value],
           items: [
             for (final option in options.entries)

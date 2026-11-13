@@ -6,6 +6,7 @@ import '../library/library_service.dart';
 import '../media_processing/media_processing_service.dart';
 import 'media_tools.dart';
 import 'tool_registry.dart';
+import '../../core/plugins/plugin_gate.dart';
 
 /// Structured media-processing tools over [MediaProcessingService]. The
 /// model only picks host-defined presets and host-issued references; there
@@ -65,9 +66,19 @@ class MediaProcessingTools {
       throw const ToolFailure('staleReference');
     }
     final source = entry.ref.instanceId;
-    if (source != '@local' &&
-        !sources.configs.any((c) => c.id == source && c.enabled)) {
-      throw const ToolFailure('unavailable');
+    if (source != '@local') {
+      final config = sources.configs
+          .where((c) => c.id == source && c.enabled)
+          .firstOrNull;
+      if (config == null) throw const ToolFailure('unavailable');
+      // Reading media for processing is resolve access on that instance.
+      if (!PluginGate.ai(
+        config.pluginId,
+        instanceId: source,
+        capability: 'source.resolve',
+      )) {
+        throw const ToolFailure('permissionDenied');
+      }
     }
     return (entry.ref, entry.name);
   }

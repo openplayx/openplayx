@@ -18,6 +18,21 @@ class _FakeArtwork extends ArtworkService {
   Future<int> cacheBytes() async => bytes;
   @override
   Future<void> clear() async => bytes = 0;
+  int trims = 0;
+  @override
+  Future<void> trim() async => trims++;
+}
+
+class _QuotaSources extends MemorySources {
+  int mb = 256;
+  final changes = <int>[];
+  @override
+  int get artworkCacheQuotaMb => mb;
+  @override
+  Future<void> setArtworkCacheQuotaMb(int value) async {
+    changes.add(value);
+    mb = value;
+  }
 }
 
 void main() {
@@ -102,4 +117,55 @@ void main() {
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });
+
+  for (final width in [1000.0, 390.0]) {
+    testWidgets('image cache limit is a setting; lowering it trims at once '
+        '(width $width)', (tester) async {
+      tester.view.physicalSize = Size(width, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.reset);
+      final library = LibraryService(sqlite3.openInMemory());
+      addTearDown(library.close);
+      final sources = _QuotaSources();
+      final artwork = _FakeArtwork(sources);
+      addTearDown(artwork.dispose);
+      await tester.pumpWidget(
+        TestApp(
+          home: Scaffold(
+            body: SingleChildScrollView(
+              child: ScrapeManagementSection(
+                library: library,
+                sources: sources,
+                artwork: artwork,
+              ),
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(find.text('图片缓存上限'), findsOneWidget);
+      expect(find.textContaining('最早下载的图片'), findsOneWidget);
+      expect(find.text('256 MB'), findsOneWidget);
+
+      Future<void> pick(String current, String label) async {
+        await tester.tap(find.text(current));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text(label).last);
+        await tester.pumpAndSettle();
+      }
+
+      // Raising the limit only saves it.
+      await pick('256 MB', '1 GB');
+      expect(sources.changes, [1024]);
+      expect(artwork.trims, 0);
+      expect(find.text('1 GB'), findsOneWidget);
+      // Lowering it also evicts down to the new limit right away.
+      await pick('1 GB', '128 MB');
+      expect(sources.changes, [1024, 128]);
+      expect(artwork.trims, 1);
+      expect(find.text('128 MB'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox());
+    });
+  }
 }

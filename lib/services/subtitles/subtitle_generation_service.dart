@@ -14,6 +14,7 @@ import 'asr_backend_config.dart';
 import 'http_asr_backend.dart';
 import 'subtitle_format.dart';
 import 'transcript.dart';
+import '../../core/plugins/plugin_gate.dart';
 
 /// One audio track of a resource, addressed by a host-issued reference that
 /// also fingerprints the stream: a changed file never reuses an old index.
@@ -387,6 +388,9 @@ class SubtitleGenerationService {
       final config = backends.get(r.backendId ?? '');
       if (config == null) {
         throw const SubtitleException('backend_not_configured');
+      }
+      if (!PluginGate.enabled(config.pluginId)) {
+        throw const SubtitleException('backend_disabled');
       }
       if (config.uploads && config.uploadConsentAt == null) {
         throw const SubtitleException('upload_not_authorized');

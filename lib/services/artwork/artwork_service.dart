@@ -19,10 +19,11 @@ class ArtworkService {
     this.sources, {
     Directory? directory,
     this.retainedArtwork,
-    this.cacheQuotaBytes = 256 * 1024 * 1024,
+    int? cacheQuotaBytes,
   })
     // ignore: prefer_initializing_formals
-    : _directory = directory {
+    : _directory = directory,
+       _cacheQuotaOverride = cacheQuotaBytes {
     // Resolve the cache directory early so [cachedFile] can answer
     // synchronously on the first detail page build.
     unawaited(_root().then<void>((_) {}, onError: (Object _) {}));
@@ -51,7 +52,12 @@ class ArtworkService {
   static final _opaque = <String, bool>{};
   static final _opaquePending = <String, Future<bool>>{};
   final List<ArtworkDescriptor> Function()? retainedArtwork;
-  final int cacheQuotaBytes;
+  final int? _cacheQuotaOverride;
+
+  /// The Settings value (shared by every instance over this disk cache)
+  /// unless a fixed limit was passed in, e.g. by tests.
+  int get cacheQuotaBytes =>
+      _cacheQuotaOverride ?? sources.artworkCacheQuotaMb * 1024 * 1024;
   Future<void> _writeTail = Future.value();
   final SourceManager sources;
   Directory? _directory;
@@ -184,6 +190,29 @@ class ArtworkService {
           ),
         )
         .toString();
+  }
+
+  /// Evicts old regenerable files until the cache fits [cacheQuotaBytes];
+  /// used right after the limit is lowered. Retained selections are kept
+  /// even when they alone exceed the limit.
+  Future<void> trim() {
+    final previous = _writeTail;
+    final operation = (() async {
+      await previous;
+      final dir = await _root();
+      if (!await dir.exists()) return;
+      try {
+        await _makeRoom(dir, 0);
+      } on PluginException catch (e) {
+        if (e.code != 'quotaExceeded') rethrow;
+      }
+    })();
+    // Same queue as downloads, so a trim never races a file being published.
+    _writeTail = operation.then<void>(
+      (_) {},
+      onError: (Object _, StackTrace _) {},
+    );
+    return operation;
   }
 
   Future<void> _makeRoom(Directory directory, int incoming) async {

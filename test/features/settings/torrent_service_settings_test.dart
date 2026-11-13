@@ -3,6 +3,7 @@ import '../../app_test_host.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/features/settings/torrent_service_settings_page.dart';
 import 'package:openplayx/services/torrent/torrent_service.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -19,6 +20,13 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('torrent-unconfigured')), findsOneWidget);
+    // Nothing to add to until a service is configured.
+    expect(
+      tester
+          .widget<ShadButton>(find.byKey(const ValueKey('torrent-add-magnet')))
+          .onPressed,
+      isNull,
+    );
 
     await tester.tap(find.byKey(const ValueKey('torrent-add-service')));
     await tester.pumpAndSettle();
@@ -57,6 +65,27 @@ void main() {
       find.byKey(ValueKey('torrent-service-${store.configs.single.id}')),
       findsOneWidget,
     );
+    // Let the post-save refresh (mocked network) finish so the page is idle.
+    await tester.runAsync(
+      () => Future<void>.delayed(const Duration(milliseconds: 500)),
+    );
+    await tester.pump();
+    // Add Magnet: a non-magnet text is refused before reaching the server.
+    await tester.tap(find.byKey(const ValueKey('torrent-add-magnet')));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.byKey(const ValueKey('torrent-magnet-input')), findsOneWidget);
+    expect(find.text('只下载视频文件'), findsOneWidget);
+    await tester.enterText(
+      find.byKey(const ValueKey('torrent-magnet-input')),
+      'http://example.com/a.torrent',
+    );
+    await tester.tap(find.byKey(const ValueKey('torrent-magnet-preview')));
+    for (var i = 0; i < 10; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(find.text('请粘贴以 magnet:? 开头的链接'), findsOneWidget);
     // Unmount to stop the page's polling timer.
     await tester.pumpWidget(const SizedBox());
   });

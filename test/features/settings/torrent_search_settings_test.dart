@@ -1,6 +1,7 @@
 import '../../app_test_host.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/features/settings/torrent_search_settings_page.dart';
@@ -18,6 +19,62 @@ class _FakeClient extends TorrentSearchClient {
     return {
       'operations': {'search': true, 'resolve': canResolve},
     };
+  }
+
+  final searches = <String>[];
+
+  @override
+  Future<Map<String, dynamic>> search({
+    required String query,
+    String category = 'all',
+    String sort = 'relevance',
+    int page = 1,
+  }) async {
+    searches.add('$query|$category|$sort|$page');
+    return {
+      'source_page': page,
+      'page_count': 2,
+      'has_next_page': page < 2,
+      'result_count': 1,
+      'cache': {'hit': false},
+      'items': [
+        {
+          'result_ref': 'tsr_one',
+          'title': 'ubuntu-26.04-desktop-amd64.iso',
+          'size_bytes': 6517612872,
+          'seeders': 118,
+          'leechers': 87,
+          'uploaded_date': '2026-04-25',
+          'category': 'Applications > UNIX',
+          'has_magnet': true,
+        },
+      ],
+    };
+  }
+
+  @override
+  Future<Map<String, dynamic>> detail(String resultRef) async => {
+    'size_bytes': 6518974464,
+    'size_exact': true,
+    'file_count': 1,
+    'uploaded_at': '2026-04-25T16:35:39Z',
+    'description': 'Plain uploader text',
+    'has_magnet': true,
+  };
+
+  static const magnet =
+      'magnet:?xt=urn:btih:dafc8c076ca2f3ed376eeae7c76a0d6be2415c45&dn=ubuntu';
+
+  @override
+  Future<TorrentResolution> resolve(String resultRef) async {
+    if (!canResolve) throw const TorrentSearchException('service_forbidden');
+    return TorrentResolution(
+      serverRef: config.id,
+      resultRef: resultRef,
+      title: 'ubuntu',
+      infoHash: 'dafc8c076ca2f3ed376eeae7c76a0d6be2415c45',
+      magnet: magnet,
+    );
   }
 
   @override
@@ -160,5 +217,90 @@ void main() {
       'secret-token-value',
     );
     expect(registry.get('svc')!.defaultCategory, 'video');
+  });
+
+  testWidgets('test search page lists candidates and detail, read-only', (
+    tester,
+  ) async {
+    const config = TorrentSearchConfig(
+      id: 'svc',
+      name: 'Search',
+      url: 'https://search.example.com',
+    );
+    final client = _FakeClient(config);
+    await tester.pumpWidget(
+      TestApp(
+        home: TorrentSearchTryPage(config: config, client: client),
+      ),
+    );
+    await settle(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('tsearch-try-query')),
+      'ubuntu',
+    );
+    await tap(tester, 'tsearch-try-run');
+    await settle(tester);
+    expect(client.searches, ['ubuntu|all|relevance|1']);
+    expect(find.text('ubuntu-26.04-desktop-amd64.iso'), findsOneWidget);
+    expect(find.textContaining('做种 118'), findsOneWidget);
+
+    await tap(tester, 'tsearch-result-tsr_one');
+    await settle(tester);
+    expect(find.textContaining('6518974464 字节'), findsOneWidget);
+    expect(find.text('Plain uploader text'), findsOneWidget);
+
+    // The magnet is fetched only on an explicit tap, then copyable.
+    expect(find.text(_FakeClient.magnet), findsNothing);
+    String? copied;
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'Clipboard.setData') {
+          copied = (call.arguments as Map)['text'] as String;
+        }
+        return null;
+      },
+    );
+    await tap(tester, 'tsearch-magnet-get-tsr_one');
+    await settle(tester);
+    expect(find.text(_FakeClient.magnet), findsOneWidget);
+    await tap(tester, 'tsearch-magnet-copy-tsr_one');
+    await settle(tester);
+    expect(copied, _FakeClient.magnet);
+    expect(find.text('已复制 Magnet 地址'), findsOneWidget);
+    // Let the confirmation snack bar go away before tapping further.
+    await tester.pump(const Duration(seconds: 5));
+    await settle(tester);
+
+    await tap(tester, 'tsearch-try-next');
+    await settle(tester);
+    expect(client.searches.last, 'ubuntu|all|relevance|2');
+  });
+
+  testWidgets('magnet needs the resolve scope', (tester) async {
+    const config = TorrentSearchConfig(
+      id: 'svc',
+      name: 'Search',
+      url: 'https://search.example.com',
+    );
+    final client = _FakeClient(config, canResolve: false);
+    await tester.pumpWidget(
+      TestApp(
+        home: TorrentSearchTryPage(config: config, client: client),
+      ),
+    );
+    await settle(tester);
+    await tester.enterText(
+      find.byKey(const ValueKey('tsearch-try-query')),
+      'ubuntu',
+    );
+    await tap(tester, 'tsearch-try-run');
+    await settle(tester);
+    await tap(tester, 'tsearch-result-tsr_one');
+    await settle(tester);
+    await tap(tester, 'tsearch-magnet-get-tsr_one');
+    await settle(tester);
+    expect(find.text('Token 没有 resolve 权限'), findsOneWidget);
+    expect(find.text(_FakeClient.magnet), findsNothing);
   });
 }

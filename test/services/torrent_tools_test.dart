@@ -55,11 +55,16 @@ class FakeServer {
           'selected_files_complete': false,
           'payload_complete': false,
           'seeding': false,
-          'stale': false,
-          'engine_status': 'available',
+          'added_via': 'app',
+        };
+        final webuiTask = {
+          ...task,
+          'id': 'b' * 40,
+          'name': 'WebUI item',
+          'added_via': 'other',
         };
         switch ('${req.method} ${req.uri.path}') {
-          case 'GET /v1/capabilities':
+          case 'GET /api/v1/capabilities':
             out = {
               'engine': {'available': true, 'version': 'v5.1.0'},
               'inputs': ['magnet', 'torrent_file'],
@@ -67,33 +72,28 @@ class FakeServer {
                 {'destination_ref': 'default', 'name': 'Downloads'},
               ],
             };
-          case 'POST /v1/torrent-plans':
+          case 'POST /api/v1/torrent-plans':
             out = {
               'plan_ref': 'plan_server_secret',
-              'revision': 1,
               'name': 'Show',
               'input_kind': 'magnet',
               'metadata': 'unknown',
               'warnings': ['metadata_unknown'],
             };
             status = 201;
-          case 'POST /v1/torrents':
-            out = {
-              'id': 'op_1',
-              'status': 'succeeded',
-              'task_id': 'tsk_1',
-              'kind': 'create',
-            };
-          case 'GET /v1/torrents':
-            out = {
-              'items': [task],
-            };
-          case 'GET /v1/torrents/tsk_1':
+          case 'POST /api/v1/torrents':
             out = task;
-          case 'GET /v1/torrents/tsk_1/files':
+            status = 201;
+          case 'GET /api/v1/torrents':
+            out = {
+              'items': [task, webuiTask],
+            };
+          case 'GET /api/v1/torrents/tsk_1':
+            out = task;
+          case 'GET /api/v1/torrents/tsk_1/files':
             out = {
               'metadata_known': true,
-              'files_revision': 1,
+              'files_revision': 'rev1',
               'files': [
                 {
                   'file_id': 'f0',
@@ -111,20 +111,19 @@ class FakeServer {
                 },
               ],
             };
-          case 'PATCH /v1/torrents/tsk_1/selection':
+          case 'PATCH /api/v1/torrents/tsk_1/selection':
             out = {
-              'id': 'op_s',
-              'status': 'succeeded',
-              'result': {'files_revision': 2},
+              'metadata_known': true,
+              'files_revision': 'rev2',
+              'files': [
+                {'file_id': 'f0', 'selected': true},
+                {'file_id': 'f1', 'selected': false},
+              ],
             };
-          case 'POST /v1/torrents/tsk_1/pause':
+          case 'POST /api/v1/torrents/tsk_1/pause':
             state = 'paused';
-            out = {
-              'id': 'op_p',
-              'status': 'succeeded',
-              'result': {'state': 'paused'},
-            };
-          case 'POST /v1/torrents/tsk_1/remove-plan':
+            out = {...task, 'state': 'paused'};
+          case 'POST /api/v1/torrents/tsk_1/remove-plan':
             out = {
               'plan_ref': 'rmp_1',
               'task_name': 'Show',
@@ -134,12 +133,8 @@ class FakeServer {
               'effects': ['engine_task_removed'],
             };
             status = 201;
-          case 'POST /v1/torrents/tsk_1/remove':
-            out = {
-              'id': 'op_r',
-              'status': 'succeeded',
-              'result': {'data_deleted': false},
-            };
+          case 'POST /api/v1/torrents/tsk_1/remove':
+            out = {'task_id': 'tsk_1', 'removed': true, 'data_deleted': false};
           default:
             status = 404;
             out = {
@@ -283,27 +278,29 @@ void main() {
       expect(task['location'], 'server');
       expect(task['in_app_library'], false);
       expect(task['server_name'], 'Home');
-      expect(
-        fake.bodies.last.containsKey('idempotency_key'),
-        isFalse,
-      ); // last is GET task
       final createBody =
-          fake.bodies[fake.requests.indexOf('POST /v1/torrents')];
-      expect(createBody['plan_ref'], 'plan_server_secret');
-      expect(createBody['idempotency_key'], startsWith('app-create-'));
+          fake.bodies[fake.requests.indexOf('POST /api/v1/torrents')];
+      expect(createBody, {'plan_ref': 'plan_server_secret'});
       final encoded = jsonEncode([r.data, add.data]);
       expect(encoded.contains(fake.url), isFalse);
       expect(encoded.contains('good-token'), isFalse);
     });
 
-    test('list is throttled and maps tasks to task_refs', () async {
+    test('list is live, includes WebUI torrents, and maps task_refs', () async {
       final a = await call(gateway, 'torrent_list', {});
       final b = await call(gateway, 'torrent_list', {});
-      expect(fake.requests.where((r) => r == 'GET /v1/torrents'), hasLength(1));
-      final ref = (a.data['torrent_tasks'] as List).single['task_ref'];
-      expect((b.data['torrent_tasks'] as List).single['task_ref'], ref);
+      // No client-side caching: every query reaches the server.
+      expect(
+        fake.requests.where((r) => r == 'GET /api/v1/torrents'),
+        hasLength(2),
+      );
+      final tasks = a.data['torrent_tasks'] as List;
+      expect(tasks.map((t) => t['added_via']), ['app', 'other']);
+      final ref = tasks.first['task_ref'];
+      expect(tasks.last['task_ref'], isNot(ref));
+      expect((b.data['torrent_tasks'] as List).first['task_ref'], ref);
       final paused = await call(gateway, 'torrent_pause', {'task_ref': ref});
-      expect(paused.data['state'], 'paused');
+      expect((paused.data['torrent_task'] as Map)['state'], 'paused');
       expect(
         (await call(gateway, 'torrent_get', {'task_ref': 'task-forged'})).error,
         'staleReference',
@@ -316,7 +313,7 @@ void main() {
         final ref =
             ((await call(gateway, 'torrent_list', {})).data['torrent_tasks']
                     as List)
-                .single['task_ref'];
+                .first['task_ref'];
         final files = await call(gateway, 'torrent_files', {'task_ref': ref});
         final fileRef =
             (files.data['files'] as List).first['file_ref'] as String;
@@ -330,7 +327,7 @@ void main() {
         expect(confirmed, ['torrent_select_files']);
         expect(
           fake.bodies[fake.requests.indexOf(
-            'PATCH /v1/torrents/tsk_1/selection',
+            'PATCH /api/v1/torrents/tsk_1/selection',
           )]['file_ids'],
           ['f0'],
         );
@@ -354,7 +351,7 @@ void main() {
         }, approve: false);
         expect(cancelled.status, 'cancelled');
         expect(
-          fake.requests.contains('POST /v1/torrents/tsk_1/remove'),
+          fake.requests.contains('POST /api/v1/torrents/tsk_1/remove'),
           isFalse,
         );
         final removed = await call(gateway, 'torrent_remove', {
@@ -363,7 +360,7 @@ void main() {
         expect(removed.status, 'success');
         expect(
           fake.bodies[fake.requests.indexOf(
-            'POST /v1/torrents/tsk_1/remove',
+            'POST /api/v1/torrents/tsk_1/remove',
           )]['plan_ref'],
           'rmp_1',
         );

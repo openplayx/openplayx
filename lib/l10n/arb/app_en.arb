@@ -573,6 +573,8 @@
   "scrapeClearDescription": "Metadata fetched from TMDB and NFO files, matches and downloaded posters will be deleted. This cannot be undone. Video files, playback progress, media server metadata and your manual edits are kept. If TMDB is configured, scraping starts again in the background.",
   "scrapeCleared": "All scraped metadata was cleared.",
   "scrapeClearFailed": "Could not clear. Try again later.",
+  "artworkCacheLimit": "Image cache limit",
+  "artworkCacheLimitDescription": "Posters, backdrops and cast photos. The oldest images are removed when the limit is reached; locked artwork is kept.",
   "@scrapedCountValue": {
     "placeholders": {
       "count": {

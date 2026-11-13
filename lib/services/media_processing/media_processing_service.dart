@@ -9,6 +9,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
+import '../../core/plugins/plugin_gate.dart';
 
 export 'package:openplayx_ffmpeg/openplayx_ffmpeg.dart'
     show
@@ -83,7 +84,15 @@ class MediaProcessingService {
 
   /// Emits task ids whenever a task's state or progress changes.
   Stream<String> get changes => _changes.stream;
-  bool get available => processor.available;
+
+  /// FFmpeg is packaged and the plugin switch allows new work.
+  bool get available => processor.available && PluginGate.enabled(pluginId);
+
+  /// Whether the native library is packaged and loads on this platform,
+  /// independent of the plugin switch.
+  bool get nativeAvailable => processor.available;
+
+  static const pluginId = 'media.ffmpeg';
   Future<Directory> _dir(String name) async {
     final base = await root;
     if (base == null) throw const MediaException(MediaErrorCode.unavailable);

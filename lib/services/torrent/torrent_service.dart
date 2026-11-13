@@ -6,6 +6,8 @@ import 'dart:typed_data';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+import '../../core/plugins/plugin_gate.dart';
+
 /// One configured OpenPlayX BitTorrent API server (bittorrent-server).
 /// Downloads run on that server; finishing there is not the same as being in
 /// the App library or offline on this device.
@@ -182,25 +184,25 @@ class TorrentServiceStore {
   TorrentServiceConfig? config(String id) =>
       configs.where((c) => c.id == id).firstOrNull;
 
-  List<TorrentServiceConfig> get enabled =>
-      configs.where((c) => c.enabled).toList();
+  /// Instances accepting new calls: instance switch and plugin switch.
+  List<TorrentServiceConfig> get enabled => PluginGate.enabled(pluginId)
+      ? configs.where((c) => c.enabled).toList()
+      : const [];
+
+  static const pluginId = 'torrent.download';
 
   Future<TorrentServiceClient> client(String id) async {
     final existing = _clients[id];
     if (existing != null) return existing;
     final c = config(id);
-    if (c == null || !c.enabled) {
+    if (c == null || !c.enabled || !PluginGate.enabled(pluginId)) {
       throw const TorrentServiceException('serviceNotConfigured');
     }
     final token = await _secure.read(key: _tokenKey(id));
     if (token == null || token.isEmpty) {
       throw const TorrentServiceException('tokenMissing');
     }
-    return _clients[id] = TorrentServiceClient(
-      Uri.parse(c.baseUrl),
-      token,
-      minListInterval: Duration(seconds: c.pollSeconds),
-    );
+    return _clients[id] = TorrentServiceClient(Uri.parse(c.baseUrl), token);
   }
 }
 
@@ -228,7 +230,6 @@ class TorrentServiceClient {
     this._token, {
     HttpClient? http,
     this.timeout = const Duration(seconds: 15),
-    this.minListInterval = const Duration(seconds: 10),
   }) : _http = http ?? HttpClient() {
     _http.connectionTimeout = const Duration(seconds: 10);
   }
@@ -237,12 +238,7 @@ class TorrentServiceClient {
   final String _token;
   final HttpClient _http;
   final Duration timeout;
-  final Duration minListInterval;
   static const _maxBody = 4 << 20;
-
-  Map<String, dynamic>? _listCache;
-  DateTime? _listAt;
-  Future<Map<String, dynamic>>? _listInFlight;
 
   void close() => _http.close(force: true);
 
@@ -325,141 +321,66 @@ class TorrentServiceClient {
     }
   }
 
-  void invalidate() => _listAt = null;
+  // Every call goes to the server, which reads the engine live; nothing is
+  // cached here.
 
   Future<Map<String, dynamic>> capabilities() =>
-      _send('GET', '/v1/capabilities');
+      _send('GET', '/api/v1/capabilities');
   Future<Map<String, dynamic>> destinations() =>
-      _send('GET', '/v1/destinations');
+      _send('GET', '/api/v1/destinations');
 
   Future<Map<String, dynamic>> uploadTorrent(Uint8List data) =>
-      _send('POST', '/v1/torrent-inputs', torrent: data);
+      _send('POST', '/api/v1/torrent-inputs', torrent: data);
 
   Future<Map<String, dynamic>> plan(Map<String, dynamic> request) =>
-      _send('POST', '/v1/torrent-plans', json: request);
+      _send('POST', '/api/v1/torrent-plans', json: request);
 
-  Future<Map<String, dynamic>> create(
-    String planRef,
-    int revision,
-    String idempotencyKey,
-  ) async {
-    final op = await _send(
-      'POST',
-      '/v1/torrents',
-      json: {
-        'plan_ref': planRef,
-        'expected_revision': revision,
-        'idempotency_key': idempotencyKey,
-      },
-    );
-    invalidate();
-    return op;
-  }
+  /// Adds the planned torrent; returns the task (also when it already
+  /// existed in the engine).
+  Future<Map<String, dynamic>> create(String planRef) =>
+      _send('POST', '/api/v1/torrents', json: {'plan_ref': planRef});
 
-  /// Task list, shared and rate limited across UI and assistant.
-  Future<Map<String, dynamic>> list({bool force = false}) {
-    final at = _listAt;
-    if (!force &&
-        _listCache != null &&
-        at != null &&
-        DateTime.now().difference(at) < minListInterval) {
-      return Future.value(_listCache!);
-    }
-    return _listInFlight ??= () async {
-      try {
-        final items = <dynamic>[];
-        String? cursor;
-        for (var page = 0; page < 5; page++) {
-          final r = await _send(
-            'GET',
-            '/v1/torrents',
-            query: {'limit': '100', 'cursor': ?cursor},
-          );
-          items.addAll(r['items'] as List? ?? const []);
-          cursor = r['next_cursor'] as String?;
-          if (cursor == null) break;
-        }
-        _listCache = {'items': items};
-        _listAt = DateTime.now();
-        return _listCache!;
-      } finally {
-        _listInFlight = null;
-      }
-    }();
-  }
+  /// Every torrent in the engine, including ones added in the WebUI.
+  Future<Map<String, dynamic>> list() => _send('GET', '/api/v1/torrents');
 
   Future<Map<String, dynamic>> task(String id) =>
-      _send('GET', '/v1/torrents/$id');
+      _send('GET', '/api/v1/torrents/$id');
   Future<Map<String, dynamic>> files(String id) =>
-      _send('GET', '/v1/torrents/$id/files');
-
-  Future<Map<String, dynamic>> _mutate(
-    String method,
-    String path,
-    Map<String, dynamic> body,
-  ) async {
-    final r = await _send(method, path, json: body);
-    invalidate();
-    return r;
-  }
+      _send('GET', '/api/v1/torrents/$id/files');
 
   Future<Map<String, dynamic>> select(
     String id,
-    int revision, {
+    String revision, {
     String? preset,
     List<String>? fileIds,
-    required String idempotencyKey,
-  }) => _mutate('PATCH', '/v1/torrents/$id/selection', {
-    'expected_revision': revision,
-    'preset': ?preset,
-    'file_ids': ?fileIds,
-    'idempotency_key': idempotencyKey,
-  });
+  }) => _send(
+    'PATCH',
+    '/api/v1/torrents/$id/selection',
+    json: {
+      'expected_revision': revision,
+      'preset': ?preset,
+      'file_ids': ?fileIds,
+    },
+  );
 
-  Future<Map<String, dynamic>> pause(String id, String key) =>
-      _mutate('POST', '/v1/torrents/$id/pause', {'idempotency_key': key});
-  Future<Map<String, dynamic>> resume(String id, String key) =>
-      _mutate('POST', '/v1/torrents/$id/resume', {'idempotency_key': key});
+  Future<Map<String, dynamic>> pause(String id) =>
+      _send('POST', '/api/v1/torrents/$id/pause');
+  Future<Map<String, dynamic>> resume(String id) =>
+      _send('POST', '/api/v1/torrents/$id/resume');
 
-  Future<Map<String, dynamic>> limits(
-    String id,
-    int download,
-    int upload,
-    String key,
-  ) => _mutate('PATCH', '/v1/torrents/$id/limits', {
-    'download_limit': download,
-    'upload_limit': upload,
-    'idempotency_key': key,
-  });
+  Future<Map<String, dynamic>> limits(String id, int download, int upload) =>
+      _send(
+        'PATCH',
+        '/api/v1/torrents/$id/limits',
+        json: {'download_limit': download, 'upload_limit': upload},
+      );
 
   Future<Map<String, dynamic>> removePlan(String id, bool deleteFiles) => _send(
     'POST',
-    '/v1/torrents/$id/remove-plan',
+    '/api/v1/torrents/$id/remove-plan',
     json: {'delete_files': deleteFiles},
   );
 
-  Future<Map<String, dynamic>> remove(String id, String planRef, String key) =>
-      _mutate('POST', '/v1/torrents/$id/remove', {
-        'plan_ref': planRef,
-        'idempotency_key': key,
-      });
-
-  Future<Map<String, dynamic>> operation(String id) =>
-      _send('GET', '/v1/operations/$id');
-
-  /// Polls a pending operation briefly; returns the latest state.
-  Future<Map<String, dynamic>> settle(
-    Map<String, dynamic> op, {
-    Duration wait = const Duration(seconds: 8),
-  }) async {
-    final deadline = DateTime.now().add(wait);
-    var current = op;
-    while (current['status'] == 'pending' &&
-        DateTime.now().isBefore(deadline)) {
-      await Future<void>.delayed(const Duration(milliseconds: 500));
-      current = await operation(current['id'] as String);
-    }
-    if (current['status'] != 'pending') invalidate();
-    return current;
-  }
+  Future<Map<String, dynamic>> remove(String id, String planRef) =>
+      _send('POST', '/api/v1/torrents/$id/remove', json: {'plan_ref': planRef});
 }

@@ -3,6 +3,8 @@ import 'dart:math';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../../core/plugins/plugin_gate.dart';
+
 /// One configured Torrent Search service instance (openplayx/torrent-search,
 /// Settings → Sources & downloads → Torrent search). The URL never holds
 /// credentials; the API token lives in secure storage only and is never
@@ -112,8 +114,12 @@ class TorrentSearchRegistry {
       _row(r),
   ];
 
-  List<TorrentSearchConfig> get enabled =>
-      list().where((c) => c.enabled).toList();
+  /// Instances accepting new calls: instance switch and plugin switch.
+  List<TorrentSearchConfig> get enabled => PluginGate.enabled(pluginId)
+      ? list().where((c) => c.enabled).toList()
+      : const [];
+
+  static const pluginId = 'torrent.search';
 
   TorrentSearchConfig? get(String id) {
     final rows = db.select('SELECT * FROM torrent_search_services WHERE id=?', [

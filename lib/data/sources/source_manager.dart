@@ -6,6 +6,7 @@ import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../core/plugins/metadata_capability.dart';
+import '../../core/plugins/plugin_gate.dart';
 import '../configuration/source_configuration_service.dart';
 import '../configuration/source_credential_broker.dart';
 import 'file_sources.dart';
@@ -105,6 +106,13 @@ class SourceManager {
   final _retired = <_SourceRuntime>{};
   final _creating = <String, Future<_SourceRuntime>>{};
   List<SourceConfig> get configs => List.unmodifiable(_configs);
+
+  /// The shared configuration service once [load] completed.
+  SourceConfigurationService? get configuration => _configuration;
+
+  /// Saved vs. applied revision and last error code of one instance.
+  Map<String, Object?>? application(String id) =>
+      _configuration?.application(id);
   List<ConfigurationIssue> get configurationIssues =>
       List.unmodifiable(_configuration?.issues ?? []);
   SourceBindings get bindings =>
@@ -277,6 +285,27 @@ class SourceManager {
   List<String> get scanExtensions =>
       _configuration?.scanExtensions() ?? defaultScanExtensions;
 
+  /// Choices offered in Settings for the shared artwork disk cache, in MiB.
+  static const artworkCacheQuotaChoicesMb = [128, 256, 512, 1024, 2048];
+  static const defaultArtworkCacheQuotaMb = 256;
+
+  /// Device-local artwork cache limit; read on every eviction so all
+  /// ArtworkService instances over the shared cache follow one value.
+  int get artworkCacheQuotaMb {
+    final value = _configuration?.artworkCacheQuotaMb();
+    return artworkCacheQuotaChoicesMb.contains(value)
+        ? value!
+        : defaultArtworkCacheQuotaMb;
+  }
+
+  Future<void> setArtworkCacheQuotaMb(int value) async {
+    await load();
+    if (!artworkCacheQuotaChoicesMb.contains(value)) {
+      throw const PluginException('invalidInput', '不支持的图片缓存上限。');
+    }
+    _configuration!.saveArtworkCacheQuotaMb(value);
+  }
+
   Future<void> setScanExtensions(List<String> extensions) async {
     await load();
     if (extensions.length > 100 ||
@@ -291,6 +320,9 @@ class SourceManager {
     final config = _config(id);
     if (!config.enabled) {
       throw const PluginException('disabled', '媒体源已禁用，配置仍保留。');
+    }
+    if (!PluginGate.enabled(config.pluginId)) {
+      throw const PluginException('disabled', '此插件已停用，实例配置仍保留。');
     }
     if (config.credentialExpiresAt != null &&
         !config.credentialExpiresAt!.isAfter(DateTime.now())) {

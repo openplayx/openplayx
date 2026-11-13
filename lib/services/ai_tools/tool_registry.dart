@@ -119,13 +119,38 @@ class RegisteredTool {
   }
 }
 
+/// Outcome of the plugin/AI policy check for one tool. Codes are returned to
+/// the model as structured errors under the original call id.
+enum ToolDecision {
+  allowed,
+  capabilityUnavailable,
+  policyChanged,
+  permissionDenied,
+}
+
+/// Host policy over registered tools (plugin switches, AI scope). It never
+/// adds tools; it only narrows the registered set, and is re-checked by the
+/// gateway right before execution because model-side tool lists go stale.
+abstract interface class ToolPolicy {
+  /// Increments whenever plugin, instance or AI-scope state changes.
+  int get revision;
+  ToolDecision decide(String tool);
+}
+
 class ToolRegistry {
   /// Upper bound of tools offered to a model in one request. Registration
   /// fails beyond it, so no tool is ever silently truncated away.
-  /// Media 17 + processing 9 + subtitles 6 + BitTorrent 13 + search 6 = 51.
+  /// Media 17 + processing 9 + subtitles 6 + BitTorrent 13 + search 6
+  /// + plugin status 1 = 52.
   /// Mainstream model APIs accept well over a hundred tools.
   static const maxTools = 56;
   final _tools = <String, RegisteredTool>{};
+
+  /// Installed by the Plugin Manager; null allows every registered tool.
+  ToolPolicy? policy;
+  Iterable<String> get names => _tools.keys;
+  ToolDecision decide(String name) =>
+      policy?.decide(name) ?? ToolDecision.allowed;
   void register(RegisteredTool tool) {
     if (_tools.containsKey(tool.name)) throw ArgumentError('Duplicate tool');
     if (_tools.length >= maxTools) throw StateError('Tool limit exceeded');
@@ -134,7 +159,11 @@ class ToolRegistry {
 
   RegisteredTool? operator [](String name) => _tools[name];
   List<ModelTool> get available => _tools.values
-      .where((t) => t.available?.call() ?? true)
+      .where(
+        (t) =>
+            (t.available?.call() ?? true) &&
+            decide(t.name) == ToolDecision.allowed,
+      )
       .map((t) => t.model)
       .toList();
 }
@@ -204,6 +233,9 @@ class ToolGateway {
       if (!(tool.available?.call() ?? true)) {
         throw const ToolFailure('unavailable');
       }
+      // An old tool list is no execution permit: re-check current policy.
+      final decision = registry.decide(tool.name);
+      if (decision != ToolDecision.allowed) throw ToolFailure(decision.name);
       final args = tool.parse(call.arguments);
       final canonical = <String, dynamic>{
         for (final k in (args.keys.toList()..sort())) k: args[k],
@@ -266,12 +298,20 @@ class ToolGateway {
   ) async {
     var running = true;
     try {
+      final revision = registry.policy?.revision;
       if (tool.confirmation && !await confirm(tool.name, args)) {
         return ToolResult(callId, 'cancelled');
       }
       if (!active()) return ToolResult(callId, 'cancelled');
       if (!(tool.available?.call() ?? true)) {
         throw const ToolFailure('unavailable');
+      }
+      final decision = registry.decide(tool.name);
+      if (decision != ToolDecision.allowed) throw ToolFailure(decision.name);
+      // A confirmation is bound to the policy it was given under: plugin,
+      // instance or AI-scope changes while the card was open void it.
+      if (tool.confirmation && registry.policy?.revision != revision) {
+        throw const ToolFailure('policyChanged');
       }
       final data = await ToolExecution.run(
         () => tool.execute(args),

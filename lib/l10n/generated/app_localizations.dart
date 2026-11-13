@@ -2517,6 +2517,18 @@ abstract class AppLocalizations {
   /// **'Could not clear. Try again later.'**
   String get scrapeClearFailed;
 
+  /// No description provided for @artworkCacheLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Image cache limit'**
+  String get artworkCacheLimit;
+
+  /// No description provided for @artworkCacheLimitDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Posters, backdrops and cast photos. The oldest images are removed when the limit is reached; locked artwork is kept.'**
+  String get artworkCacheLimitDescription;
+
   /// No description provided for @metadataProgressDone.
   ///
   /// In en, this message translates to:

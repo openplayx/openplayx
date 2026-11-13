@@ -30,12 +30,16 @@ class SourceInstanceForm extends StatefulWidget {
     super.key,
     required this.manager,
     this.initial,
+    this.initialKind,
     this.signIn,
     this.openBrowser,
     this.chooseDirectory,
     this.discoverDlna,
   });
   final SourceConfig? initial;
+
+  /// Preselected type for a new instance (Settings → plugin → add instance).
+  final SourceKind? initialKind;
   final SourceManager manager;
   final SourceSignIn? signIn;
   final Future<bool> Function(Uri)? openBrowser;
@@ -86,7 +90,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     super.initState();
     final initial = widget.initial;
     _id = initial?.id ?? '${DateTime.now().microsecondsSinceEpoch}';
-    _kind = initial?.kind ?? SourceKind.local;
+    _kind = initial?.kind ?? widget.initialKind ?? SourceKind.local;
     _signIn = widget.signIn ?? SourceSignIn();
     _name.text = initial?.name ?? '';
     final remote = initial?.remote;
