@@ -136,6 +136,75 @@ void main() {
     expect(service.bindings(ResourceRef('@local', wav)), hasLength(1));
   }, skip: skip);
 
+  testWidgets('missing model: explains, offers install, rechecks after install', (tester) async {
+    tester.view.physicalSize = const Size(1200, 2400);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final tmp = Directory.systemTemp.createTempSync('opx_asr_missing');
+    final db = sqlite3.openInMemory();
+    final media = MediaProcessingService(
+      db: db,
+      sources: SourceManager(),
+      root: Future.value(Directory('${tmp.path}/media')),
+      processor: MediaProcessor(libraryPath: ffmpeg, pollInterval: const Duration(milliseconds: 10)),
+    );
+    final registry = AsrBackendRegistry(
+      db: db,
+      models: AsrModelStore(Future.value(Directory('${tmp.path}/models'))),
+      embeddedEngine: WhisperEngine(libraryPath: whisper),
+      readCredential: (_) async => null,
+    );
+    registry.save(registry.get('embedded')!.copyWith(modelId: 'whisper-tiny-multilingual'));
+    final service = SubtitleGenerationService(
+      db: db,
+      media: media,
+      backends: registry,
+      root: Future.value(Directory('${tmp.path}/subtitles')),
+    );
+    addTearDown(() {
+      service.dispose();
+      media.dispose();
+      db.close();
+      tmp.deleteSync(recursive: true);
+    });
+    Future<void> until(Finder f) async {
+      for (var i = 0; i < 300; i++) {
+        await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
+        await tester.pump(const Duration(milliseconds: 20));
+        if (f.evaluate().isNotEmpty) return;
+      }
+      fail('timed out waiting for $f');
+    }
+
+    await tester.pumpWidget(_host(AudioSubtitleDebugPage(
+      service: service,
+      target: AudioSubtitleTarget(resource: ResourceRef('@local', wav), title: 'Show', resourceName: 'long.wav'),
+    )));
+    await until(find.byKey(const ValueKey('asr-transcribe-blocked')));
+    expect(find.text('Recognition unavailable: Model not installed.'), findsOneWidget);
+    expect(find.text('On device · whisper-tiny-multilingual'), findsOneWidget);
+    expect(tester.widget<ShadButton>(find.byKey(const ValueKey('asr-transcribe'))).enabled, isFalse);
+
+    // The install entry opens the model settings inside the debug flow.
+    await tester.tap(find.byKey(const ValueKey('asr-install-model')));
+    await until(find.byKey(const ValueKey('asr-model-whisper-tiny-multilingual')));
+    expect(find.text('Not installed'), findsWidgets);
+    await tester.pageBack();
+    await tester.pumpAndSettle();
+    // Returning rechecks automatically (still not installed here).
+    await until(find.byKey(const ValueKey('asr-recheck')));
+
+    // Installed meanwhile (e.g. imported): a recheck enables recognition.
+    await tester.runAsync(
+      () => AsrModelStore(Future.value(Directory('${tmp.path}/models'))).import(File(model)),
+    );
+    await tester.tap(find.byKey(const ValueKey('asr-recheck')));
+    await until(find.textContaining('Ready ·'));
+    expect(find.byKey(const ValueKey('asr-transcribe-blocked')), findsNothing);
+    expect(tester.widget<ShadButton>(find.byKey(const ValueKey('asr-transcribe'))).enabled, isTrue);
+    await tester.pumpWidget(const SizedBox());
+  }, skip: skip);
+
   testWidgets('without the service it explains instead of crashing', (tester) async {
     await tester.pumpWidget(_host(const AudioSubtitleDebugPage(
       service: null,

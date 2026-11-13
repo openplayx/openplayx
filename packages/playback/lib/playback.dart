@@ -71,6 +71,14 @@ abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   Future<List<PlayerSubtitleTrack>> getSubtitleTracks();
   Future<void> setSubtitleTrack(int id);
   Future<void> disableSubtitle();
+
+  /// Whether [addExternalSubtitle] works in this backend/session.
+  bool get supportsExternalSubtitles => false;
+
+  /// Adds a subtitle file (e.g. a saved recognised subtitle) to the current
+  /// media and selects it. It then also appears in [getSubtitleTracks].
+  Future<void> addExternalSubtitle(Uri file) =>
+      Future.error(UnsupportedError('external subtitles'));
   Widget buildVideo();
 }
 
@@ -276,6 +284,10 @@ class LibVlcBackend extends PlayerBackend {
   Future<void> setSubtitleTrack(int id) => _controller.setSubtitleTrack(id);
   @override
   Future<void> disableSubtitle() => _controller.disableSubtitle();
+  @override
+  bool get supportsExternalSubtitles => true;
+  @override
+  Future<void> addExternalSubtitle(Uri file) => _controller.addSubtitle(file);
   @override
   Widget buildVideo() => VlcPlayer(controller: _controller);
   @override

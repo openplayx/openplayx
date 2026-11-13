@@ -633,9 +633,9 @@
   "asrSave": "保存字幕",
   "asrExport": "导出…",
   "asrExported": "已导出。",
-  "asrSaved": "已保存为此版本的新字幕。",
-  "asrSavedPartial": "已保存为此版本的新字幕（部分区间）。",
-  "asrSaveHint": "未保存的结果离开页面后清除；保存不会替换已有字幕或影响播放。",
+  "asrSaved": "已保存，可在播放时的字幕列表中选择（标记为“识别”）。",
+  "asrSavedPartial": "已保存（部分区间），可在播放时的字幕列表中选择（标记为“识别”）。",
+  "asrSaveHint": "未保存的结果离开页面后清除；保存会新增一条字幕记录，不替换已有字幕，也不会自动影响播放。",
   "asrTaskId": "任务 ID",
   "asrBackendLabel": "后端",
   "asrModel": "模型",
@@ -687,5 +687,10 @@
   "asrAllowHttpHint": "音频将以明文传输。HTTPS 证书校验不会被关闭。",
   "asrInstallModel": "安装或选择模型",
   "asrRecheck": "重新检查",
-  "asrTranscribeBlocked": "暂不能识别：{reason}"
+  "asrTranscribeBlocked": "暂不能识别：{reason}",
+  "recognizedSubtitles": "识别字幕",
+  "recognizedSubtitleBadge": "识别",
+  "recognizedSubtitleTitle": "保存于 {time}",
+  "recognizedSubtitlePartial": "部分 {start}–{end}",
+  "recognizedSubtitleFull": "整集"
 }

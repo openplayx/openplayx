@@ -1566,13 +1566,13 @@ class AppLocalizationsZh extends AppLocalizations {
   String get asrExported => '已导出。';
 
   @override
-  String get asrSaved => '已保存为此版本的新字幕。';
+  String get asrSaved => '已保存，可在播放时的字幕列表中选择（标记为“识别”）。';
 
   @override
-  String get asrSavedPartial => '已保存为此版本的新字幕（部分区间）。';
+  String get asrSavedPartial => '已保存（部分区间），可在播放时的字幕列表中选择（标记为“识别”）。';
 
   @override
-  String get asrSaveHint => '未保存的结果离开页面后清除；保存不会替换已有字幕或影响播放。';
+  String get asrSaveHint => '未保存的结果离开页面后清除；保存会新增一条字幕记录，不替换已有字幕，也不会自动影响播放。';
 
   @override
   String get asrTaskId => '任务 ID';
@@ -1737,6 +1737,25 @@ class AppLocalizationsZh extends AppLocalizations {
   String asrTranscribeBlocked(String reason) {
     return '暂不能识别：$reason';
   }
+
+  @override
+  String get recognizedSubtitles => '识别字幕';
+
+  @override
+  String get recognizedSubtitleBadge => '识别';
+
+  @override
+  String recognizedSubtitleTitle(String time) {
+    return '保存于 $time';
+  }
+
+  @override
+  String recognizedSubtitlePartial(String start, String end) {
+    return '部分 $start–$end';
+  }
+
+  @override
+  String get recognizedSubtitleFull => '整集';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -3300,13 +3319,13 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get asrExported => '已导出。';
 
   @override
-  String get asrSaved => '已保存为此版本的新字幕。';
+  String get asrSaved => '已保存，可在播放时的字幕列表中选择（标记为“识别”）。';
 
   @override
-  String get asrSavedPartial => '已保存为此版本的新字幕（部分区间）。';
+  String get asrSavedPartial => '已保存（部分区间），可在播放时的字幕列表中选择（标记为“识别”）。';
 
   @override
-  String get asrSaveHint => '未保存的结果离开页面后清除；保存不会替换已有字幕或影响播放。';
+  String get asrSaveHint => '未保存的结果离开页面后清除；保存会新增一条字幕记录，不替换已有字幕，也不会自动影响播放。';
 
   @override
   String get asrTaskId => '任务 ID';
@@ -3471,6 +3490,25 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String asrTranscribeBlocked(String reason) {
     return '暂不能识别：$reason';
   }
+
+  @override
+  String get recognizedSubtitles => '识别字幕';
+
+  @override
+  String get recognizedSubtitleBadge => '识别';
+
+  @override
+  String recognizedSubtitleTitle(String time) {
+    return '保存于 $time';
+  }
+
+  @override
+  String recognizedSubtitlePartial(String start, String end) {
+    return '部分 $start–$end';
+  }
+
+  @override
+  String get recognizedSubtitleFull => '整集';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5034,13 +5072,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get asrExported => '已匯出。';
 
   @override
-  String get asrSaved => '已儲存為此版本的新字幕。';
+  String get asrSaved => '已儲存，可在播放時的字幕清單中選擇（標記為「辨識」）。';
 
   @override
-  String get asrSavedPartial => '已儲存為此版本的新字幕（部分區間）。';
+  String get asrSavedPartial => '已儲存（部分區間），可在播放時的字幕清單中選擇（標記為「辨識」）。';
 
   @override
-  String get asrSaveHint => '未儲存的結果離開頁面後清除；儲存不會取代既有字幕或影響播放。';
+  String get asrSaveHint => '未儲存的結果離開頁面後清除；儲存會新增一筆字幕記錄，不取代既有字幕，也不會自動影響播放。';
 
   @override
   String get asrTaskId => '任務 ID';
@@ -5205,4 +5243,23 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String asrTranscribeBlocked(String reason) {
     return '暫不能辨識：$reason';
   }
+
+  @override
+  String get recognizedSubtitles => '辨識字幕';
+
+  @override
+  String get recognizedSubtitleBadge => '辨識';
+
+  @override
+  String recognizedSubtitleTitle(String time) {
+    return '儲存於 $time';
+  }
+
+  @override
+  String recognizedSubtitlePartial(String start, String end) {
+    return '部分 $start–$end';
+  }
+
+  @override
+  String get recognizedSubtitleFull => '整集';
 }

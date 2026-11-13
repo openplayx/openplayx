@@ -26,6 +26,7 @@ import '../../data/files/local_media_picker.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
+import '../../services/subtitles/recognized_subtitles.dart';
 import '../../data/sources/source_config.dart';
 
 class PlayerPage extends StatefulWidget {
@@ -122,6 +123,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _finishTracking() {
     _checkpoint(force: true);
     _trackingGeneration++;
+    _currentRef = null;
+    _selectedRecognized = null;
+    _recognizedTracks.clear();
     _resource = null;
     _resuming = false;
     _session = null;
@@ -137,6 +141,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     SourceEntry? entry,
   }) async {
     generation ??= _trackingGeneration;
+    _currentRef = ref;
     try {
       final service = await _ensureLibrary();
       if (!mounted || generation != _trackingGeneration) return;
@@ -212,6 +217,13 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   int? _selectedAudioTrack;
   // null: the media's default; -1: subtitles switched off by the user.
   int? _selectedSubtitleTrack;
+  // Resource being played (for saved recognised subtitles of this version).
+  ResourceRef? _currentRef;
+  // Recognised subtitle loaded and selected now (binding id), if any.
+  String? _selectedRecognized;
+  // binding id → player track id once loaded, so a re-select does not add
+  // the same file twice and the loaded copy is not listed as embedded.
+  final _recognizedTracks = <String, int>{};
   Future<void> _speedCommands = Future.value();
 
   final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
@@ -475,6 +487,35 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     }
   }
 
+  Future<List<RecognizedSubtitle>> _recognizedSubtitles() async {
+    final ref = _currentRef;
+    if (ref == null || !_backend.supportsExternalSubtitles) return const [];
+    try {
+      return recognizedSubtitles((await _ensureLibrary()).db, ref);
+    } catch (_) {
+      return const [];
+    }
+  }
+
+  static String _clock(int ms) {
+    String two(int n) => n.toString().padLeft(2, '0');
+    final h = ms ~/ 3600000;
+    return h > 0
+        ? '$h:${two(ms ~/ 60000 % 60)}:${two(ms ~/ 1000 % 60)}'
+        : '${two(ms ~/ 60000)}:${two(ms ~/ 1000 % 60)}';
+  }
+
+  String _recognizedDetail(RecognizedSubtitle s) => [
+    if (s.language != null && s.language!.isNotEmpty) s.language!,
+    s.partial
+        ? l.recognizedSubtitlePartial(
+            _clock(s.rangeStartMs),
+            _clock(s.rangeEndMs),
+          )
+        : l.recognizedSubtitleFull,
+    if (s.modelId != null) s.modelId!,
+  ].join(' · ');
+
   Future<void> _showSubtitleTracks() async {
     List<PlayerSubtitleTrack> tracks = [];
     if (!await _adjust(() async {
@@ -482,9 +523,16 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     })) {
       return;
     }
+    final recognized = await _recognizedSubtitles();
     if (!mounted || !_enabled) return;
+    // Loaded recognised files show up as player tracks too; list them once.
+    final loaded = _recognizedTracks.values.toSet();
+    final embedded = [
+      for (final t in tracks)
+        if (!loaded.contains(t.id)) t,
+    ];
     _panelOpened();
-    final id = await showShadSheet<int>(
+    final choice = await showShadSheet<Object>(
       context: context,
       builder: (context) => ShadTheme(
         data: AppTheme.dark,
@@ -495,7 +543,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   ContentRow(title: Text(l.subtitleTrack)),
-                  if (tracks.isEmpty)
+                  if (embedded.isEmpty && recognized.isEmpty)
                     ContentRow(title: Text(l.noSubtitleTracks))
                   else ...[
                     ContentRow(
@@ -505,7 +553,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                           : null,
                       onTap: () => Navigator.pop(context, -1),
                     ),
-                    for (final track in tracks)
+                    for (final track in embedded)
                       ContentRow(
                         title: Text(
                           track.name.isEmpty
@@ -515,10 +563,48 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
                         subtitle: track.language == null
                             ? null
                             : Text(track.language!),
-                        trailing: _selectedSubtitleTrack == track.id
+                        trailing:
+                            _selectedRecognized == null &&
+                                _selectedSubtitleTrack == track.id
                             ? Icon(AppIcons.check)
                             : null,
                         onTap: () => Navigator.pop(context, track.id),
+                      ),
+                    if (recognized.isNotEmpty)
+                      ContentRow(
+                        key: const ValueKey('recognized-subtitles'),
+                        title: Text(
+                          l.recognizedSubtitles,
+                          style: ShadTheme.of(context).textTheme.muted,
+                        ),
+                      ),
+                    for (final s in recognized)
+                      ContentRow(
+                        key: ValueKey('recognized-${s.bindingId}'),
+                        title: Row(
+                          children: [
+                            ShadBadge.secondary(
+                              child: Text(l.recognizedSubtitleBadge),
+                            ),
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                l.recognizedSubtitleTitle(
+                                  s.created.toLocal().toString().substring(
+                                    0,
+                                    16,
+                                  ),
+                                ),
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                          ],
+                        ),
+                        subtitle: Text(_recognizedDetail(s)),
+                        trailing: _selectedRecognized == s.bindingId
+                            ? Icon(AppIcons.check)
+                            : null,
+                        onTap: () => Navigator.pop(context, s),
                       ),
                   ],
                 ],
@@ -529,14 +615,56 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       ),
     );
     _panelClosed();
-    if (id != null &&
-        _enabled &&
-        await _adjust(
-          () => id < 0
-              ? _backend.disableSubtitle()
-              : _backend.setSubtitleTrack(id),
-        )) {
-      if (mounted) setState(() => _selectedSubtitleTrack = id);
+    if (choice == null || !_enabled) return;
+    if (choice is RecognizedSubtitle) {
+      await _selectRecognized(choice);
+      return;
+    }
+    final id = choice as int;
+    if (await _adjust(
+      () => id < 0 ? _backend.disableSubtitle() : _backend.setSubtitleTrack(id),
+    )) {
+      if (mounted) {
+        setState(() {
+          _selectedSubtitleTrack = id;
+          _selectedRecognized = null;
+        });
+      }
+    }
+  }
+
+  /// Loads a saved recognised subtitle into the current playback (only on
+  /// the user's choice; nothing is loaded automatically).
+  Future<void> _selectRecognized(RecognizedSubtitle s) async {
+    final known = _recognizedTracks[s.bindingId];
+    final ref = _currentRef;
+    bool ok;
+    if (known != null) {
+      ok = await _adjust(() => _backend.setSubtitleTrack(known));
+    } else {
+      var before = <int>{};
+      ok = await _adjust(() async {
+        before = {for (final t in await _backend.getSubtitleTracks()) t.id};
+        await _backend.addExternalSubtitle(Uri.file(s.path));
+      });
+      // The player registers the file asynchronously; remember its track.
+      for (var i = 0; ok && i < 15 && mounted; i++) {
+        final added = (await _backend.getSubtitleTracks())
+            .where((t) => !before.contains(t.id))
+            .firstOrNull;
+        if (added != null) {
+          if (_currentRef == ref) _recognizedTracks[s.bindingId] = added.id;
+          break;
+        }
+        await Future<void>.delayed(const Duration(milliseconds: 100));
+      }
+    }
+    if (!mounted || _currentRef != ref) return;
+    if (ok) {
+      setState(() {
+        _selectedRecognized = s.bindingId;
+        _selectedSubtitleTrack = _recognizedTracks[s.bindingId];
+      });
     }
   }
 
@@ -556,22 +684,20 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _enterImmersive() {
     if (!_mobileDisplay) return;
     unawaited(
-      SystemChrome.setEnabledSystemUIMode(
-        SystemUiMode.immersiveSticky,
-      ).catchError((Object error) {
-        debugPrint('Could not enter immersive mode: $error');
-      }),
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.immersiveSticky)
+          .catchError((Object error) {
+            debugPrint('Could not enter immersive mode: $error');
+          }),
     );
   }
 
   void _exitImmersive() {
     if (!_mobileDisplay) return;
     unawaited(
-      SystemChrome.setEnabledSystemUIMode(
-        SystemUiMode.edgeToEdge,
-      ).catchError((Object error) {
-        debugPrint('Could not restore system UI: $error');
-      }),
+      SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge)
+          .catchError((Object error) {
+            debugPrint('Could not restore system UI: $error');
+          }),
     );
   }
 

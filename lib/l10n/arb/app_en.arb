@@ -731,9 +731,9 @@
   "asrSave": "Save subtitle",
   "asrExport": "Export…",
   "asrExported": "Exported.",
-  "asrSaved": "Saved as a new subtitle for this version.",
-  "asrSavedPartial": "Saved as a new partial subtitle for this version.",
-  "asrSaveHint": "Unsaved results are discarded when you leave. Saving never replaces existing subtitles or changes playback.",
+  "asrSaved": "Saved. Choose it in the player's subtitle list (marked “Recognised”).",
+  "asrSavedPartial": "Saved (partial range). Choose it in the player's subtitle list (marked “Recognised”).",
+  "asrSaveHint": "Unsaved results are discarded when you leave. Saving adds a new subtitle record; it never replaces existing subtitles or changes playback by itself.",
   "asrTaskId": "Task ID",
   "asrBackendLabel": "Backend",
   "asrModel": "Model",
@@ -789,5 +789,12 @@
   "asrInstallModel": "Install or choose a model",
   "asrRecheck": "Check again",
   "asrTranscribeBlocked": "Recognition unavailable: {reason}",
-  "@asrTranscribeBlocked": {"placeholders": {"reason": {"type": "String"}}}
+  "@asrTranscribeBlocked": {"placeholders": {"reason": {"type": "String"}}},
+  "recognizedSubtitles": "Recognised subtitles",
+  "recognizedSubtitleBadge": "Recognised",
+  "recognizedSubtitleTitle": "Saved {time}",
+  "@recognizedSubtitleTitle": {"placeholders": {"time": {"type": "String"}}},
+  "recognizedSubtitlePartial": "Partial {start}–{end}",
+  "@recognizedSubtitlePartial": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "recognizedSubtitleFull": "Whole episode"
 }

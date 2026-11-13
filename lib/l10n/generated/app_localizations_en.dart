@@ -1639,15 +1639,16 @@ class AppLocalizationsEn extends AppLocalizations {
   String get asrExported => 'Exported.';
 
   @override
-  String get asrSaved => 'Saved as a new subtitle for this version.';
+  String get asrSaved =>
+      'Saved. Choose it in the player\'s subtitle list (marked “Recognised”).';
 
   @override
   String get asrSavedPartial =>
-      'Saved as a new partial subtitle for this version.';
+      'Saved (partial range). Choose it in the player\'s subtitle list (marked “Recognised”).';
 
   @override
   String get asrSaveHint =>
-      'Unsaved results are discarded when you leave. Saving never replaces existing subtitles or changes playback.';
+      'Unsaved results are discarded when you leave. Saving adds a new subtitle record; it never replaces existing subtitles or changes playback by itself.';
 
   @override
   String get asrTaskId => 'Task ID';
@@ -1822,4 +1823,23 @@ class AppLocalizationsEn extends AppLocalizations {
   String asrTranscribeBlocked(String reason) {
     return 'Recognition unavailable: $reason';
   }
+
+  @override
+  String get recognizedSubtitles => 'Recognised subtitles';
+
+  @override
+  String get recognizedSubtitleBadge => 'Recognised';
+
+  @override
+  String recognizedSubtitleTitle(String time) {
+    return 'Saved $time';
+  }
+
+  @override
+  String recognizedSubtitlePartial(String start, String end) {
+    return 'Partial $start–$end';
+  }
+
+  @override
+  String get recognizedSubtitleFull => 'Whole episode';
 }

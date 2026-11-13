@@ -168,8 +168,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
   static String bytes(int n) {
     if (n < 1024) return '$n B';
     if (n < 1024 * 1024) return '${(n / 1024).toStringAsFixed(1)} KB';
-    if (n < 1024 * 1024 * 1024)
+    if (n < 1024 * 1024 * 1024) {
       return '${(n / 1024 / 1024).toStringAsFixed(1)} MB';
+    }
     return '${(n / 1024 / 1024 / 1024).toStringAsFixed(2)} GB';
   }
 

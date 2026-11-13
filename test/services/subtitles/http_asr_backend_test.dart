@@ -1,7 +1,6 @@
 // Part 1 runs against a local fake server. Part 2 needs a real
 // openplayx-asr (OPX_ASR_TEST_URL, OPX_ASR_TEST_TOKEN) plus the host FFmpeg
 // bridge; skipped otherwise.
-import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 

@@ -3054,19 +3054,19 @@ abstract class AppLocalizations {
   /// No description provided for @asrSaved.
   ///
   /// In en, this message translates to:
-  /// **'Saved as a new subtitle for this version.'**
+  /// **'Saved. Choose it in the player\'s subtitle list (marked “Recognised”).'**
   String get asrSaved;
 
   /// No description provided for @asrSavedPartial.
   ///
   /// In en, this message translates to:
-  /// **'Saved as a new partial subtitle for this version.'**
+  /// **'Saved (partial range). Choose it in the player\'s subtitle list (marked “Recognised”).'**
   String get asrSavedPartial;
 
   /// No description provided for @asrSaveHint.
   ///
   /// In en, this message translates to:
-  /// **'Unsaved results are discarded when you leave. Saving never replaces existing subtitles or changes playback.'**
+  /// **'Unsaved results are discarded when you leave. Saving adds a new subtitle record; it never replaces existing subtitles or changes playback by itself.'**
   String get asrSaveHint;
 
   /// No description provided for @asrTaskId.
@@ -3380,6 +3380,36 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Recognition unavailable: {reason}'**
   String asrTranscribeBlocked(String reason);
+
+  /// No description provided for @recognizedSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognised subtitles'**
+  String get recognizedSubtitles;
+
+  /// No description provided for @recognizedSubtitleBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognised'**
+  String get recognizedSubtitleBadge;
+
+  /// No description provided for @recognizedSubtitleTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved {time}'**
+  String recognizedSubtitleTitle(String time);
+
+  /// No description provided for @recognizedSubtitlePartial.
+  ///
+  /// In en, this message translates to:
+  /// **'Partial {start}–{end}'**
+  String recognizedSubtitlePartial(String start, String end);
+
+  /// No description provided for @recognizedSubtitleFull.
+  ///
+  /// In en, this message translates to:
+  /// **'Whole episode'**
+  String get recognizedSubtitleFull;
 }
 
 class _AppLocalizationsDelegate
