@@ -7,9 +7,9 @@ import 'task_wait.dart';
 import 'tool_registry.dart';
 
 /// `subtitle_generate` / `transcript_generate` (AI tool design) over the
-/// host subtitle workflow. The model picks a resource, a configured backend
-/// instance and an explicit range; it never sees `model.transcribe`, file
-/// paths, service URLs or tokens. Tasks return at once; results are unbound
+/// host subtitle workflow. The model picks a resource and an explicit range;
+/// the host picks the recognition backend (on-device or the user's service),
+/// which the model never sees, nor file paths, service URLs or tokens. Tasks return at once; results are unbound
 /// artifacts until `subtitle_save`.
 class SubtitleTools {
   SubtitleTools({
@@ -46,6 +46,24 @@ class SubtitleTools {
     instanceId: c.id,
     capability: 'speech.transcribe',
   );
+
+  /// The backend the host uses: the first available one, on-device first.
+  /// Returns (config, null) or (null, reason).
+  Future<(AsrBackendConfig?, String?)> _pickBackend() async {
+    final candidates = service.backends.list().where(_aiBackend).toList()
+      ..sort(
+        (a, b) =>
+            (a.kind == 'embedded' ? 0 : 1) - (b.kind == 'embedded' ? 0 : 1),
+      );
+    if (candidates.isEmpty) return (null, 'backend_not_configured');
+    String? reason;
+    for (final c in candidates) {
+      final s = await service.backends.backend(c.id).status();
+      if (s.available) return (c, null);
+      reason ??= s.reason;
+    }
+    return (null, reason ?? 'speech_recognition_unavailable');
+  }
 
   Future<Map<String, dynamic>> _guard(
     Future<Map<String, dynamic>> Function() action,
@@ -86,11 +104,11 @@ class SubtitleTools {
     final start = a['start_ms'] as int? ?? 0;
     final end = a['end_ms'] as int?;
     if (!whole && end == null) throw const ToolFailure('end_ms_required');
-    final backendId = a['backend_id'] as String? ?? 'embedded';
-    final config = service.backends.get(backendId);
-    if (config == null) throw const ToolFailure('backend_not_configured');
-    // Never silently switch to another backend or execution location.
-    if (!_aiBackend(config)) throw const ToolFailure('permissionDenied');
+    final (config, unavailable) = await _pickBackend();
+    if (config == null) {
+      throw ToolFailure(unavailable ?? 'speech_recognition_unavailable');
+    }
+    final backendId = config.id;
     String? trackRef;
     final index = media.trackIndex(a['audio_track_ref'], ref);
     if (index != null) {
@@ -122,36 +140,25 @@ class SubtitleTools {
 
   void _register() {
     _add(
-      'speech_recognition_backends',
-      'Configured speech recognition backends (on-device or the user\'s HTTP service): id, model, availability and whether uploads are authorised.',
+      'speech_recognition_status',
+      'Whether speech recognition can run now, and its limits.',
       {},
-      (_) async => {
-        'backends': [
-          for (final c in service.backends.list().where(_aiBackend))
-            await () async {
-              final s = await service.backends.backend(c.id).status();
-              return {
-                'backend_id': c.id,
-                'kind': c.kind,
-                'name': c.name,
-                'model_id': c.modelId,
-                'default_language': c.language,
-                'available': s.available,
-                'reason': ?s.reason,
-                if (c.uploads) 'upload_authorized': c.uploadConsentAt != null,
-              };
-            }(),
-        ],
-        'limits': {
-          'translation': false,
-          'timestamp_level': 'segment',
-          'language_format': 'ISO 639-1 (e.g. en, zh) or auto; not media track codes such as eng or zho',
-        },
+      (_) async {
+        final (config, reason) = await _pickBackend();
+        return {
+          'available': config != null,
+          'reason': ?reason,
+          'default_language': ?config?.language,
+          'limits': {
+            'translation': false,
+            'timestamp_level': 'segment',
+            'language_format': 'ISO 639-1 (e.g. en, zh) or auto; not media track codes such as eng or zho',
+          },
+        };
       },
     );
     final fields = {
       'resource_ref': const ToolField('string', required: true),
-      'backend_id': const ToolField('string', maxLength: 64),
       'language': const ToolField('string', maxLength: 8),
       'audio_track_ref': const ToolField('string', maxLength: 64),
       'start_ms': _ms,

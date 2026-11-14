@@ -2,7 +2,6 @@ import 'dart:async';
 
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:sqlite3/sqlite3.dart' as sql;
 
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_config.dart';
@@ -11,10 +10,11 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../services/library/library_service.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/media/content_row.dart';
-import '../../ui/components/swipe_reveal.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
 import 'file_source_browser_page.dart';
+import 'source_list_widgets.dart';
+import '../../ui/tokens/app_metrics.dart';
 
 Future<String?> _promptText(
   BuildContext context,
@@ -73,6 +73,7 @@ class FileSourceController extends ChangeNotifier {
   }
 
   Future<void> scan(List<String> bindings, String failedMessage) async {
+    if (scanning || bindings.isEmpty) return;
     scanning = true;
     error = null;
     _notify();
@@ -118,8 +119,7 @@ class FileSourceController extends ChangeNotifier {
             : scope.name,
       );
       if (name == null || !context.mounted) return;
-      final binding = service.bind(
-        service.defaultLibrary(),
+      final binding = service.addFileSource(
         connection,
         root: scope.ref.id.isEmpty ? null : scope.ref.id,
         name: name,
@@ -138,12 +138,12 @@ class FileSourceController extends ChangeNotifier {
       AppLocalizations.of(context).nameFileSource,
       initial: current,
     );
-    if (name != null) service.renameBinding(id, name);
+    if (name != null) service.renameFileSource(id, name);
   }
 
   Future<void> remove(BuildContext context, String id) async {
     final l = AppLocalizations.of(context);
-    final count = service.bindingImpact(id);
+    final count = service.fileSourceImpact(id);
     final confirmed = await showShadDialog<bool>(
       context: context,
       builder: (c) => ShadDialog(
@@ -161,7 +161,7 @@ class FileSourceController extends ChangeNotifier {
         child: Text(l.removeBindingDescription(count)),
       ),
     );
-    if (confirmed == true) service.removeBinding(id);
+    if (confirmed == true) service.removeFileSource(id);
   }
 }
 
@@ -173,7 +173,7 @@ class FileSourceRow extends StatelessWidget {
     required this.controller,
     this.connection,
   });
-  final sql.Row binding;
+  final Map<String, Object?> binding;
   final FileSourceController controller;
   final SourceConfig? connection;
 
@@ -201,84 +201,118 @@ class FileSourceRow extends StatelessWidget {
         ? '${binding['status']}${scanning ? ' · ${l.scanFoundMedia(service.scannedMediaCount(id))}' : scrapeStatus}'
         : l.fileSourceDisabled;
     final root = binding['root'] as String? ?? '';
-    // Swiping left reveals edit, rescan and delete (delete is confirmed).
-    final actions = [
-      SwipeAction(
-        key: ValueKey('file-source-edit-$id'),
-        label: l.edit,
-        onPressed: () => controller.rename(context, id, title),
-      ),
-      SwipeAction(
-        key: ValueKey('file-source-rescan-$id'),
-        label: l.refresh,
-        onPressed: enabled
-            ? () => controller.scan([id], l.scanFailedRetained)
-            : null,
-      ),
-      SwipeAction(
-        key: ValueKey('file-source-delete-$id'),
-        label: l.delete,
-        destructive: true,
-        onPressed: () => controller.remove(context, id),
-      ),
-    ];
-    return SwipeReveal(
-      key: ValueKey('file-source-$id'),
-      enabled: !busy,
-      actionWidth: SwipeActionBar.width * actions.length + 4,
-      trailingInset: AppSpacing.md,
-      action: (close) => SwipeActionBar(actions: actions, close: close),
-      child: ContentRow(
-        dense: true,
-        leading: Icon(AppIcons.folder),
-        title: Text(title),
-        // Tapping a file source browses its folders.
-        onTap: !enabled || connection == null || !connection!.enabled
-            ? null
-            : () => Navigator.of(context).push<void>(
-                MaterialPageRoute(
-                  builder: (_) => FileSourceBrowserPage(
-                    manager: controller.sources,
-                    sourceId: connection!.id,
-                    title: title,
-                    root: root.isEmpty
-                        ? null
-                        : ResourceRef(connection!.id, root),
-                    onPlay: controller.onPlay,
-                  ),
-                ),
-              ),
-        subtitle: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(
-              '$status${binding['error'] == null ? '' : ' · ${binding['error']}'}',
-              key: ValueKey('file-source-status-$id'),
-            ),
-            if (scraping)
-              Padding(
-                padding: const EdgeInsets.only(top: 4),
-                child: SizedBox(
-                  width: 160,
-                  child: LinearProgressIndicator(
-                    value: scrape.done / scrape.total,
-                    minHeight: 4,
-                    borderRadius: BorderRadius.circular(2),
-                  ),
-                ),
-              ),
-          ],
-        ),
-        trailing: Tooltip(
-          message: enabled ? l.fileSourceDisable : l.fileSourceEnable,
-          child: ShadSwitch(
-            value: enabled,
-            onChanged: busy
-                ? null
-                : (value) => service.setBindingEnabled(id, value),
+    final canBrowse = enabled && connection != null && connection!.enabled;
+    final canScan = canBrowse && !busy;
+    void browse() {
+      Navigator.of(context).push<void>(
+        MaterialPageRoute(
+          builder: (_) => FileSourceBrowserPage(
+            manager: controller.sources,
+            sourceId: connection!.id,
+            title: title,
+            root: root.isEmpty ? null : ResourceRef(connection!.id, root),
+            onPlay: controller.onPlay,
           ),
         ),
+      );
+    }
+
+    final theme = ShadTheme.of(context);
+    return SourceListRow(
+      key: ValueKey('file-source-$id'),
+      title: title,
+      leading: Icon(
+        AppIcons.folder,
+        size: 20,
+        color: theme.colorScheme.mutedForeground,
+      ),
+      onTap: canBrowse ? browse : null,
+      subtitle: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            root.isEmpty ? l.sourceRootFolder : root,
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: AppSpacing.xs),
+          Text(
+            '$status${binding['error'] == null ? '' : ' · ${binding['error']}'}',
+            key: ValueKey('file-source-status-$id'),
+            style: binding['error'] == null
+                ? null
+                : TextStyle(color: theme.colorScheme.destructive),
+          ),
+          if (scanning || scraping)
+            Padding(
+              padding: const EdgeInsets.only(top: AppSpacing.sm),
+              child: LinearProgressIndicator(
+                value: scanning ? null : scrape.done / scrape.total,
+                minHeight: 2,
+                borderRadius: BorderRadius.circular(2),
+              ),
+            ),
+        ],
+      ),
+      actions: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Tooltip(
+            message: l.rescanFileSource,
+            child: ShadIconButton.ghost(
+              key: ValueKey('file-source-scan-$id'),
+              width: AppMetrics.touchTarget,
+              height: AppMetrics.touchTarget,
+              padding: const EdgeInsets.all(AppSpacing.md),
+              icon: const Icon(AppIcons.refresh, size: 18),
+              enabled: canScan,
+              onPressed: canScan
+                  ? () => controller.scan([id], l.scanFailedRetained)
+                  : null,
+            ),
+          ),
+          SourceActionsMenu(
+            key: ValueKey('file-source-menu-$id'),
+            label: title,
+            enabled: !busy,
+            actions: [
+              SourceRowAction(
+                key: ValueKey('file-source-browse-$id'),
+                label: l.browseSourceFiles,
+                icon: AppIcons.openFolder,
+                onPressed: canBrowse ? browse : null,
+              ),
+              SourceRowAction(
+                key: ValueKey('file-source-edit-$id'),
+                label: l.edit,
+                icon: AppIcons.edit,
+                onPressed: () => controller.rename(context, id, title),
+              ),
+              SourceRowAction(
+                key: ValueKey('file-source-rescan-$id'),
+                label: l.rescanFileSource,
+                icon: AppIcons.refresh,
+                onPressed: canScan
+                    ? () => controller.scan([id], l.scanFailedRetained)
+                    : null,
+              ),
+              SourceRowAction(
+                key: ValueKey('file-source-toggle-$id'),
+                label: enabled ? l.fileSourceDisable : l.fileSourceEnable,
+                icon: enabled ? AppIcons.pause : AppIcons.play,
+                onPressed: () => service.setFileSourceEnabled(id, !enabled),
+              ),
+              SourceRowAction(
+                key: ValueKey('file-source-delete-$id'),
+                label: l.remove,
+                icon: AppIcons.delete,
+                destructive: true,
+                onPressed: () => controller.remove(context, id),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -333,6 +367,7 @@ class _ScopePageState extends State<_ScopePage> {
 
   @override
   Widget build(BuildContext context) => AppPage(
+    pageContext: const PageContextData(pageType: 'scan_scope_picker'),
     body: Column(
       children: [
         Padding(padding: EdgeInsets.all(16), child: Text(l.scopeDescription)),

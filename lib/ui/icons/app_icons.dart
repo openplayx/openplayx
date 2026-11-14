@@ -15,6 +15,7 @@ abstract final class AppIcons {
   static const library = LucideIcons.libraryBig;
   static const folder = LucideIcons.folder;
   static const settings = LucideIcons.settings;
+  static const plugins = LucideIcons.brainCircuit;
   static const next = LucideIcons.chevronRight;
   static const expand = LucideIcons.chevronDown;
   static const collapse = LucideIcons.chevronUp;
@@ -38,6 +39,7 @@ abstract final class AppIcons {
   static const search = LucideIcons.search;
   static const collection = LucideIcons.libraryBig;
   static const back = LucideIcons.arrowLeft;
+  static const close = LucideIcons.x;
   static const audio = LucideIcons.audioLines;
   static const brightness = LucideIcons.sun;
   static const check = LucideIcons.check;
@@ -62,6 +64,8 @@ abstract final class AppIcons {
   static const error = LucideIcons.circleAlert;
   static const loading = LucideIcons.loaderCircle;
   static const success = LucideIcons.circleCheck;
+  static const failed = LucideIcons.x;
+  static const tool = LucideIcons.wrench;
   static const language = LucideIcons.languages;
   static const theme = LucideIcons.palette;
   static const captions = LucideIcons.captions;

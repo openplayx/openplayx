@@ -12,5 +12,9 @@
 	<true/>
 	<key>com.apple.security.app-sandbox</key>
 	<true/>
+	<key>keychain-access-groups</key>
+	<array>
+		<string>$(AppIdentifierPrefix)com.openplayx.openplayx</string>
+	</array>
 </dict>
 </plist>

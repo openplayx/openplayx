@@ -1,6 +1,8 @@
 # Miscellaneous
 # Local credentials
 .env
+# Debug configuration seed with real addresses (docs/debug_seed.md)
+/debug-seed.json
 
 *.class
 *.log

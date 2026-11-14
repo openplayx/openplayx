@@ -48,6 +48,14 @@ flutter test integration_test/playback_test.dart -d macos
 
 ## 真实 AI 电影处理流程
 
+手机端的 `mobile_ai_playback_test.dart` 使用脚本模型、内存媒体库和随应用打包的本地视频，通过真实 `playback_open` 工具验证聊天页退出、播放器可见、键盘收起及原生视频进度推进，不调用模型 API 或 SMB：
+
+```sh
+flutter test integration_test/mobile_ai_playback_test.dart -d <手机设备ID>
+```
+
+对应的 `test/ai/mobile_playback_navigation_test.dart` 覆盖 Android/iOS 手机布局，并检查退出聊天页不会取消后续工具调用。
+
 `assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交 SMB 电影截取、存回共享、本地识别字幕、保存、播放并选择字幕的原始提问。使用应用当前保存的模型、凭据、SMB 源、插件权限和本地识别模型，不模拟模型或工具。默认跳过；必须显式开启：
 
 ```sh

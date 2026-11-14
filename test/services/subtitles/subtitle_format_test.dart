@@ -28,7 +28,10 @@ void main() {
           ]),
         ]),
       );
-      expect(merged.map((s) => s.text), ['Crossing the boundary.', 'Next line.']);
+      expect(merged.map((s) => s.text), [
+        'Crossing the boundary.',
+        'Next line.',
+      ]);
       expect(merged.first.startMs, 28000);
     });
 
@@ -36,7 +39,9 @@ void main() {
       final merged = mergeWindows(
         raw([
           const RawWindow(0, 31000, [RawSegment(30200, 31000, 'Tail')]),
-          const RawWindow(30000, 31000, [RawSegment(30200, 31500, 'Tail line')]),
+          const RawWindow(30000, 31000, [
+            RawSegment(30200, 31500, 'Tail line'),
+          ]),
         ]),
       );
       expect(merged.single.text, 'Tail line');
@@ -103,7 +108,8 @@ void main() {
       throwsFormatException,
     );
     expect(
-      () => validateSegments(const [TranscriptSegment(0, 500, 'a')], minMs: 1000),
+      () =>
+          validateSegments(const [TranscriptSegment(0, 500, 'a')], minMs: 1000),
       throwsFormatException,
     );
   });
@@ -141,7 +147,10 @@ void main() {
       '2\n01:02:03,004 --> 01:02:04,000\na --> b\n\n',
     );
     final vtt = toVtt(cues, note: 'partial');
-    expect(vtt, startsWith('WEBVTT\n\nNOTE partial\n\n00:10:01.200 --> 00:10:04.800\n'));
+    expect(
+      vtt,
+      startsWith('WEBVTT\n\nNOTE partial\n\n00:10:01.200 --> 00:10:04.800\n'),
+    );
     expect(vtt, contains('a → b'));
     expect(() => toSrt(const [SubtitleCue(5, 1, 'x')]), throwsFormatException);
   });

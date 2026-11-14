@@ -1,30 +1,29 @@
 import 'package:flutter/widgets.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/library/library_service.dart';
 import '../../services/metadata/tmdb_credentials.dart';
+import '../../ui/components/forms/form_actions.dart';
+import '../../ui/components/forms/secret_input.dart';
+import '../../ui/components/forms/settings_text_input.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
 
 /// Settings entry for the TMDB read access token and metadata language.
 ///
-/// The token lives only in secure storage. Bumping `tmdbRevision` makes the
+/// The token is the `metadata / tmdbToken` setting. Bumping `tmdbRevision` makes the
 /// background metadata runtime rebuild its TMDB plugin and retry blocked items.
 class TmdbSettingsSection extends StatefulWidget {
-  const TmdbSettingsSection({
-    super.key,
-    required this.library,
-    this.credentials = tmdbCredentialStorage,
-  });
+  const TmdbSettingsSection({super.key, required this.library});
   final LibraryService library;
-  final FlutterSecureStorage credentials;
+
   @override
   State<TmdbSettingsSection> createState() => _TmdbSettingsSectionState();
 }
 
 class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
+  String get _token => widget.library.metadata.setting(tmdbTokenKey).trim();
   bool? _configured;
   bool _busy = false;
   bool _failed = false;
@@ -38,11 +37,7 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
   Future<void> _load() async {
     bool configured;
     try {
-      configured =
-          (await widget.credentials.read(key: tmdbTokenKey))
-              ?.trim()
-              .isNotEmpty ==
-          true;
+      configured = _token.isNotEmpty;
     } catch (_) {
       configured = false;
     }
@@ -56,28 +51,23 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
 
   Future<void> _configure() async {
     final l = AppLocalizations.of(context);
-    var token = '';
-    var language = widget.library.metadata.setting(
-      'language',
-      fallback: 'zh-CN',
+    final token = SecretController()
+      ..loadStored(() async => _token.isEmpty ? null : _token);
+    // Unset: blank field, the default zh-CN shown as the hint.
+    final language = DefaultTextController(
+      text: widget.library.metadata.setting('language'),
+      defaultValue: 'zh-CN',
     );
     final configured = _configured == true;
-    final tokenInput = ShadInput(
+    final tokenInput = SecretInput(
       key: const ValueKey('tmdb-token'),
-      obscureText: true,
-      autocorrect: false,
-      enableSuggestions: false,
+      controller: token,
       // The row title already names the field; only hint at a kept token.
-      placeholder: configured ? Text(l.metadataTokenStatusSaved) : null,
-      onChanged: (v) => token = v,
+      placeholder: configured ? l.metadataTokenStatusSaved : null,
     );
-    final languageInput = ShadInput(
+    final languageInput = SettingsTextInput(
       key: const ValueKey('tmdb-language'),
-      initialValue: language,
-      autocorrect: false,
-      enableSuggestions: false,
-      placeholder: Text(l.metadataLanguage),
-      onChanged: (v) => language = v,
+      controller: language,
     );
     // Phones: a full-screen page with Save in the header; true saves,
     // false forgets the token, null is back.
@@ -86,10 +76,10 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
             context,
             title: l.metadataConfigure,
             trailing: (c) => [
-              ShadButton.ghost(
+              PageSubmitButton(
                 key: const ValueKey('tmdb-save'),
+                label: l.save,
                 onPressed: () => Navigator.pop(c, true),
-                child: Text(l.save),
               ),
             ],
             children: (c) => [
@@ -158,24 +148,27 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
               ),
             ),
           );
+    final trimmed = token.edited;
+    final languageCode = language.resolved;
+    token.dispose();
+    language.dispose();
     if (!mounted || saved == null) return;
     if (!saved) return _forget();
     await _run(() async {
-      if (!RegExp(r'^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$').hasMatch(language)) {
+      if (!RegExp(r'^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$').hasMatch(languageCode)) {
         throw const FormatException('language');
       }
-      final trimmed = token.trim();
       if (trimmed.isNotEmpty) {
-        await widget.credentials.write(key: tmdbTokenKey, value: trimmed);
+        widget.library.metadata.setSetting(tmdbTokenKey, trimmed);
       }
-      widget.library.metadata.setSetting('language', language);
+      widget.library.metadata.setSetting('language', languageCode);
       if (trimmed.isNotEmpty) _bump();
       if (mounted && trimmed.isNotEmpty) setState(() => _configured = true);
     });
   }
 
   Future<void> _forget() => _run(() async {
-    await widget.credentials.delete(key: tmdbTokenKey);
+    widget.library.metadata.setSetting(tmdbTokenKey, '');
     _bump();
     if (mounted) setState(() => _configured = false);
   });

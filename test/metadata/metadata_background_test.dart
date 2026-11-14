@@ -106,7 +106,7 @@ void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   late LibraryService library;
   late OfflineSources sources;
-  late String lib, media;
+  late String media;
   late TestMetadataProvider provider;
   late TestArtwork artwork;
   MetadataQueueRunner runner() => MetadataQueueRunner(
@@ -123,7 +123,6 @@ void main() {
     sources = OfflineSources();
     provider = TestMetadataProvider();
     artwork = TestArtwork(sources);
-    lib = library.create('Films', type: 'movie');
     media = library.register(
       const SourceEntry(
         ResourceRef('@local', '/Film.2014.mkv'),
@@ -144,7 +143,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(lib, item);
+      library.addManual(item);
       final worker = MetadataQueueRunner(
         library,
         remote,
@@ -169,19 +168,19 @@ void main() {
   test('direct open never enqueues; every library membership persists pending work', () {
     final queue = MetadataQueue(library.db);
     expect(queue.item(media), isNull);
-    library.addManual(lib, media);
+    library.addManual(media);
     expect(queue.item(media)!['state'], 'queued');
-    library.addManual(lib, media);
+    library.addManual(media);
     expect(library.db.select('SELECT * FROM metadata_queue'), hasLength(1));
   });
   test('unique exact match automatically updates title, association and image cache', () async {
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = runner();
     try {
       await worker.reconcile();
       await worker.runBatch();
       expect(worker.queue.item(media)!['state'], 'completed');
-      expect(library.query(lib).single['title'], '已识别影片');
+      expect(library.query().single['title'], '已识别影片');
       expect(library.metadata.association(media)!.id, '1');
       expect(library.metadata.confirmed(media), isFalse);
       expect(library.metadata.selectedArtwork(media)!.id, 'poster');
@@ -196,7 +195,7 @@ void main() {
   });
   test('multiple exact candidates await selection instead of adopting the first result', () async {
     provider.remake = true;
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -211,7 +210,7 @@ void main() {
   });
   test('manual confirmation clears a waiting badge and completes the selected artwork', () async {
     provider.remake = true;
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = runner();
     final manual = MetadataService(
       library,
@@ -239,7 +238,7 @@ void main() {
     'system stop releases work and prevents a late response from applying',
     () async {
       provider.pending = Completer<MetadataResult>();
-      library.addManual(lib, media);
+      library.addManual(media);
       final worker = runner();
       try {
         await worker.reconcile();
@@ -288,7 +287,7 @@ void main() {
     );
   });
   test('no configured provider waits for configuration without retrying authentication forever', () async {
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = MetadataQueueRunner(
       library,
       sources,
@@ -320,7 +319,7 @@ void main() {
       'offline',
       retryable: true,
     );
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -340,7 +339,7 @@ void main() {
     'user editing while search runs invalidates the background result',
     () async {
       provider.pending = Completer<MetadataResult>();
-      library.addManual(lib, media);
+      library.addManual(media);
       final worker = runner();
       try {
         await worker.reconcile();
@@ -359,13 +358,13 @@ void main() {
   );
   test('removing media during a query prevents the result from being applied or retried', () async {
     provider.pending = Completer<MetadataResult>();
-    library.addManual(lib, media);
+    library.addManual(media);
     final worker = runner();
     try {
       await worker.reconcile();
       final task = worker.runBatch();
       await Future<void>.delayed(Duration.zero);
-      library.remove(lib, media);
+      library.hide(media);
       provider.pending!.complete(MetadataResult([provider.movie('1')]));
       await task;
       expect(library.metadata.association(media), isNull);
@@ -392,7 +391,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(lib, item);
+      library.addManual(item);
       var credentialReads = 0;
       final worker = MetadataQueueRunner(
         library,
@@ -417,7 +416,7 @@ void main() {
     },
   );
   test('native runtime schedules persistent workers without depending on a library page', () async {
-    library.addManual(lib, media);
+    library.addManual(media);
     final scheduler = TestScheduler(true);
     final runtime = MetadataRuntime(
       library,
@@ -436,7 +435,7 @@ void main() {
     }
   });
   test('foreground host uses the same automatic pipeline when native scheduling is unavailable', () async {
-    library.addManual(lib, media);
+    library.addManual(media);
     final runtime = MetadataRuntime(
       library,
       sources,

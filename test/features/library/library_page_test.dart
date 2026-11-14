@@ -94,7 +94,6 @@ void main() {
   testWidgets(
     'background publication updates the visible title and cover without navigation',
     (tester) async {
-      final collection = service.create('Movies', type: 'movie');
       final media = service.register(
         const SourceEntry(
           ResourceRef('s', '/raw.mkv'),
@@ -102,7 +101,7 @@ void main() {
           isFolder: false,
         ),
       );
-      service.addManual(collection, media);
+      service.addManual(media);
       await tester.pumpWidget(
         TestApp(
           home: LibraryPage(sources: Sources(), service: service),
@@ -149,21 +148,17 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('还没有文件源。请在「来源」中为连接添加文件夹'), findsOneWidget);
-      final binding = service.bind(
-        service.defaultLibrary(),
-        's',
-        name: 'Movies',
-      );
+      final binding = service.addFileSource('s', name: 'Movies');
       await service.scan(binding, Sources());
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsOneWidget);
       // Disabling a file source hides its media; enabling brings it back.
-      service.setBindingEnabled(binding, false);
+      service.setFileSourceEnabled(binding, false);
       // Change notifications are throttled for 300 ms after a scan.
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
       expect(find.text('Film.mp4'), findsNothing);
-      service.setBindingEnabled(binding, true);
+      service.setFileSourceEnabled(binding, true);
       // Change notifications are throttled for 300 ms after a scan.
       await tester.pump(const Duration(milliseconds: 400));
       await tester.pumpAndSettle();
@@ -197,14 +192,13 @@ void main() {
   testWidgets('library, history and bindings fit narrow and short layouts', (
     tester,
   ) async {
-    final library = service.create('Movies');
     const entry = SourceEntry(
       ResourceRef('s', '/film.mp4'),
       'Film.mp4',
       isFolder: false,
     );
     final media = service.register(entry);
-    service.addManual(library, media);
+    service.addManual(media);
     final resource = service.resources(media).single['id'] as String;
     service.saveProgress(
       resource,
@@ -213,7 +207,7 @@ void main() {
       const Duration(minutes: 10),
     );
     for (var i = 0; i < 5; i++) {
-      service.bind(library, 's');
+      service.addFileSource('s');
     }
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
@@ -235,7 +229,7 @@ void main() {
     tester,
   ) async {
     final sources = SeriesSources();
-    final binding = service.bind(service.defaultLibrary(), 's', name: 'TV');
+    final binding = service.addFileSource('s', name: 'TV');
     await service.scan(binding, sources);
     await tester.pumpWidget(
       TestApp(
@@ -249,10 +243,7 @@ void main() {
     expect(find.textContaining('Pilot'), findsOneWidget);
     expect(find.text('播放'), findsOneWidget);
     final show =
-        service
-                .query(service.defaultLibrary())
-                .firstWhere((m) => m['title'] == 'Show')['id']
-            as String;
+        service.query().firstWhere((m) => m['title'] == 'Show')['id'] as String;
     // Favourite and watched toggles write through to the library.
     await tester.tap(find.byTooltip('收藏'));
     await tester.pumpAndSettle();
@@ -274,7 +265,7 @@ void main() {
       tester,
     ) async {
       final sources = SeriesSources();
-      final binding = service.bind(service.defaultLibrary(), 's', name: 'TV');
+      final binding = service.addFileSource('s', name: 'TV');
       await service.scan(binding, sources);
       final appearance = AppThemeController(
         initialLanguage: 'zh-Hans',

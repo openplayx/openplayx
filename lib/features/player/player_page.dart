@@ -13,6 +13,7 @@ import '../../l10n/generated/app_localizations.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../app/theme/app_theme.dart';
+import '../../app/theme/system_ui.dart';
 import '../../ui/tokens/app_semantic_colors.dart';
 import '../../ui/tokens/app_motion.dart';
 import '../../ui/components/media/playback_progress.dart';
@@ -28,6 +29,7 @@ import '../../data/sources/source_manager.dart';
 import '../../services/library/library_service.dart';
 import '../../services/subtitles/recognized_subtitles.dart';
 import '../../data/sources/source_config.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 class PlayerPage extends StatefulWidget {
   const PlayerPage({
@@ -39,8 +41,14 @@ class PlayerPage extends StatefulWidget {
     this.pickMedia = pickLocalMedia,
     this.sourceManager,
     this.libraryService,
+    this.active = true,
   });
   final VoidCallback? onExit;
+
+  /// Whether the player is on screen. The app shell keeps the player mounted
+  /// (offstage) while the user browses, so phone immersive mode follows this
+  /// flag rather than the widget's lifetime.
+  final bool active;
   final VoidCallback? onFileSelected;
 
   /// False in a dedicated player window, which is closed with its own
@@ -113,9 +121,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _resource = null;
       _session = null;
       if (mounted) {
-        ShadToaster.of(
-          context,
-        ).show(ShadToast.destructive(description: Text(l.historySaveFailed)));
+        showAppToast(context, l.historySaveFailed, kind: FeedbackKind.error);
       }
     }
   }
@@ -169,9 +175,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _openingLibrary = null;
       // A storage error must not prevent direct playback.
       if (mounted) {
-        ShadToaster.of(
-          context,
-        ).show(ShadToast.destructive(description: Text(l.historySaveFailed)));
+        showAppToast(context, l.historySaveFailed, kind: FeedbackKind.error);
       }
     }
   }
@@ -398,8 +402,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     } catch (error, stack) {
       debugPrint('Player adjustment failed: $error\n$stack');
       if (mounted) {
-        ShadToaster.of(context)
-            .show(ShadToast.destructive(description: Text(l.adjustFailed)));
+        showAppToast(context, l.adjustFailed, kind: FeedbackKind.error);
       }
       return false;
     }
@@ -713,7 +716,14 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     _library = widget.libraryService;
     _backend.addListener(_onPlayback);
     WidgetsBinding.instance.addObserver(this);
-    _enterImmersive();
+    if (widget.active) _enterImmersive();
+  }
+
+  @override
+  void didUpdateWidget(PlayerPage oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (widget.active == oldWidget.active) return;
+    widget.active ? _enterImmersive() : _exitImmersive();
   }
 
   /// Hides the status and navigation bars on phones so the video gets the
@@ -794,7 +804,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     if (_background) _checkpoint(force: true);
     if (_background && _name != null) unawaited(_command(_backend.pause));
     // The OS may restore the bars while the app is away.
-    if (state == AppLifecycleState.resumed) _enterImmersive();
+    if (state == AppLifecycleState.resumed && widget.active) _enterImmersive();
   }
 
   Future<void> _command(Future<void> Function() action) async {
@@ -986,9 +996,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       return true;
     } catch (_) {
       if (mounted) {
-        ShadToaster.of(
-          context,
-        ).show(ShadToast.destructive(description: Text(l.stopPlaybackFailed)));
+        showAppToast(context, l.stopPlaybackFailed, kind: FeedbackKind.error);
       }
       return false;
     } finally {
@@ -1059,7 +1067,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
-    _exitImmersive();
+    if (widget.active) _exitImmersive();
     unawaited(
       _orientationSession.restore().catchError((Object error) {
         debugPrint('Could not restore screen orientation: $error');
@@ -1396,6 +1404,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           },
   );
 
+  /// System insets (status bar, camera cutout, home indicator) the controls
+  /// keep clear of. Read from the page context, above the player's own
+  /// padding removal, so the video itself can run edge to edge.
+  EdgeInsets get _insets => MediaQuery.paddingOf(context);
+
   Widget _bottomControls(PlayerSnapshot value) {
     final duration = value.duration.inMilliseconds.toDouble();
     final position = (_drag ?? value.position.inMilliseconds.toDouble()).clamp(
@@ -1413,7 +1426,12 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       ),
       child: Padding(
         key: Key('player-control-bar'),
-        padding: EdgeInsets.fromLTRB(12, 8, 12, 4),
+        padding: const EdgeInsets.fromLTRB(
+          12,
+          8,
+          12,
+          4,
+        ).add(_insets.copyWith(top: 0)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -1520,227 +1538,243 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => ShadTheme(
-    data: AppTheme.dark,
-    child: Focus(
-      focusNode: _playerFocus,
-      autofocus: true,
-      onKeyEvent: _handlePlayerKey,
-      child: Scaffold(
-        backgroundColor: AppSemanticColors.playerSurface,
-        body: SafeArea(
-          child: MouseRegion(
-            onHover: (_) => _showControls(),
-            child: Listener(
-              onPointerDown: (_) {
-                _playerFocus.requestFocus();
-                _pointerDown = true;
-                _hideTimer?.cancel();
-              },
-              onPointerUp: (_) {
-                _pointerDown = false;
-                _endBoost();
-                _scheduleHide();
-              },
-              onPointerCancel: (_) {
-                _pointerDown = false;
-                _endBoost();
-                _scheduleHide();
-              },
-              child: Stack(
-                fit: StackFit.expand,
-                children: [
-                  GestureDetector(
-                    key: Key('video-gestures'),
-                    behavior: HitTestBehavior.opaque,
-                    onTap: _locked
-                        ? null
-                        : () {
-                            if (_controlsVisible &&
-                                _name != null &&
-                                _error == null) {
-                              _hideTimer?.cancel();
-                              setState(() => _controlsVisible = false);
-                            } else {
-                              _showControls();
-                            }
-                          },
-                    onLongPressStart: _locked ? null : (_) => _startBoost(),
-                    onLongPressEnd: (_) => _endBoost(),
-                    onLongPressCancel: _endBoost,
-                    child: Stack(
-                      fit: StackFit.expand,
-                      children: [
-                        IgnorePointer(
-                          child: RotatedBox(
-                            key: const Key('video-rotation'),
-                            quarterTurns: _videoQuarterTurns,
-                            child: PlayerVideoView(backend: _backend),
+  Widget build(BuildContext context) => AnnotatedRegion<SystemUiOverlayStyle>(
+    // The player is always dark, so bars revealed by an edge swipe need
+    // light icons whatever the app theme is.
+    value: appSystemUiStyle(Brightness.dark),
+    child: ShadTheme(
+      data: AppTheme.dark,
+      child: Focus(
+        focusNode: _playerFocus,
+        autofocus: true,
+        onKeyEvent: _handlePlayerKey,
+        child: Scaffold(
+          backgroundColor: AppSemanticColors.playerSurface,
+          // The video fills the whole screen, camera cutout included; the
+          // controls add the system insets themselves (see [_insets]).
+          body: MediaQuery.removePadding(
+            context: context,
+            removeTop: true,
+            removeBottom: true,
+            removeLeft: true,
+            removeRight: true,
+            child: MouseRegion(
+              onHover: (_) => _showControls(),
+              child: Listener(
+                onPointerDown: (_) {
+                  _playerFocus.requestFocus();
+                  _pointerDown = true;
+                  _hideTimer?.cancel();
+                },
+                onPointerUp: (_) {
+                  _pointerDown = false;
+                  _endBoost();
+                  _scheduleHide();
+                },
+                onPointerCancel: (_) {
+                  _pointerDown = false;
+                  _endBoost();
+                  _scheduleHide();
+                },
+                child: Stack(
+                  fit: StackFit.expand,
+                  children: [
+                    GestureDetector(
+                      key: Key('video-gestures'),
+                      behavior: HitTestBehavior.opaque,
+                      onTap: _locked
+                          ? null
+                          : () {
+                              if (_controlsVisible &&
+                                  _name != null &&
+                                  _error == null) {
+                                _hideTimer?.cancel();
+                                setState(() => _controlsVisible = false);
+                              } else {
+                                _showControls();
+                              }
+                            },
+                      onLongPressStart: _locked ? null : (_) => _startBoost(),
+                      onLongPressEnd: (_) => _endBoost(),
+                      onLongPressCancel: _endBoost,
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          IgnorePointer(
+                            child: RotatedBox(
+                              key: const Key('video-rotation'),
+                              quarterTurns: _videoQuarterTurns,
+                              child: PlayerVideoView(backend: _backend),
+                            ),
                           ),
-                        ),
-                        IgnorePointer(
-                          child: ColoredBox(
-                            key: Key('video-dimming'),
-                            color: AppSemanticColors.playerSurface.withValues(
-                              alpha: (1 - _brightness) * 0.85,
+                          IgnorePointer(
+                            child: ColoredBox(
+                              key: Key('video-dimming'),
+                              color: AppSemanticColors.playerSurface.withValues(
+                                alpha: (1 - _brightness) * 0.85,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    if (_name == null)
+                      IgnorePointer(
+                        child: Center(
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Icon(
+                                  AppIcons.playMedia,
+                                  size: 56,
+                                  color: AppSemanticColors.playerMuted,
+                                ),
+                                SizedBox(height: 12),
+                                Text(
+                                  l.playerEmpty,
+                                  style: AppTheme.dark.textTheme.large.copyWith(
+                                    color: AppSemanticColors.playerMuted,
+                                  ),
+                                ),
+                              ],
                             ),
                           ),
                         ),
-                      ],
-                    ),
-                  ),
-                  if (_name == null)
-                    IgnorePointer(
-                      child: Center(
-                        child: FittedBox(
-                          fit: BoxFit.scaleDown,
-                          child: Column(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Icon(
-                                AppIcons.playMedia,
-                                size: 56,
-                                color: AppSemanticColors.playerMuted,
-                              ),
-                              SizedBox(height: 12),
-                              Text(
-                                l.playerEmpty,
-                                style: AppTheme.dark.textTheme.large.copyWith(
-                                  color: AppSemanticColors.playerMuted,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
                       ),
-                    ),
-                  if (!_locked)
-                    Positioned(
-                      top: 0,
-                      left: 0,
-                      right: 0,
-                      child: _chrome(
-                        Builder(
-                          builder: (context) {
-                            // Align with the native traffic lights (centred ~14pt
-                            // from the top) and start after them (~80pt wide).
-                            final windowButtons = _reservesWindowButtons(
-                              context,
-                            );
-                            return Container(
-                              padding: windowButtons
-                                  ? const EdgeInsets.only(
-                                      left: 80,
-                                      right: 12,
-                                      bottom: 16,
-                                    )
-                                  : const EdgeInsets.symmetric(
-                                      horizontal: 12,
-                                      vertical: 4,
+                    if (!_locked)
+                      Positioned(
+                        top: 0,
+                        left: 0,
+                        right: 0,
+                        child: _chrome(
+                          Builder(
+                            builder: (context) {
+                              // Align with the native traffic lights (centred ~14pt
+                              // from the top) and start after them (~80pt wide).
+                              final windowButtons = _reservesWindowButtons(
+                                context,
+                              );
+                              return Container(
+                                padding:
+                                    (windowButtons
+                                            ? const EdgeInsets.only(
+                                                left: 80,
+                                                right: 12,
+                                                bottom: 16,
+                                              )
+                                            : const EdgeInsets.symmetric(
+                                                horizontal: 12,
+                                                vertical: 4,
+                                              ))
+                                        .add(_insets.copyWith(bottom: 0)),
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.topCenter,
+                                    end: Alignment.bottomCenter,
+                                    colors: [
+                                      AppSemanticColors.playerScrim,
+                                      Colors.transparent,
+                                    ],
+                                  ),
+                                ),
+                                child: Row(
+                                  children: [
+                                    if (widget.showBack) ...[
+                                      _icon(
+                                        l.back,
+                                        AppIcons.back,
+                                        _closing ? null : _exitPlayback,
+                                        extent: windowButtons ? 28 : 48,
+                                      ),
+                                      if (windowButtons)
+                                        const SizedBox(width: 4),
+                                    ] else
+                                      // Keep the row as tall as the back button
+                                      // so the title stays centred on the window
+                                      // controls.
+                                      SizedBox(height: windowButtons ? 28 : 48),
+                                    Expanded(
+                                      child: Text(
+                                        _displayTitle ?? _name ?? 'OpenPlayX',
+                                        textAlign: TextAlign.center,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: AppTheme.dark.textTheme.small
+                                            .copyWith(
+                                              color:
+                                                  AppSemanticColors.playerMuted,
+                                            ),
+                                      ),
                                     ),
-                              decoration: BoxDecoration(
-                                gradient: LinearGradient(
-                                  begin: Alignment.topCenter,
-                                  end: Alignment.bottomCenter,
-                                  colors: [
-                                    AppSemanticColors.playerScrim,
-                                    Colors.transparent,
                                   ],
                                 ),
-                              ),
-                              child: Row(
-                                children: [
-                                  if (widget.showBack) ...[
-                                    _icon(
-                                      l.back,
-                                      AppIcons.back,
-                                      _closing ? null : _exitPlayback,
-                                      extent: windowButtons ? 28 : 48,
-                                    ),
-                                    if (windowButtons) const SizedBox(width: 4),
-                                  ] else
-                                    // Keep the row as tall as the back button
-                                    // so the title stays centred on the window
-                                    // controls.
-                                    SizedBox(height: windowButtons ? 28 : 48),
-                                  Expanded(
-                                    child: Text(
-                                      _displayTitle ?? _name ?? 'OpenPlayX',
-                                      textAlign: TextAlign.center,
-                                      maxLines: 1,
-                                      overflow: TextOverflow.ellipsis,
-                                      style: AppTheme.dark.textTheme.small
-                                          .copyWith(
-                                            color:
-                                                AppSemanticColors.playerMuted,
-                                          ),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            );
-                          },
-                        ),
-                      ),
-                    ),
-                  if (!_locked)
-                    Positioned(
-                      bottom: 0,
-                      left: 0,
-                      right: 0,
-                      child: _chrome(
-                        ValueListenableBuilder<PlayerSnapshot>(
-                          valueListenable: _backend,
-                          builder: (context, value, _) =>
-                              _bottomControls(value),
-                        ),
-                      ),
-                    ),
-                  if (_busy || _backend.value.status == PlaybackStatus.opening)
-                    IgnorePointer(
-                      child: Center(
-                        child: SizedBox(
-                          width: 120,
-                          child: ShadProgress(semanticsLabel: l.loading),
-                        ),
-                      ),
-                    ),
-                  if (_error != null ||
-                      _backend.value.status == PlaybackStatus.error)
-                    Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(24),
-                        child: Text(
-                          _error ?? l.playbackFailed,
-                          textAlign: TextAlign.center,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
+                              );
+                            },
                           ),
                         ),
                       ),
-                    ),
-                  if (_boosting)
-                    Positioned(
-                      top: 64,
-                      left: 0,
-                      right: 0,
-                      child: IgnorePointer(
-                        child: Center(child: ShadBadge(child: Text(l.boost))),
+                    if (!_locked)
+                      Positioned(
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        child: _chrome(
+                          ValueListenableBuilder<PlayerSnapshot>(
+                            valueListenable: _backend,
+                            builder: (context, value, _) =>
+                                _bottomControls(value),
+                          ),
+                        ),
                       ),
-                    ),
-                  if (_locked)
-                    Positioned(
-                      top: 8,
-                      left: 12,
-                      child: _icon(l.unlockControls, AppIcons.unlock, () {
-                        setState(() {
-                          _locked = false;
-                          _controlsVisible = true;
-                        });
-                        _scheduleHide();
-                      }),
-                    ),
-                ],
+                    if (_busy ||
+                        _backend.value.status == PlaybackStatus.opening)
+                      IgnorePointer(
+                        child: Center(
+                          child: SizedBox(
+                            width: 120,
+                            child: ShadProgress(semanticsLabel: l.loading),
+                          ),
+                        ),
+                      ),
+                    if (_error != null ||
+                        _backend.value.status == PlaybackStatus.error)
+                      Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(24),
+                          child: Text(
+                            _error ?? l.playbackFailed,
+                            textAlign: TextAlign.center,
+                            style: TextStyle(
+                              color: Theme.of(context).colorScheme.error,
+                            ),
+                          ),
+                        ),
+                      ),
+                    if (_boosting)
+                      Positioned(
+                        top: 64 + _insets.top,
+                        left: 0,
+                        right: 0,
+                        child: IgnorePointer(
+                          child: Center(child: ShadBadge(child: Text(l.boost))),
+                        ),
+                      ),
+                    if (_locked)
+                      Positioned(
+                        top: 8 + _insets.top,
+                        left: 12 + _insets.left,
+                        child: _icon(l.unlockControls, AppIcons.unlock, () {
+                          setState(() {
+                            _locked = false;
+                            _controlsVisible = true;
+                          });
+                          _scheduleHide();
+                        }),
+                      ),
+                  ],
+                ),
               ),
             ),
           ),

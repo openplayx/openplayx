@@ -1,26 +1,33 @@
 import 'dart:convert';
 import 'dart:math';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/models/text_model.dart';
+import '../../data/configuration/configuration_database.dart';
 import '../ai_tools/tool_registry.dart';
 
 class AssistantConfig {
   const AssistantConfig({
-    this.endpoint = 'https://api.openai.com/v1',
-    this.model = 'gpt-5-mini',
-    this.credentialRef,
+    this.endpoint = exampleEndpoint,
+    this.model = exampleModel,
+    this.hasKey = false,
     this.cloudAllowed = false,
     this.toolsSupported = false,
     this.textVerified = false,
     this.streamVerified = false,
     this.maxTokens = 2048,
   });
+
+  /// Shown as hints in the settings form; the user enters their own.
+  static const exampleEndpoint = 'https://api.deepseek.com';
+  static const exampleModel = 'deepseek-v4-pro';
+
   final String endpoint;
   final String model;
-  final String? credentialRef;
+
+  /// An API key is saved (with the settings document; never in [toJson]).
+  final bool hasKey;
   final bool cloudAllowed;
   final bool toolsSupported;
   final bool textVerified;
@@ -28,11 +35,10 @@ class AssistantConfig {
   final int maxTokens;
 
   /// A saved key is all the assistant needs to start.
-  bool get configured => credentialRef != null;
+  bool get configured => hasKey;
   Map<String, dynamic> toJson() => {
     'endpoint': endpoint,
     'model': model,
-    'credentialRef': credentialRef,
     'cloudAllowed': cloudAllowed,
     'toolsSupported': toolsSupported,
     'textVerified': textVerified,
@@ -43,7 +49,7 @@ class AssistantConfig {
       AssistantConfig(
         endpoint: json['endpoint'] as String,
         model: json['model'] as String,
-        credentialRef: json['credentialRef'] as String?,
+        hasKey: (json['apiKey'] as String?)?.isNotEmpty == true,
         cloudAllowed: json['cloudAllowed'] == true,
         toolsSupported: json['toolsSupported'] == true,
         textVerified: json['textVerified'] == true,
@@ -68,15 +74,10 @@ class AssistantConfig {
 }
 
 class AssistantStore implements ToolJournal {
-  AssistantStore(this.db, {FlutterSecureStorage? credentials})
-    : credentials =
-          credentials ??
-          const FlutterSecureStorage(
-            mOptions: MacOsOptions(usesDataProtectionKeychain: false),
-          ) {
-    db.execute(
-      'CREATE TABLE IF NOT EXISTS assistant_config (id INTEGER PRIMARY KEY, value TEXT NOT NULL)',
-    );
+  /// [db] holds conversations and tool records (library database);
+  /// [configuration] holds the model settings (`configuration.sqlite3`).
+  AssistantStore(this.db, {required this.configuration}) {
+    ConfigurationDatabase.initialize(configuration);
     db.execute(
       'CREATE TABLE IF NOT EXISTS assistant_operations (id TEXT PRIMARY KEY, result TEXT NOT NULL)',
     );
@@ -89,7 +90,7 @@ class AssistantStore implements ToolJournal {
     );
   }
   final Database db;
-  final FlutterSecureStorage credentials;
+  final Database configuration;
   bool _closed = false;
   void close() {
     _closed = true;
@@ -127,45 +128,54 @@ class AssistantStore implements ToolJournal {
 
   static String newId() =>
       '${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}';
+  static const _settingsNamespace = 'assistant';
+  static const _settingsKey = 'config';
+
+  /// The `assistant / config` settings document: [AssistantConfig.toJson]
+  /// plus the API key under `apiKey`.
+  Map<String, dynamic>? _document() {
+    final value = ConfigurationDatabase.readSetting(
+      configuration,
+      _settingsNamespace,
+      _settingsKey,
+    );
+    return value is Map ? Map<String, dynamic>.from(value) : null;
+  }
+
   AssistantConfig loadConfig() {
-    final rows = db.select('SELECT value FROM assistant_config WHERE id=1');
-    return rows.isEmpty
+    final document = _document();
+    return document == null
         ? const AssistantConfig()
-        : AssistantConfig.fromJson(
-            jsonDecode(rows.first['value'] as String) as Map<String, dynamic>,
-          );
+        : AssistantConfig.fromJson(document);
   }
 
-  Future<String> key(AssistantConfig config) async {
-    final ref = config.credentialRef;
-    if (ref == null || !ref.startsWith('assistant.')) return '';
-    return await credentials.read(key: ref) ?? '';
-  }
+  /// The saved API key; empty when none is saved.
+  Future<String> key([AssistantConfig? _]) async =>
+      _document()?['apiKey'] as String? ?? '';
 
-  Future<void> saveConfig(AssistantConfig config, String secret) async {
+  /// Saves [config]; a non-empty [secret] replaces the API key, an empty
+  /// one keeps the saved key.
+  Future<void> saveConfig(AssistantConfig config, String secret) async =>
+      writeConfig(
+        configuration,
+        config,
+        secret.isNotEmpty ? secret : await key(),
+      );
+
+  /// Validates [config] and stores it with [apiKey] (empty: none) as the
+  /// assistant settings document of [configuration].
+  static void writeConfig(
+    Database configuration,
+    AssistantConfig config,
+    String apiKey,
+  ) {
     config.validate();
-    final old = loadConfig();
-    String? staged;
-    try {
-      if (secret.isNotEmpty) {
-        staged = 'assistant.${newId()}';
-        await credentials.write(key: staged, value: secret);
-      }
-      final json = config.toJson()
-        ..['credentialRef'] = staged ?? old.credentialRef;
-      db.execute('INSERT OR REPLACE INTO assistant_config VALUES (1,?)', [
-        jsonEncode(json),
-      ]);
-    } catch (_) {
-      if (staged != null) await credentials.delete(key: staged);
-      rethrow;
-    }
-    if (staged != null && old.credentialRef != null) {
-      // A failed cleanup must not undo an already saved configuration.
-      try {
-        await credentials.delete(key: old.credentialRef!);
-      } catch (_) {}
-    }
+    ConfigurationDatabase.writeSetting(
+      configuration,
+      _settingsNamespace,
+      _settingsKey,
+      {...config.toJson(), if (apiKey.isNotEmpty) 'apiKey': apiKey},
+    );
   }
 
   void _ensureConversations() {

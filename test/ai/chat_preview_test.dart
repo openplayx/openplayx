@@ -5,7 +5,6 @@ import 'dart:ui' as ui;
 import 'package:flutter/material.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/features/ai_assistant/ai_chat_view.dart';
@@ -21,7 +20,6 @@ import 'conversation_test.dart' show FakeModel;
 void main() {
   const output = String.fromEnvironment('OPENPLAYX_CHAT_PREVIEW_DIR');
   testWidgets('export chat themes and sizes', (tester) async {
-    FlutterSecureStorage.setMockInitialValues({});
     final manifest =
         jsonDecode(await rootBundle.loadString('FontManifest.json')) as List;
     for (final entry in manifest.cast<Map<String, dynamic>>()) {
@@ -42,7 +40,7 @@ void main() {
       for (final size in [const Size(1200, 800), const Size(390, 844)]) {
         tester.view.physicalSize = size;
         final db = sqlite3.openInMemory(), key = GlobalKey();
-        final store = AssistantStore(db);
+        final store = AssistantStore(db, configuration: sqlite3.openInMemory());
         await store.saveConfig(const AssistantConfig(cloudAllowed: true), '');
         final registry = ToolRegistry();
         registry.register(

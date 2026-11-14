@@ -3,7 +3,6 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/theme/app_theme.dart';
 import 'package:openplayx/core/models/text_model.dart';
@@ -44,9 +43,8 @@ void main() {
   late AssistantStore store;
   late ToolRegistry registry;
   setUp(() async {
-    FlutterSecureStorage.setMockInitialValues({});
     db = sqlite3.openInMemory();
-    store = AssistantStore(db);
+    store = AssistantStore(db, configuration: sqlite3.openInMemory());
     registry = ToolRegistry();
     await store.saveConfig(const AssistantConfig(cloudAllowed: true), '');
   });

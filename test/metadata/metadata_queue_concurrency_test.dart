@@ -26,7 +26,7 @@ void main() {
           isFolder: false,
         ),
       );
-      first.addManual(first.create('Films'), media);
+      first.addManual(media);
       second = LibraryService(
         sqlite3.open(path),
         recoverInterrupted: false,
@@ -69,8 +69,7 @@ void main() {
           isFolder: false,
         ),
       );
-      final lib = view.create('Films');
-      view.addManual(lib, media);
+      view.addManual(media);
       worker = LibraryService(
         sqlite3.open(path),
         recoverInterrupted: false,
@@ -95,7 +94,7 @@ void main() {
       );
       view.checkExternalChanges();
       await changed;
-      expect(view.query(lib).single['title'], 'Scraped title');
+      expect(view.query().single['title'], 'Scraped title');
       expect(view.metadata.displayArtwork(media)!.id, 'poster');
     } finally {
       worker?.close();

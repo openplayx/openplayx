@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
@@ -9,7 +8,6 @@ import 'package:openplayx/data/sources/file_sources.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/data/sources/source_schema.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -20,8 +18,6 @@ void main() {
         (_) async => null,
       );
   test('directory policy permits parent navigation, blocks sibling and symlink escape, scan respects excludes', () async {
-    SharedPreferences.setMockInitialValues({});
-    FlutterSecureStorage.setMockInitialValues({});
     final root = await Directory.systemTemp.createTemp('source-scope-');
     final canonical = await root.resolveSymbolicLinks();
     final allowed = await Directory('${root.path}/movies/allowed')

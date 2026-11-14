@@ -162,12 +162,14 @@ class AiComposer extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 6),
-                  Text(
-                    c.busy ? l.aiDraftNext : l.aiPrivacyNotice,
-                    textAlign: TextAlign.center,
-                    style: theme.textTheme.muted.copyWith(fontSize: 11),
-                  ),
+                  if (c.busy) ...[
+                    const SizedBox(height: 6),
+                    Text(
+                      l.aiDraftNext,
+                      textAlign: TextAlign.center,
+                      style: theme.textTheme.muted.copyWith(fontSize: 11),
+                    ),
+                  ],
                 ],
               ),
             ),

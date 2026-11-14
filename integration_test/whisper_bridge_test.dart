@@ -17,10 +17,17 @@ void main() {
     expect(info.engineVersion, startsWith(WhisperEngine.pinnedVersion));
     final dir = await Directory.systemTemp.createTemp('opx-whisper-it');
     addTearDown(() => dir.delete(recursive: true));
-    final fake = File('${dir.path}/model.bin')..writeAsBytesSync(List.filled(1024, 7));
+    final fake = File('${dir.path}/model.bin')
+      ..writeAsBytesSync(List.filled(1024, 7));
     await expectLater(
       engine.openModel(fake.path),
-      throwsA(isA<AsrException>().having((e) => e.code, 'code', AsrErrorCode.modelUnavailable)),
+      throwsA(
+        isA<AsrException>().having(
+          (e) => e.code,
+          'code',
+          AsrErrorCode.modelUnavailable,
+        ),
+      ),
     );
     engine.dispose();
   });

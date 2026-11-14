@@ -40,6 +40,13 @@ abstract final class AppTheme {
               fontFamilyFallback: _fontFallback,
             ),
           ),
+      // Entered text in full foreground, hints clearly lighter: a hint must
+      // never look like a value that is already filled in. (shadcn_ui
+      // otherwise renders both in the muted color.)
+      inputTheme: ShadInputTheme(
+        style: TextStyle(color: colors.foreground),
+        placeholderStyle: TextStyle(color: hintColor(brightness)),
+      ),
       primaryButtonTheme: const ShadButtonTheme(height: AppMetrics.touchTarget),
       secondaryButtonTheme: const ShadButtonTheme(
         height: AppMetrics.touchTarget,
@@ -61,8 +68,38 @@ abstract final class AppTheme {
         radius: AppMetrics.panelRadius,
         padding: EdgeInsets.all(16),
       ),
+      // Feedback appearance shared by every AppAlert / showAppToast
+      // (ui/components/feedback). Unset fields keep shadcn_ui defaults.
+      primaryAlertTheme: const ShadAlertTheme(
+        iconPadding: EdgeInsetsDirectional.only(end: 12),
+      ),
+      destructiveAlertTheme: const ShadAlertTheme(
+        iconPadding: EdgeInsetsDirectional.only(end: 12),
+      ),
+      // Toasts at the top centre: form buttons sit bottom right (desktop) or
+      // at the bottom (phone), and page actions top right, so a toast there
+      // never covers what the user may tap next. Safe-area aware by default.
+      primaryToastTheme: const ShadToastTheme(
+        alignment: _toastAlignment,
+        duration: _toastDuration,
+      ),
+      destructiveToastTheme: const ShadToastTheme(
+        alignment: _toastAlignment,
+        duration: _toastDuration,
+      ),
     );
   }
+
+  /// Input hint color. Hints only carry examples or defaults (every field
+  /// has its own label), so they favour telling "empty" from "filled" over
+  /// their own readability: about 7.5:1 against entered text, like
+  /// Tailwind's gray-400 / Apple's placeholder style.
+  static Color hintColor(Brightness brightness) => brightness == Brightness.dark
+      ? const Color(0xFF52525B) // zinc-600
+      : const Color(0xFFA1A1AA); // zinc-400
+
+  static const _toastDuration = Duration(seconds: 5);
+  static const _toastAlignment = Alignment.topCenter;
 
   static final light = build(Brightness.light);
   static final dark = build(Brightness.dark);

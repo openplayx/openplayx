@@ -14,6 +14,7 @@ class ComponentGalleryPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     return AppPage(
+      pageContext: const PageContextData(pageType: 'component_gallery'),
       title: Text(l.appearance),
       body: ListView(
         padding: AppSpacing.page(context),

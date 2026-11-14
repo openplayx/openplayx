@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'dart:convert';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/services/ai_tools/tool_registry.dart';
@@ -26,9 +25,8 @@ void main() {
   late AssistantStore store;
   late ToolRegistry registry;
   setUp(() {
-    FlutterSecureStorage.setMockInitialValues({});
     db = sqlite3.openInMemory();
-    store = AssistantStore(db);
+    store = AssistantStore(db, configuration: sqlite3.openInMemory());
     registry = ToolRegistry();
   });
   tearDown(() => db.close());
@@ -411,7 +409,7 @@ void main() {
         calls: [ModelToolCall('a', 'write', '{}')],
       ),
     ]);
-    final reopened = AssistantStore(db);
+    final reopened = AssistantStore(db, configuration: sqlite3.openInMemory());
     final fake = FakeModel((request) async* {
       expect(request.messages.any((m) => m.calls.isNotEmpty), false);
       yield const ModelTextDelta('OK');

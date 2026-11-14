@@ -250,6 +250,7 @@ class _ServerBrowsePageState extends State<ServerBrowsePage> {
 
   @override
   Widget build(BuildContext context) => AppPage(
+    pageContext: const PageContextData(pageType: 'server_browse'),
     title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
     body: _entries.isEmpty
         ? Center(

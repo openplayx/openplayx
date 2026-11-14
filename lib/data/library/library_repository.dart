@@ -1,5 +1,8 @@
+import 'dart:convert';
+
 import 'package:sqlite3/sqlite3.dart';
 
+import '../configuration/configuration_database.dart';
 import '../metadata/metadata_repository.dart';
 import '../metadata/metadata_queue.dart';
 import 'library_database.dart';
@@ -22,25 +25,33 @@ const _visibleContainer =
 class LibraryRepository {
   LibraryRepository(
     this.db, {
+    Database? configuration,
     bool recoverInterrupted = true,
     void Function()? onChanged,
-  }) {
+  }) : configuration = configuration ?? sqlite3.openInMemory() {
+    ConfigurationDatabase.initialize(this.configuration);
     LibraryDatabase.initialize(db, recoverInterrupted: recoverInterrupted);
-    metadata = MetadataRepository(db, onChanged: onChanged);
+    metadata = MetadataRepository(
+      db,
+      configuration: this.configuration,
+      onChanged: onChanged,
+    );
   }
   final Database db;
+
+  /// `configuration.sqlite3` (in memory when none is given, e.g. in tests).
+  final Database configuration;
   late final MetadataRepository metadata;
   T transaction<T>(T Function() action) =>
       LibraryDatabase.transaction(db, action);
   ({int done, int total}) metadataProgress() => MetadataQueue(db).progress;
-  ({int done, int total}) metadataProgressFor(String binding) =>
-      MetadataQueue(db).progressFor(binding);
+  ({int done, int total}) metadataProgressFor(String fileSource) =>
+      MetadataQueue(db).progressFor(fileSource);
   int prioritizeMetadata(List<String> ids) => MetadataQueue(db).boost(ids);
   void queueMetadata(String media, {bool refresh = false}) =>
       MetadataQueue.observe(db, media, refresh: refresh);
 
-  List<Row> query(
-    String? library, {
+  List<Row> query({
     String search = '',
     bool favorites = false,
     String? source,
@@ -51,35 +62,30 @@ class LibraryRepository {
     int limit = 40,
   }) {
     return db.select(
-      '''SELECT m.*, lm.added_at, COUNT(*) OVER() AS total FROM media m JOIN (SELECT media_id, MAX(added_at) AS added_at FROM memberships WHERE (? IS NULL OR library_id=?) GROUP BY media_id) lm ON lm.media_id=m.id
+      '''SELECT m.*, lm.added_at, COUNT(*) OVER() AS total FROM media m JOIN memberships lm ON lm.media_id=m.id
       WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
       AND NOT (EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id)
-        AND NOT EXISTS (SELECT 1 FROM media_evidence e JOIN bindings b ON b.id=e.binding_id WHERE e.media_id=m.id AND b.enabled=1)
+        AND NOT EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id AND e.file_source_id IN (SELECT value FROM json_each(?)))
         AND NOT EXISTS (SELECT 1 FROM manual_memberships mm WHERE mm.media_id=m.id))
       AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
       AND $_visibleContainer
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id AND (? IS NULL OR pm.library_id=?) WHERE child.media_id=m.id))
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id AND (? IS NULL OR pm.library_id=?)))
+      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id WHERE child.media_id=m.id))
+      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.kind') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.year') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.year FROM source_media sm WHERE sm.media_id=m.id LIMIT 1))=?)
       AND (? IS NULL OR EXISTS (SELECT 1 FROM progress p JOIN resources r ON r.id=p.resource_id WHERE r.media_id=m.id AND p.completed=1)=?)
       ORDER BY lm.added_at DESC,m.id LIMIT ? OFFSET ?''',
       [
-        library,
-        library,
         search,
-        search,
-        contentType,
-        year,
-        library,
-        library,
+        jsonEncode(enabledFileSourceIds()),
         search,
         contentType,
         year,
-        library,
-        library,
+        search,
+        contentType,
+        year,
         source,
         source,
         source,
@@ -98,49 +104,100 @@ class LibraryRepository {
   int get dataVersion =>
       db.select('PRAGMA data_version').single.values.single as int;
 
-  void close() => db.close();
+  void close() {
+    db.close();
+    configuration.close();
+  }
 
-  ResultSet libraries() =>
-      db.select('SELECT * FROM libraries ORDER BY name,id');
+  // ---- File sources: configuration in `file_sources` (configuration.sqlite3),
+  // scan state in `file_source_state` (this database).
 
-  void insertLibrary(String id, String name, String type) =>
-      db.execute('INSERT INTO libraries VALUES (?,?,?)', [id, name, type]);
+  static Map<String, Object?> _fileSource(Row config, Row? state) => {
+    'id': config['id'],
+    'source': config['source_id'],
+    'root': config['root'],
+    'name': config['name'],
+    'enabled': config['enabled'],
+    'status': state?['status'] ?? '待扫描',
+    'error': state?['error'],
+  };
 
-  void renameLibrary(String name, String library) =>
-      db.execute('UPDATE libraries SET name=? WHERE id=?', [name, library]);
+  /// Every file source with its scan state, oldest first.
+  List<Map<String, Object?>> fileSources() {
+    final states = {
+      for (final r in db.select('SELECT * FROM file_source_state'))
+        r['file_source_id'] as String: r,
+    };
+    return [
+      for (final c in configuration.select(
+        'SELECT * FROM file_sources ORDER BY created, id',
+      ))
+        _fileSource(c, states[c['id']]),
+    ];
+  }
 
-  void deleteLibrary(String library) =>
-      db.execute('DELETE FROM libraries WHERE id=?', [library]);
+  Map<String, Object?>? fileSource(String id) {
+    final config = configuration.select(
+      'SELECT * FROM file_sources WHERE id=?',
+      [id],
+    ).firstOrNull;
+    if (config == null) return null;
+    return _fileSource(
+      config,
+      db.select('SELECT * FROM file_source_state WHERE file_source_id=?', [
+        id,
+      ]).firstOrNull,
+    );
+  }
 
-  void ensureDefaultLibrary(String id, String name, String type) => db.execute(
-    'INSERT OR IGNORE INTO libraries VALUES (?,?,?)',
-    [id, name, type],
+  bool fileSourceExists(String id) => configuration.select(
+    'SELECT 1 FROM file_sources WHERE id=?',
+    [id],
+  ).isNotEmpty;
+
+  List<String> enabledFileSourceIds() => [
+    for (final r in configuration.select(
+      'SELECT id FROM file_sources WHERE enabled=1',
+    ))
+      r['id'] as String,
+  ];
+
+  void insertFileSource(String id, String source, String? root, String? name) =>
+      configuration.execute(
+        'INSERT INTO file_sources(id,source_id,root,name,created) VALUES (?,?,?,?,?)',
+        [id, source, root, name, DateTime.now().microsecondsSinceEpoch],
+      );
+
+  void setFileSourceEnabled(String id, bool enabled) => configuration.execute(
+    'UPDATE file_sources SET enabled=? WHERE id=?',
+    [enabled ? 1 : 0, id],
   );
 
-  ResultSet bindings(String library) => db.select(
-    'SELECT * FROM bindings WHERE library_id=? ORDER BY id',
-    [library],
+  void renameFileSource(String id, String name) => configuration.execute(
+    'UPDATE file_sources SET name=? WHERE id=?',
+    [name, id],
   );
 
-  ResultSet fileSources() => db.select('SELECT * FROM bindings ORDER BY id');
+  void deleteFileSource(String id) =>
+      configuration.execute('DELETE FROM file_sources WHERE id=?', [id]);
 
-  void setBindingEnabled(int enabled, String binding) => db.execute(
-    'UPDATE bindings SET enabled=? WHERE id=?',
-    [enabled, binding],
-  );
+  /// Scan results and state of [id], for removing the file source.
+  void deleteFileSourceData(String id) {
+    for (final table in [
+      'scan_queue',
+      'scan_tasks',
+      'evidence',
+      'media_evidence',
+      'file_source_state',
+    ]) {
+      db.execute('DELETE FROM $table WHERE file_source_id=?', [id]);
+    }
+  }
 
-  void renameBinding(String name, String binding) =>
-      db.execute('UPDATE bindings SET name=? WHERE id=?', [name, binding]);
-
-  void insertBinding(
-    String id,
-    String library,
-    String source,
-    String? root,
-    String? name,
-  ) => db.execute(
-    'INSERT INTO bindings(id,library_id,source,root,name) VALUES (?,?,?,?,?)',
-    [id, library, source, root, name],
+  void _setScanState(String id, String status, String? error) => db.execute(
+    'INSERT INTO file_source_state VALUES (?,?,?) '
+    'ON CONFLICT(file_source_id) DO UPDATE SET status=excluded.status, error=excluded.error',
+    [id, status, error],
   );
 
   ResultSet sourceMedia(String source, String key) => db.select(
@@ -176,21 +233,19 @@ class LibraryRepository {
     episode,
   ]);
 
-  void observeMedia(String binding, String media) => db.execute(
+  void observeMedia(String fileSource, String media) => db.execute(
     'INSERT OR IGNORE INTO media_evidence VALUES (?,?)',
-    [binding, media],
+    [fileSource, media],
   );
 
-  void observeMembership(String library, String media, int timestamp) =>
-      db.execute(
-        'INSERT OR IGNORE INTO memberships SELECT ?,?,? WHERE NOT EXISTS (SELECT 1 FROM ignored WHERE library_id=? AND media_id=?)',
-        [library, media, timestamp, library, media],
-      );
+  void observeMembership(String media, int timestamp) => db.execute(
+    'INSERT OR IGNORE INTO memberships SELECT ?,? WHERE NOT EXISTS (SELECT 1 FROM ignored WHERE media_id=?)',
+    [media, timestamp, media],
+  );
 
   /// Like [query], children whose files are all hidden dot files are skipped.
-  ResultSet children(String media, String? library, int limit, int offset) =>
-      db.select(
-        '''WITH children AS (
+  ResultSet children(String media, int limit, int offset) => db.select(
+    '''WITH children AS (
       SELECT s.media_id FROM source_media p JOIN source_media s ON s.source=p.source AND s.parent_key=p.source_key WHERE p.media_id=?
       UNION SELECT child_id FROM metadata_relations WHERE parent_id=?)
       SELECT m.*,COALESCE(json_extract(mp.fields,'\$.kind'),sm.kind) AS kind,
@@ -199,13 +254,12 @@ class LibraryRepository {
       FROM children c JOIN media m ON m.id=c.media_id
       LEFT JOIN metadata_projection mp ON mp.media_id=m.id
       LEFT JOIN source_media sm ON sm.media_id=m.id
-      WHERE (? IS NULL OR EXISTS (SELECT 1 FROM memberships lm WHERE lm.media_id=m.id AND lm.library_id=?))
-      AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
+      WHERE NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
       AND $_visibleContainer
       GROUP BY m.id ORDER BY season,episode,m.id LIMIT ? OFFSET ?''',
-        [media, media, library, library, limit, offset],
-      );
+    [media, media, limit, offset],
+  );
 
   ResultSet mediaForLocator(String source, String item) => db.select(
     'SELECT r.media_id FROM resource_locators l JOIN resources r ON r.id=l.resource_id WHERE l.source=? AND l.item=?',
@@ -275,119 +329,94 @@ class LibraryRepository {
     [resource],
   );
 
-  void ignoreMedia(String library, String media) => db.execute(
-    'INSERT OR IGNORE INTO ignored VALUES (?,?)',
-    [library, media],
-  );
+  void ignoreMedia(String media) =>
+      db.execute('INSERT OR IGNORE INTO ignored VALUES (?)', [media]);
 
-  void removeManualMembership(String library, String media) => db.execute(
-    'DELETE FROM manual_memberships WHERE library_id=? AND media_id=?',
-    [library, media],
-  );
-
-  void removeMembership(String library, String media) => db.execute(
-    'DELETE FROM memberships WHERE library_id=? AND media_id=?',
-    [library, media],
-  );
-
-  void clearIgnored(String library) =>
-      db.execute('DELETE FROM ignored WHERE library_id=?', [library]);
-
-  void ignoreEveryMembership(String media) => db.execute(
-    'INSERT OR IGNORE INTO ignored SELECT library_id,media_id FROM memberships WHERE media_id=?',
-    [media],
-  );
-
-  void removeAllManualMemberships(String media) =>
+  void removeManualMembership(String media) =>
       db.execute('DELETE FROM manual_memberships WHERE media_id=?', [media]);
 
-  void removeAllMemberships(String media) =>
+  void removeMembership(String media) =>
       db.execute('DELETE FROM memberships WHERE media_id=?', [media]);
 
   void clearAllIgnored() => db.execute('DELETE FROM ignored');
 
-  ResultSet binding(String binding) =>
-      db.select('SELECT * FROM bindings WHERE id=?', [binding]);
+  void markScanRunning(String fileSource) =>
+      _setScanState(fileSource, '扫描中', null);
 
-  void markScanRunning(String binding) => db.execute(
-    "UPDATE bindings SET status='扫描中',error=NULL WHERE id=?",
-    [binding],
+  ResultSet scanTask(String fileSource) => db.select(
+    'SELECT * FROM scan_tasks WHERE file_source_id=?',
+    [fileSource],
   );
 
-  ResultSet scanTask(String binding) =>
-      db.select('SELECT * FROM scan_tasks WHERE binding_id=?', [binding]);
+  void insertScanTask(String fileSource, String batch, int revision) =>
+      db.execute('INSERT INTO scan_tasks VALUES (?,?,?)', [
+        fileSource,
+        batch,
+        revision,
+      ]);
 
-  void insertScanTask(String binding, String batch, int revision) => db.execute(
-    'INSERT INTO scan_tasks VALUES (?,?,?)',
-    [binding, batch, revision],
+  void insertScanRoot(String fileSource, String root) => db.execute(
+    'INSERT INTO scan_queue(file_source_id,node) VALUES (?,?)',
+    [fileSource, root],
   );
 
-  void insertScanRoot(String binding, String root) => db.execute(
-    'INSERT INTO scan_queue(binding_id,node) VALUES (?,?)',
-    [binding, root],
+  ResultSet nextScanNode(String fileSource) => db.select(
+    'SELECT * FROM scan_queue WHERE file_source_id=? AND done=0 ORDER BY node LIMIT 1',
+    [fileSource],
   );
 
-  ResultSet nextScanNode(String binding) => db.select(
-    'SELECT * FROM scan_queue WHERE binding_id=? AND done=0 ORDER BY node LIMIT 1',
-    [binding],
+  void enqueueScanNode(String fileSource, String node) => db.execute(
+    'INSERT OR IGNORE INTO scan_queue(file_source_id,node) VALUES (?,?)',
+    [fileSource, node],
   );
 
-  bool bindingExists(String binding) =>
-      db.select('SELECT id FROM bindings WHERE id=?', [binding]).isNotEmpty;
-
-  void enqueueScanNode(String binding, String node) => db.execute(
-    'INSERT OR IGNORE INTO scan_queue(binding_id,node) VALUES (?,?)',
-    [binding, node],
-  );
-
-  void observeResource(String binding, String resource, String batch) =>
+  void observeResource(String fileSource, String resource, String batch) =>
       db.execute(
-        'INSERT INTO evidence VALUES (?,?,?,1) ON CONFLICT(binding_id,resource_id) DO UPDATE SET seen=excluded.seen,available=1',
-        [binding, resource, batch],
+        'INSERT INTO evidence VALUES (?,?,?,1) ON CONFLICT(file_source_id,resource_id) DO UPDATE SET seen=excluded.seen,available=1',
+        [fileSource, resource, batch],
       );
 
-  void advanceScanNode(int offset, int done, String binding, String node) =>
+  void advanceScanNode(
+    int offset,
+    int done,
+    String fileSource,
+    String node,
+  ) => db.execute(
+    'UPDATE scan_queue SET offset=?,done=? WHERE file_source_id=? AND node=?',
+    [offset, done, fileSource, node],
+  );
+
+  void markUnseenResourcesMissing(String fileSource, String batch) =>
       db.execute(
-        'UPDATE scan_queue SET offset=?,done=? WHERE binding_id=? AND node=?',
-        [offset, done, binding, node],
+        'UPDATE evidence SET available=0 WHERE file_source_id=? AND seen<>?',
+        [fileSource, batch],
       );
 
-  void markUnseenResourcesMissing(String binding, String batch) => db.execute(
-    'UPDATE evidence SET available=0 WHERE binding_id=? AND seen<>?',
-    [binding, batch],
+  void removeScanTask(String fileSource) =>
+      db.execute('DELETE FROM scan_tasks WHERE file_source_id=?', [fileSource]);
+
+  void markScanComplete(String fileSource) =>
+      _setScanState(fileSource, '扫描完成', null);
+
+  void markScanFailed(String error, String fileSource) =>
+      _setScanState(fileSource, '扫描失败', error);
+
+  ResultSet scannedMediaCount(String fileSource) => db.select(
+    'SELECT COUNT(*) AS n FROM evidence e JOIN scan_tasks t ON t.file_source_id=e.file_source_id AND t.batch=e.seen WHERE e.file_source_id=?',
+    [fileSource],
   );
 
-  void removeScanTask(String binding) =>
-      db.execute('DELETE FROM scan_tasks WHERE binding_id=?', [binding]);
+  void unignoreMedia(String media) =>
+      db.execute('DELETE FROM ignored WHERE media_id=?', [media]);
 
-  void markScanComplete(String binding) => db.execute(
-    "UPDATE bindings SET status='扫描完成',error=NULL WHERE id=?",
-    [binding],
+  void addManualMembership(String media) => db.execute(
+    'INSERT OR IGNORE INTO manual_memberships VALUES (?)',
+    [media],
   );
 
-  void markScanFailed(String error, String binding) => db.execute(
-    "UPDATE bindings SET status='扫描失败',error=? WHERE id=?",
-    [error, binding],
-  );
-
-  ResultSet scannedMediaCount(String binding) => db.select(
-    'SELECT COUNT(*) AS n FROM evidence e JOIN scan_tasks t ON t.binding_id=e.binding_id AND t.batch=e.seen WHERE e.binding_id=?',
-    [binding],
-  );
-
-  void unignoreMedia(String library, String media) => db.execute(
-    'DELETE FROM ignored WHERE library_id=? AND media_id=?',
-    [library, media],
-  );
-
-  void addManualMembership(String library, String media) => db.execute(
-    'INSERT OR IGNORE INTO manual_memberships VALUES (?,?)',
-    [library, media],
-  );
-
-  void addMembership(String library, String media, int timestamp) => db.execute(
-    'INSERT OR IGNORE INTO memberships VALUES (?,?,?)',
-    [library, media, timestamp],
+  void addMembership(String media, int timestamp) => db.execute(
+    'INSERT OR IGNORE INTO memberships VALUES (?,?)',
+    [media, timestamp],
   );
 
   ResultSet resourceFor(String source, String item) => db.select(
@@ -437,24 +466,22 @@ class LibraryRepository {
     [resource],
   );
 
-  ResultSet bindingImpact(String binding) => db.select(
-    'SELECT COUNT(DISTINCT media_id) AS n FROM media_evidence WHERE binding_id=?',
-    [binding],
+  ResultSet fileSourceImpact(String fileSource) => db.select(
+    'SELECT COUNT(DISTINCT media_id) AS n FROM media_evidence WHERE file_source_id=?',
+    [fileSource],
   );
 
-  ResultSet bindingLibrary(String binding) =>
-      db.select('SELECT library_id FROM bindings WHERE id=?', [binding]);
-
-  ResultSet bindingMedia(String binding) => db.select(
-    'SELECT media_id FROM media_evidence WHERE binding_id=?',
-    [binding],
+  ResultSet fileSourceMedia(String fileSource) => db.select(
+    'SELECT media_id FROM media_evidence WHERE file_source_id=?',
+    [fileSource],
   );
 
-  void removeBinding(String binding) =>
-      db.execute('DELETE FROM bindings WHERE id=?', [binding]);
-
-  void pruneUnobservedMembership(String library, String media) => db.execute(
-    "DELETE FROM memberships WHERE library_id=? AND media_id=? AND NOT EXISTS (SELECT 1 FROM manual_memberships mm WHERE mm.library_id=memberships.library_id AND mm.media_id=memberships.media_id) AND NOT EXISTS (SELECT 1 FROM media_evidence e JOIN bindings b ON b.id=e.binding_id WHERE b.library_id=? AND e.media_id=?)",
-    [library, media, library, media],
+  /// Drops [media] from the poster wall unless it was added by hand or
+  /// another file source still found it.
+  void pruneUnobservedMembership(String media) => db.execute(
+    'DELETE FROM memberships WHERE media_id=? '
+    'AND NOT EXISTS (SELECT 1 FROM manual_memberships WHERE media_id=?) '
+    'AND NOT EXISTS (SELECT 1 FROM media_evidence WHERE media_id=?)',
+    [media, media, media],
   );
 }

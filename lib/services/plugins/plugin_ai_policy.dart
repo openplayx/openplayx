@@ -1,89 +1,22 @@
 import '../../core/plugins/source_capability.dart';
 import '../../data/configuration/source_configuration_service.dart';
 
-/// AI scope of one plugin: the third switch after plugin and instance
-/// enablement. Turning it off never affects traditional pages.
-class PluginAiPolicy {
-  const PluginAiPolicy({
-    this.allowed = false,
-    this.instances = const {},
-    this.deniedCapabilities = const {},
-    this.grantedCapabilities = const {},
-  });
-
-  /// Plugin-level permission for AI calls.
-  final bool allowed;
-
-  /// Instances of a multi-instance plugin the AI may use. New instances are
-  /// not in the set, so they are never exposed until the user opts in.
-  final Set<String> instances;
-
-  /// Capabilities the user excluded from AI use.
-  final Set<String> deniedCapabilities;
-
-  /// Opt-in capabilities (e.g. writing files) the user explicitly allowed.
-  final Set<String> grantedCapabilities;
-
-  PluginAiPolicy copyWith({
-    bool? allowed,
-    Set<String>? instances,
-    Set<String>? deniedCapabilities,
-    Set<String>? grantedCapabilities,
-  }) => PluginAiPolicy(
-    allowed: allowed ?? this.allowed,
-    instances: instances ?? this.instances,
-    deniedCapabilities: deniedCapabilities ?? this.deniedCapabilities,
-    grantedCapabilities: grantedCapabilities ?? this.grantedCapabilities,
-  );
-
-  Map<String, dynamic> toJson() => {
-    'allowed': allowed,
-    'instances': (instances.toList()..sort()),
-    'deniedCapabilities': (deniedCapabilities.toList()..sort()),
-    'grantedCapabilities': (grantedCapabilities.toList()..sort()),
-  };
-
-  factory PluginAiPolicy.fromJson(Map<String, dynamic> j) => PluginAiPolicy(
-    allowed: j['allowed'] == true,
-    instances: {...(j['instances'] as List? ?? const []).cast<String>()},
-    deniedCapabilities: {
-      ...(j['deniedCapabilities'] as List? ?? const []).cast<String>(),
-    },
-    grantedCapabilities: {
-      ...(j['grantedCapabilities'] as List? ?? const []).cast<String>(),
-    },
-  );
-}
-
-/// Device-local plugin policy document: plugin switches and AI scope. Plugin switches and AI grants are never synced or
-/// widened by import.
+/// Device-local plugin policy document: plugin switches only. Every
+/// capability of an enabled plugin is AI-callable; there are no AI grants.
+/// Older documents may still carry an `ai` section, which is ignored.
 class PluginPolicy {
-  const PluginPolicy({
-    this.disabledPlugins = const {},
-    this.ai = const {},
-    this.revision = 0,
-  });
+  const PluginPolicy({this.disabledPlugins = const {}, this.revision = 0});
 
   final Set<String> disabledPlugins;
-  final Map<String, PluginAiPolicy> ai;
   final int revision;
 
   bool pluginEnabled(String pluginId) => !disabledPlugins.contains(pluginId);
-  PluginAiPolicy aiFor(String pluginId) =>
-      ai[pluginId] ?? const PluginAiPolicy();
 
-  PluginPolicy copyWith({
-    Set<String>? disabledPlugins,
-    Map<String, PluginAiPolicy>? ai,
-    int? revision,
-  }) => PluginPolicy(
-    disabledPlugins: disabledPlugins ?? this.disabledPlugins,
-    ai: ai ?? this.ai,
-    revision: revision ?? this.revision,
-  );
-
-  PluginPolicy withAi(String pluginId, PluginAiPolicy value) =>
-      copyWith(ai: {...ai, pluginId: value});
+  PluginPolicy copyWith({Set<String>? disabledPlugins, int? revision}) =>
+      PluginPolicy(
+        disabledPlugins: disabledPlugins ?? this.disabledPlugins,
+        revision: revision ?? this.revision,
+      );
 
   PluginPolicy withPluginEnabled(String pluginId, bool enabled) => copyWith(
     disabledPlugins: enabled
@@ -94,19 +27,12 @@ class PluginPolicy {
   Map<String, dynamic> toJson() => {
     'version': 1,
     'disabledPlugins': (disabledPlugins.toList()..sort()),
-    'ai': {for (final e in ai.entries) e.key: e.value.toJson()},
   };
 
   factory PluginPolicy.fromJson(Map<String, dynamic> j, int revision) =>
       PluginPolicy(
         disabledPlugins: {
           ...(j['disabledPlugins'] as List? ?? const []).cast<String>(),
-        },
-        ai: {
-          for (final e in (j['ai'] as Map? ?? const {}).entries)
-            e.key as String: PluginAiPolicy.fromJson(
-              Map<String, dynamic>.from(e.value as Map),
-            ),
         },
         revision: revision,
       );

@@ -8,6 +8,8 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/subtitles/asr_backend_config.dart';
 import '../../services/subtitles/asr_model_store.dart';
+import '../../ui/components/forms/secret_input.dart';
+import '../../ui/components/forms/settings_text_input.dart';
 import '../../ui/components/settings/settings_section.dart';
 
 /// Settings → AI & models → Speech recognition: the on-device model and
@@ -86,12 +88,32 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
     setState(() {});
   }
 
+  /// A dialog field with its label above: hints only carry examples.
+  Widget _labeled(BuildContext c, String label, Widget input) => Column(
+    crossAxisAlignment: CrossAxisAlignment.stretch,
+    spacing: 4,
+    children: [
+      Text(label, style: ShadTheme.of(c).textTheme.small),
+      input,
+    ],
+  );
+
   Future<void> _editHttp([AsrBackendConfig? existing]) async {
+    // A blank name shows the service host.
     final name = TextEditingController(text: existing?.name ?? '');
-    final url = TextEditingController(text: existing?.url ?? 'https://');
-    final model = TextEditingController(text: existing?.modelId ?? 'whisper-base-multilingual');
-    final language = TextEditingController(text: existing?.language ?? 'auto');
-    final token = TextEditingController();
+    final url = TextEditingController(text: existing?.url ?? '');
+    final model = DefaultTextController(
+      text: existing?.modelId,
+      defaultValue: 'whisper-base-multilingual',
+    );
+    final language = DefaultTextController(
+      text: existing?.language,
+      defaultValue: 'auto',
+    );
+    final token = SecretController();
+    if (existing != null) {
+      token.loadStored(() => registry.credential(existing));
+    }
     var insecure = existing?.allowInsecureHttp ?? false;
     String? error;
     final result = await showShadDialog<String>(
@@ -107,7 +129,10 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
                 onPressed: () => Navigator.pop(c, 'remove'),
                 child: Text(l.asrRemoveService),
               ),
-            ShadButton.ghost(onPressed: () => Navigator.pop(c), child: Text(l.cancel)),
+            ShadButton.ghost(
+              onPressed: () => Navigator.pop(c),
+              child: Text(l.cancel),
+            ),
             ShadButton(
               key: const ValueKey('asr-service-save'),
               onPressed: () {
@@ -118,15 +143,19 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
                       kind: 'http',
                       name: name.text,
                       url: url.text.trim(),
-                      modelId: model.text.trim(),
-                      language: language.text.trim(),
+                      modelId: model.resolved,
+                      language: language.resolved,
                       allowInsecureHttp: insecure,
                       uploadConsentAt: existing?.uploadConsentAt,
                     ),
                   );
                   Navigator.pop(c, saved.id);
                 } on FormatException catch (e) {
-                  set(() => error = e.message == 'url' ? l.asrServiceUrlInvalid : l.asrServiceInvalid);
+                  set(
+                    () => error = e.message == 'url'
+                        ? l.asrServiceUrlInvalid
+                        : l.asrServiceInvalid,
+                  );
                 }
               },
               child: Text(l.save),
@@ -139,22 +168,37 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               spacing: 10,
               children: [
-                ShadInput(controller: name, placeholder: Text(l.asrServiceName)),
-                ShadInput(
-                  key: const ValueKey('asr-service-url'),
-                  controller: url,
-                  autocorrect: false,
-                  placeholder: Text(l.asrServiceUrl),
+                _labeled(
+                  c,
+                  l.asrServiceName,
+                  SettingsTextInput(controller: name),
                 ),
-                ShadInput(
-                  controller: token,
-                  obscureText: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                  placeholder: Text(existing == null ? l.asrServiceToken : l.metadataTokenStatusSaved),
+                _labeled(
+                  c,
+                  l.asrServiceUrl,
+                  SettingsTextInput(
+                    key: const ValueKey('asr-service-url'),
+                    controller: url,
+                    keyboardType: TextInputType.url,
+                    example: 'https://asr.example.com',
+                  ),
                 ),
-                ShadInput(controller: model, autocorrect: false, placeholder: Text(l.asrModel)),
-                ShadInput(controller: language, autocorrect: false, placeholder: Text(l.asrLanguage)),
+                _labeled(
+                  c,
+                  l.asrServiceToken,
+                  SecretInput(
+                    controller: token,
+                    placeholder: existing == null
+                        ? null
+                        : l.metadataTokenStatusSaved,
+                  ),
+                ),
+                _labeled(c, l.asrModel, SettingsTextInput(controller: model)),
+                _labeled(
+                  c,
+                  l.asrLanguage,
+                  SettingsTextInput(controller: language),
+                ),
                 ShadCheckbox(
                   value: insecure,
                   label: Text(l.asrAllowHttp),
@@ -162,7 +206,12 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
                   onChanged: (v) => set(() => insecure = v),
                 ),
                 if (error != null)
-                  Text(error!, style: TextStyle(color: ShadTheme.of(c).colorScheme.destructive)),
+                  Text(
+                    error!,
+                    style: TextStyle(
+                      color: ShadTheme.of(c).colorScheme.destructive,
+                    ),
+                  ),
               ],
             ),
           ),
@@ -171,9 +220,8 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
     );
     if (result == 'remove' && existing != null) {
       await registry.remove(existing.id);
-    } else if (result != null && token.text.trim().isNotEmpty) {
-      final saved = registry.get(result)!;
-      await registry.credentials.write(key: saved.credentialKey, value: token.text.trim());
+    } else if (result != null && token.edited.isNotEmpty) {
+      registry.setToken(result, token.edited);
     }
     for (final c in [name, url, model, language, token]) {
       c.dispose();
@@ -198,9 +246,14 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
                 key: ValueKey('asr-model-${spec.id}'),
                 title: '${spec.label} · ${_mb(spec.bytes)}',
                 description: _progress.containsKey(spec.id)
-                    ? l.asrModelDownloading(_mb(_progress[spec.id]!), _mb(spec.bytes))
+                    ? l.asrModelDownloading(
+                        _mb(_progress[spec.id]!),
+                        _mb(spec.bytes),
+                      )
                     : _installed.contains(spec.id)
-                    ? (embedded.modelId == spec.id ? l.asrModelInUse : l.asrModelInstalled)
+                    ? (embedded.modelId == spec.id
+                          ? l.asrModelInUse
+                          : l.asrModelInstalled)
                     : l.asrModelNotInstalled,
                 control: Row(
                   mainAxisSize: MainAxisSize.min,
@@ -208,7 +261,8 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
                     if (_progress.containsKey(spec.id))
                       ShadButton.ghost(
                         size: ShadButtonSize.sm,
-                        onPressed: () => models.activeDownload(spec.id)?.cancel(),
+                        onPressed: () =>
+                            models.activeDownload(spec.id)?.cancel(),
                         child: Text(l.cancel),
                       )
                     else if (!_installed.contains(spec.id))
@@ -244,8 +298,7 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
             for (final c in services)
               SettingsRow(
                 title: c.name,
-                description: '${c.host} · ${c.modelId}'
-                    '${c.uploadConsentAt == null ? '' : ' · ${l.asrUploadAuthorized}'}',
+                description: '${c.host} · ${c.modelId}',
                 chevron: true,
                 onTap: () => _editHttp(c),
               ),

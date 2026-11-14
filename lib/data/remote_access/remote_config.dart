@@ -84,7 +84,7 @@ class RemoteAccessConfig {
   const RemoteAccessConfig({
     required this.proxy,
     required this.remotePort,
-    required this.credentialRef,
+    required this.credential,
     required this.outbound,
     this.mode = RemoteConnectionMode.remoteOnly,
     this.localAddress,
@@ -95,8 +95,8 @@ class RemoteAccessConfig {
   final String proxy;
   final int remotePort;
 
-  /// Secure storage key of the App user's `uuid`.
-  final String credentialRef;
+  /// The App user's credential (`{"uuid": ...}`) for [outbound].
+  final Map<String, dynamic> credential;
 
   /// Public sing-box outbound options (no `uuid`).
   final Map<String, dynamic> outbound;
@@ -106,7 +106,7 @@ class RemoteAccessConfig {
   Map<String, dynamic> toJson() => {
     'proxy': proxy,
     'remotePort': remotePort,
-    'credentialRef': credentialRef,
+    'credential': credential,
     'outbound': outbound,
     'mode': mode.name,
     if (localAddress?.isNotEmpty == true) 'localAddress': localAddress,
@@ -130,14 +130,14 @@ class RemoteAccessConfig {
 
   void validate() {
     if (outbound.containsKey('uuid')) {
-      throw const FormatException('实际 UUID 只能保存在安全存储。');
+      throw const FormatException('UUID 只能保存在 credential 中。');
     }
     RemotePairing.validateOutbound({
       ...outbound,
       'uuid': '11111111-1111-4111-8111-111111111111',
     });
     if (proxy.trim().isEmpty ||
-        credentialRef.trim().isEmpty ||
+        credential['uuid'] is! String ||
         remotePort < 1 ||
         remotePort > 65535) {
       throw const FormatException('proxy name、remotePort 或凭据引用无效。');

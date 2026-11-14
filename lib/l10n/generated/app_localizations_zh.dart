@@ -19,6 +19,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sources => '来源';
 
   @override
+  String get plugins => 'AI';
+
+  @override
   String get settings => '设置';
 
   @override
@@ -68,6 +71,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get aiSettingsSaved => '已保存。';
 
   @override
   String get save => '保存';
@@ -428,9 +434,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get backToParent => '返回上一级';
 
   @override
-  String get sourcesEmpty => '添加本地文件夹、SMB、Jellyfin 或 Plex 来源。';
-
-  @override
   String get disableSourceConfirm => '禁用媒体源？';
 
   @override
@@ -533,6 +536,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get unlockControls => '解锁控制';
+
+  @override
+  String get saving => '正在保存…';
 
   @override
   String get loading => '正在加载…';
@@ -869,9 +875,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get metadataMissingSource => '来源文件已缺失';
-
-  @override
-  String get metadataAttribution => '本产品使用 TMDB API，但未经 TMDB 认可或认证。';
 
   @override
   String get metadataForgetToken => '移除 TMDB 凭据';
@@ -1720,7 +1723,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get asrServiceName => '名称';
 
   @override
-  String get asrServiceUrl => '服务地址（https://…）';
+  String get asrServiceUrl => '服务地址';
 
   @override
   String get asrServiceToken => '访问令牌';
@@ -1766,6 +1769,37 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get addSourceConnection => '添加连接';
+
+  @override
+  String get sourcesDescription => '连接你的存储，整理你的媒体。';
+
+  @override
+  String sourceActions(String name) {
+    return '$name的操作';
+  }
+
+  @override
+  String get browseSourceFiles => '浏览文件';
+
+  @override
+  String get sourceConnectionDetails => '连接详情';
+
+  @override
+  String get sourceAwaitingVerification => '待验证';
+
+  @override
+  String sourceFileCount(int count) {
+    return '$count 个文件源';
+  }
+
+  @override
+  String get sourceRootFolder => '根目录';
+
+  @override
+  String get rescanFileSource => '重新扫描';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -1782,6 +1816,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get sources => '来源';
 
   @override
+  String get plugins => 'AI';
+
+  @override
   String get settings => '设置';
 
   @override
@@ -1831,6 +1868,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get aiSettingsSaved => '已保存。';
 
   @override
   String get save => '保存';
@@ -2191,9 +2231,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get backToParent => '返回上一级';
 
   @override
-  String get sourcesEmpty => '添加本地文件夹、SMB、Jellyfin 或 Plex 来源。';
-
-  @override
   String get disableSourceConfirm => '禁用媒体源？';
 
   @override
@@ -2296,6 +2333,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get unlockControls => '解锁控制';
+
+  @override
+  String get saving => '正在保存…';
 
   @override
   String get loading => '正在加载…';
@@ -2632,9 +2672,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get metadataMissingSource => '来源文件已缺失';
-
-  @override
-  String get metadataAttribution => '本产品使用 TMDB API，但未经 TMDB 认可或认证。';
 
   @override
   String get metadataForgetToken => '移除 TMDB 凭据';
@@ -3483,7 +3520,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get asrServiceName => '名称';
 
   @override
-  String get asrServiceUrl => '服务地址（https://…）';
+  String get asrServiceUrl => '服务地址';
 
   @override
   String get asrServiceToken => '访问令牌';
@@ -3529,6 +3566,37 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get addSourceConnection => '添加连接';
+
+  @override
+  String get sourcesDescription => '连接你的存储，整理你的媒体。';
+
+  @override
+  String sourceActions(String name) {
+    return '$name的操作';
+  }
+
+  @override
+  String get browseSourceFiles => '浏览文件';
+
+  @override
+  String get sourceConnectionDetails => '连接详情';
+
+  @override
+  String get sourceAwaitingVerification => '待验证';
+
+  @override
+  String sourceFileCount(int count) {
+    return '$count 个文件源';
+  }
+
+  @override
+  String get sourceRootFolder => '根目录';
+
+  @override
+  String get rescanFileSource => '重新扫描';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -3543,6 +3611,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get sources => '來源';
+
+  @override
+  String get plugins => 'AI';
 
   @override
   String get settings => '設定';
@@ -3594,6 +3665,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get cancel => '取消';
+
+  @override
+  String get aiSettingsSaved => '已儲存。';
 
   @override
   String get save => '儲存';
@@ -3954,9 +4028,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get backToParent => '返回上一層';
 
   @override
-  String get sourcesEmpty => '新增本機資料夾、SMB、Jellyfin 或 Plex 來源。';
-
-  @override
   String get disableSourceConfirm => '停用媒體來源？';
 
   @override
@@ -4059,6 +4130,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get unlockControls => '解鎖控制';
+
+  @override
+  String get saving => '正在儲存…';
 
   @override
   String get loading => '正在載入…';
@@ -4395,9 +4469,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get metadataMissingSource => '來源檔案已遺失';
-
-  @override
-  String get metadataAttribution => '本產品使用 TMDB API，但未經 TMDB 認可或認證。';
 
   @override
   String get metadataForgetToken => '移除 TMDB 憑證';
@@ -5246,7 +5317,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get asrServiceName => '名稱';
 
   @override
-  String get asrServiceUrl => '服務位址（https://…）';
+  String get asrServiceUrl => '服務位址';
 
   @override
   String get asrServiceToken => '存取權杖';
@@ -5292,4 +5363,35 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get recognizedSubtitleFull => '整集';
+
+  @override
+  String get addSourceConnection => '新增連線';
+
+  @override
+  String get sourcesDescription => '連接你的儲存空間，整理你的媒體。';
+
+  @override
+  String sourceActions(String name) {
+    return '$name的操作';
+  }
+
+  @override
+  String get browseSourceFiles => '瀏覽檔案';
+
+  @override
+  String get sourceConnectionDetails => '連線詳情';
+
+  @override
+  String get sourceAwaitingVerification => '待驗證';
+
+  @override
+  String sourceFileCount(int count) {
+    return '$count 個檔案來源';
+  }
+
+  @override
+  String get sourceRootFolder => '根目錄';
+
+  @override
+  String get rescanFileSource => '重新掃描';
 }

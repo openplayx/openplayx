@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/features/ai_assistant/adapters/flyer_chat_adapter.dart';
@@ -17,9 +16,8 @@ void main() {
   late Database db;
   late AssistantStore store;
   setUp(() {
-    FlutterSecureStorage.setMockInitialValues({});
     db = sqlite3.openInMemory();
-    store = AssistantStore(db);
+    store = AssistantStore(db, configuration: sqlite3.openInMemory());
   });
   tearDown(() => db.close());
 

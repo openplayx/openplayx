@@ -4,8 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../services/conversations/conversation_coordinator.dart';
-import '../../../ui/icons/app_icons.dart';
 import '../models/ai_tool_labels.dart';
+import 'ai_disclosure.dart';
 
 /// Three dots, one highlighted in turn. Stepped by a timer rather than a
 /// continuous animation: cheap, and static when animations are disabled.
@@ -139,74 +139,48 @@ class AiActivityRow extends StatelessWidget {
   }
 }
 
-/// The model's reasoning: live while streaming, folded afterwards.
-class AiReasoningBlock extends StatefulWidget {
+/// The model's reasoning, folded behind a one-line header: "Thinking…"
+/// shimmering while it streams, then how long it took. Tap to read it.
+class AiReasoningBlock extends StatelessWidget {
   const AiReasoningBlock({
     super.key,
     required this.text,
     this.streaming = false,
+    this.duration,
   });
   final String text;
   final bool streaming;
-  @override
-  State<AiReasoningBlock> createState() => _AiReasoningBlockState();
-}
-
-class _AiReasoningBlockState extends State<AiReasoningBlock> {
-  bool? _expanded;
+  final Duration? duration;
 
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
-    final colors = theme.colorScheme;
-    final expanded = _expanded ?? widget.streaming;
-    // While streaming show the latest part so it reads like live thinking.
-    var text = widget.text.trim();
-    if (!expanded) {
-      text = '';
-    } else if (widget.streaming && text.length > 800) {
-      text = '…${text.substring(text.length - 800)}';
-    }
-    return Container(
-      decoration: BoxDecoration(
-        border: Border(left: BorderSide(color: colors.border, width: 2)),
+    final body = text.trim();
+    return AiDisclosure(
+      active: streaming,
+      leading: streaming ? const AiSpinner() : null,
+      label: Text(
+        AiToolLabels.reasoning(
+          context,
+          streaming: streaming,
+          duration: duration,
+        ),
       ),
-      padding: const EdgeInsets.only(left: 12),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          InkWell(
-            onTap: () => setState(() => _expanded = !expanded),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 4),
-              child: Row(
-                children: [
-                  Text(
-                    AiToolLabels.reasoning(
-                      context,
-                      streaming: widget.streaming,
-                    ),
-                    style: theme.textTheme.muted,
-                  ),
-                  const SizedBox(width: 6),
-                  if (widget.streaming) const AiTypingDots(size: 4),
-                  const Spacer(),
-                  Icon(
-                    expanded ? AppIcons.collapse : AppIcons.expand,
-                    size: 16,
-                    color: colors.mutedForeground,
-                  ),
-                ],
+      body: body.isEmpty
+          ? null
+          : Container(
+              margin: const EdgeInsets.only(top: 2, bottom: 6),
+              padding: const EdgeInsetsDirectional.only(start: 12),
+              decoration: BoxDecoration(
+                border: BorderDirectional(
+                  start: BorderSide(color: theme.colorScheme.border, width: 2),
+                ),
+              ),
+              child: SelectableText(
+                body,
+                style: theme.textTheme.muted.copyWith(height: 1.5),
               ),
             ),
-          ),
-          if (text.isNotEmpty)
-            SelectableText(
-              text,
-              style: theme.textTheme.muted.copyWith(height: 1.5),
-            ),
-        ],
-      ),
     );
   }
 }

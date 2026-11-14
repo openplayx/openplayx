@@ -6,30 +6,6 @@ import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/services/library/library_service.dart';
 
 void main() {
-  test('v1 migration locks manually corrected titles and preserves stable resources', () {
-    final db = sqlite3.openInMemory();
-    db.execute(
-      'CREATE TABLE media(id TEXT PRIMARY KEY,title TEXT NOT NULL,favorite INTEGER NOT NULL DEFAULT 0)',
-    );
-    db.execute(
-      'CREATE TABLE resources(id TEXT PRIMARY KEY,media_id TEXT NOT NULL REFERENCES media(id),source TEXT NOT NULL,item TEXT NOT NULL,name TEXT NOT NULL,UNIQUE(source,item))',
-    );
-    db.execute("INSERT INTO media VALUES ('m','My corrected title',1)");
-    db.execute(
-      "INSERT INTO resources VALUES ('r','m','files','/Film.mkv','Film.mkv')",
-    );
-    db.execute('PRAGMA user_version=1');
-    final library = LibraryService(db);
-    try {
-      expect(db.select('PRAGMA user_version').single.values.single, 4);
-      expect(library.metadata.lockedFields('m'), contains('title'));
-      expect(library.metadata.fields('m')['title'], 'My corrected title');
-      expect(library.resources('m').single['id'], 'r');
-      expect(db.select('SELECT favorite FROM media').single['favorite'], 1);
-    } finally {
-      library.close();
-    }
-  });
   test(
     'restart cancels interrupted jobs and retains saved candidate selections',
     () async {

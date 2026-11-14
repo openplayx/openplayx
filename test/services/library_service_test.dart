@@ -48,14 +48,8 @@ void main() {
   test(
     'file sources are named, can be disabled and hide only their own media',
     () async {
-      final library = service.defaultLibrary();
-      expect(
-        service.defaultLibrary(),
-        library,
-        reason: 'implicit library is stable',
-      );
-      final a = service.bind(library, 's', root: '/a', name: 'Movies');
-      final b = service.bind(library, 's', root: '/b');
+      final a = service.addFileSource('s', root: '/a', name: 'Movies');
+      final b = service.addFileSource('s', root: '/b');
       sources.entries = [
         const SourceEntry(
           ResourceRef('s', '/a/one.mp4'),
@@ -73,9 +67,9 @@ void main() {
       ];
       await service.scan(b, sources);
       expect(service.fileSources().map((r) => r['name']), ['Movies', null]);
-      expect(service.query(null), hasLength(2));
-      service.setBindingEnabled(a, false);
-      expect(service.query(null).single['title'], 'Two.mp4');
+      expect(service.query(), hasLength(2));
+      service.setFileSourceEnabled(a, false);
+      expect(service.query().single['title'], 'Two.mp4');
       expect(
         () => service.scan(a, sources),
         throwsA(isA<StateError>()),
@@ -87,34 +81,30 @@ void main() {
                   .select("SELECT id FROM media WHERE title='One.mp4'")
                   .single['id']
               as String;
-      service.addManual(library, one);
-      expect(service.query(null), hasLength(2));
-      service.setBindingEnabled(a, true);
-      service.renameBinding(b, '  Shows ');
+      service.addManual(one);
+      expect(service.query(), hasLength(2));
+      service.setFileSourceEnabled(a, true);
+      service.renameFileSource(b, '  Shows ');
       expect(service.fileSources().last['name'], 'Shows');
-      expect(() => service.renameBinding(b, ' '), throwsArgumentError);
+      expect(() => service.renameFileSource(b, ' '), throwsArgumentError);
     },
   );
   test('hide removes a title from every library and can be restored', () {
-    final first = service.create('First');
-    final second = service.create('Second');
     final media = service.register(sources.entries.first);
-    service.addManual(first, media);
-    service.addManual(second, media);
+    service.addManual(media);
+    service.addManual(media);
     service.hide(media);
-    expect(service.query(null), isEmpty);
+    expect(service.query(), isEmpty);
     expect(service.db.select('SELECT * FROM resources'), hasLength(1));
-    service.clearAllIgnored();
+    service.clearIgnored();
     expect(service.db.select('SELECT * FROM ignored'), isEmpty);
   });
   test(
     'all libraries deduplicate shared media and exclude unfiled playback',
     () {
-      final first = service.create('First');
-      final second = service.create('Second');
       final shared = service.register(sources.entries.first);
-      service.addManual(first, shared);
-      service.addManual(second, shared);
+      service.addManual(shared);
+      service.addManual(shared);
       service.register(
         const SourceEntry(
           ResourceRef('s', '/unfiled.mp4'),
@@ -122,8 +112,8 @@ void main() {
           isFolder: false,
         ),
       );
-      expect(service.query(null).map((r) => r['id']), [shared]);
-      expect(service.query(first).map((r) => r['id']), [shared]);
+      expect(service.query().map((r) => r['id']), [shared]);
+      expect(service.query().map((r) => r['id']), [shared]);
     },
   );
 
@@ -147,30 +137,27 @@ void main() {
   );
   test('direct identity is reused, repeated scans and multiple libraries share media', () async {
     final media = service.register(sources.entries.first);
-    final a = service.create('A');
-    final b = service.create('B');
-    expect(service.query(a), isEmpty);
-    final binding = service.bind(a, 's');
+    expect(service.query(), isEmpty);
+    final binding = service.addFileSource('s');
     await service.scan(binding, sources);
     await service.scan(binding, sources);
-    await service.scan(service.bind(b, 's'), sources);
-    expect(service.query(a).single['id'], media);
+    await service.scan(service.addFileSource('s'), sources);
+    expect(service.query().single['id'], media);
     service.favorite(media, true);
-    expect(service.query(b, favorites: true).single['id'], media);
+    expect(service.query(favorites: true).single['id'], media);
     service.rename(media, 'User title');
     await service.scan(binding, sources);
-    expect(service.query(a).single['title'], 'User title');
+    expect(service.query().single['title'], 'User title');
   });
   test('failed scan retains availability; completed empty scan marks unavailable without deletion', () async {
-    final a = service.create('A');
-    final binding = service.bind(a, 's');
+    final binding = service.addFileSource('s');
     await service.scan(binding, sources);
     sources.fail = true;
     await expectLater(
       service.scan(binding, sources),
       throwsA(isA<PluginException>()),
     );
-    expect(service.query(a), hasLength(1));
+    expect(service.query(), hasLength(1));
     expect(
       service.db.select('SELECT available FROM evidence').single['available'],
       1,
@@ -182,23 +169,22 @@ void main() {
       service.db.select('SELECT available FROM evidence').single['available'],
       0,
     );
-    expect(service.query(a), hasLength(1));
+    expect(service.query(), hasLength(1));
   });
   test(
     'removal persists across scan and deletion preserves media and favorites',
     () async {
-      final a = service.create('A');
-      final binding = service.bind(a, 's');
+      final binding = service.addFileSource('s');
       await service.scan(binding, sources);
-      final media = service.query(a).single['id'] as String;
+      final media = service.query().single['id'] as String;
       service.favorite(media, true);
-      service.remove(a, media);
+      service.hide(media);
       await service.scan(binding, sources);
-      expect(service.query(a), isEmpty);
-      service.clearIgnored(a);
+      expect(service.query(), isEmpty);
+      service.clearIgnored();
       await service.scan(binding, sources);
-      expect(service.query(a), hasLength(1));
-      service.delete(a);
+      expect(service.query(), hasLength(1));
+      service.removeFileSource(binding);
       expect(service.resources(media), hasLength(1));
       expect(
         service.db.select('SELECT favorite FROM media').single['favorite'],
@@ -207,8 +193,7 @@ void main() {
     },
   );
   test('stable pagination and literal search', () async {
-    final a = service.create('A');
-    final binding = service.bind(a, 's');
+    final binding = service.addFileSource('s');
     sources.entries = List.generate(
       45,
       (i) => SourceEntry(
@@ -218,8 +203,8 @@ void main() {
       ),
     );
     await service.scan(binding, sources);
-    final first = service.query(a);
-    final second = service.query(a, offset: 40);
+    final first = service.query();
+    final second = service.query(offset: 40);
     expect(first, hasLength(40));
     expect(second, hasLength(5));
     expect(
@@ -229,7 +214,7 @@ void main() {
           .intersection(second.map((r) => r['id']).toSet()),
       isEmpty,
     );
-    expect(service.query(a, search: '%'), isEmpty);
+    expect(service.query(search: '%'), isEmpty);
   });
   test('direct local identity preserves the exact resource timeline across locators', () async {
     const direct = SourceEntry(
@@ -246,9 +231,8 @@ void main() {
       const Duration(seconds: 90),
       const Duration(minutes: 10),
     );
-    final a = service.create('A');
-    await service.scan(service.bind(a, 's'), sources);
-    expect(service.query(a).single['id'], media);
+    await service.scan(service.addFileSource('s'), sources);
+    expect(service.query().single['id'], media);
     expect(service.resourceFor(sources.entries.first.ref)!['id'], resource);
     expect(service.checkpoint(resource)!['position'], 90000);
     expect(service.resources(media), hasLength(2));
@@ -288,22 +272,20 @@ void main() {
     expect(service.continueWatching(), isEmpty);
   });
   test('manual and other binding evidence survive binding removal', () async {
-    final a = service.create('A');
-    final one = service.bind(a, 's');
-    final two = service.bind(a, 's');
+    final one = service.addFileSource('s');
+    final two = service.addFileSource('s');
     await service.scan(one, sources);
     await service.scan(two, sources);
-    final media = service.query(a).single['id'] as String;
-    service.removeBinding(one);
-    expect(service.query(a), hasLength(1));
-    service.addManual(a, media);
-    service.removeBinding(two);
-    expect(service.query(a), hasLength(1));
+    final media = service.query().single['id'] as String;
+    service.removeFileSource(one);
+    expect(service.query(), hasLength(1));
+    service.addManual(media);
+    service.removeFileSource(two);
+    expect(service.query(), hasLength(1));
     expect(service.resources(media), hasLength(1));
   });
   test('persisted page cursor resumes after restart without re-reading completed pages', () async {
-    final a = service.create('A');
-    final binding = service.bind(a, 's');
+    final binding = service.addFileSource('s');
     sources.handler = (request) async {
       if (request.offset == 0) {
         return BrowseResult(sources.entries, nextOffset: 100);
@@ -314,9 +296,9 @@ void main() {
       service.scan(binding, sources),
       throwsA(isA<PluginException>()),
     );
-    expect(service.query(a), hasLength(1));
+    expect(service.query(), hasLength(1));
     // Reopening the repository reconstructs task state entirely from SQLite.
-    service = LibraryService(service.db);
+    service = LibraryService(service.db, configuration: service.configuration);
     sources.handler = (request) async {
       expect(request.offset, 100);
       return const BrowseResult([]);
@@ -344,8 +326,7 @@ void main() {
       season: 1,
       episode: 1,
     );
-    final a = service.create('TV');
-    final binding = service.bind(a, 's');
+    final binding = service.addFileSource('s');
     // Use a server instance to retain its content semantics, without filename guessing.
     sources.handler = (request) async {
       if (request.node == null) {
@@ -384,17 +365,16 @@ void main() {
       ]);
     };
     await service.scan(binding, sources);
-    final show = service.query(a).single;
+    final show = service.query().single;
     expect(show['title'], 'Series');
     final seasonRow = service.children(show['id'] as String).single;
     final ep = service.children(seasonRow['id'] as String).single;
     expect(service.resources(ep['id'] as String), hasLength(2));
-    expect(service.query(a, search: 'Episode'), hasLength(1));
-    service.removeBinding(binding);
-    expect(service.query(a), isEmpty);
+    expect(service.query(search: 'Episode'), hasLength(1));
+    service.removeFileSource(binding);
+    expect(service.query(), isEmpty);
   });
   test('same titles stay distinct and filters execute against authoritative records', () async {
-    final a = service.create('A');
     sources.entries = const [
       SourceEntry(
         ResourceRef('s', '/one.mp4'),
@@ -413,12 +393,12 @@ void main() {
         isFolder: false,
       ),
     ];
-    await service.scan(service.bind(a, 's'), sources);
-    expect(service.query(a), hasLength(2));
-    expect(service.query(a, contentType: 'movie', year: 2020), hasLength(1));
-    expect(service.query(a, contentType: 'video'), hasLength(1));
-    expect(service.query(a, source: 'other'), isEmpty);
-    final movie = service.query(a, contentType: 'movie').single['id'] as String;
+    await service.scan(service.addFileSource('s'), sources);
+    expect(service.query(), hasLength(2));
+    expect(service.query(contentType: 'movie', year: 2020), hasLength(1));
+    expect(service.query(contentType: 'video'), hasLength(1));
+    expect(service.query(source: 'other'), isEmpty);
+    final movie = service.query(contentType: 'movie').single['id'] as String;
     final resource = service.resources(movie).single['id'] as String;
     service.saveProgress(
       resource,
@@ -427,8 +407,8 @@ void main() {
       const Duration(minutes: 10),
       completed: true,
     );
-    expect(service.query(a, watched: true), hasLength(1));
-    expect(service.query(a, watched: false), hasLength(1));
+    expect(service.query(watched: true), hasLength(1));
+    expect(service.query(watched: false), hasLength(1));
   });
   test('cyclic upstream hierarchy rolls back invalid media', () {
     service.register(
@@ -463,8 +443,7 @@ void main() {
     expect(service.db.select('SELECT * FROM media'), hasLength(1));
   });
   test('a running scan reports the valid media files found so far', () async {
-    final library = service.create('Movies');
-    final binding = service.bind(library, 's');
+    final binding = service.addFileSource('s');
     final seen = <int>[];
     sources.handler = (request) async {
       if (request.node == null) {
@@ -485,7 +464,6 @@ void main() {
     expect(service.scannedMediaCount(binding), 0, reason: 'scan finished');
   });
   test('media that are only hidden dot files never show in the library', () {
-    final library = service.create('Movies');
     final sidecar = service.register(
       const SourceEntry(
         ResourceRef('s', '/._Film.mp4'),
@@ -500,9 +478,9 @@ void main() {
         isFolder: false,
       ),
     );
-    service.addManual(library, sidecar);
-    service.addManual(library, film);
-    expect(service.query(library).map((m) => m['id']), [film]);
+    service.addManual(sidecar);
+    service.addManual(film);
+    expect(service.query().map((m) => m['id']), [film]);
   });
 
   test(
@@ -579,12 +557,11 @@ void main() {
   test(
     'a metadata series built only from hidden sidecars is not a duplicate',
     () {
-      final library = service.create('Shows');
       String episodeFile(String name) {
         final media = service.register(
           SourceEntry(ResourceRef('s', '/show/$name'), name, isFolder: false),
         );
-        service.addManual(library, media);
+        service.addManual(media);
         return media;
       }
 
@@ -605,7 +582,7 @@ void main() {
           (scope: 'tmdb:$scope:season', record: season),
         ], operationId: 'test-$scope');
       }
-      final series = service.query(library, contentType: 'series');
+      final series = service.query(contentType: 'series');
       expect(series.map((m) => m['title']), ['Show']);
       final seasons = service.children(series.single['id'] as String);
       expect(seasons, hasLength(1));
@@ -617,7 +594,6 @@ void main() {
   );
 
   test('background identification skips media that are only sidecars', () {
-    final library = service.create('Shows');
     final sidecar = service.register(
       const SourceEntry(
         ResourceRef('s', '/._Film.mp4'),
@@ -625,7 +601,7 @@ void main() {
         isFolder: false,
       ),
     );
-    service.addManual(library, sidecar);
+    service.addManual(sidecar);
     final queue = MetadataQueue(service.db);
     while (true) {
       final work = queue.claim('test');

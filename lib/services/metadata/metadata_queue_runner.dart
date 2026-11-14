@@ -28,10 +28,7 @@ class MetadataQueueRunner {
        // ignore: prefer_initializing_formals
        _registry = registry,
        _credentials =
-           credentials ??
-           (() => tmdbCredentialStorage.read(
-             key: 'openplayx.metadata.tmdb.token',
-           )),
+           credentials ?? (() async => library.metadata.setting(tmdbTokenKey)),
        artwork =
            artwork ??
            ArtworkService(
@@ -70,18 +67,17 @@ class MetadataQueueRunner {
         revisions[r['source']],
       ]);
     }
-    final kindsByMedia = <String, List<Object?>>{};
-    for (final r in library.db.select(
-      'SELECT m.media_id,l.type FROM memberships m JOIN libraries l ON l.id=m.library_id ORDER BY m.media_id,l.id',
-    )) {
-      (kindsByMedia[r['media_id'] as String] ??= []).add(r['type']);
-    }
+    final members = [
+      for (final r in library.db.select(
+        'SELECT media_id FROM memberships ORDER BY media_id',
+      ))
+        r['media_id'] as String,
+    ];
     final language = library.metadata.setting('language');
     final tmdbRevision = library.metadata.setting('tmdbRevision');
-    for (final media in kindsByMedia.keys) {
+    for (final media in members) {
       inputs[media] = MetadataQueue.fingerprint([
         resourcesByMedia[media] ?? const <List<Object?>>[],
-        kindsByMedia[media]!,
         language,
         tmdbRevision,
       ]);
@@ -269,20 +265,19 @@ class MetadataQueueRunner {
     int phase, {
     required bool allowOnline,
   }) async {
-    final libraries = library.db.select(
-      'SELECT l.type FROM memberships m JOIN libraries l ON l.id=m.library_id WHERE m.media_id=?',
+    final member = library.db.select(
+      'SELECT 1 FROM memberships WHERE media_id=?',
       [media],
     );
     final resources = library.resources(media);
-    if (libraries.isEmpty) return;
-    if (libraries.every((l) => ['home', 'audio'].contains(l['type'])) ||
-        resources.isNotEmpty &&
-            resources.every(
-              (r) => RegExp(
-                r'\.(mp3|flac|wav|ogg|m4a)$',
-                caseSensitive: false,
-              ).hasMatch(r['name'] as String),
-            )) {
+    if (member.isEmpty) return;
+    if (resources.isNotEmpty &&
+        resources.every(
+          (r) => RegExp(
+            r'\.(mp3|flac|wav|ogg|m4a)$',
+            caseSensitive: false,
+          ).hasMatch(r['name'] as String),
+        )) {
       queue.finish(media, owner, 'skipped', error: 'notFilmMedia');
       return;
     }

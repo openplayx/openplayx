@@ -55,12 +55,7 @@ void main() {
         isFolder: false,
       ),
     );
-    final lib = library.create('Movies');
-    library.db.execute('INSERT INTO memberships VALUES (?,?,?)', [
-      lib,
-      media,
-      1,
-    ]);
+    library.db.execute('INSERT INTO memberships VALUES (?,?)', [media, 1]);
     final resource = library.resources(media).single['id'] as String;
     final session = library.beginSession(resource);
     library.saveProgress(
@@ -109,7 +104,6 @@ void main() {
       'folder_ref': folderRef,
     });
     final fileRef = (inner.data['entries'] as List).single['ref'];
-    await call('library_list', {});
     await call('library_query', {'query': 'Film'});
     await call('media_get', {'media_id': media});
     await call('search_media', {'query': 'Film'});
@@ -130,17 +124,32 @@ void main() {
 
     for (final e in results.entries) {
       // ignore: avoid_print
-      print('${e.key.padRight(28)} ${e.value.status} '
-          '${e.value.error ?? ''} ${jsonEncode(e.value.data)}');
+      print(
+        '${e.key.padRight(28)} ${e.value.status} '
+        '${e.value.error ?? ''} ${jsonEncode(e.value.data)}',
+      );
     }
     final missing = allowed.difference(results.keys.toSet());
     expect(missing, isEmpty, reason: 'untested tools: $missing');
     expect(
-      results.entries.where((e) => e.value.status != 'success').map((e) => e.key),
+      results.entries
+          .where((e) => e.value.status != 'success')
+          .map((e) => e.key),
       isEmpty,
     );
-    expect(library.db.select('SELECT favorite FROM media').single['favorite'], 1);
-    expect(controls, ['pause', 'resume', 'seek', 'set_speed', 'set_volume', 'set_subtitle', 'stop']);
+    expect(
+      library.db.select('SELECT favorite FROM media').single['favorite'],
+      1,
+    );
+    expect(controls, [
+      'pause',
+      'resume',
+      'seek',
+      'set_speed',
+      'set_volume',
+      'set_subtitle',
+      'stop',
+    ]);
     expect((results['progress_query']!.data['progress'] as List), isNotEmpty);
   });
 }

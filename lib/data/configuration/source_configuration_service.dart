@@ -1,13 +1,11 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../sources/source_config.dart';
 import '../sources/source_schema.dart';
+import 'configuration_database.dart';
 
 class ConfigurationIssue {
   const ConfigurationIssue(this.instanceId, this.message);
@@ -26,52 +24,31 @@ class SourceBindings {
   final int revision;
 }
 
-/// SQLite is authoritative; legacy preferences are read once and removed only
-/// after a successful transaction. Unknown/incompatible rows remain untouched.
+/// SQLite is authoritative. Unknown/incompatible rows remain untouched.
 class SourceConfigurationService {
   SourceConfigurationService(this._db) {
     _initialize();
   }
   final Database _db;
+
+  /// The `configuration.sqlite3` connection, for the other configuration
+  /// owners (ASR, external services, assistant, …).
+  Database get db => _db;
   final issues = <ConfigurationIssue>[];
   static Future<SourceConfigurationService> open() async {
-    final directory = await getApplicationSupportDirectory();
-    await directory.create(recursive: true);
     final service = SourceConfigurationService(
-      sqlite3.open(
-        '${directory.path}${Platform.pathSeparator}configuration.sqlite3',
-      ),
+      await ConfigurationDatabase.open(),
     );
-    await service.migrateLegacy();
     return service;
   }
 
   void _initialize() {
-    _db.execute('PRAGMA foreign_keys = ON');
-    _db.execute('PRAGMA busy_timeout = 5000');
-    final version = _db.select('PRAGMA user_version').first.values.first as int;
-    if (version > 1) {
+    try {
+      ConfigurationDatabase.initialize(_db);
+    } on StateError {
       _db.close();
       throw const PluginException('unsupported', '本地配置数据库版本较新，请升级应用。');
     }
-    _db.execute(
-      '''CREATE TABLE IF NOT EXISTS plugin_instance_configs (
-      instance_id TEXT PRIMARY KEY, plugin_id TEXT NOT NULL, config_json TEXT NOT NULL,
-      config_version INTEGER NOT NULL, revision INTEGER NOT NULL, enabled_desired INTEGER NOT NULL)''',
-    );
-    _db.execute('''CREATE TABLE IF NOT EXISTS config_applications (
-      target_id TEXT PRIMARY KEY, desired_revision INTEGER NOT NULL, applied_revision INTEGER,
-      status TEXT NOT NULL, error_code TEXT)''');
-    _db.execute('''CREATE TABLE IF NOT EXISTS settings (
-      namespace TEXT NOT NULL, scope TEXT NOT NULL, owner_id TEXT NOT NULL,
-      key TEXT NOT NULL, value_json TEXT NOT NULL, revision INTEGER NOT NULL,
-      PRIMARY KEY(namespace, scope, owner_id, key))''');
-    // Source passwords/tokens. Kept in the app's private SQLite file instead of
-    // the keychain so connecting a source never triggers an OS password prompt.
-    _db.execute(
-      'CREATE TABLE IF NOT EXISTS source_secrets (ref TEXT PRIMARY KEY, secret TEXT NOT NULL)',
-    );
-    _db.execute('PRAGMA user_version = 1');
   }
 
   T _transaction<T>(T Function() body) {
@@ -84,52 +61,6 @@ class SourceConfigurationService {
       _db.execute('ROLLBACK');
       rethrow;
     }
-  }
-
-  Future<void> migrateLegacy() async {
-    final prefs = await SharedPreferences.getInstance();
-    final raw = prefs.getString('source.instances.v1');
-    if (raw == null) return;
-    final records = jsonDecode(raw) as List;
-    _transaction(() {
-      for (final (index, value) in records.indexed) {
-        final record = value is Map<String, dynamic>
-            ? value
-            : <String, dynamic>{'invalid': value};
-        final id = record['id'] is String
-            ? record['id'] as String
-            : 'legacy-invalid-$index';
-        if (_db.select(
-          'SELECT 1 FROM plugin_instance_configs WHERE instance_id=?',
-          [id],
-        ).isNotEmpty) {
-          continue;
-        }
-        Map<String, dynamic> data;
-        try {
-          final config = SourceConfig.fromJson(record).copyWith(
-            revision: 1,
-            credentialRef: record['kind'] == 'local' ? null : 'source.$id',
-          );
-          SourceSchemas.validate(config);
-          data = config.toJson();
-        } catch (_) {
-          data = Map.of(record);
-        }
-        _db.execute(
-          'INSERT INTO plugin_instance_configs VALUES (?,?,?,?,?,?)',
-          [
-            id,
-            'source.${record['kind']}',
-            jsonEncode(data),
-            data['configVersion'] is int ? data['configVersion'] : 2,
-            1,
-            data['enabled'] == false ? 0 : 1,
-          ],
-        );
-      }
-    });
-    await prefs.remove('source.instances.v1');
   }
 
   List<SourceConfig> load() {
@@ -152,7 +83,7 @@ class SourceConfigurationService {
             config.enabled != (row['enabled_desired'] == 1)) {
           throw const FormatException('实例配置与元数据不一致。');
         }
-        configs.add(config);
+        configs.add(config.copyWith(hasSecret: row['secret'] != null));
       } catch (_) {
         issues.add(
           ConfigurationIssue(
@@ -165,11 +96,17 @@ class SourceConfigurationService {
     return List.unmodifiable(configs);
   }
 
-  SourceConfig save(SourceConfig config, {required int expectedRevision}) {
+  /// Saves [config]; [secret] replaces the saved password or token, null
+  /// keeps it.
+  SourceConfig save(
+    SourceConfig config, {
+    required int expectedRevision,
+    String? secret,
+  }) {
     SourceSchemas.validate(config);
     return _transaction(() {
       final rows = _db.select(
-        'SELECT revision, config_version FROM plugin_instance_configs WHERE instance_id=?',
+        'SELECT revision, config_version, secret FROM plugin_instance_configs WHERE instance_id=?',
         [config.id],
       );
       if (rows.isNotEmpty && rows.first['config_version'] != 2) {
@@ -179,9 +116,14 @@ class SourceConfigurationService {
       if (revision != expectedRevision) {
         throw const PluginException('conflict', '配置已被其他窗口修改，请重新加载后编辑。');
       }
-      final saved = config.copyWith(revision: revision + 1);
+      final stored =
+          secret ?? (rows.isEmpty ? null : rows.first['secret'] as String?);
+      final saved = config.copyWith(
+        revision: revision + 1,
+        hasSecret: stored != null,
+      );
       _db.execute(
-        'INSERT OR REPLACE INTO plugin_instance_configs VALUES (?,?,?,?,?,?)',
+        'INSERT OR REPLACE INTO plugin_instance_configs VALUES (?,?,?,?,?,?,?)',
         [
           saved.id,
           saved.pluginId,
@@ -189,12 +131,8 @@ class SourceConfigurationService {
           saved.configVersion,
           saved.revision,
           saved.enabled ? 1 : 0,
+          stored,
         ],
-      );
-      _db.execute(
-        '''INSERT INTO config_applications VALUES (?,?,NULL,?,NULL) ON CONFLICT(target_id) DO UPDATE SET
-          desired_revision=excluded.desired_revision,status=excluded.status,error_code=NULL''',
-        [saved.id, saved.revision, saved.enabled ? 'pending' : 'disabled'],
       );
       if (!saved.enabled) _removeBindings(saved.id);
       return saved;
@@ -214,40 +152,7 @@ class SourceConfigurationService {
     _db.execute('DELETE FROM plugin_instance_configs WHERE instance_id=?', [
       id,
     ]);
-    _db.execute('DELETE FROM config_applications WHERE target_id=?', [id]);
   });
-  void markApplication(
-    SourceConfig config,
-    String status, {
-    String? errorCode,
-  }) {
-    final current = _db.select(
-      'SELECT revision FROM plugin_instance_configs WHERE instance_id=?',
-      [config.id],
-    );
-    if (current.isEmpty || current.first['revision'] != config.revision) return;
-    _db.execute(
-      '''INSERT INTO config_applications VALUES (?,?,?,?,?) ON CONFLICT(target_id) DO UPDATE SET
-      desired_revision=excluded.desired_revision, applied_revision=CASE WHEN excluded.status='ready' THEN excluded.applied_revision ELSE config_applications.applied_revision END,
-      status=excluded.status,error_code=excluded.error_code''',
-      [
-        config.id,
-        config.revision,
-        status == 'ready' ? config.revision : null,
-        status,
-        errorCode,
-      ],
-    );
-  }
-
-  Map<String, Object?>? application(String id) {
-    final result = _db.select(
-      'SELECT * FROM config_applications WHERE target_id=?',
-      [id],
-    );
-    return result.isEmpty ? null : Map.of(result.first);
-  }
-
   SourceBindings bindings() {
     final rows = _db.select(
       "SELECT * FROM settings WHERE namespace='sources' AND scope='device' AND owner_id='local' AND key='bindings'",
@@ -394,20 +299,13 @@ class SourceConfigurationService {
     return revision + 1;
   });
 
-  String? readSecret(String ref) {
-    final rows = _db.select('SELECT secret FROM source_secrets WHERE ref=?', [
-      ref,
-    ]);
-    return rows.isEmpty ? null : rows.first['secret'] as String;
-  }
-
-  void writeSecret(String ref, String secret) => _db.execute(
-    'INSERT OR REPLACE INTO source_secrets (ref, secret) VALUES (?,?)',
-    [ref, secret],
-  );
-
-  void deleteSecret(String ref) =>
-      _db.execute('DELETE FROM source_secrets WHERE ref=?', [ref]);
+  /// The password or token saved on instance [id], if any.
+  String? readSecret(String id) =>
+      _db.select(
+            'SELECT secret FROM plugin_instance_configs WHERE instance_id=?',
+            [id],
+          ).firstOrNull?['secret']
+          as String?;
 
   void close() => _db.close();
 }

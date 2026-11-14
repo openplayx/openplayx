@@ -1,21 +1,20 @@
 import 'dart:async';
-import 'dart:convert';
-import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
+import 'package:sqlite3/sqlite3.dart';
 
+import '../configuration/configuration_database.dart';
 import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_transport.dart';
 
 /// The App's network layer, in sing-box / frp terms: one Relay entry point
-/// (a sing-box [outbound] without `uuid`; the credential is in secure storage
-/// under [credentialRef]) and the frpc [proxies] Home registered there.
+/// (a sing-box [outbound] without `uuid`, plus the App user's [credential]
+/// `{"uuid": ...}`) and the frpc [proxies] Home registered there.
 /// Sources only name a proxy; see [SourceRemote].
 class RemoteNetwork {
   const RemoteNetwork({
     this.outbound,
-    this.credentialRef,
+    this.credential,
     this.proxies = const [],
     this.probeTimeoutMs = 2000,
     this.stabilitySeconds = 30,
@@ -26,12 +25,15 @@ class RemoteNetwork {
   static const schemaVersion = 3;
 
   final Map<String, dynamic>? outbound;
-  final String? credentialRef;
+  final Map<String, dynamic>? credential;
   final List<RemoteProxy> proxies;
-  final int probeTimeoutMs, stabilitySeconds, reconnectAttempts, reconnectDelayMs;
+  final int probeTimeoutMs,
+      stabilitySeconds,
+      reconnectAttempts,
+      reconnectDelayMs;
   final bool allowCellular;
 
-  bool get configured => outbound != null && credentialRef != null;
+  bool get configured => outbound != null && credential != null;
 
   RemoteRuntimePolicy get runtimePolicy => RemoteRuntimePolicy(
     probeTimeoutMs: probeTimeoutMs,
@@ -47,7 +49,7 @@ class RemoteNetwork {
   Map<String, dynamic> toJson() => {
     'schemaVersion': schemaVersion,
     if (outbound != null) 'outbound': outbound,
-    if (credentialRef != null) 'credentialRef': credentialRef,
+    if (credential != null) 'credential': credential,
     'proxies': proxies.map((p) => p.toJson()).toList(),
     'policy': {
       'probeTimeoutMs': probeTimeoutMs,
@@ -62,7 +64,7 @@ class RemoteNetwork {
     const keys = {
       'schemaVersion',
       'outbound',
-      'credentialRef',
+      'credential',
       'proxies',
       'policy',
     };
@@ -73,7 +75,9 @@ class RemoteNetwork {
     final p = j['policy'] as Map<String, dynamic>;
     final network = RemoteNetwork(
       outbound: j['outbound'] as Map<String, dynamic>?,
-      credentialRef: j['credentialRef'] as String?,
+      credential: j['credential'] == null
+          ? null
+          : Map<String, dynamic>.from(j['credential'] as Map),
       proxies: [
         for (final item in j['proxies'] as List)
           RemoteProxy(
@@ -93,24 +97,25 @@ class RemoteNetwork {
   }
 
   void validate() {
-    if ((outbound == null) != (credentialRef == null)) {
+    if ((outbound == null) != (credential == null)) {
       throw const FormatException('outbound 与凭据必须同时存在。');
     }
     if (outbound != null) {
       if (outbound!.containsKey('uuid')) {
-        throw const FormatException('实际 UUID 只能保存在安全存储。');
+        throw const FormatException('UUID 只能保存在 credential 中。');
       }
       RemotePairing.validateOutbound({
         ...outbound!,
         'uuid': '11111111-1111-4111-8111-111111111111',
       });
-      if (!RemoteCredentialStore.owns(credentialRef!)) {
-        throw const FormatException('远程凭据引用无效。');
+      if (credential!['uuid'] is! String) {
+        throw const FormatException('远程凭据无效。');
       }
     }
     if (proxies.map((p) => p.name).toSet().length != proxies.length ||
         proxies.any(
-          (p) => p.name.trim().isEmpty || p.remotePort < 1 || p.remotePort > 65535,
+          (p) =>
+              p.name.trim().isEmpty || p.remotePort < 1 || p.remotePort > 65535,
         )) {
       throw const FormatException('proxies 的 name 不能为空或重复，remotePort 须为有效端口。');
     }
@@ -134,7 +139,7 @@ class RemoteNetwork {
     bool? allowCellular,
   }) => RemoteNetwork(
     outbound: outbound,
-    credentialRef: credentialRef,
+    credential: credential,
     proxies: proxies,
     probeTimeoutMs: probeTimeoutMs ?? this.probeTimeoutMs,
     stabilitySeconds: stabilitySeconds ?? this.stabilitySeconds,
@@ -155,7 +160,7 @@ class RemoteNetwork {
     return RemoteAccessConfig(
       proxy: match.name,
       remotePort: match.remotePort,
-      credentialRef: credentialRef!,
+      credential: credential!,
       outbound: outbound!,
       mode: remote.mode,
       localAddress: remote.localAddress,
@@ -164,52 +169,38 @@ class RemoteNetwork {
   }
 }
 
-/// Owns remote_access.json, the App-wide network layer. Changes take effect
-/// when saved; there is no separate apply step.
+/// Owns the App-wide network layer, stored as the `remote_access / network`
+/// settings document in configuration.sqlite3 (the credential itself is in
+/// its `secrets` table). Changes take effect when saved; there is no
+/// separate apply step.
 class RemoteAccessService {
-  RemoteAccessService(Directory directory) : _directory = directory;
-  RemoteAccessService.memory() : _directory = null;
-  final Directory? _directory;
+  RemoteAccessService(this.db) {
+    ConfigurationDatabase.initialize(db);
+  }
+
+  /// A throwaway configuration (tests, and managers without one).
+  RemoteAccessService.memory() : this(sqlite3.openInMemory());
+
+  final Database db;
   RemoteNetwork network = const RemoteNetwork();
   bool _loaded = false;
 
+  static const _namespace = 'remote_access';
+  static const _key = 'network';
+
   static Future<RemoteAccessService> locate() async =>
-      RemoteAccessService(await getApplicationSupportDirectory());
-
-  File _file(String name) =>
-      File('${_directory!.path}${Platform.pathSeparator}$name');
-
-  static const _obsolete = [
-    'remote_access.state.json',
-    'remote_access.backup.json',
-    'remote_access.revision.json',
-    'remote_access.lock',
-  ];
+      RemoteAccessService(await ConfigurationDatabase.open());
 
   Future<void> load() async {
     if (_loaded) return;
-    final directory = _directory;
-    if (directory != null) {
-      final file = _file('remote_access.json');
-      if (await file.exists()) {
-        try {
-          network = RemoteNetwork.fromJson(
-            jsonDecode(await file.readAsString()) as Map<String, dynamic>,
-          );
-        } catch (_) {
-          // Earlier schemas and unreadable files are not converted: they are
-          // kept aside and remote access starts unconfigured.
-          await file.rename(
-            _file(
-              'remote_access.discarded.${DateTime.now().microsecondsSinceEpoch}.json',
-            ).path,
-          );
-          network = const RemoteNetwork();
-        }
-      }
-      for (final name in _obsolete) {
-        final old = _file(name);
-        if (await old.exists()) await old.delete();
+    final value = ConfigurationDatabase.readSetting(db, _namespace, _key);
+    if (value is Map) {
+      try {
+        network = RemoteNetwork.fromJson(Map<String, dynamic>.from(value));
+      } catch (_) {
+        // Unreadable or incompatible settings are dropped: remote access
+        // starts unconfigured.
+        network = const RemoteNetwork();
       }
     }
     _configureTransport();
@@ -226,23 +217,7 @@ class RemoteAccessService {
 
   Future<void> _write(RemoteNetwork next) async {
     next.validate();
-    final directory = _directory;
-    if (directory != null) {
-      await directory.create(recursive: true);
-      final destination = _file('remote_access.json');
-      final temporary = File(
-        '${destination.path}.${DateTime.now().microsecondsSinceEpoch}.tmp',
-      );
-      try {
-        await temporary.writeAsString(
-          '${jsonEncode(next.toJson())}\n',
-          flush: true,
-        );
-        await temporary.rename(destination.path);
-      } finally {
-        if (await temporary.exists()) await temporary.delete();
-      }
-    }
+    ConfigurationDatabase.writeSetting(db, _namespace, _key, next.toJson());
     network = next;
     _configureTransport();
   }
@@ -257,40 +232,20 @@ class RemoteAccessService {
     await load();
     final pair = RemotePairing.parse(text.trim());
     await check?.call(pair.outbound, pair.proxies.first.remotePort);
-    final ref = await RemoteCredentialStore.stage({
-      'uuid': pair.outbound['uuid'],
-    });
-    final previous = network.credentialRef;
-    try {
-      await _write(
-        RemoteNetwork(
-          outbound: {...pair.outbound}..remove('uuid'),
-          credentialRef: ref,
-          proxies: pair.proxies,
-        ),
-      );
-    } catch (_) {
-      await RemoteCredentialStore.delete(ref);
-      rethrow;
-    }
-    if (previous != null && previous != ref) {
-      try {
-        await RemoteCredentialStore.delete(previous);
-      } catch (_) {}
-    }
+    await _write(
+      RemoteNetwork(
+        outbound: {...pair.outbound}..remove('uuid'),
+        credential: {'uuid': pair.outbound['uuid']},
+        proxies: pair.proxies,
+      ),
+    );
     return network;
   }
 
   /// Removes the Relay connection and its credential, resetting local defaults.
   Future<RemoteNetwork> clear() async {
     await load();
-    final previous = network.credentialRef;
     await _write(network.cleared());
-    if (previous != null) {
-      try {
-        await RemoteCredentialStore.delete(previous);
-      } catch (_) {}
-    }
     return network;
   }
 

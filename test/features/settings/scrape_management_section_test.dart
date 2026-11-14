@@ -61,7 +61,7 @@ void main() {
         isFolder: false,
       ),
     );
-    library.addManual(library.create('Films'), media);
+    library.addManual(media);
     library.transaction(
       () => library.metadata.apply(
         media,

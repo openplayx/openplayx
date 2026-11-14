@@ -4,6 +4,8 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../icons/app_icons.dart';
 import '../tokens/app_spacing.dart';
 import 'assistant_action.dart';
+import 'page_context_scope.dart';
+export 'page_context_scope.dart';
 
 /// Page structure grows with text scaling and wraps actions on narrow windows.
 class AppPage extends StatelessWidget {
@@ -13,8 +15,10 @@ class AppPage extends StatelessWidget {
     required this.body,
     this.actions = const [],
     this.trailing = const [],
+    required this.pageContext,
   });
   final Widget title, body;
+  final PageContextData pageContext;
 
   /// Height of the header row (title, back button and header controls).
   static const headerHeight = 40.0;
@@ -39,92 +43,104 @@ class AppPage extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = ShadTheme.of(context);
-    return Scaffold(
-      body: SafeArea(
-        child: Column(
-          children: [
-            Container(
-              width: double.infinity,
-              padding: EdgeInsets.fromLTRB(
-                AppSpacing.page(context).left,
-                AppSpacing.md,
-                AppSpacing.page(context).right,
-                AppSpacing.md,
-              ),
-              decoration: BoxDecoration(
-                border: Border(
-                  bottom: BorderSide(color: theme.colorScheme.border),
+    return PageContextScope(
+      data: PageContextData(
+        pageType: pageContext.pageType,
+        title:
+            pageContext.title ?? (title is Text ? (title as Text).data : null),
+        entity: pageContext.entity,
+        state: pageContext.state,
+      ),
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(
+            children: [
+              Container(
+                width: double.infinity,
+                padding: EdgeInsets.fromLTRB(
+                  AppSpacing.page(context).left,
+                  AppSpacing.md,
+                  AppSpacing.page(context).right,
+                  AppSpacing.md,
                 ),
-              ),
-              // One header height for every page: controls placed in the
-              // header use a compact button size so they never grow it.
-              child: ShadTheme(
-                data: _compactHeaderTheme(theme),
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: headerHeight),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: LayoutBuilder(
-                          builder: (context, box) => Wrap(
-                            spacing: AppSpacing.lg,
-                            runSpacing: AppSpacing.sm,
-                            crossAxisAlignment: WrapCrossAlignment.center,
-                            children: [
-                              Row(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  if (Navigator.of(context).canPop())
-                                    Tooltip(
-                                      message: MaterialLocalizations.of(context)
-                                          .backButtonTooltip,
-                                      child: Semantics(
-                                        label: MaterialLocalizations.of(context)
-                                            .backButtonTooltip,
-                                        button: true,
-                                        child: ShadIconButton.ghost(
-                                          icon: const Icon(AppIcons.back),
-                                          onPressed: () =>
-                                              Navigator.of(context).maybePop(),
+                decoration: BoxDecoration(
+                  border: Border(
+                    bottom: BorderSide(color: theme.colorScheme.border),
+                  ),
+                ),
+                // One header height for every page: controls placed in the
+                // header use a compact button size so they never grow it.
+                child: ShadTheme(
+                  data: _compactHeaderTheme(theme),
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(minHeight: headerHeight),
+                    child: Row(
+                      children: [
+                        Expanded(
+                          child: LayoutBuilder(
+                            builder: (context, box) => Wrap(
+                              spacing: AppSpacing.lg,
+                              runSpacing: AppSpacing.sm,
+                              crossAxisAlignment: WrapCrossAlignment.center,
+                              children: [
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    if (Navigator.of(context).canPop())
+                                      Tooltip(
+                                        message: MaterialLocalizations.of(
+                                          context,
+                                        ).backButtonTooltip,
+                                        child: Semantics(
+                                          label: MaterialLocalizations.of(
+                                            context,
+                                          ).backButtonTooltip,
+                                          button: true,
+                                          child: ShadIconButton.ghost(
+                                            icon: const Icon(AppIcons.back),
+                                            onPressed: () =>
+                                                Navigator.of(context)
+                                                    .maybePop(),
+                                          ),
                                         ),
                                       ),
-                                    ),
-                                  Flexible(
-                                    child: DefaultTextStyle(
-                                      style: theme.textTheme.h4.copyWith(
-                                        color: theme.colorScheme.foreground,
+                                    Flexible(
+                                      child: DefaultTextStyle(
+                                        style: theme.textTheme.h4.copyWith(
+                                          color: theme.colorScheme.foreground,
+                                        ),
+                                        child: title,
                                       ),
-                                      child: title,
                                     ),
-                                  ),
-                                ],
-                              ),
-                              if (actions.isNotEmpty)
-                                Wrap(
-                                  spacing: AppSpacing.xs,
-                                  runSpacing: AppSpacing.xs,
-                                  children: actions,
+                                  ],
                                 ),
-                            ],
+                                if (actions.isNotEmpty)
+                                  Wrap(
+                                    spacing: AppSpacing.xs,
+                                    runSpacing: AppSpacing.xs,
+                                    children: actions,
+                                  ),
+                              ],
+                            ),
                           ),
                         ),
-                      ),
-                      for (final widget in trailing) ...[
-                        const SizedBox(width: AppSpacing.xs),
-                        widget,
+                        for (final widget in trailing) ...[
+                          const SizedBox(width: AppSpacing.xs),
+                          widget,
+                        ],
+                        // Part of the page, so it slides with route transitions.
+                        if (AssistantAction.maybeOf(context) != null) ...[
+                          const SizedBox(width: AppSpacing.sm),
+                          const AssistantButton(size: headerHeight),
+                        ],
                       ],
-                      // Part of the page, so it slides with route transitions.
-                      if (AssistantAction.maybeOf(context) != null) ...[
-                        const SizedBox(width: AppSpacing.sm),
-                        const AssistantButton(size: headerHeight),
-                      ],
-                    ],
+                    ),
                   ),
                 ),
               ),
-            ),
-            Expanded(child: body),
-          ],
+              Expanded(child: body),
+            ],
+          ),
         ),
       ),
     );

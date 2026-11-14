@@ -411,156 +411,172 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final developer = AppAppearance.maybeOf(context)?.developerMode ?? false;
     final top = MediaQuery.paddingOf(context).top;
     final assistant = AssistantAction.maybeOf(context);
-    return Scaffold(
-      backgroundColor: _C.base,
-      body: DefaultTextStyle.merge(
-        style: TextStyle(
-          color: _C.text,
-          fontFamily: ShadTheme.of(context).textTheme.p.fontFamily,
-          fontFamilyFallback: ShadTheme.of(context)
-              .textTheme
-              .p
-              .fontFamilyFallback,
-        ),
-        child: Stack(
-          children: [
-            Positioned.fill(
-              child: _Wash(service: widget.artwork, art: wash),
-            ),
-            LayoutBuilder(
-              builder: (context, box) {
-                final width = box.maxWidth;
-                final wide = width >= 640;
-                final heroHeight = backdrop == null
-                    ? (wide ? 420.0 : 300.0)
-                    : (width * 9 / 16).clamp(260.0, box.maxHeight * 0.85);
-                return Stack(
-                  children: [
-                    if (backdrop != null)
-                      Positioned(
-                        top: 0,
-                        left: 0,
-                        right: 0,
-                        height: heroHeight,
-                        child: _Hero(service: widget.artwork, art: backdrop),
-                      ),
-                    ListView(
-                      padding: EdgeInsets.only(bottom: _M.sectionGap + 16),
-                      children: [
-                        Container(
-                          constraints: BoxConstraints(
-                            minHeight: heroHeight - 42,
-                          ),
-                          alignment: Alignment.bottomLeft,
-                          padding: EdgeInsets.fromLTRB(
-                            _M.gutter + (wide ? _M.columnInset : 0),
-                            top + 72,
-                            wide ? _M.rightPadding : _M.gutter,
-                            0,
-                          ),
-                          child: wide
-                              ? _wideInfo(title, fields)
-                              : _narrowInfo(title, fields),
-                        ),
-                        const SizedBox(height: 52),
-                        ..._sections(fields, title),
-                      ],
-                    ),
-                  ],
-                );
-              },
-            ),
-            // Resolving a remote file can take seconds; show it instead of
-            // silently ignoring taps. The back button stays usable above it.
-            if (_busy)
+    return PageContextScope(
+      data: PageContextData(
+        pageType: 'media_detail',
+        title: title,
+        entity: {'media_id': _id, 'kind': fields['kind']},
+        state: {
+          'favorite': service.isFavorite(_id),
+          'watched': service.isWatched(_id),
+          'isSeries': _series,
+          'playable': _series
+              ? _nextEpisode() != null
+              : service.resources(_id).isNotEmpty,
+        },
+      ),
+      child: Scaffold(
+        backgroundColor: _C.base,
+        body: DefaultTextStyle.merge(
+          style: TextStyle(
+            color: _C.text,
+            fontFamily: ShadTheme.of(context).textTheme.p.fontFamily,
+            fontFamilyFallback: ShadTheme.of(context)
+                .textTheme
+                .p
+                .fontFamilyFallback,
+          ),
+          child: Stack(
+            children: [
               Positioned.fill(
-                child: ColoredBox(
-                  key: const ValueKey('media-opening'),
-                  color: Colors.black54,
-                  child: Center(
-                    child: Column(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        const SizedBox.square(
-                          dimension: 32,
-                          child: CircularProgressIndicator(strokeWidth: 3),
+                child: _Wash(service: widget.artwork, art: wash),
+              ),
+              LayoutBuilder(
+                builder: (context, box) {
+                  final width = box.maxWidth;
+                  final wide = width >= 640;
+                  final heroHeight = backdrop == null
+                      ? (wide ? 420.0 : 300.0)
+                      : (width * 9 / 16).clamp(260.0, box.maxHeight * 0.85);
+                  return Stack(
+                    children: [
+                      if (backdrop != null)
+                        Positioned(
+                          top: 0,
+                          left: 0,
+                          right: 0,
+                          height: heroHeight,
+                          child: _Hero(service: widget.artwork, art: backdrop),
                         ),
-                        const SizedBox(height: AppSpacing.md),
-                        Text(l.loading),
-                      ],
+                      ListView(
+                        padding: EdgeInsets.only(bottom: _M.sectionGap + 16),
+                        children: [
+                          Container(
+                            constraints: BoxConstraints(
+                              minHeight: heroHeight - 42,
+                            ),
+                            alignment: Alignment.bottomLeft,
+                            padding: EdgeInsets.fromLTRB(
+                              _M.gutter + (wide ? _M.columnInset : 0),
+                              top + 72,
+                              wide ? _M.rightPadding : _M.gutter,
+                              0,
+                            ),
+                            child: wide
+                                ? _wideInfo(title, fields)
+                                : _narrowInfo(title, fields),
+                          ),
+                          const SizedBox(height: 52),
+                          ..._sections(fields, title),
+                        ],
+                      ),
+                    ],
+                  );
+                },
+              ),
+              // Resolving a remote file can take seconds; show it instead of
+              // silently ignoring taps. The back button stays usable above it.
+              if (_busy)
+                Positioned.fill(
+                  child: ColoredBox(
+                    key: const ValueKey('media-opening'),
+                    color: Colors.black54,
+                    child: Center(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const SizedBox.square(
+                            dimension: 32,
+                            child: CircularProgressIndicator(strokeWidth: 3),
+                          ),
+                          const SizedBox(height: AppSpacing.md),
+                          Text(l.loading),
+                        ],
+                      ),
                     ),
                   ),
                 ),
-              ),
-            Positioned(
-              top: top + AppSpacing.md + 2,
-              left: AppSpacing.md,
-              child: _CircleButton(
-                icon: Icons.chevron_left_rounded,
-                iconSize: 26,
-                tooltip: MaterialLocalizations.of(context).backButtonTooltip,
-                onPressed: () => Navigator.of(context).maybePop(),
-              ),
-            ),
-            if (assistant != null)
               Positioned(
                 top: top + AppSpacing.md + 2,
-                right: AppSpacing.md,
+                left: AppSpacing.md,
                 child: _CircleButton(
-                  icon: AppIcons.assistant,
-                  iconSize: 20,
-                  tooltip: assistant.label,
-                  onPressed: assistant.onPressed,
+                  icon: Icons.chevron_left_rounded,
+                  iconSize: 26,
+                  tooltip: MaterialLocalizations.of(context).backButtonTooltip,
+                  onPressed: () => Navigator.of(context).maybePop(),
                 ),
               ),
-            // Raw metadata editing is a debugging tool, hidden unless enabled.
-            if (developer)
-              Positioned(
-                top: top + AppSpacing.md + 2,
-                right:
-                    AppSpacing.md +
-                    (assistant != null ? 36 + AppSpacing.sm : 0),
-                child: _CircleButton(
-                  key: const ValueKey('media-metadata'),
-                  icon: Icons.more_horiz_rounded,
-                  tooltip: l.metadata,
-                  onPressed: _openMetadata,
+              if (assistant != null)
+                Positioned(
+                  top: top + AppSpacing.md + 2,
+                  right: AppSpacing.md,
+                  child: AssistantButton(
+                    builder: (context, action) => _CircleButton(
+                      icon: AppIcons.assistant,
+                      iconSize: 20,
+                      onPressed: () => action.open(context),
+                    ),
+                  ),
                 ),
-              ),
-            // FFmpeg random-snapshot debug entry (developer tool, §9.1).
-            if (developer && _debuggable)
-              Positioned(
-                top: top + AppSpacing.md + 2,
-                right:
-                    AppSpacing.md +
-                    (assistant != null ? 36 + AppSpacing.sm : 0) +
-                    36 +
-                    AppSpacing.sm,
-                child: _CircleButton(
-                  key: const ValueKey('media-ffmpeg-snapshot'),
-                  icon: Icons.camera_alt_outlined,
-                  iconSize: 18,
-                  tooltip: l.ffmpegSnapshotDebug,
-                  onPressed: _openSnapshotDebug,
+              // Raw metadata editing is a debugging tool, hidden unless enabled.
+              if (developer)
+                Positioned(
+                  top: top + AppSpacing.md + 2,
+                  right:
+                      AppSpacing.md +
+                      (assistant != null ? 36 + AppSpacing.sm : 0),
+                  child: _CircleButton(
+                    key: const ValueKey('media-metadata'),
+                    icon: Icons.more_horiz_rounded,
+                    tooltip: l.metadata,
+                    onPressed: _openMetadata,
+                  ),
                 ),
-              ),
-            // Audio extraction / subtitle recognition debug (developer, §3).
-            if (developer && _debuggable)
-              Positioned(
-                top: top + AppSpacing.md + 2,
-                right:
-                    AppSpacing.md +
-                    (assistant != null ? 36 + AppSpacing.sm : 0) +
-                    (36 + AppSpacing.sm) * 2,
-                child: _CircleButton(
-                  key: const ValueKey('media-audio-subtitle-debug'),
-                  icon: Icons.subtitles_outlined,
-                  iconSize: 18,
-                  tooltip: l.asrDebugTitle,
-                  onPressed: _openAudioSubtitleDebug,
+              // FFmpeg random-snapshot debug entry (developer tool, §9.1).
+              if (developer && _debuggable)
+                Positioned(
+                  top: top + AppSpacing.md + 2,
+                  right:
+                      AppSpacing.md +
+                      (assistant != null ? 36 + AppSpacing.sm : 0) +
+                      36 +
+                      AppSpacing.sm,
+                  child: _CircleButton(
+                    key: const ValueKey('media-ffmpeg-snapshot'),
+                    icon: Icons.camera_alt_outlined,
+                    iconSize: 18,
+                    tooltip: l.ffmpegSnapshotDebug,
+                    onPressed: _openSnapshotDebug,
+                  ),
                 ),
-              ),
-          ],
+              // Audio extraction / subtitle recognition debug (developer, §3).
+              if (developer && _debuggable)
+                Positioned(
+                  top: top + AppSpacing.md + 2,
+                  right:
+                      AppSpacing.md +
+                      (assistant != null ? 36 + AppSpacing.sm : 0) +
+                      (36 + AppSpacing.sm) * 2,
+                  child: _CircleButton(
+                    key: const ValueKey('media-audio-subtitle-debug'),
+                    icon: Icons.subtitles_outlined,
+                    iconSize: 18,
+                    tooltip: l.asrDebugTitle,
+                    onPressed: _openAudioSubtitleDebug,
+                  ),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -1130,6 +1146,11 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => AppPage(
+          pageContext: PageContextData(
+            pageType: 'episode_list',
+            entity: {'media_id': _id},
+            state: {'episodeCount': episodes.length},
+          ),
           title: Text(label),
           body: ListView(
             padding: AppSpacing.page(context),
@@ -1730,19 +1751,18 @@ class _CircleButton extends StatelessWidget {
   const _CircleButton({
     super.key,
     required this.icon,
-    required this.tooltip,
+    this.tooltip,
     required this.onPressed,
     this.iconSize = 22,
   });
   final IconData icon;
-  final String tooltip;
+  final String? tooltip;
   final VoidCallback onPressed;
   final double iconSize;
 
   @override
-  Widget build(BuildContext context) => Tooltip(
-    message: tooltip,
-    child: _Pressable(
+  Widget build(BuildContext context) {
+    final button = _Pressable(
       onPressed: onPressed,
       semanticLabel: tooltip,
       builder: (hover) => ClipOval(
@@ -1760,8 +1780,9 @@ class _CircleButton extends StatelessWidget {
           ),
         ),
       ),
-    ),
-  );
+    );
+    return tooltip == null ? button : Tooltip(message: tooltip!, child: button);
+  }
 }
 
 class _Chip extends StatelessWidget {

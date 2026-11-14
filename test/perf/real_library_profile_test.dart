@@ -49,7 +49,7 @@ void main() {
     print('queue: ${worker.queue.counts}');
     await t('reconcile #1', () => worker.reconcile());
     await t('reconcile #2', () => worker.reconcile());
-    await t('library.query', () async => library.query(null));
+    await t('library.query', () async => library.query());
     await t('continueWatching', () async => library.continueWatching());
     await t('recentlyPlayed', () async => library.recentlyPlayed());
     await t('fileSources', () async => library.fileSources());

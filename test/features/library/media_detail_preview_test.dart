@@ -328,12 +328,11 @@ void main() {
 
     final library = LibraryService(sqlite3.openInMemory());
     final sources = SeasonSources();
-    final collection = library.defaultLibrary();
     String movie(String file, Map<String, dynamic> fields, int n) {
       final id = library.register(
         SourceEntry(ResourceRef('s', '/$file'), file, isFolder: false),
       );
-      library.addManual(collection, id);
+      library.addManual(id);
       library.transaction(
         () => library.metadata.apply(
           id,
@@ -412,10 +411,10 @@ void main() {
       }, i + 2);
     }
 
-    final binding = library.bind(collection, 's', name: 'TV');
+    final binding = library.addFileSource('s', name: 'TV');
     await tester.runAsync(() => library.scan(binding, sources));
     final show = library
-        .query(collection, search: 'Show')
+        .query(search: 'Show')
         .firstWhere((m) => m['title'] == 'Show');
     library.transaction(
       () => library.metadata.apply(
@@ -457,8 +456,7 @@ void main() {
         select: true,
       ),
     );
-    final episode =
-        library.query(collection, search: '灯塔守夜人').single['id'] as String;
+    final episode = library.query(search: '灯塔守夜人').single['id'] as String;
     final resource = library.resources(episode).single['id'] as String;
     library.saveProgress(
       resource,
@@ -470,9 +468,9 @@ void main() {
     final artwork = PreviewArtwork(sources, files);
     final targets = {
       'movie': library
-          .query(collection, search: '雨夜行动')
+          .query(search: '雨夜行动')
           .firstWhere((m) => m['id'] == movieId),
-      'series': library.query(collection, search: '雾港来信').first,
+      'series': library.query(search: '雾港来信').first,
     };
     for (final size in const [
       Size(817, 800),

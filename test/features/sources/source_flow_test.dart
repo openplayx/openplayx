@@ -78,7 +78,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('添加源'));
+      await tester.tap(find.byKey(const ValueKey('add-source')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('source-kind')));
       await tester.pumpAndSettle();
@@ -95,12 +95,9 @@ void main() {
       await tester.pumpAndSettle();
       expect(sources.saved.single.kind, SourceKind.smb);
       expect(sources.secrets.single, 'password');
-      // Swiping the connection left reveals its edit button.
+      // Each connection has a discoverable menu.
       final id = sources.saved.single.id;
-      await tester.drag(
-        find.byKey(ValueKey('source-$id')),
-        const Offset(-300, 0),
-      );
+      await tester.tap(find.byKey(ValueKey('source-menu-$id')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('source-edit-$id')));
       await tester.pumpAndSettle();
@@ -112,7 +109,9 @@ void main() {
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       sources.failBrowse = true;
-      await tester.tap(find.text('Living Room NAS'));
+      await tester.tap(find.byKey(ValueKey('source-menu-$id')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('source-browse-$id')));
       await tester.pumpAndSettle();
       expect(find.text('测试服务不可用'), findsOneWidget);
       sources.failBrowse = false;
@@ -160,20 +159,14 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('nav-sources')));
       await tester.pumpAndSettle();
-      await tester.drag(
-        find.byKey(const ValueKey('source-nas')),
-        const Offset(-300, 0),
-      );
+      await tester.tap(find.byKey(const ValueKey('source-menu-nas')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('source-delete-nas')));
       await tester.pumpAndSettle();
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(sources.saved, hasLength(1));
-      await tester.drag(
-        find.byKey(const ValueKey('source-nas')),
-        const Offset(-300, 0),
-      );
+      await tester.tap(find.byKey(const ValueKey('source-menu-nas')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('source-delete-nas')));
       await tester.pumpAndSettle();

@@ -4,8 +4,10 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../data/remote_access/remote_access_service.dart';
 import '../../data/sources/source_manager.dart';
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/forms/form_actions.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 /// The App's network layer: one Relay connection (sing-box outbound) and the
 /// frpc proxies it offers. Sources pick a proxy in their own settings.
@@ -19,16 +21,21 @@ class RemoteAccessSettingsPage extends StatefulWidget {
 
 class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   final _pairing = TextEditingController();
-  bool _busy = false, _loaded = false;
-  String? _message;
-  bool _error = false;
+  bool _loaded = false;
+
+  /// What is running (shown in the action bar), or null when idle.
+  String? _busyLabel;
+  bool get _busy => _busyLabel != null;
+
+  /// The last failure, shown in the action bar until the next action.
+  String? _error;
 
   RemoteNetwork get _network => widget.sources.remoteNetwork;
 
   @override
   void initState() {
     super.initState();
-    _run(() async {
+    _run('正在加载…', () async {
       await widget.sources.load();
       await widget.sources.remoteSettings;
       _loaded = true;
@@ -41,25 +48,28 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     super.dispose();
   }
 
-  Future<void> _run(Future<void> Function() action, {String? done}) async {
+  Future<void> _run(
+    String busyLabel,
+    Future<void> Function() action, {
+    String? done,
+  }) async {
     if (_busy) return;
     setState(() {
-      _busy = true;
-      _message = null;
+      _busyLabel = busyLabel;
+      _error = null;
     });
     try {
       await action();
+      // Success is a toast; the action bar keeps only failures.
       if (mounted && done != null) {
-        _message = done;
-        _error = false;
+        showAppToast(context, done, kind: FeedbackKind.success);
       }
     } catch (error) {
       if (mounted) {
-        _message = error is FormatException ? error.message : '$error';
-        _error = true;
+        _error = error is FormatException ? error.message : '$error';
       }
     } finally {
-      if (mounted) setState(() => _busy = false);
+      if (mounted) setState(() => _busyLabel = null);
     }
   }
 
@@ -87,15 +97,19 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
         ),
       ],
       trailing: (c) => [
-        ShadButton(
+        PageSubmitButton(
           key: const ValueKey('remote-import-confirm'),
+          label: '导入',
           onPressed: () => Navigator.pop(c, _pairing.text),
-          child: const Text('导入'),
         ),
       ],
     );
     if (text == null || !mounted) return;
-    await _run(() => widget.sources.importRemotePairing(text), done: '已导入并生效。');
+    await _run(
+      '正在导入…',
+      () => widget.sources.importRemotePairing(text),
+      done: '已导入并生效。',
+    );
     _pairing.clear();
   }
 
@@ -109,7 +123,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
       destructive: true,
     );
     if (confirmed && mounted) {
-      await _run(widget.sources.clearRemoteNetwork, done: '已清空远程配置。');
+      await _run('正在清空…', widget.sources.clearRemoteNetwork, done: '已清空远程配置。');
     }
   }
 
@@ -165,43 +179,10 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
         )
         .toList();
     return AppPage(
+      pageContext: const PageContextData(pageType: 'remote_access_settings'),
       title: const Text('远程访问'),
       body: SettingsListView(
         children: [
-          Padding(
-            padding: const EdgeInsets.only(bottom: 16),
-            child: Row(
-              children: [
-                Expanded(
-                  child: ShadButton(
-                    key: const ValueKey('remote-import'),
-                    onPressed: _busy || !_loaded ? null : _import,
-                    child: const Text('导入'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: ShadButton.outline(
-                    key: const ValueKey('remote-clear'),
-                    onPressed: _busy || !_network.configured ? null : _clear,
-                    child: const Text('清空'),
-                  ),
-                ),
-              ],
-            ),
-          ),
-          if (_busy)
-            const Padding(
-              padding: EdgeInsets.only(bottom: 16),
-              child: ShadProgress(),
-            ),
-          if (_message != null)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 16),
-              child: _error
-                  ? ShadAlert.destructive(title: Text(_message!))
-                  : ShadAlert(title: Text(_message!)),
-            ),
           if (_loaded) ...[
             SettingsSection(
               title: '中继服务器',
@@ -227,6 +208,26 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
                 ],
               ),
           ],
+          // 清空 asks for confirmation first (see _clear).
+          FormActions(
+            status: _busy
+                ? FormStatus.busy(_busyLabel!)
+                : _error == null
+                ? FormStatus.idle
+                : FormStatus.error(_error!),
+            [
+              FormAction.destructive(
+                '清空',
+                _busy || !_network.configured ? null : _clear,
+                key: const ValueKey('remote-clear'),
+              ),
+              FormAction.primary(
+                '导入',
+                _busy || !_loaded ? null : _import,
+                key: const ValueKey('remote-import'),
+              ),
+            ],
+          ),
         ],
       ),
     );

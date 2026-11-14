@@ -392,9 +392,6 @@ class SubtitleGenerationService {
       if (!PluginGate.enabled(config.pluginId)) {
         throw const SubtitleException('backend_disabled');
       }
-      if (config.uploads && config.uploadConsentAt == null) {
-        throw const SubtitleException('upload_not_authorized');
-      }
     }
     final key = [
       r.resource.instanceId,

@@ -2,14 +2,12 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/configuration/source_credential_broker.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -17,8 +15,6 @@ void main() {
   late Database db;
   late SourceConfigurationService service;
   setUp(() {
-    SharedPreferences.setMockInitialValues({});
-    FlutterSecureStorage.setMockInitialValues({});
     db = sqlite3.openInMemory();
     service = SourceConfigurationService(db);
     TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
@@ -76,10 +72,6 @@ void main() {
                 .single['config_json']
             as String;
     expect(persisted, isNot(contains('private-token')));
-    expect(
-      (await SharedPreferences.getInstance()).getString('source.instances.v1'),
-      isNull,
-    );
     final broker = SourceCredentialBroker(() => service);
     expect(await broker.readForHost(saved), 'private-token');
     final reloaded = manager();
@@ -93,70 +85,77 @@ void main() {
     );
     expect(reloaded.configs.single.revision, 2);
     expect(await broker.readForHost(reloaded.configs.single), 'private-token');
-    final oldRef = saved.credentialRef;
     await reloaded.save(reloaded.configs.single, 'replacement');
-    expect(reloaded.configs.single.credentialRef, isNot(oldRef));
-    expect(service.readSecret(oldRef!), isNull);
+    expect(service.readSecret('one'), 'replacement');
     expect(await broker.readForHost(reloaded.configs.single), 'replacement');
     await reloaded.remove('one');
     expect(service.load(), isEmpty);
-    expect(db.select('SELECT 1 FROM source_secrets'), isEmpty);
+    expect(db.select('SELECT 1 FROM plugin_instance_configs'), isEmpty);
     await first.dispose();
     await reloaded.dispose();
   });
 
-  test('revision conflicts compensate staged credentials and keep committed credential usable', () async {
-    final first = manager();
-    final second = manager();
-    await first.save(plex, 'original');
-    await second.load();
-    await first.save(
-      first.configs.single.copyWith(name: 'Updated'),
-      'new-token',
-    );
-    final count = db.select('SELECT 1 FROM source_secrets').length;
-    await expectLater(
-      second.save(second.configs.single.copyWith(name: 'Stale'), 'uncommitted'),
-      throwsA(isA<PluginException>().having((e) => e.code, 'code', 'conflict')),
-    );
-    expect(db.select('SELECT 1 FROM source_secrets').length, count);
-    expect(
-      await SourceCredentialBroker(() => service)
-          .readForHost(service.load().single),
-      'new-token',
-    );
-    expect(service.load().single.name, 'Updated');
-    await first.dispose();
-    await second.dispose();
-  });
+  test(
+    'a revision conflict saves neither the stale config nor its credential',
+    () async {
+      final first = manager();
+      final second = manager();
+      await first.save(plex, 'original');
+      await second.load();
+      await first.save(
+        first.configs.single.copyWith(name: 'Updated'),
+        'new-token',
+      );
+      await expectLater(
+        second.save(
+          second.configs.single.copyWith(name: 'Stale'),
+          'uncommitted',
+        ),
+        throwsA(
+          isA<PluginException>().having((e) => e.code, 'code', 'conflict'),
+        ),
+      );
+      expect(
+        await SourceCredentialBroker(() => service)
+            .readForHost(service.load().single),
+        'new-token',
+      );
+      expect(service.load().single.name, 'Updated');
+      await first.dispose();
+      await second.dispose();
+    },
+  );
 
-  test('legacy migration retains credential refs and isolates unknown or damaged versions', () async {
-    SharedPreferences.setMockInitialValues({
-      'source.instances.v1': jsonEncode([
-        {
-          'id': 'legacy',
-          'kind': 'plex',
-          'name': 'Legacy',
-          'address': 'http://localhost:32400',
-        },
-        {...plex.toJson(), 'id': 'future', 'configVersion': 99},
-        {'id': 'broken', 'kind': 'unknown'},
-      ]),
+  test('a source credential is kept on its row and unknown or damaged rows '
+      'are isolated', () async {
+    void insert(String id, String plugin, Map<String, dynamic> data) => db
+        .execute('INSERT INTO plugin_instance_configs VALUES (?,?,?,?,?,?,?)', [
+          id,
+          plugin,
+          jsonEncode(data),
+          data['configVersion'] is int ? data['configVersion'] : 2,
+          1,
+          1,
+          id == 'legacy' ? 'legacy-secret' : null,
+        ]);
+    insert('legacy', 'source.plex', {
+      ...plex.copyWith(revision: 1).toJson(),
+      'id': 'legacy',
+      'name': 'Legacy',
     });
-    FlutterSecureStorage.setMockInitialValues({
-      'source.legacy': 'legacy-secret',
+    insert('future', 'source.plex', {
+      ...plex.toJson(),
+      'id': 'future',
+      'configVersion': 99,
     });
-    await service.migrateLegacy();
+    insert('broken', 'source.unknown', {'id': 'broken', 'kind': 'unknown'});
     final configs = service.load();
     expect(configs.single.id, 'legacy');
-    expect(configs.single.credentialRef, 'source.legacy');
+    expect(configs.single.hasSecret, isTrue);
     expect(
       await SourceCredentialBroker(() => service).readForHost(configs.single),
       'legacy-secret',
     );
-    // Copied into SQLite and dropped from the keychain.
-    expect(service.readSecret('source.legacy'), 'legacy-secret');
-    expect(await const FlutterSecureStorage().readAll(), isEmpty);
     expect(
       service.issues.map((i) => i.instanceId),
       containsAll(['future', 'broken']),
@@ -168,10 +167,6 @@ void main() {
           )
           .single['config_json'],
       contains('99'),
-    );
-    expect(
-      (await SharedPreferences.getInstance()).getString('source.instances.v1'),
-      isNull,
     );
   });
 
@@ -219,7 +214,6 @@ void main() {
           kind: SourceKind.plex,
           name: 'Two',
           address: 'http://localhost',
-          credentialRef: 'source.one',
         ),
         '',
       ),
@@ -273,7 +267,7 @@ void main() {
       await host.setEnabled('one', false);
       await Future<void>.delayed(const Duration(milliseconds: 600));
       expect(peak, 1);
-      expect(service.application('one')?['status'], 'disabled');
+      expect(host.application('one')?['status'], 'disabled');
       await host.dispose();
     }, _RealHttp()),
   );
@@ -306,8 +300,8 @@ void main() {
     final stream = await host.resolve(page.entries.single.ref);
     expect(host.impact(stored.id).playing, 1);
     await host.setEnabled(stored.id, false);
-    expect(service.application(stored.id)?['desired_revision'], 2);
-    expect(service.application(stored.id)?['applied_revision'], 1);
+    expect(host.application(stored.id)?['desired_revision'], 2);
+    expect(host.application(stored.id)?['applied_revision'], 1);
     expect(host.impact(stored.id).playing, 1);
     expect(await File.fromUri(stream.uri).readAsBytes(), [1, 2, 3]);
     await expectLater(

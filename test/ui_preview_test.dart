@@ -56,7 +56,6 @@ void main() {
       ]) {
         tester.view.physicalSize = size;
         final library = LibraryService(sqlite3.openInMemory());
-        final id = library.create('My collection');
         for (final name in [
           'Northern lights.mp4',
           'The quiet coast.mp4',
@@ -65,7 +64,7 @@ void main() {
           final media = library.register(
             SourceEntry(ResourceRef('nas', '/$name'), name, isFolder: false),
           );
-          library.addManual(id, media);
+          library.addManual(media);
           final resource = library.resources(media).single['id'] as String;
           library.saveProgress(
             resource,

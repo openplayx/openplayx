@@ -65,7 +65,7 @@ void main() {
   testWidgets('scraping progress follows the scan status of a file source', (
     tester,
   ) async {
-    final binding = service.bind(service.defaultLibrary(), 's', name: 'Movies');
+    final binding = service.addFileSource('s', name: 'Movies');
     await service.scan(binding, _Sources());
     await tester.pumpWidget(
       TestApp(
@@ -104,12 +104,9 @@ void main() {
     expect(find.byTooltip('重新扫描全部文件源'), findsNothing);
     expect(find.byTooltip('重新加载配置'), findsNothing);
 
-    // Adding a file source lives behind the connection's swipe actions.
-    expect(find.text('添加文件源'), findsNothing);
-    await tester.drag(
-      find.byKey(const ValueKey('source-s')),
-      const Offset(-400, 0),
-    );
+    // Adding is visible inline and is also available in the parent menu.
+    expect(find.byKey(const ValueKey('source-add-folder-s')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('source-menu-s')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('source-add-file-s')));
     await tester.pumpAndSettle();
@@ -127,9 +124,8 @@ void main() {
     await tester.pumpAndSettle();
     final source = service.fileSources().single;
     expect(source['name'], 'Movies');
-    expect(source['library_id'], LibraryService.defaultLibraryId);
     expect(source['status'], '扫描完成');
-    expect(service.query(null).single['title'], 'Film.mp4');
+    expect(service.query().single['title'], 'Film.mp4');
     expect(find.text('Movies'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('Movies')).dx,
@@ -137,22 +133,35 @@ void main() {
       reason: 'the file source is indented under its connection',
     );
 
-    // Disable hides the media; the row shows the disabled state.
-    await tester.tap(find.byTooltip('停用'));
+    // Child enable/disable lives in its own menu.
+    final id = source['id'] as String;
+    await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
-    expect(service.query(null), isEmpty);
+    await tester.tap(find.byKey(ValueKey('file-source-toggle-$id')));
+    await tester.pumpAndSettle();
+    expect(service.query(), isEmpty);
     expect(find.textContaining('已停用'), findsOneWidget);
-    await tester.tap(find.byTooltip('启用'));
+    await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
-    expect(service.query(null), hasLength(1));
+    await tester.tap(find.byKey(ValueKey('file-source-toggle-$id')));
+    await tester.pumpAndSettle();
+    expect(service.query(), hasLength(1));
 
     // No pencil or trash icons on the row any more.
     expect(find.byTooltip('重命名媒体库'), findsNothing);
     expect(find.byTooltip('删除文件源'), findsNothing);
 
-    // Swipe left, then "edit" renames.
-    final id = service.fileSources().single['id'] as String;
-    await tester.drag(find.text('Movies'), const Offset(-400, 0));
+    // The parent's tap only collapses its children; it does not browse.
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
+    expect(find.text('Movies'), findsNothing);
+    expect(find.byType(FileSourceBrowserPage), findsNothing);
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
+    expect(find.text('Movies'), findsOneWidget);
+
+    // Editing a child opens the existing naming flow.
+    await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('file-source-edit-$id')));
     await tester.pumpAndSettle();
@@ -167,20 +176,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.fileSources().single['name'], 'Films');
 
-    // Swiping left reveals delete; a short swipe snaps back closed.
-    await tester.drag(find.text('Films'), const Offset(-20, 0));
-    await tester.pumpAndSettle();
-    expect(find.byKey(ValueKey('file-source-delete-$id')), findsNothing);
-    await tester.drag(find.text('Films'), const Offset(-400, 0));
-    await tester.pumpAndSettle();
-    // Tapping the row while open only closes it.
-    await tester.tap(find.byKey(ValueKey('file-source-$id')));
-    await tester.pumpAndSettle();
-    expect(find.byKey(ValueKey('file-source-delete-$id')), findsNothing);
-    expect(find.byType(FileSourceBrowserPage), findsNothing);
-
     // Delete asks first; cancelling keeps the source.
-    await tester.drag(find.text('Films'), const Offset(-400, 0));
+    await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('file-source-delete-$id')));
     await tester.pumpAndSettle();
@@ -189,14 +186,14 @@ void main() {
     expect(service.fileSources(), hasLength(1));
 
     // Delete keeps resources, only drops automatic membership.
-    await tester.drag(find.text('Films'), const Offset(-400, 0));
+    await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('file-source-delete-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('移除'));
     await tester.pumpAndSettle();
     expect(service.fileSources(), isEmpty);
-    expect(service.query(null), isEmpty);
+    expect(service.query(), isEmpty);
     expect(service.db.select('SELECT * FROM resources'), hasLength(1));
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -208,9 +205,8 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     tester.view.devicePixelRatio = 1;
     tester.view.physicalSize = const Size(320, 480);
-    final library = service.defaultLibrary();
     for (var i = 0; i < 3; i++) {
-      service.bind(library, 's', name: 'A fairly long file source name $i');
+      service.addFileSource('s', name: 'A fairly long file source name $i');
     }
     await tester.pumpWidget(
       TestApp(
@@ -226,7 +222,7 @@ void main() {
   testWidgets('tapping a file source browses its folders and goes back up', (
     tester,
   ) async {
-    service.bind(service.defaultLibrary(), 's', name: 'Movies');
+    service.addFileSource('s', name: 'Movies');
     await tester.pumpWidget(
       TestApp(
         home: SourcePage(manager: _BrowseSources(), library: service),

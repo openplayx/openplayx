@@ -74,7 +74,6 @@ void main() {
       );
       await tester.pump();
       expect(service.checkpoint(resource)!['position'], 10000);
-      expect(service.libraries, isEmpty);
       expect(service.continueWatching().single['id'], media);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();

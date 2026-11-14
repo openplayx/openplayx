@@ -5,7 +5,9 @@ import 'package:openplayx/ui/adaptive/app_navigation.dart';
 
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app_shell.dart';
@@ -96,7 +98,6 @@ void main() {
     'responsive navigation retains library selection and unified sources',
     (tester) async {
       final service = LibraryService(sqlite3.openInMemory());
-      service.create('Movies');
       final backend = FakeBackend();
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = const Size(1200, 800);
@@ -125,6 +126,16 @@ void main() {
       expect(find.byType(AppBottomBar), findsOneWidget);
       expect(find.text('NAS'), findsOneWidget);
       expect(find.byType(SegmentedButton<bool>), findsNothing);
+      // Fixed order: 首页 → 来源 → AI → 设置, with AI one tap away.
+      final order = [
+        for (final name in ['home', 'sources', 'plugins', 'settings'])
+          tester.getCenter(find.byKey(ValueKey('nav-$name'))).dx,
+      ];
+      expect(order, List.of(order)..sort());
+      await tester.tap(find.byKey(const ValueKey('nav-plugins')));
+      await tester.pump(const Duration(milliseconds: 300));
+      expect(find.text('AI'), findsWidgets);
+      expect(find.byType(AppBottomBar), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-settings')));
       await tester.pumpAndSettle();
       // Phone settings is a category menu; categories open sub-pages.
@@ -210,4 +221,59 @@ void main() {
       service.close();
     });
   }
+
+  testWidgets('phones hide the system bars only while the player is shown', (
+    tester,
+  ) async {
+    debugDefaultTargetPlatformOverride = TargetPlatform.android;
+    final modes = <String>[];
+    tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+      SystemChannels.platform,
+      (call) async {
+        if (call.method == 'SystemChrome.setEnabledSystemUIMode') {
+          modes.add(call.arguments as String);
+        }
+        return null;
+      },
+    );
+    addTearDown(
+      () => tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
+        SystemChannels.platform,
+        null,
+      ),
+    );
+    final service = LibraryService(sqlite3.openInMemory());
+    const ref = ResourceRef('s', '/film.mp4');
+    service.register(const SourceEntry(ref, 'Film', isFolder: false));
+    final resource = service.resourceFor(ref)!['id'] as String;
+    service.saveProgress(
+      resource,
+      service.beginSession(resource),
+      const Duration(seconds: 20),
+      const Duration(minutes: 1),
+    );
+    await tester.pumpWidget(
+      TestApp(
+        home: AppShell(
+          library: service,
+          sources: ShellSources(),
+          backend: FakeBackend(),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    // The player is mounted offstage, but browsing keeps the bars visible.
+    expect(modes, isEmpty);
+    await tester.tap(find.text('Film').first);
+    await tester.pumpAndSettle();
+    expect(modes, ['SystemUiMode.immersiveSticky']);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(modes, ['SystemUiMode.immersiveSticky', 'SystemUiMode.edgeToEdge']);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+    expect(modes, hasLength(2));
+    service.close();
+    debugDefaultTargetPlatformOverride = null;
+  });
 }

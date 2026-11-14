@@ -435,12 +435,18 @@ class MetadataService {
       (c) => c.id == directory.instanceId,
     );
     var root = config.rootPath;
-    final bindingRoots = library.db.select(
-      '''SELECT b.root FROM bindings b JOIN evidence e ON e.binding_id=b.id
-      JOIN resources r ON r.id=e.resource_id WHERE r.media_id=? AND b.source=?''',
-      [media, directory.instanceId],
+    // Folders of the file sources on this connection that found [media].
+    final found = {
+      for (final r in library.db.select(
+        'SELECT DISTINCT e.file_source_id FROM evidence e JOIN resources r ON r.id=e.resource_id WHERE r.media_id=?',
+        [media],
+      ))
+        r['file_source_id'],
+    };
+    final fileSourceRoots = library.fileSources().where(
+      (f) => f['source'] == directory.instanceId && found.contains(f['id']),
     );
-    for (final row in bindingRoots) {
+    for (final row in fileSourceRoots) {
       final candidate = row['root'] as String?;
       if (candidate != null &&
           candidate.length > root.length &&
@@ -761,18 +767,14 @@ class MetadataService {
   }
 
   /// Explicit batch command. Each item commits independently and retries remain
-  /// bounded by provider transport; home video libraries are excluded by caller.
-  Future<Map<String, int>> importLibrary(
-    String? libraryId, {
+  /// bounded by provider transport.
+  Future<Map<String, int>> importLibrary({
     void Function(int, int)? onProgress,
   }) async {
     final lease = 'batch:${DateTime.now().microsecondsSinceEpoch}';
     library.beginMetadataWork(lease);
     try {
-      final rows = library.db.select(
-        'SELECT DISTINCT media_id FROM memberships WHERE (? IS NULL OR library_id=?)',
-        [libraryId, libraryId],
-      );
+      final rows = library.db.select('SELECT media_id FROM memberships');
       _stopBatch = false;
       var completed = 0, failed = 0, waiting = 0, unmatched = 0;
       for (final row in rows) {

@@ -1,51 +1,14 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
-import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_native.dart';
-
-/// Holds the App user's sing-box credential (`{"uuid": ...}`) for the
-/// App-wide Relay outbound. Only `remote.outbound.*` keys are accepted.
-class RemoteCredentialStore {
-  static const _storage = FlutterSecureStorage();
-  static const _prefix = 'remote.outbound.';
-  static bool owns(String ref) => ref.startsWith(_prefix);
-  static Future<String> stage(Map<String, dynamic> credential) async {
-    final suffix = List.generate(
-      16,
-      (_) => Random.secure().nextInt(256).toRadixString(16).padLeft(2, '0'),
-    ).join();
-    final ref = '$_prefix$suffix';
-    await _storage.write(key: ref, value: jsonEncode(credential));
-    return ref;
-  }
-
-  static Future<Map<String, dynamic>> read(String ref) async {
-    if (!owns(ref)) {
-      throw const PluginException('permissionDenied', '远程凭据引用无效。');
-    }
-    final value = await _storage.read(key: ref);
-    if (value == null) {
-      throw const PluginException(
-        'authRequired',
-        '远程访问凭据不可用，请在设置 → 远程访问重新导入 App 配置。',
-      );
-    }
-    return jsonDecode(value) as Map<String, dynamic>;
-  }
-
-  static Future<void> delete(String ref) async {
-    if (owns(ref)) await _storage.delete(key: ref);
-  }
-}
 
 /// Each client owns a path lease. Existing playback holds it through the source
 /// runtime; expiry or a network change affects only newly created clients.
@@ -355,9 +318,11 @@ class RemoteTransport {
       key,
       () => _RemoteCoreEntry(
         (() async {
-          final out = await RemoteCredentialStore.read(c.credentialRef);
           final core = RemoteNative.instance;
-          return (core, core.start({...out, ...c.outbound}, c.remotePort));
+          return (
+            core,
+            core.start({...c.credential, ...c.outbound}, c.remotePort),
+          );
         })(),
       ),
     );

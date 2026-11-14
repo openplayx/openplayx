@@ -241,4 +241,28 @@ void main() {
       expect(calls.last, isEmpty);
     },
   );
+
+  testWidgets('video runs under the cutout while controls avoid the insets', (
+    tester,
+  ) async {
+    const insets = EdgeInsets.fromLTRB(0, 44, 0, 34);
+    tester.view.padding = FakeViewPadding(
+      top: insets.top * tester.view.devicePixelRatio,
+      bottom: insets.bottom * tester.view.devicePixelRatio,
+    );
+    addTearDown(tester.view.resetPadding);
+    await openPlayer(tester);
+    final screen = tester.view.physicalSize / tester.view.devicePixelRatio;
+    expect(tester.getRect(find.byType(PlayerVideoView)), Offset.zero & screen);
+    expect(
+      tester.getTopLeft(find.byTooltip('Back')).dy,
+      greaterThanOrEqualTo(insets.top),
+    );
+    final bar = tester.getRect(find.byKey(const Key('player-control-bar')));
+    expect(bar.bottom, screen.height);
+    expect(
+      tester.getBottomLeft(find.byTooltip('Back 10 seconds')).dy,
+      lessThanOrEqualTo(screen.height - insets.bottom),
+    );
+  });
 }

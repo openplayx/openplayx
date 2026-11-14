@@ -20,6 +20,21 @@ class FlyerChatAdapter {
   // The coordinator coalesces text deltas at 40ms and flushes terminal events.
   // Project each notification directly, without adding a second latency window.
   void _schedule() => _sync();
+
+  // When each reply's reasoning was first seen streaming and when the reply
+  // moved on to text or a tool call. Only measured live; history has none.
+  final _thinkStart = <String, DateTime>{}, _thinkEnd = <String, DateTime>{};
+  Duration? _thought(String id, {required bool live, required bool done}) {
+    final now = DateTime.now();
+    final start = live
+        ? _thinkStart.putIfAbsent(id, () => now)
+        : _thinkStart[id];
+    if (start == null) return null;
+    if (done) _thinkEnd.putIfAbsent(id, () => now);
+    final end = _thinkEnd[id];
+    return end?.difference(start);
+  }
+
   List<AiChatPart> project() {
     final items = <AiChatPart>[];
     for (final turn in coordinator.turns) {
@@ -46,6 +61,11 @@ class FlyerChatAdapter {
               turn: turn,
               kind: AiPartKind.reasoning,
               text: message.reasoning,
+              duration: _thought(
+                '${message.id}:reasoning',
+                live: false,
+                done: true,
+              ),
             ),
           );
         }
@@ -104,6 +124,8 @@ class FlyerChatAdapter {
                   ? Map<String, dynamic>.from(value['data'] as Map)
                   : const {},
               arguments: arguments,
+              rawArguments: call.arguments,
+              rawResult: result?.text ?? '',
               progress: phase == AiToolPhase.running ? turn.toolProgress : null,
               confirmation: waiting ? pending : null,
             ),
@@ -111,13 +133,17 @@ class FlyerChatAdapter {
         }
       }
       if (turn.reasoning.isNotEmpty) {
+        final id = '${turn.streamingMessageId}:reasoning';
+        // Reasoning is over once the reply text or a tool call begins.
+        final done = turn.streaming.isNotEmpty || turn.preparingTool != null;
         items.add(
           AiChatPart(
-            id: '${turn.streamingMessageId}:reasoning',
+            id: id,
             turn: turn,
             kind: AiPartKind.reasoning,
             text: turn.reasoning,
-            streaming: true,
+            streaming: !done,
+            duration: _thought(id, live: true, done: done),
           ),
         );
       }

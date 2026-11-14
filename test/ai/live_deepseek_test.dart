@@ -2,7 +2,6 @@
 // DEEPSEK_API_KEY. Run: flutter test test/ai/live_deepseek_test.dart
 import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
@@ -39,14 +38,12 @@ void main() {
   test(
     'DeepSeek pro: list library, pick one at random, open playback',
     () async {
-      FlutterSecureStorage.setMockInitialValues({});
       final library = LibraryService(sqlite3.openInMemory());
       final db = sqlite3.openInMemory();
       addTearDown(() {
         library.close();
         db.close();
       });
-      final lib = library.create('电影');
       for (final title in ['星际穿越', '盗梦空间', '千与千寻', '肖申克的救赎', '霸王别姬']) {
         final id = library.register(
           SourceEntry(
@@ -55,11 +52,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.db.execute('INSERT INTO memberships VALUES (?,?,?)', [
-          lib,
-          id,
-          1,
-        ]);
+        library.db.execute('INSERT INTO memberships VALUES (?,?)', [id, 1]);
       }
 
       final opened = <SourceEntry>[];
@@ -80,7 +73,7 @@ void main() {
         },
       );
       coordinator = ConversationCoordinator(
-        store: AssistantStore(db),
+        store: AssistantStore(db, configuration: sqlite3.openInMemory()),
         gateway: ToolGateway(tools.registry),
         context: () => {'page': 'home'},
         model: () async => LangChainModel(
@@ -97,13 +90,17 @@ void main() {
 
       final turn = coordinator.turns.single;
       for (final m in turn.messages) {
-        final calls = m.calls.map((c) => '${c.name}(${c.arguments})').join(', ');
+        final calls = m.calls
+            .map((c) => '${c.name}(${c.arguments})')
+            .join(', ');
         // ignore: avoid_print
         print('[${m.role}] ${calls.isEmpty ? '' : 'CALLS: $calls  '}${m.text}');
       }
       // ignore: avoid_print
-      print('status=${turn.status} error=${turn.error} tokens=${turn.tokens} '
-          'opened=${opened.map((e) => e.name).toList()}');
+      print(
+        'status=${turn.status} error=${turn.error} tokens=${turn.tokens} '
+        'opened=${opened.map((e) => e.name).toList()}',
+      );
       expect(turn.status, 'completed', reason: '${turn.error}');
       expect(opened, hasLength(1));
     },

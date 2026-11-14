@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -78,7 +77,6 @@ void main() {
   testWidgets(
     'without a token the page points to Settings, not its own TMDB buttons',
     (tester) async {
-      FlutterSecureStorage.setMockInitialValues({});
       final library = LibraryService(sqlite3.openInMemory());
       final sources = OfflineSources();
       final media = library.register(

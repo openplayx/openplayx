@@ -1,0 +1,54 @@
+{
+  "version": 1,
+  "sources": [
+    {
+      "id": "nas-smb",
+      "kind": "smb",
+      "name": "211 NAS",
+      "address": "smb://192.168.1.211/media",
+      "username": "openplayx",
+      "secret": "${SMB_PASSWORD}"
+    },
+    {
+      "id": "nas-jellyfin",
+      "kind": "jellyfin",
+      "name": "211 Jellyfin",
+      "address": "http://192.168.1.211:18096",
+      "userId": "${JELLYFIN_USER_ID}",
+      "secret": "${JELLYFIN_TOKEN}"
+    }
+  ],
+  "fileSources": [
+    { "id": "nas-movies", "source": "nas-smb", "root": "/media/Movies", "name": "电影" }
+  ],
+  "scanExtensions": ["mkv", "mp4", "avi", "mov", "ts", "m2ts"],
+  "externalServices": [
+    {
+      "id": "bt-211",
+      "name": "家里下载",
+      "baseUrl": "http://192.168.1.211:18780",
+      "token": "${BT_TOKEN}"
+    }
+  ],
+  "asr": [
+    {
+      "id": "asr-211",
+      "kind": "http",
+      "name": "211 Whisper",
+      "url": "http://192.168.1.211:9000",
+      "modelId": "large-v3",
+      "allowInsecureHttp": true,
+      "uploadConsent": true,
+      "token": "${ASR_TOKEN}"
+    }
+  ],
+  "assistant": {
+    "endpoint": "https://api.deepseek.com",
+    "model": "deepseek-v4-pro",
+    "cloudAllowed": true,
+    "apiKey": "${LLM_API_KEY}"
+  },
+  "metadata": { "language": "zh-CN", "tmdbToken": "${TMDB_TOKEN}" },
+  "appearance": { "themeMode": "dark", "language": "zh-Hans", "developerMode": true },
+  "diagnostics": false
+}

@@ -17,7 +17,7 @@ RemoteAccessConfig config({
 }) => RemoteAccessConfig(
   proxy: 'jellyfin',
   remotePort: 18096,
-  credentialRef: 'remote.outbound.1',
+  credential: const {'uuid': '11111111-1111-4111-8111-111111111111'},
   outbound: publicOutbound,
   mode: mode,
   localAddress: 'https://nas.example:8920',

@@ -3,7 +3,6 @@ import 'dart:convert';
 import '../../app_test_host.dart';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
@@ -17,7 +16,9 @@ void main() {
   testWidgets(
     'one import sets the Relay connection and lists proxies with their sources',
     (tester) async {
-      FlutterSecureStorage.setMockInitialValues({});
+      // A tap on something covered (e.g. by a toast) fails the test.
+      WidgetController.hitTestWarningShouldBeFatal = true;
+      addTearDown(() => WidgetController.hitTestWarningShouldBeFatal = false);
       final config = SourceConfigurationService(sqlite3.openInMemory());
       final remote = RemoteAccessService.memory();
       var validations = 0;
@@ -80,8 +81,16 @@ void main() {
       expect(find.byKey(const ValueKey('remote-proxy-smb')), findsOneWidget);
       expect(find.text('来源：Home NAS'), findsOneWidget);
       expect(find.textContaining('不在当前配置中'), findsNothing);
+      // Success is a toast at the top; while it shows, the bottom actions
+      // stay tappable (the tap below would miss if the toast covered them).
+      expect(find.text('已导入并生效。'), findsOneWidget);
+      // The actions sit at the bottom of the page.
+      await tester.ensureVisible(find.byKey(const ValueKey('remote-clear')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('remote-clear')));
       await tester.pumpAndSettle();
+      // 清空 is confirmed in a second step.
+      expect(remote.network.configured, isTrue);
       await tester.tap(find.text('清空').last);
       await tester.pumpAndSettle();
       expect(remote.network.configured, isFalse);

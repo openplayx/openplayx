@@ -44,7 +44,6 @@ void main() {
       sqlite3.open('${root.path}/library.sqlite3'),
       watchExternalChanges: false,
     );
-    final lib = library.create('Films');
     {
       for (var i = 0; i < items; i++) {
         final media = library.register(
@@ -54,7 +53,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.addManual(lib, media);
+        library.addManual(media);
       }
     }
     sources = OfflineSources();
@@ -106,7 +105,8 @@ void main() {
         )
         .map((r) => r['detail'] as String)
         .join('\n');
-    expect(plan, contains('memberships_media'));
+    // memberships is keyed by media_id, so its primary key serves the check.
+    expect(plan, contains('INDEX sqlite_autoindex_memberships'));
     final res = library.db
         .select('EXPLAIN QUERY PLAN SELECT * FROM resources WHERE media_id=?', [
           'x',
@@ -123,12 +123,8 @@ void main() {
         .toSet();
     expect(
       indexes,
-      containsAll([
-        'memberships_media',
-        'resources_media',
-        'media_evidence_media',
-        'manual_memberships_media',
-      ]),
+      // memberships / manual_memberships are keyed by media_id already.
+      containsAll(['resources_media', 'media_evidence_media']),
     );
   });
 
@@ -144,7 +140,7 @@ void main() {
   });
 
   test('UI-thread queries stay fast', () {
-    final query = ms(() => library.query(null, offset: 0));
+    final query = ms(() => library.query(offset: 0));
     final cont = ms(() => library.continueWatching());
     final recent = ms(() => library.recentlyPlayed());
     final sourcesList = ms(() => library.fileSources());

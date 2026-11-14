@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:flutter/material.dart';
-import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
@@ -9,6 +8,7 @@ import '../../l10n/generated/app_localizations.dart';
 import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
 import 'media_detail_page.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 /// Opening a library item's detail page and playing one of its versions,
 /// shared by the home shelves and the library poster wall.
@@ -89,10 +89,10 @@ mixin MediaOpener<T extends StatefulWidget> on State<T> {
       }
     } catch (_) {
       if (detail.mounted) {
-        ShadToaster.of(detail).show(
-          ShadToast.destructive(
-            description: Text(AppLocalizations.of(detail).versionOpenFailed),
-          ),
+        showAppToast(
+          detail,
+          AppLocalizations.of(detail).versionOpenFailed,
+          kind: FeedbackKind.error,
         );
       }
     } finally {

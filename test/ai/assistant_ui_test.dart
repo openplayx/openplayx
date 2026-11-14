@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/app/app_shell.dart';
@@ -9,12 +8,13 @@ import 'package:openplayx/services/conversations/assistant_store.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import 'package:openplayx/ui/components/settings/settings_section.dart';
+
 import '../app_test_host.dart';
 import '../features/library/library_page_test.dart' show Sources;
 import '../features/player/player_page_test.dart' show FakeBackend;
 
 void main() {
-  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   testWidgets(
     'top-right assistant button is on every page and keeps one conversation',
     (tester) async {
@@ -34,15 +34,16 @@ void main() {
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
       final first = tester.widget<AssistantView>(find.byType(AssistantView));
+      expect(first.coordinator.context()['pageContext']['pageType'], 'home');
       expect(find.byTooltip('在首页展开'), findsNothing);
       final composer = find.descendant(
         of: find.byKey(const ValueKey('ai-composer-input')),
         matching: find.byType(EditableText),
       );
       await tester.enterText(composer, '保留这个草稿');
-      // A full page: it hides the tab bar and closes from its back button.
+      // A full page: it hides the tab bar and closes from its close button.
       expect(find.byTooltip('来源'), findsNothing);
-      await tester.tap(find.byTooltip('返回'));
+      await tester.tap(find.byTooltip('关闭'));
       await tester.pumpAndSettle();
       expect(find.byType(AssistantView), findsNothing);
       await tester.tap(find.byTooltip('来源').first);
@@ -50,6 +51,7 @@ void main() {
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
       final second = tester.widget<AssistantView>(find.byType(AssistantView));
+      expect(second.coordinator.context()['pageContext']['pageType'], 'sources');
       expect(identical(second.coordinator, first.coordinator), true);
       expect(identical(second.controller, first.controller), true);
       expect(find.text('保留这个草稿'), findsOneWidget);
@@ -57,8 +59,12 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('模型设置').last);
       await tester.pumpAndSettle();
-      expect(find.byType(AssistantSettingsPage), findsOneWidget);
-      expect(find.text('模型设置'), findsOneWidget);
+      // Model settings live on the AI page's 模型 page.
+      expect(find.byType(AssistantModelSettings), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('plugin-group-page-model')),
+        findsOneWidget,
+      );
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
@@ -107,7 +113,7 @@ void main() {
         addTearDown(tester.view.resetPhysicalSize);
         addTearDown(tester.view.resetDevicePixelRatio);
         final db = sqlite3.openInMemory();
-        final store = AssistantStore(db);
+        final store = AssistantStore(db, configuration: sqlite3.openInMemory());
         await tester.pumpWidget(
           TestApp(
             home: MediaQuery(
@@ -115,7 +121,7 @@ void main() {
                 size: Size(width, 900),
                 textScaler: const TextScaler.linear(2),
               ),
-              child: AssistantSettingsPage(store: store),
+              child: _form(store),
             ),
           ),
         );
@@ -135,10 +141,8 @@ void main() {
     'settings are three fields and one test; key alone enables chat',
     (tester) async {
       final db = sqlite3.openInMemory();
-      final store = AssistantStore(db);
-      await tester.pumpWidget(
-        TestApp(home: AssistantSettingsPage(store: store)),
-      );
+      final store = AssistantStore(db, configuration: sqlite3.openInMemory());
+      await tester.pumpWidget(TestApp(home: _form(store)));
       await tester.pumpAndSettle();
       expect(find.byType(ShadSwitch), findsNothing);
       expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
@@ -162,3 +166,7 @@ void main() {
     },
   );
 }
+
+Widget _form(AssistantStore store) => Scaffold(
+  body: SettingsListView(children: [AssistantModelSettings(store: store)]),
+);

@@ -216,6 +216,7 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
         builder: (_) => AppPage(
+          pageContext: const PageContextData(pageType: 'asr_model_settings'),
           title: Text(l.asrSettingsTitle),
           body: SettingsListView(
             children: [AsrSettingsSection(registry: _service!.backends)],
@@ -241,10 +242,6 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     final config = transcribe ? _service!.backends.get(_backendId ?? '') : null;
     if (transcribe && config == null) return;
     if (_whole && !await _confirmWhole(info)) return;
-    if (config != null && config.uploads && config.uploadConsentAt == null) {
-      if (!await _confirmUpload(config, range)) return;
-      _service!.backends.grantUploadConsent(config.id);
-    }
     if (!mounted) return;
     final SubtitleRun run;
     try {
@@ -297,35 +294,6 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
           ShadButton(
             onPressed: () => Navigator.pop(c, true),
             child: Text(l.asrContinue),
-          ),
-        ],
-      ),
-    );
-    return ok == true;
-  }
-
-  Future<bool> _confirmUpload(AsrBackendConfig c, (int, int?) range) async {
-    final end = range.$2 ?? _info?.durationMs ?? 0;
-    final ok = await showShadDialog<bool>(
-      context: context,
-      builder: (ctx) => ShadDialog(
-        title: Text(l.asrUploadTitle),
-        description: Text(
-          l.asrUploadBody(
-            c.host,
-            '${clock(range.$1)} – ${clock(end)}',
-            c.url!.startsWith('http://') ? l.asrUploadInsecure : '',
-          ),
-        ),
-        actions: [
-          ShadButton.ghost(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: Text(l.cancel),
-          ),
-          ShadButton(
-            key: const ValueKey('asr-upload-allow'),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: Text(l.asrUploadAllow),
           ),
         ],
       ),
@@ -390,7 +358,11 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
         ],
       );
     }
-    return AppPage(title: Text(l.asrDebugTitle), body: body);
+    return AppPage(
+      pageContext: const PageContextData(pageType: 'audio_subtitle_debug'),
+      title: Text(l.asrDebugTitle),
+      body: body,
+    );
   }
 
   Widget _section(String title, Widget child) => Padding(

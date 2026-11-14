@@ -71,7 +71,6 @@ void main() {
               directory: Directory('${root.path}/artwork'),
               retainedArtwork: () => library.metadata.retainedArtwork,
             );
-            final lib = library.create('TMDB 联调 · 真实影视资料', type: 'movie');
             Future<Map<String, dynamic>> verifyImage(
               ArtworkDescriptor descriptor,
             ) async {
@@ -109,7 +108,7 @@ void main() {
                   isFolder: false,
                 ),
               );
-              library.addManual(lib, media);
+              library.addManual(media);
               movies.add(media);
               final job = await service.search(
                 media,
@@ -152,7 +151,7 @@ void main() {
                 isFolder: false,
               ),
             );
-            library.addManual(lib, episode);
+            library.addManual(episode);
             final job = await service.search(
               episode,
               query: 'Breaking Bad',
@@ -177,7 +176,7 @@ void main() {
               [episode],
             );
             expect(parents, hasLength(1));
-            final show = library.query(lib, contentType: 'series').single;
+            final show = library.query(contentType: 'series').single;
             final seriesPoster = library.metadata.selectedArtwork(
               show['id'] as String,
             )!;

@@ -13,6 +13,7 @@ import '../ui/adaptive/app_page.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../core/plugins/source_capability.dart';
+import '../core/models/text_model.dart';
 import '../data/files/local_media_picker.dart';
 import '../data/sources/source_manager.dart';
 import '../features/library/home_page.dart';
@@ -24,20 +25,15 @@ import '../services/library/library_service.dart';
 import '../services/metadata/metadata_runtime.dart';
 import '../ui/adaptive/app_navigation.dart';
 import '../features/settings/settings_page.dart';
+import '../features/settings/plugins/plugin_management_page.dart';
 import 'player_window.dart';
 import '../ui/tokens/app_motion.dart';
 import '../ui/tokens/app_spacing.dart';
 import 'theme/app_theme.dart';
 
-import '../core/models/text_model.dart';
 import '../plugins/model_langchain/langchain_model.dart';
 import '../services/ai_tools/media_processing_tools.dart';
 import '../services/ai_tools/media_tools.dart';
-import '../services/ai_tools/torrent_tools.dart';
-import '../services/ai_tools/torrent_search_tools.dart';
-import '../services/torrent_search/torrent_search_config.dart';
-import '../services/torrent/torrent_service.dart';
-import '../features/settings/torrent_service_settings_page.dart';
 import '../services/ai_tools/subtitle_tools.dart';
 import '../services/subtitles/asr_backend_config.dart';
 import '../services/subtitles/asr_model_store.dart';
@@ -45,6 +41,9 @@ import '../services/subtitles/subtitle_generation_service.dart';
 import '../services/media_processing/media_processing_service.dart';
 import '../services/ai_tools/tool_registry.dart';
 import '../services/ai_tools/plugin_tools.dart';
+import '../services/ai_tools/external_tools.dart';
+import '../services/external/external_service_registry.dart';
+import '../services/external/external_service_setup.dart';
 import '../services/metadata/tmdb_credentials.dart';
 import '../services/plugins/plugin_manager.dart';
 import '../services/conversations/assistant_store.dart';
@@ -53,8 +52,8 @@ import '../features/ai_assistant/assistant_page.dart';
 import '../features/ai_assistant/ai_chat_controller.dart';
 import '../features/ai_assistant/ai_chat_panel.dart';
 import '../ui/icons/app_icons.dart';
-import '../features/ai_assistant/assistant_settings_page.dart';
 import '../ui/adaptive/assistant_action.dart';
+import '../ui/components/feedback/app_feedback.dart';
 
 class AppShell extends StatefulWidget {
   const AppShell({
@@ -62,11 +61,13 @@ class AppShell extends StatefulWidget {
     this.sources,
     this.library,
     this.backend,
+    this.assistantModel,
     this.pickMedia = pickLocalMedia,
   });
   final SourceManager? sources;
   final LibraryService? library;
   final PlayerBackend? backend;
+  final Future<TextModelCapability> Function()? assistantModel;
   final Future<LocalMedia?> Function() pickMedia;
 
   @override
@@ -97,12 +98,18 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   MediaProcessingService? _mediaProcessing;
   SubtitleGenerationService? _subtitles;
   PluginManager? _plugins;
+  ExternalTools? _externalTools;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
   late final PlayerWindows? _playerWindows =
       widget.backend == null && supportsPlayerWindow ? PlayerWindows() : null;
   int _destination = 0;
+  // The plugin branch is built on first visit, so its status refresh does not
+  // run behind the home page at startup.
+  bool _pluginsVisited = false;
+  final _pluginsKey = GlobalKey<PluginManagementPageState>();
+  PluginGroup? _pluginsInitialGroup;
   bool _showPlayer = false;
   bool _opening = false;
   bool _exitingPlayer = false;
@@ -141,7 +148,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             db: library.db,
             media: media,
             backends: AsrBackendRegistry(
-              db: library.db,
+              db: library.configuration,
               models: AsrModelStore(asrModelRoot()),
             ),
             root: SubtitleGenerationService.defaultRoot(),
@@ -157,15 +164,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         final plugins = _plugins = PluginManager(
           sources: _sources,
           asr: () => _subtitles?.backends,
-          torrent: () => TorrentServiceStore.current ??= TorrentServiceStore(),
-          torrentSearch: () => TorrentSearchRegistry.forDb(library.db),
           media: () => _mediaProcessing,
           tmdbConfigured: () async {
             try {
-              return (await tmdbCredentialStorage.read(key: tmdbTokenKey))
-                      ?.trim()
-                      .isNotEmpty ==
-                  true;
+              return library.metadata.setting(tmdbTokenKey).trim().isNotEmpty;
             } catch (_) {
               return false;
             }
@@ -214,6 +216,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _assistant?.dispose();
     _assistantStore?.close();
     _plugins?.dispose();
+    _externalTools?.dispose();
     if (SubtitleGenerationService.current == _subtitles) {
       SubtitleGenerationService.current = null;
     }
@@ -228,7 +231,16 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     super.dispose();
   }
 
+  PageContextSource? _originPage;
+
   Map<String, dynamic> _aiContext() => {
+    'pageContext':
+        _originPage?.read() ??
+        PageContextData(
+          pageType: _showPlayer
+              ? 'player'
+              : AppDestination.values[_destination].name,
+        ).toJson(),
     'page': _showPlayer ? 'player' : AppDestination.values[_destination].name,
     'playback':
         _playerWindows?.lastSnapshot ??
@@ -246,7 +258,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   void _initializeAssistant(LibraryService library) {
-    final store = _assistantStore = AssistantStore(library.db);
+    final store = _assistantStore = AssistantStore(
+      library.db,
+      configuration: library.configuration,
+    );
     final tools = _mediaTools = MediaTools(
       canExecute: () => _assistant?.acceptingActions ?? false,
       library: library,
@@ -338,31 +353,34 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         );
       }
     }
-    // Server-side BitTorrent downloads: offered only once a service is
-    // configured in Settings → BitTorrent 服务.
-    final torrentStore = TorrentServiceStore.current ??= TorrentServiceStore();
-    if (!torrentStore.loaded) unawaited(torrentStore.load().catchError((_) {}));
-    final torrentTools = TorrentToolsRegistry.current = TorrentTools(
+    // External capabilities (AI → 外部能力): tools of user-configured MCP
+    // services.
+    final external = _externalTools = ExternalTools(
       registry: tools.registry,
-      store: torrentStore,
-      userTexts: () => (_assistant?.turns ?? const <ConversationTurn>[])
-          .expand((t) => t.messages)
-          .where((m) => m.role == 'user')
-          .map((m) => m.text),
+      setup: ExternalServiceSetup(
+        registry: ExternalServiceRegistry.forDb(library.configuration),
+      ),
       canExecute: () => _assistant?.acceptingActions ?? false,
     );
-    // Read-only torrent index search (Settings → Torrent 搜索服务); offered
-    // only once a search service is configured and enabled.
-    TorrentSearchTools(
-      registry: tools.registry,
-      services: TorrentSearchRegistry.forDb(library.db),
-      canExecute: () => _assistant?.acceptingActions ?? false,
-    );
+    unawaited(external.start().catchError((_) {}));
     final plugins = _plugins;
     if (plugins != null) {
       // One tool catalog; the plugin policy narrows it per request and the
       // gateway re-checks it before every execution.
       tools.registry.policy = plugins;
+      plugins.externalSummary = () => [
+        for (final s in external.services.services)
+          {
+            'name': s.name,
+            'service': s.label,
+            'available': s.available,
+            'tools': [
+              for (final t in s.tools)
+                if (external.unsupported[s.id]?[t] == null)
+                  ExternalTools.alias(s, t),
+            ],
+          },
+      ];
       PluginTools(registry: tools.registry, plugins: plugins);
     }
     _assistant = ConversationCoordinator(
@@ -370,9 +388,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       gateway: ToolGateway(tools.registry, journal: store),
       context: _aiContext,
       confirmationTarget: (tool, arguments) {
-        if (tool.startsWith('torrent_')) {
-          return torrentTools.describe(tool, arguments);
-        }
+        final external = _externalTools?.describe(tool);
+        if (external != null) return external;
         final id = arguments['media_id'];
         if (id is! String) return null;
         final rows = _library!.db.select('SELECT title FROM media WHERE id=?', [
@@ -382,36 +399,35 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
             ? null
             : MediaTools.safeText(rows.first['title'] as String);
       },
-      model: () async {
-        final config = store.loadConfig();
-        config.validate();
-        final key = await store.key(config);
-        if (key.isEmpty) throw const ModelFailure('configurationRequired');
-        return LangChainModel(
-          apiKey: key,
-          endpoint: config.endpoint,
-          model: config.model,
-          maxTokens: config.maxTokens,
-          streaming: config.streamVerified || !config.textVerified,
-        );
-      },
+      model:
+          widget.assistantModel ??
+          () async {
+            final config = store.loadConfig();
+            config.validate();
+            final key = await store.key(config);
+            if (key.isEmpty) throw const ModelFailure('configurationRequired');
+            return LangChainModel(
+              apiKey: key,
+              endpoint: config.endpoint,
+              model: config.model,
+              maxTokens: config.maxTokens,
+              streaming: config.streamVerified || !config.textVerified,
+            );
+          },
     );
     _chat = AiChatController(_assistant!);
   }
 
+  /// Model settings live on the AI page's 模型 page.
   Future<void> _modelSettings() async {
     if (_assistantStore == null || (_assistant?.busy ?? false)) return;
-    // Open inside the settings tab like other settings sub-pages. The chat sheet (root route) closes first,
-    // otherwise it would sit on top of the page.
+    // The chat page (root route) closes first, otherwise it would cover the page.
     Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
-    final settings = AppDestination.settings.index;
-    if (_destination != settings) _select(settings);
-    await _branches[settings].currentState!.push(
-      MaterialPageRoute<void>(
-        builder: (_) => AssistantSettingsPage(store: _assistantStore!),
-      ),
-    );
-    if (mounted) setState(() {});
+    final ai = AppDestination.plugins.index;
+    _pluginsInitialGroup = PluginGroup.model;
+    _branches[ai].currentState?.popUntil((r) => r.isFirst);
+    _pluginsKey.currentState?.showGroup(PluginGroup.model);
+    if (_destination != ai) _select(ai);
   }
 
   Widget _assistantView({VoidCallback? onBack}) => AssistantView(
@@ -527,6 +543,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       ? child
       : AssistantAction(
           label: l.aiAssistant,
+          onContext: (source) => _originPage = source,
           onPressed: _openAssistant,
           child: child,
         );
@@ -574,7 +591,12 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     width: AppPage.headerHeight,
     height: AppPage.headerHeight,
     icon: const Icon(AppIcons.assistant),
-    onPressed: _openAssistant,
+    onPressed: () {
+      _originPage = PageContextSource(
+        const PageContextData(pageType: 'player'),
+      );
+      _openAssistant();
+    },
   );
 
   Future<void> _exitPlayer() async {
@@ -605,6 +627,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       return;
     }
     _opening = true;
+    // On mobile the player lives below the assistant's full-page route.
+    // Reveal it for tool opens as well as media-card taps, without stopping
+    // the app-owned coordinator that may still need to select subtitles.
+    FocusManager.instance.primaryFocus?.unfocus();
+    _closeAssistant();
     setState(() {
       _showPlayer = true;
     });
@@ -616,7 +643,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   void _message(String message) =>
-      ShadToaster.of(context).show(ShadToast(description: Text(message)));
+      showAppToast(context, message, kind: FeedbackKind.error);
 
   Future<void> _playHistory(dynamic media) async {
     if (_opening) return;
@@ -663,7 +690,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     builder: (_, _, _) => _homeContent(),
   );
 
-  Widget _homeContent() => AppPage(title: Text(l.home), body: _homeMedia());
+  Widget _homeContent() => AppPage(
+    pageContext: const PageContextData(pageType: 'home'),
+    title: Text(l.home),
+    body: _homeMedia(),
+  );
 
   Widget _homeMedia() => HomePage(
     sources: _sources,
@@ -672,19 +703,41 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     onResume: _playHistory,
   );
 
-  Widget _settings() => SettingsPage(
-    library: _library,
-    sources: _sources,
-    plugins: _plugins,
-    onModelSettings: _assistantStore == null ? null : _modelSettings,
-  );
+  Widget _settings() =>
+      SettingsPage(library: _library, sources: _sources, plugins: _plugins);
+
+  Widget _pluginsPage() => _plugins == null
+      ? AppPage(
+          pageContext: const PageContextData(pageType: 'plugins'),
+          title: Text(l.plugins),
+          body: ContentState(message: l.loading, loading: true),
+        )
+      : PluginManagementPage(
+          key: _pluginsKey,
+          manager: _plugins!,
+          sources: _sources,
+          assistantStore: _assistantStore,
+          initialGroup: _pluginsInitialGroup,
+          externalServices: ExternalServiceRegistry.forDb(
+            _library!.configuration,
+          ),
+          openEditor: pluginEditorOpener(
+            library: _library,
+            sources: _sources,
+            onModelSettings: _assistantStore == null ? null : _modelSettings,
+          ),
+        );
 
   // Observers fire while the navigator is mid-update, so rebuild after it.
   void _depthChanged() => WidgetsBinding.instance.addPostFrameCallback((_) {
     if (mounted) setState(() {});
   });
 
-  Widget _branch(int index) => Navigator(
+  // Hidden tabs keep their state but stop animating.
+  Widget _branch(int index) =>
+      TickerMode(enabled: index == _destination, child: _navigator(index));
+
+  Widget _navigator(int index) => Navigator(
     key: _branches[index],
     observers: [_depths[index]],
     onGenerateRoute: (_) => MaterialPageRoute<void>(
@@ -695,13 +748,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           library: _library,
           onPlay: _play,
         ),
+        AppDestination.plugins => _pluginsPage(),
         AppDestination.settings => _settings(),
       },
     ),
   );
 
   void _select(int index) {
-    setState(() => _destination = index);
+    setState(() {
+      _destination = index;
+      if (index == AppDestination.plugins.index) _pluginsVisited = true;
+    });
     if (index == 0) _revision.value++;
   }
 
@@ -764,7 +821,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                     index: _destination,
                                     children: [
                                       for (final d in AppDestination.values)
-                                        _branch(d.index),
+                                        d == AppDestination.plugins &&
+                                                !_pluginsVisited
+                                            ? const SizedBox.shrink()
+                                            : _branch(d.index),
                                     ],
                                   ),
                                 ),
@@ -786,6 +846,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         backend: _backend,
                         sourceManager: _sources,
                         libraryService: _library,
+                        active: _showPlayer,
                         onExit: _exitPlayer,
                         pickMedia: widget.pickMedia,
                         onFileSelected: () =>

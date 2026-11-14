@@ -471,7 +471,9 @@ class SmbAccess {
 
   Future<SmbConnect> _liveConnection() async {
     final connection = await _connect();
-    print('DIAG smb idle=${connection.transport.idleFor.inSeconds}s closed=${connection.transport.isClosed}'); // DIAG
+    print(
+      'DIAG smb idle=${connection.transport.idleFor.inSeconds}s closed=${connection.transport.isClosed}',
+    ); // DIAG
     if (connection.transport.idleFor < idleBeforeProbe) return connection;
     try {
       await connection.echo().timeout(probeTimeout);

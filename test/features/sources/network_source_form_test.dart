@@ -120,7 +120,7 @@ void main() {
     await chooseKind(tester, 'DLNA');
     await tester.tap(find.text('搜索局域网设备'));
     await tester.pumpAndSettle();
-    expect(find.text('客厅 NAS'), findsOneWidget);
+    expect(find.text('客厅 NAS'), findsWidgets); // row + name hint
     await tester.tap(find.text('添加'));
     await tester.pumpAndSettle();
     final saved = sources.saved.single;

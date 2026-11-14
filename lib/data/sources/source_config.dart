@@ -89,7 +89,7 @@ class SourceConfig {
     this.pluginVersion = '1.0.0',
     this.configVersion = 2,
     this.revision = 0,
-    this.credentialRef,
+    this.hasSecret = false,
     this.credentialExpiresAt,
     this.includeInSearch = false,
     this.browseMode,
@@ -116,7 +116,10 @@ class SourceConfig {
   final String pluginVersion;
   final int configVersion;
   final int revision;
-  final String? credentialRef;
+
+  /// A password or token is saved for this instance (in its configuration
+  /// row; never part of [toJson]).
+  final bool hasSecret;
   final DateTime? credentialExpiresAt;
   final bool includeInSearch;
   final String? browseMode;
@@ -170,7 +173,7 @@ class SourceConfig {
     String? pluginVersion,
     int? configVersion,
     int? revision,
-    String? credentialRef,
+    bool? hasSecret,
     DateTime? credentialExpiresAt,
     bool clearExpiry = false,
     bool? includeInSearch,
@@ -200,7 +203,7 @@ class SourceConfig {
     pluginVersion: pluginVersion ?? this.pluginVersion,
     configVersion: configVersion ?? this.configVersion,
     revision: revision ?? this.revision,
-    credentialRef: credentialRef ?? this.credentialRef,
+    hasSecret: hasSecret ?? this.hasSecret,
     credentialExpiresAt: clearExpiry
         ? null
         : credentialExpiresAt ?? this.credentialExpiresAt,
@@ -233,7 +236,6 @@ class SourceConfig {
     'pluginVersion': pluginVersion,
     'configVersion': configVersion,
     'revision': revision,
-    'credentialRef': credentialRef,
     'credentialExpiresAt': credentialExpiresAt?.toUtc().toIso8601String(),
     'includeInSearch': includeInSearch,
     'browseMode': effectiveBrowseMode,
@@ -260,7 +262,7 @@ class SourceConfig {
       'pluginVersion',
       'configVersion',
       'revision',
-      'credentialRef',
+      'credentialRef', // older rows; the secret is now in the row itself
       'credentialExpiresAt',
       'includeInSearch',
       'browseMode',
@@ -290,7 +292,6 @@ class SourceConfig {
       pluginVersion: j['pluginVersion'] as String? ?? '1.0.0',
       configVersion: j['configVersion'] as int? ?? 2,
       revision: j['revision'] as int? ?? 0,
-      credentialRef: j['credentialRef'] as String?,
       credentialExpiresAt: j['credentialExpiresAt'] == null
           ? null
           : DateTime.parse(j['credentialExpiresAt'] as String),

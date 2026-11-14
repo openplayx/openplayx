@@ -101,8 +101,7 @@ void main() {
         isFolder: false,
       ),
     );
-    final lib = library.create('Movies');
-    library.db.execute('INSERT INTO memberships VALUES (?,?,?)', [lib, id, 1]);
+    library.db.execute('INSERT INTO memberships VALUES (?,?)', [id, 1]);
     final catalog = MediaTools(
       library: library,
       sources: SearchSources(),

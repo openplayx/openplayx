@@ -1,6 +1,5 @@
 import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
@@ -8,7 +7,6 @@ import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/remote_access/remote_config.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -16,8 +14,6 @@ void main() {
   test(
     'runtime SMB provider retains resolved Relay route and never dials LAN',
     () async {
-      SharedPreferences.setMockInitialValues({});
-      FlutterSecureStorage.setMockInitialValues({});
       final configuration = SourceConfigurationService(sqlite3.openInMemory());
       final remote = RemoteAccessService.memory();
       remote.network = const RemoteNetwork(
@@ -27,7 +23,7 @@ void main() {
           'server_port': 443,
           'tls': {'enabled': true, 'server_name': 'relay.test'},
         },
-        credentialRef: 'remote.outbound.missing-fixture',
+        credential: {'uuid': '11111111-1111-4111-8111-111111111111'},
         proxies: [RemoteProxy('smb', 18445)],
       );
       final manager = SourceManager(
@@ -55,9 +51,13 @@ void main() {
           await expectLater(
             manager.browse('remote-smb', const BrowseRequest()),
             throwsA(
-              isA<PluginException>()
-                  .having((e) => e.code, 'code', 'authRequired')
-                  .having((e) => e.message, 'message', contains('远程访问凭据不可用')),
+              // The Relay core is not available in tests: the route is still
+              // the Relay one, and the LAN address is never dialled.
+              isA<PluginException>().having(
+                (e) => e.code,
+                'code',
+                'remoteCoreUnavailable',
+              ),
             ),
           );
         },

@@ -8,6 +8,7 @@ import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/media/content_row.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 /// Browses the folders of one file source, starting at its root; files play.
 class FileSourceBrowserPage extends StatefulWidget {
@@ -125,6 +126,15 @@ class _FileSourceBrowserPageState extends State<FileSourceBrowserPage> {
       if (!didPop && !_busy) _up();
     },
     child: AppPage(
+      pageContext: PageContextData(
+        pageType: 'file_source_browser',
+        entity: {'source_id': widget.sourceId},
+        state: {
+          'folderDepth': _folders.length,
+          'loading': _busy,
+          'visibleEntryCount': _entries.length,
+        },
+      ),
       title: Text(_folders.isEmpty ? widget.title : _folders.last.name),
       body: Column(
         children: [
@@ -134,7 +144,7 @@ class _FileSourceBrowserPageState extends State<FileSourceBrowserPage> {
               padding: const EdgeInsets.all(16),
               child: Column(
                 children: [
-                  ShadAlert.destructive(title: Text(_error!)),
+                  AppAlert.error(title: _error!),
                   ShadButton.ghost(
                     onPressed: _busy ? null : _load,
                     child: Text(l.retry),

@@ -20,6 +20,7 @@ import '../../services/artwork/artwork_service.dart';
 import 'media_opener.dart';
 import 'media_tiles.dart';
 import 'server_shelf.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 class LibraryPage extends StatefulWidget {
   const LibraryPage({
@@ -157,12 +158,10 @@ class _LibraryPageState extends State<LibraryPage>
       }
     } catch (error) {
       if (from.mounted) {
-        ShadToaster.of(from).show(
-          ShadToast.destructive(
-            description: Text(
-              error is PluginException ? error.message : l.versionOpenFailed,
-            ),
-          ),
+        showAppToast(
+          from,
+          error is PluginException ? error.message : l.versionOpenFailed,
+          kind: FeedbackKind.error,
         );
       }
     } finally {
@@ -211,13 +210,13 @@ class _LibraryPageState extends State<LibraryPage>
   @override
   Widget build(BuildContext context) {
     final service = _service;
-    final fileSources = service?.fileSources() ?? const <sql.Row>[];
+    final fileSources =
+        service?.fileSources() ?? const <Map<String, Object?>>[];
     final rows = service == null
         ? []
         : [
             for (var i = 0; i < _pages; i++)
               ...service.query(
-                null,
                 search: _search,
                 offset: i * _page,
                 limit: _page,
@@ -238,6 +237,7 @@ class _LibraryPageState extends State<LibraryPage>
     return PopScope(
       canPop: !_scanning,
       child: AppPage(
+        pageContext: const PageContextData(pageType: 'library'),
         actions: [
           if (service != null)
             Tooltip(
@@ -318,9 +318,7 @@ class _LibraryPageState extends State<LibraryPage>
                     ],
                     if (_scanning) SliverToBoxAdapter(child: ShadProgress()),
                     if (_error != null)
-                      SliverToBoxAdapter(
-                        child: ShadAlert.destructive(title: Text(_error!)),
-                      ),
+                      SliverToBoxAdapter(child: AppAlert.error(title: _error!)),
                     // Media servers keep their own catalogues and artwork, so
                     // each gets a shelf instead of being merged into the wall.
                     for (final server in servers)

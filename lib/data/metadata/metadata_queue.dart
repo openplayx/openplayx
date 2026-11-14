@@ -239,7 +239,7 @@ class MetadataQueue {
           '''SELECT COUNT(*) AS total,
       COALESCE(SUM(q.state NOT IN ('queued','running','waitingConfiguration')),0) AS done
       FROM metadata_queue q JOIN media_evidence e ON e.media_id=q.media_id
-      WHERE e.binding_id=? AND q.state<>'cancelled' ''',
+      WHERE e.file_source_id=? AND q.state<>'cancelled' ''',
           [binding],
         )
         .single;

@@ -6,14 +6,22 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
+import '../configuration/configuration_database.dart';
 import 'metadata_queue.dart';
 
 /// Shares the media library database. Projection updates and job commits are a
 /// single transaction; resources and playback progress are never rewritten.
 class MetadataRepository {
-  MetadataRepository(this.db, {this.onChanged});
+  MetadataRepository(this.db, {this.configuration, this.onChanged});
   final void Function()? onChanged;
   final Database db;
+
+  /// `configuration.sqlite3`, where the user's metadata settings (TMDB
+  /// language, provider revision) live; null for schema-only use.
+  final Database? configuration;
+
+  /// Namespace of the metadata settings in configuration.sqlite3.
+  static const settingsNamespace = 'metadata';
   void migrate() {
     db.execute(
       '''CREATE TABLE IF NOT EXISTS metadata_state (
@@ -41,8 +49,6 @@ class MetadataRepository {
     db.execute('''CREATE TABLE IF NOT EXISTS artwork_selections (
       media_id TEXT NOT NULL REFERENCES media(id), type TEXT NOT NULL, descriptor TEXT NOT NULL,
       locked INTEGER NOT NULL, PRIMARY KEY(media_id,type))''');
-    db.execute('''CREATE TABLE IF NOT EXISTS metadata_settings (
-      key TEXT PRIMARY KEY, value TEXT NOT NULL)''');
     db.execute('''CREATE TABLE IF NOT EXISTS metadata_containers (
       scope TEXT PRIMARY KEY, media_id TEXT NOT NULL REFERENCES media(id))''');
     db.execute('''CREATE TABLE IF NOT EXISTS metadata_relations (
@@ -99,8 +105,8 @@ class MetadataRepository {
         userConfirmed: confirmed(id),
       );
       db.execute(
-        '''INSERT OR IGNORE INTO memberships SELECT library_id,?,added_at FROM memberships
-        WHERE media_id=? AND NOT EXISTS (SELECT 1 FROM ignored i WHERE i.library_id=memberships.library_id AND i.media_id=?)''',
+        '''INSERT OR IGNORE INTO memberships SELECT ?,added_at FROM memberships
+        WHERE media_id=? AND NOT EXISTS (SELECT 1 FROM ignored i WHERE i.media_id=?)''',
         [id, media, id],
       );
       MetadataQueue.observe(db, id);
@@ -619,16 +625,19 @@ class MetadataRepository {
     onChanged?.call();
   }
 
+  Database get _configuration =>
+      configuration ?? (throw StateError('metadata settings unavailable'));
+
   String setting(String key, {String fallback = ''}) =>
-      db.select('SELECT value FROM metadata_settings WHERE key=?', [
-            key,
-          ]).firstOrNull?['value']
+      ConfigurationDatabase.readSetting(_configuration, settingsNamespace, key)
           as String? ??
       fallback;
   void setSetting(String key, String value) {
-    db.execute(
-      'INSERT INTO metadata_settings VALUES (?,?) ON CONFLICT(key) DO UPDATE SET value=excluded.value',
-      [key, value],
+    ConfigurationDatabase.writeSetting(
+      _configuration,
+      settingsNamespace,
+      key,
+      value,
     );
     onChanged?.call();
   }

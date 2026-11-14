@@ -12,7 +12,6 @@ void main() {
       sqlite3.openInMemory(),
       watchExternalChanges: false,
     );
-    final lib = library.create('Films');
     media = [
       for (final name in ['A', 'B', 'C', 'D'])
         library.register(
@@ -24,7 +23,7 @@ void main() {
         ),
     ];
     for (final m in media) {
-      library.addManual(lib, m);
+      library.addManual(m);
     }
   });
   tearDown(() => library.close());

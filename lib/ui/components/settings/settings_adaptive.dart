@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../adaptive/app_page.dart';
+import '../forms/form_actions.dart';
+import '../forms/settings_text_input.dart';
 import '../../icons/app_icons.dart';
 import '../../tokens/app_metrics.dart';
 import '../../tokens/app_spacing.dart';
@@ -226,6 +228,7 @@ Future<T?> pushSettingsPage<T>(
 }) => Navigator.of(context).push<T>(
   MaterialPageRoute(
     builder: (c) => AppPage(
+      pageContext: const PageContextData(pageType: 'settings_form'),
       title: Text(title),
       trailing: trailing?.call(c) ?? const [],
       body: SettingsListView(children: children(c)),
@@ -250,6 +253,7 @@ class SettingsChoicePage<T> extends StatelessWidget {
   Widget build(BuildContext context) {
     final colors = ShadTheme.of(context).colorScheme;
     return AppPage(
+      pageContext: const PageContextData(pageType: 'settings_choice'),
       title: Text(title),
       body: SettingsListView(
         children: [
@@ -313,12 +317,13 @@ class _SettingsInputPageState extends State<SettingsInputPage> {
 
   @override
   Widget build(BuildContext context) => AppPage(
+    pageContext: const PageContextData(pageType: 'settings_input'),
     title: Text(widget.title),
     trailing: [
-      ShadButton.ghost(
+      PageSubmitButton(
         key: const ValueKey('settings-input-save'),
+        label: widget.saveLabel,
         onPressed: _submit,
-        child: Text(widget.saveLabel),
       ),
     ],
     body: SettingsListView(
@@ -326,15 +331,11 @@ class _SettingsInputPageState extends State<SettingsInputPage> {
         SettingsSection(
           footer: _error ?? widget.description,
           children: [
-            ShadInput(
+            SettingsTextInput(
               controller: _controller,
               autofocus: true,
-              autocorrect: false,
-              enableSuggestions: false,
               keyboardType: widget.keyboardType,
-              placeholder: widget.placeholder == null
-                  ? null
-                  : Text(widget.placeholder!),
+              example: widget.placeholder,
               onSubmitted: (_) => _submit(),
             ),
           ],

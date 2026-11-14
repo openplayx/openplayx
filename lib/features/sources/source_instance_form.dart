@@ -10,6 +10,9 @@ import '../../ui/components/media/source_kind_icon.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../ui/adaptive/app_page.dart';
+import '../../ui/components/forms/form_actions.dart';
+import '../../ui/components/forms/secret_input.dart';
+import '../../ui/components/forms/settings_text_input.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
@@ -24,6 +27,7 @@ import '../../data/sources/dlna_source.dart';
 import '../../data/sources/source_connection.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_sign_in.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 class SourceInstanceForm extends StatefulWidget {
   const SourceInstanceForm({
@@ -58,11 +62,11 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   final _address = TextEditingController();
   final _addressFocus = FocusNode();
   final _username = TextEditingController();
-  final _password = TextEditingController();
+  final _password = SecretController();
   final _port = TextEditingController();
   final _path = TextEditingController();
   final _domain = TextEditingController();
-  final _manualToken = TextEditingController();
+  final _manualToken = SecretController();
   final _localEndpoint = TextEditingController();
   final _localFingerprint = TextEditingController();
   bool _remoteEnabled = false;
@@ -73,10 +77,13 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   bool _https = false;
   bool _busy = false;
   bool _authorizing = false;
-  bool _showPassword = false;
   bool _manualPlex = false;
   bool _advanced = false;
-  String? _error;
+
+  /// Failures pop up as a toast: an alert at the top of the form would push
+  /// the fields and the in-form sign-in buttons down.
+  void _fail(String message) =>
+      showAppToast(context, message, kind: FeedbackKind.error);
   List<PlexServer> _servers = [];
   PlexServer? _server;
   String? _plexToken;
@@ -99,9 +106,23 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _connectionMode = remote?.mode ?? RemoteConnectionMode.remoteOnly;
     _localEndpoint.text = remote?.localAddress ?? '';
     _localFingerprint.text = remote?.localTlsSha256 ?? '';
-    if (initial != null) _fillConnection(initial);
+    if (initial != null) {
+      _fillConnection(initial);
+      // Jellyfin/Emby keep a session token, not the password: never shown.
+      final field = switch (initial.kind) {
+        SourceKind.smb ||
+        SourceKind.webdav ||
+        SourceKind.ftp ||
+        SourceKind.sftp ||
+        SourceKind.s3 => _password,
+        SourceKind.plex => _manualToken,
+        _ => null,
+      };
+      field?.loadStored(() => widget.manager.storedSecret(initial.id));
+    }
+    // DLNA validates the address live; the name hint follows the address.
     _address.addListener(() {
-      if (_kind == SourceKind.dlna && mounted) setState(() {});
+      if (mounted) setState(() {});
     });
     _addressFocus.addListener(() {
       if (!_addressFocus.hasFocus && mounted) _normalizeAddress();
@@ -148,7 +169,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _loginGeneration++;
     setState(() {
       _kind = kind;
-      _error = null;
       _advanced = false;
       _manualPlex = false;
       _remoteEnabled = false;
@@ -254,7 +274,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       final path = await (widget.chooseDirectory?.call() ?? getDirectoryPath());
       if (path != null && mounted) setState(() => _address.text = path);
     } catch (_) {
-      if (mounted) setState(() => _error = l.pickFolderFailed);
+      if (mounted) _fail(l.pickFolderFailed);
     }
   }
 
@@ -263,7 +283,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     setState(() {
       _busy = true;
       _authorizing = true;
-      _error = null;
       _loginUri = null;
       _servers = [];
       _server = null;
@@ -298,11 +317,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       });
     } catch (error) {
       if (mounted && generation == _loginGeneration) {
-        setState(
-          () => _error = error is PluginException
-              ? error.message
-              : l.plexSignInFailed,
-        );
+        _fail(error is PluginException ? error.message : l.plexSignInFailed);
       }
     } finally {
       if (mounted && generation == _loginGeneration) {
@@ -317,7 +332,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   Future<void> _save() async {
     setState(() {
       _busy = true;
-      _error = null;
     });
     try {
       if (_remoteEnabled && _remoteProxy == null) {
@@ -346,7 +360,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             SourceKind.ftp ||
             SourceKind.sftp ||
             SourceKind.s3:
-          secret = _password.text;
+          secret = _password.edited;
           await widget.manager.testDraft(draft, secret);
         case SourceKind.dlna:
           await widget.manager.testDraft(draft, '');
@@ -367,7 +381,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             secret = session.token;
           }
         case SourceKind.plex:
-          secret = _manualPlex ? _manualToken.text : _plexToken ?? '';
+          secret = _manualPlex ? _manualToken.edited : _plexToken ?? '';
           if (widget.initial == null && secret.isEmpty) {
             throw PluginException(
               'authRequired',
@@ -381,8 +395,8 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       if (mounted) Navigator.pop(context, true);
     } catch (error) {
       if (mounted) {
-        setState(
-          () => _error = error is FormatException
+        _fail(
+          error is FormatException
               ? error.message
               : error is PluginException
               ? error.message
@@ -410,42 +424,24 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     Key? key,
   }) {
     final inline = maxLines == 1;
-    final input = ShadInput(
-      key: key ?? ValueKey(label),
-      controller: c,
-      focusNode: identical(c, _address) ? _addressFocus : null,
-      enabled: !_busy,
-      maxLines: maxLines,
-      autocorrect: false,
-      enableSuggestions: !password,
-      obscureText: password && !_showPassword,
-      keyboardType: number ? TextInputType.number : TextInputType.text,
-      decoration: inline ? ShadDecoration.none : null,
-      padding: inline ? EdgeInsets.zero : null,
-      placeholder: hint == null ? null : Text(hint),
-      trailing: password
-          ? Tooltip(
-              message: _showPassword ? l.hidePassword : l.showPassword,
-              child: Semantics(
-                button: true,
-                label: _showPassword ? l.hidePassword : l.showPassword,
-                child: ShadIconButton.ghost(
-                  width: 32,
-                  height: 32,
-                  iconSize: 18,
-                  padding: EdgeInsets.zero,
-                  onPressed: () =>
-                      setState(() => _showPassword = !_showPassword),
-                  icon: Icon(
-                    _showPassword
-                        ? AppIcons.hidePassword
-                        : AppIcons.showPassword,
-                  ),
-                ),
-              ),
-            )
-          : null,
-    );
+    final Widget input = password
+        ? SecretInput(
+            key: key ?? ValueKey(label),
+            controller: c,
+            enabled: !_busy,
+            placeholder: hint,
+            inline: inline,
+          )
+        : SettingsTextInput(
+            key: key ?? ValueKey(label),
+            controller: c,
+            focusNode: identical(c, _address) ? _addressFocus : null,
+            enabled: !_busy,
+            maxLines: maxLines,
+            keyboardType: number ? TextInputType.number : TextInputType.text,
+            inline: inline,
+            example: hint,
+          );
     return inline
         ? SettingsFieldRow(title: label, description: help, field: input)
         : SettingsRow(
@@ -502,6 +498,15 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
               )
             : null,
       );
+
+  /// What a blank name shows: the discovered server's own name, or
+  /// "type · address" as the source list displays it.
+  String get _nameHint {
+    final found = _server?.name ?? _device?.name;
+    if (found != null && found.isNotEmpty) return found;
+    final address = _address.text.trim();
+    return '${_kindName(_kind)} · ${address.isEmpty ? _addressHint : address}';
+  }
 
   String get _addressHint => switch (_kind) {
     SourceKind.smb || SourceKind.ftp || SourceKind.sftp => '192.168.1.10',
@@ -596,7 +601,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   Future<void> _searchDlna() async {
     setState(() {
       _searching = true;
-      _error = null;
     });
     try {
       final devices =
@@ -812,13 +816,14 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     // Leaving mid-save would orphan the request; Plex sign-in can be abandoned.
     canPop: !(_busy && !_authorizing),
     child: AppPage(
+      pageContext: const PageContextData(pageType: 'source_configuration'),
       title: Text(widget.initial == null ? l.addSource : l.editSource),
       trailing: [
-        ShadButton.ghost(
+        PageSubmitButton(
           key: const ValueKey('source-save'),
+          label: widget.initial == null ? l.add : l.save,
+          busy: _busy && !_authorizing,
           onPressed: _canSave ? _save : null,
-          enabled: _canSave,
-          child: Text(widget.initial == null ? l.add : l.save),
         ),
       ],
       body: SingleChildScrollView(
@@ -829,14 +834,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                if (_busy) ...[
-                  const ShadProgress(),
-                  const SizedBox(height: AppSpacing.md),
-                ],
-                if (_error != null) ...[
-                  ShadAlert.destructive(title: Text(_error!)),
-                  const SizedBox(height: AppSpacing.md),
-                ],
                 SettingsSection(
                   children: [
                     SettingsChoiceRow<SourceKind>(
@@ -851,7 +848,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                       leading: (kind) => SourceKindIcon(kind, size: 28),
                       onChanged: _changeKind,
                     ),
-                    _field(_name, l.optionalName),
+                    _field(_name, l.optionalName, hint: _nameHint),
                   ],
                 ),
                 ...switch (_kind) {

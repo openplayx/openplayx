@@ -1,13 +1,11 @@
 import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/metadata_capability.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/services/artwork/artwork_service.dart';
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../metadata/metadata_test.dart' show FixtureSources;
@@ -26,8 +24,6 @@ void main() {
   test(
     'cache limit defaults, persists per device and rejects other values',
     () async {
-      SharedPreferences.setMockInitialValues({});
-      FlutterSecureStorage.setMockInitialValues({});
       final service = SourceConfigurationService(sqlite3.openInMemory());
       final manager = SourceManager(configuration: service);
       addTearDown(() async {

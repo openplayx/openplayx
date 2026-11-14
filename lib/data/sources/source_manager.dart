@@ -2,13 +2,15 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/services.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/source_capability.dart';
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/plugin_gate.dart';
 import '../configuration/source_configuration_service.dart';
 import '../configuration/source_credential_broker.dart';
+import '../library/library_database.dart';
+import 'source_state_store.dart';
 import 'file_sources.dart';
 import 'dlna_source.dart';
 import 'media_server_sources.dart';
@@ -57,14 +59,20 @@ enum SourceApplicationStatus { disabled, ready, failed, initialized, saved }
 
 class SourceManager {
   SourceManager({
-    FlutterSecureStorage? credentials,
     SourceConfigurationService? configuration,
+    SourceStateStore? sourceState,
     RemoteAccessService? remoteAccess,
     Future<void> Function(Map<String, dynamic> outbound, int port)?
     remoteCoreValidator,
   }) : _configuration = configuration,
-       _ownsConfiguration = configuration == null {
-    _credentials = SourceCredentialBroker(() => _configuration!, credentials);
+       _ownsConfiguration = configuration == null,
+       // An injected configuration (tests) gets a throwaway state store.
+       _state =
+           sourceState ??
+           (configuration == null
+               ? null
+               : SourceStateStore(sqlite3.openInMemory())) {
+    _credentials = SourceCredentialBroker(() => _configuration!);
     _remoteCoreValidator = remoteCoreValidator ?? _checkRemoteCore;
     _remote =
         remoteAccess ??
@@ -72,6 +80,10 @@ class SourceManager {
   }
   SourceConfigurationService? _configuration;
   final bool _ownsConfiguration;
+
+  /// Runtime state per instance (`source_state` in library.sqlite3).
+  SourceStateStore? _state;
+  bool _ownsState = false;
   late final SourceCredentialBroker _credentials;
   late final Future<void> Function(Map<String, dynamic> outbound, int port)
   _remoteCoreValidator;
@@ -90,7 +102,9 @@ class SourceManager {
   Future<RemoteAccessService>? _openingRemote;
   Future<RemoteAccessService> get remoteSettings =>
       _openingRemote ??= (() async {
-        final service = _remote ??= await RemoteAccessService.locate();
+        final service = _remote ??= RemoteAccessService(
+          (_configuration ??= await SourceConfigurationService.open()).db,
+        );
         try {
           await service.load();
           return service;
@@ -111,8 +125,7 @@ class SourceManager {
   SourceConfigurationService? get configuration => _configuration;
 
   /// Saved vs. applied revision and last error code of one instance.
-  Map<String, Object?>? application(String id) =>
-      _configuration?.application(id);
+  Map<String, Object?>? application(String id) => _state?.get(id);
   List<ConfigurationIssue> get configurationIssues =>
       List.unmodifiable(_configuration?.issues ?? []);
   SourceBindings get bindings =>
@@ -125,6 +138,10 @@ class SourceManager {
   });
   Future<void> _load() async {
     _configuration ??= await SourceConfigurationService.open();
+    if (_state == null) {
+      _state = SourceStateStore(await LibraryDatabase.open('library.sqlite3'));
+      _ownsState = true;
+    }
     final records = _configuration!.load();
     final remote = await remoteSettings;
     _configs
@@ -156,6 +173,14 @@ class SourceManager {
   SourceConfig _config(String id) =>
       configs.where((c) => c.id == id).firstOrNull ??
       (throw const PluginException('notFound', '媒体源不存在或配置不兼容。'));
+
+  /// The saved password or token of a configured source, for the edit form
+  /// to show masked. Null when none is saved or the source is unknown.
+  Future<String?> storedSecret(String id) async {
+    final config = configs.where((c) => c.id == id).firstOrNull;
+    return config == null ? null : _credentials.readForHost(config);
+  }
+
   Future<void> save(SourceConfig config, String secret) async {
     SourceSchemas.validate(config);
     await load();
@@ -163,15 +188,10 @@ class SourceManager {
     if (previous != null && previous.kind != config.kind) {
       throw const PluginException('invalidInput', '编辑时不能更改源类型。');
     }
-    // Caller cannot substitute another instance's credential reference.
-    if (config.credentialRef != null &&
-        config.credentialRef != previous?.credentialRef) {
-      throw const PluginException('permissionDenied', '不能指定其他凭据引用。');
-    }
     final remote = await remoteSettings;
     var saved = config.copyWith(
       pluginVersion: SourceSchemas.forKind(config.kind).version,
-      credentialRef: previous?.credentialRef,
+      hasSecret: previous?.hasSecret ?? false,
     );
     if (Platform.isMacOS && config.kind == SourceKind.local) {
       final bookmark =
@@ -180,7 +200,7 @@ class SourceManager {
           : await _bookmarks.invokeMethod<String>('create', config.address);
       saved = saved.copyWith(bookmark: bookmark);
     }
-    String? staged;
+    String? newSecret;
     if (config.kind != SourceKind.local &&
         config.kind != SourceKind.dlna &&
         (secret.isNotEmpty ||
@@ -188,20 +208,26 @@ class SourceManager {
                 (config.kind.optionalCredential ||
                     config.kind == SourceKind.sftp) &&
                 config.username.isNotEmpty)) {
-      staged = await _credentials.stage(config.id, secret);
-      saved = saved.copyWith(credentialRef: staged);
+      newSecret = secret;
     }
-    try {
-      if (config.kind.requiresSecret) {
-        if ((await _credentials.readForHost(saved))?.isNotEmpty != true) {
-          throw const PluginException('authRequired', '请填写访问令牌。');
-        }
+    if (config.kind.requiresSecret) {
+      final effective =
+          newSecret ??
+          (previous == null ? null : await _credentials.readForHost(previous));
+      if (effective?.isNotEmpty != true) {
+        throw const PluginException('authRequired', '请填写访问令牌。');
       }
-      saved = _configuration!.save(saved, expectedRevision: config.revision);
-    } catch (_) {
-      await _credentials.delete(config.id, staged);
-      rethrow;
     }
+    saved = _configuration!.save(
+      saved,
+      expectedRevision: config.revision,
+      secret: newSecret,
+    );
+    _state?.reset(
+      saved.id,
+      saved.revision,
+      saved.enabled ? 'pending' : 'disabled',
+    );
     // Existing playback keeps the retired provider's lease.
     saved = remote.attach(saved);
     final index = _configs.indexWhere((c) => c.id == saved.id);
@@ -211,12 +237,6 @@ class SourceManager {
       _configs[index] = saved;
     }
     await _retire(saved.id);
-    if (staged != null && previous?.credentialRef != null) {
-      // A committed configuration stays committed if old-key cleanup fails.
-      try {
-        await _credentials.delete(saved.id, previous!.credentialRef);
-      } catch (_) {}
-    }
   }
 
   Future<void> setEnabled(String id, bool enabled) =>
@@ -236,11 +256,23 @@ class SourceManager {
     await load();
     final config = _config(id);
     _configuration!.remove(id, config.revision);
+    _state?.delete(id);
     _configs.removeWhere((c) => c.id == id);
     await _retire(id);
-    try {
-      await _credentials.delete(id, config.credentialRef);
-    } catch (_) {}
+  }
+
+  /// Records the outcome of applying [config], unless it was edited since.
+  void _markApplication(
+    SourceConfig config,
+    String status, {
+    String? errorCode,
+  }) {
+    if (!_configs.any(
+      (c) => c.id == config.id && c.revision == config.revision,
+    )) {
+      return;
+    }
+    _state?.mark(config.id, config.revision, status, errorCode: errorCode);
   }
 
   Future<void> _retire(String id) async {
@@ -252,7 +284,7 @@ class SourceManager {
 
   SourceCredentialStatus credentialStatus(String id) {
     final config = _config(id);
-    final state = _configuration?.application(id);
+    final state = _state?.get(id);
     final sameRevision = state?['desired_revision'] == config.revision;
     return _credentials.status(
       config,
@@ -264,7 +296,7 @@ class SourceManager {
   SourceApplicationStatus applicationStatus(String id) {
     final config = _config(id);
     if (!config.enabled) return SourceApplicationStatus.disabled;
-    final state = _configuration?.application(id);
+    final state = _state?.get(id);
     return switch (state?['status']) {
       'ready' => SourceApplicationStatus.ready,
       'failed' => SourceApplicationStatus.failed,
@@ -369,7 +401,7 @@ class SourceManager {
     pluginConfig = withRemoteRoute(pluginConfig);
     final storedSecret = await _credentials.readForHost(config);
     final secret = storedSecret ?? '';
-    if ((config.credentialRef != null && storedSecret == null) ||
+    if ((config.hasSecret && storedSecret == null) ||
         (config.kind.requiresSecret && secret.isEmpty)) {
       throw const PluginException('authRequired', '凭据不可用，请重新登录或更新凭据。');
     }
@@ -384,7 +416,7 @@ class SourceManager {
     }
     final runtime = _SourceRuntime(config, provider);
     _runtimes[config.id] = runtime;
-    _configuration!.markApplication(config, 'initialized');
+    _markApplication(config, 'initialized');
     return runtime;
   }
 
@@ -407,7 +439,7 @@ class SourceManager {
         if (!_disposed &&
             !expired &&
             _configs.any((c) => c.id == id && c.revision == config.revision)) {
-          _configuration!.markApplication(config, 'ready');
+          _markApplication(config, 'ready');
         }
         return value;
       })();
@@ -437,11 +469,7 @@ class SourceManager {
             'quotaExceeded',
           ].contains(failure.code) &&
           _configs.any((c) => c.id == id && c.revision == config.revision)) {
-        _configuration!.markApplication(
-          config,
-          'failed',
-          errorCode: failure.code,
-        );
+        _markApplication(config, 'failed', errorCode: failure.code);
       }
       throw failure;
     }
@@ -577,7 +605,7 @@ class SourceManager {
         _configs.any(
           (c) => c.id == config.id && c.revision == config.revision,
         )) {
-      _configuration!.markApplication(config, 'ready');
+      _markApplication(config, 'ready');
     }
     return entry;
   }
@@ -750,6 +778,7 @@ class SourceManager {
     }
     if (_hasBookmarks) await _bookmarks.invokeMethod<void>('releaseAll');
     if (_ownsConfiguration) _configuration?.close();
+    if (_ownsState) _state?.db.close();
   }
 }
 

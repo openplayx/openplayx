@@ -118,6 +118,12 @@ abstract class AppLocalizations {
   /// **'Sources'**
   String get sources;
 
+  /// No description provided for @plugins.
+  ///
+  /// In en, this message translates to:
+  /// **'AI'**
+  String get plugins;
+
   /// No description provided for @settings.
   ///
   /// In en, this message translates to:
@@ -219,6 +225,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Cancel'**
   String get cancel;
+
+  /// No description provided for @aiSettingsSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved.'**
+  String get aiSettingsSaved;
 
   /// No description provided for @save.
   ///
@@ -934,12 +946,6 @@ abstract class AppLocalizations {
   /// **'Back to parent folder'**
   String get backToParent;
 
-  /// No description provided for @sourcesEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'Add a local folder, SMB, Jellyfin or Plex source.'**
-  String get sourcesEmpty;
-
   /// No description provided for @disableSourceConfirm.
   ///
   /// In en, this message translates to:
@@ -1143,6 +1149,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unlock controls'**
   String get unlockControls;
+
+  /// No description provided for @saving.
+  ///
+  /// In en, this message translates to:
+  /// **'Saving…'**
+  String get saving;
 
   /// No description provided for @loading.
   ///
@@ -1749,12 +1761,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Source file missing'**
   String get metadataMissingSource;
-
-  /// No description provided for @metadataAttribution.
-  ///
-  /// In en, this message translates to:
-  /// **'This product uses the TMDB API but is not endorsed or certified by TMDB.'**
-  String get metadataAttribution;
 
   /// No description provided for @metadataForgetToken.
   ///
@@ -3348,7 +3354,7 @@ abstract class AppLocalizations {
   /// No description provided for @asrServiceUrl.
   ///
   /// In en, this message translates to:
-  /// **'Service URL (https://…)'**
+  /// **'Service URL'**
   String get asrServiceUrl;
 
   /// No description provided for @asrServiceToken.
@@ -3428,6 +3434,60 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Whole episode'**
   String get recognizedSubtitleFull;
+
+  /// No description provided for @addSourceConnection.
+  ///
+  /// In en, this message translates to:
+  /// **'Add connection'**
+  String get addSourceConnection;
+
+  /// No description provided for @sourcesDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect your storage. Organize your media.'**
+  String get sourcesDescription;
+
+  /// No description provided for @sourceActions.
+  ///
+  /// In en, this message translates to:
+  /// **'Actions for {name}'**
+  String sourceActions(String name);
+
+  /// No description provided for @browseSourceFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse files'**
+  String get browseSourceFiles;
+
+  /// No description provided for @sourceConnectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection details'**
+  String get sourceConnectionDetails;
+
+  /// No description provided for @sourceAwaitingVerification.
+  ///
+  /// In en, this message translates to:
+  /// **'Awaiting verification'**
+  String get sourceAwaitingVerification;
+
+  /// No description provided for @sourceFileCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} file sources'**
+  String sourceFileCount(int count);
+
+  /// No description provided for @sourceRootFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Root folder'**
+  String get sourceRootFolder;
+
+  /// No description provided for @rescanFileSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Rescan'**
+  String get rescanFileSource;
 }
 
 class _AppLocalizationsDelegate

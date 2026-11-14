@@ -2,7 +2,6 @@ import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 
 import '../../services/metadata/tmdb_credentials.dart';
 
@@ -17,7 +16,7 @@ import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
 import '../../services/metadata/metadata_service.dart';
 import '../../ui/adaptive/app_page.dart';
-import '../../ui/components/media/tmdb_attribution.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 import '../../ui/components/media/content_row.dart';
 import 'metadata_artwork.dart';
 
@@ -28,13 +27,12 @@ class MetadataPage extends StatefulWidget {
     required this.sources,
     required this.media,
     this.service,
-    this.credentials = tmdbCredentialStorage,
   });
   final LibraryService library;
   final SourceManager sources;
   final String media;
   final MetadataService? service;
-  final FlutterSecureStorage credentials;
+
   @override
   State<MetadataPage> createState() => _MetadataPageState();
 }
@@ -87,12 +85,10 @@ class _MetadataPageState extends State<MetadataPage> {
 
   Future<void> _initialize() async {
     try {
-      final token = await widget.credentials.read(
-        key: 'openplayx.metadata.tmdb.token',
-      );
+      final token = widget.library.metadata.setting(tmdbTokenKey);
       if (!mounted) return;
-      if (token?.isNotEmpty == true) {
-        final transport = TmdbTransport(token!);
+      if (token.isNotEmpty) {
+        final transport = TmdbTransport(token);
         _service.registry.register(
           'tmdb',
           TmdbMetadataPlugin(transport.get, onDispose: transport.close),
@@ -274,6 +270,10 @@ class _MetadataPageState extends State<MetadataPage> {
     final backdrop = repo.selectedArtwork(widget.media, type: 'backdrop');
     final artworkCandidates = repo.artworkCandidates(widget.media);
     return AppPage(
+      pageContext: PageContextData(
+        pageType: 'metadata_editor',
+        entity: {'media_id': widget.media},
+      ),
       title: Text(l.metadata),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
@@ -355,9 +355,7 @@ class _MetadataPageState extends State<MetadataPage> {
                     child: Text(l.cancel),
                   ),
                 if (_error != null || job?['error_code'] == 'identityConflict')
-                  ShadAlert.destructive(
-                    title: Text(_message(_error ?? 'identityConflict')),
-                  ),
+                  AppAlert.error(title: _message(_error ?? 'identityConflict')),
                 const SizedBox(height: 16),
                 Wrap(
                   spacing: 8,
@@ -387,9 +385,10 @@ class _MetadataPageState extends State<MetadataPage> {
                 if (!_configured)
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
-                    child: ShadAlert(
-                      title: Text(l.metadataTokenMissing),
-                      description: Text(l.metadataConfigureInSettings),
+                    child: AppAlert(
+                      kind: FeedbackKind.warning,
+                      title: l.metadataTokenMissing,
+                      description: l.metadataConfigureInSettings,
                     ),
                   ),
                 const SizedBox(height: 12),
@@ -721,8 +720,6 @@ class _MetadataPageState extends State<MetadataPage> {
                     ),
                   ],
                 ),
-                const SizedBox(height: 24),
-                const TmdbAttribution(),
               ],
             ),
           ),

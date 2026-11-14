@@ -10,7 +10,6 @@ import '../../ui/tokens/app_spacing.dart';
 
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/media/content_row.dart';
-import '../../ui/components/swipe_reveal.dart';
 import '../../ui/icons/app_icons.dart';
 
 import '../../core/plugins/source_capability.dart';
@@ -21,6 +20,8 @@ import '../../ui/components/media/source_kind_icon.dart';
 import 'file_source_actions.dart';
 import 'source_instance_form.dart';
 import 'source_presentation.dart';
+import 'source_list_widgets.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 class SourcePage extends StatefulWidget {
   const SourcePage({
@@ -31,8 +32,7 @@ class SourcePage extends StatefulWidget {
   });
   final SourceManager manager;
 
-  /// When provided, the page offers a second "file sources" tab next to the
-  /// connections.
+  /// File sources are grouped beneath their connection when available.
   final LibraryService? library;
   final ValueChanged<SourceSelection>? onPlay;
   @override
@@ -48,6 +48,7 @@ class _SourcePageState extends State<SourcePage> {
     if (mounted) setState(() {});
   }
 
+  final _expandedConnections = <String, bool>{};
   final _nodes = <SourceEntry>[];
   final _entries = <SourceEntry>[];
   int? _next;
@@ -244,140 +245,230 @@ class _SourcePageState extends State<SourcePage> {
   }
 
   /// Header button (top right, next to the assistant) that adds a connection.
-  Widget _addSourceButton() => ShadButton.ghost(
+  Future<void> _openAddSource() async {
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        builder: (_) => SourceInstanceForm(manager: widget.manager),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Widget _addSourceButton() => ShadButton(
     key: const ValueKey('add-source'),
-    onPressed: _busy
-        ? null
-        : () async {
-            await Navigator.of(context).push<bool>(
-              MaterialPageRoute(
-                builder: (_) => SourceInstanceForm(manager: widget.manager),
-              ),
-            );
-            if (mounted) await _load();
-          },
-    leading: Icon(AppIcons.add),
+    leading: const Icon(AppIcons.add, size: 18),
+    onPressed: _busy ? null : _openAddSource,
     enabled: !_busy,
-    child: Text(l.addSourceShort),
+    child: Text(l.addSourceConnection),
   );
 
-  /// A connection with its file sources nested below it: a two-level tree.
-  Widget _connectionCard(SourceConfig source) {
-    final files = _files;
-    final children = files == null
-        ? const <Widget>[]
-        : [
-            for (final binding in files.service.fileSources())
-              if (binding['source'] == source.id)
-                FileSourceRow(
-                  binding: binding,
-                  controller: files,
-                  connection: source,
-                ),
-          ];
-    final actions = [
-      if (files != null)
-        SwipeAction(
-          key: ValueKey('source-add-file-${source.id}'),
-          label: l.addFileSourceShort,
-          onPressed: source.enabled && !files.scanning
-              ? () => files.add(context, source.id)
-              : null,
+  /// Shown in the middle of the page while no source exists.
+  Widget _emptySources() => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShadButton(
+            key: const ValueKey('add-source-empty'),
+            onPressed: _busy ? null : _openAddSource,
+            enabled: !_busy,
+            leading: const Icon(AppIcons.add),
+            child: Text(l.addSource),
+          ),
+        ],
+      ),
+    ),
+  );
+
+  void _browseConnection(SourceConfig source) {
+    _source = source;
+    _nodes.clear();
+    _load();
+  }
+
+  Future<void> _showDetails(SourceConfig source) => showShadDialog<void>(
+    context: context,
+    builder: (context) => ShadDialog(
+      title: Text(source.titleName),
+      actions: [
+        ShadButton.outline(
+          onPressed: () => Navigator.pop(context),
+          child: Text(l.close),
         ),
-      SwipeAction(
-        key: ValueKey('source-edit-${source.id}'),
-        label: l.edit,
-        onPressed: () => _edit(source),
+      ],
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        crossAxisAlignment: CrossAxisAlignment.start,
+        spacing: AppSpacing.md,
+        children: [
+          Text(
+            l.sourceVersion(
+              source.kind == SourceKind.local
+                  ? l.localSource
+                  : source.kind.label,
+              source.pluginVersion,
+              source.configVersion,
+              source.revision,
+            ),
+          ),
+          Text(
+            SourcePresentation.application(
+              l,
+              widget.manager.applicationStatus(source.id),
+            ),
+          ),
+          Text(
+            SourcePresentation.credential(
+              l,
+              widget.manager.credentialStatus(source.id).authorization,
+            ),
+          ),
+        ],
       ),
-      SwipeAction(
-        key: ValueKey('source-delete-${source.id}'),
-        label: l.delete,
-        destructive: true,
-        onPressed: () => _delete(source),
-      ),
-    ];
+    ),
+  );
+
+  /// A lightweight expandable group, with independent parent/child actions.
+  Widget _connectionGroup(SourceConfig source) {
+    final theme = ShadTheme.of(context);
+    final files = _files;
+    final bindings = files == null
+        ? const <Map<String, Object?>>[]
+        : files.service
+              .fileSources()
+              .where((binding) => binding['source'] == source.id)
+              .toList();
+    final expanded = _expandedConnections[source.id] ?? source.enabled;
+    final status = SourcePresentation.summary(
+      l,
+      widget.manager.applicationStatus(source.id),
+      widget.manager.credentialStatus(source.id).authorization,
+    );
     return Padding(
-      padding: const EdgeInsets.only(bottom: AppSpacing.md),
-      child: ShadCard(
-        padding: EdgeInsets.zero,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            // Swiping left reveals add file source, edit and delete.
-            SwipeReveal(
-              key: ValueKey('source-${source.id}'),
-              enabled: !_busy,
-              actionWidth: SwipeActionBar.width * actions.length + 4,
-              trailingInset: AppSpacing.md,
-              action: (close) => SwipeActionBar(actions: actions, close: close),
-              child: ContentRow(
-                leading: SourceKindIcon(source.kind),
-                title: Text(source.titleName),
-                subtitle: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      l.sourceVersion(
-                        source.kind == SourceKind.local
-                            ? l.localSource
-                            : source.kind.label,
-                        source.pluginVersion,
-                        source.configVersion,
-                        source.revision,
-                      ),
-                    ),
-                    Text(
-                      SourcePresentation.application(
-                        l,
-                        widget.manager.applicationStatus(source.id),
-                      ),
-                    ),
-                    Text(
-                      SourcePresentation.credential(
-                        l,
-                        widget.manager
-                            .credentialStatus(source.id)
-                            .authorization,
-                      ),
-                    ),
-                  ],
+      padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          SourceListRow(
+            key: ValueKey('source-${source.id}'),
+            title: source.titleName,
+            expanded: expanded,
+            leading: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  expanded ? AppIcons.expand : AppIcons.next,
+                  size: 14,
+                  color: theme.colorScheme.mutedForeground,
                 ),
-                trailing: Semantics(
-                  label: source.titleName,
-                  child: ShadSwitch(
-                    value: source.enabled,
-                    onChanged: _busy
-                        ? null
-                        : (enabled) => _toggle(source, enabled),
-                    enabled: !_busy,
-                  ),
-                ),
-                onTap: _busy || !source.enabled
-                    ? null
-                    : () {
-                        _source = source;
-                        _load();
-                      },
+                const SizedBox(width: AppSpacing.sm),
+                SourceKindIcon(source.kind),
+              ],
+            ),
+            subtitle: Text(
+              '${source.kind == SourceKind.local ? l.localSource : source.kind.label}'
+              '${files == null ? '' : ' · ${l.sourceFileCount(bindings.length)}'}',
+            ),
+            status: Text(
+              status,
+              key: ValueKey('source-status-${source.id}'),
+              style: theme.textTheme.muted.copyWith(
+                color:
+                    SourcePresentation.needsAttention(
+                      widget.manager.applicationStatus(source.id),
+                      widget.manager.credentialStatus(source.id).authorization,
+                    )
+                    ? theme.colorScheme.destructive
+                    : theme.colorScheme.mutedForeground,
               ),
             ),
-            if (children.isNotEmpty)
-              Container(
-                margin: const EdgeInsets.only(left: 28, bottom: 4),
-                padding: const EdgeInsets.only(left: 8),
-                decoration: BoxDecoration(
-                  border: Border(
-                    left: BorderSide(
-                      color: ShadTheme.of(context).colorScheme.border,
+            onTap: () => setState(() {
+              _expandedConnections[source.id] = !expanded;
+            }),
+            actions: SourceActionsMenu(
+              key: ValueKey('source-menu-${source.id}'),
+              label: source.titleName,
+              enabled: !_busy,
+              actions: [
+                if (files != null)
+                  SourceRowAction(
+                    key: ValueKey('source-add-file-${source.id}'),
+                    label: l.addFileSourceShort,
+                    icon: AppIcons.addFolder,
+                    onPressed: source.enabled && !files.scanning
+                        ? () => files.add(context, source.id)
+                        : null,
+                  ),
+                SourceRowAction(
+                  key: ValueKey('source-browse-${source.id}'),
+                  label: l.browseSourceFiles,
+                  icon: AppIcons.openFolder,
+                  onPressed: source.enabled
+                      ? () => _browseConnection(source)
+                      : null,
+                ),
+                SourceRowAction(
+                  key: ValueKey('source-edit-${source.id}'),
+                  label: l.edit,
+                  icon: AppIcons.edit,
+                  onPressed: () => _edit(source),
+                ),
+                SourceRowAction(
+                  key: ValueKey('source-details-${source.id}'),
+                  label: l.sourceConnectionDetails,
+                  icon: AppIcons.info,
+                  onPressed: () => _showDetails(source),
+                ),
+                SourceRowAction(
+                  key: ValueKey('source-toggle-${source.id}'),
+                  label: source.enabled ? l.disable : l.fileSourceEnable,
+                  icon: source.enabled ? AppIcons.pause : AppIcons.play,
+                  onPressed: () => _toggle(source, !source.enabled),
+                ),
+                SourceRowAction(
+                  key: ValueKey('source-delete-${source.id}'),
+                  label: l.delete,
+                  icon: AppIcons.delete,
+                  destructive: true,
+                  onPressed: () => _delete(source),
+                ),
+              ],
+            ),
+          ),
+          if (expanded && files != null)
+            Padding(
+              padding: EdgeInsetsDirectional.only(
+                start: MediaQuery.sizeOf(context).width < 400 ? 40 : 48,
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final binding in bindings)
+                    FileSourceRow(
+                      binding: binding,
+                      controller: files,
+                      connection: source,
+                    ),
+                  Align(
+                    alignment: AlignmentDirectional.centerStart,
+                    child: ShadButton.ghost(
+                      key: ValueKey('source-add-folder-${source.id}'),
+                      leading: const Icon(AppIcons.add, size: 16),
+                      enabled: !_busy && source.enabled && !files.scanning,
+                      onPressed: _busy || !source.enabled || files.scanning
+                          ? null
+                          : () => files.add(context, source.id),
+                      child: Text(
+                        l.addFileSourceShort,
+                        style: theme.textTheme.muted,
+                      ),
                     ),
                   ),
-                ),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.stretch,
-                  children: [...children],
-                ),
+                ],
               ),
-          ],
-        ),
+            ),
+        ],
       ),
     );
   }
@@ -420,6 +511,7 @@ class _SourcePageState extends State<SourcePage> {
       if (!didPop && _source != null && !_busy) _back();
     },
     child: AppPage(
+      pageContext: const PageContextData(pageType: 'sources'),
       trailing: [if (_source == null) _addSourceButton()],
       body: Column(
         children: [
@@ -430,11 +522,11 @@ class _SourcePageState extends State<SourcePage> {
                 title: Text(l.backToParent),
                 onTap: _busy ? null : _back,
               ),
-            if (_busy || (_files?.scanning ?? false)) ShadProgress(),
+            if (_busy) ShadProgress(),
             if (_files?.error != null)
               Padding(
                 padding: const EdgeInsets.all(16),
-                child: ShadAlert.destructive(title: Text(_files!.error!)),
+                child: AppAlert.error(title: _files!.error!),
               ),
             for (final issue in widget.manager.configurationIssues)
               ContentRow(
@@ -447,7 +539,7 @@ class _SourcePageState extends State<SourcePage> {
                 padding: EdgeInsets.all(16),
                 child: Column(
                   children: [
-                    ShadAlert.destructive(title: Text(_error!)),
+                    AppAlert.error(title: _error!),
                     ShadButton.ghost(
                       onPressed: _busy ? null : _load,
                       enabled: !(_busy),
@@ -458,19 +550,33 @@ class _SourcePageState extends State<SourcePage> {
               ),
             Expanded(
               child: _source == null
-                  ? ListView(
-                      padding: AppSpacing.page(context),
-                      children: [
-                        if (!_busy && widget.manager.configs.isEmpty)
-                          Padding(
-                            padding: EdgeInsets.all(32),
-                            child: Text(l.sourcesEmpty),
-                          ),
-                        for (final source in widget.manager.configs)
-                          _connectionCard(source),
-                        ..._orphanFileSources(),
-                      ],
-                    )
+                  ? (!_busy &&
+                            widget.manager.configs.isEmpty &&
+                            _orphanFileSources().isEmpty)
+                        ? _emptySources()
+                        : ListView(
+                            padding: AppSpacing.page(context),
+                            children: [
+                              Padding(
+                                padding: const EdgeInsets.only(
+                                  bottom: AppSpacing.lg,
+                                ),
+                                child: Text(
+                                  l.sourcesDescription,
+                                  style: ShadTheme.of(context).textTheme.muted,
+                                ),
+                              ),
+                              for (
+                                var i = 0;
+                                i < widget.manager.configs.length;
+                                i++
+                              ) ...[
+                                if (i > 0) const Divider(height: 1),
+                                _connectionGroup(widget.manager.configs[i]),
+                              ],
+                              ..._orphanFileSources(),
+                            ],
+                          )
                   : ListView(
                       padding: AppSpacing.page(context),
                       children: [
@@ -504,6 +610,3 @@ class _SourcePageState extends State<SourcePage> {
     ),
   );
 }
-
-/// The secondary actions of one connection, collapsed into a "more" menu so the
-/// row keeps a single line of controls (enable switch + menu).

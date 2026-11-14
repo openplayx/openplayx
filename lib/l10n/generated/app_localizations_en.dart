@@ -19,6 +19,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sources => 'Sources';
 
   @override
+  String get plugins => 'AI';
+
+  @override
   String get settings => 'Settings';
 
   @override
@@ -69,6 +72,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get cancel => 'Cancel';
+
+  @override
+  String get aiSettingsSaved => 'Saved.';
 
   @override
   String get save => 'Save';
@@ -447,10 +453,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get backToParent => 'Back to parent folder';
 
   @override
-  String get sourcesEmpty =>
-      'Add a local folder, SMB, Jellyfin or Plex source.';
-
-  @override
   String get disableSourceConfirm => 'Disable media source?';
 
   @override
@@ -556,6 +558,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get unlockControls => 'Unlock controls';
+
+  @override
+  String get saving => 'Saving…';
 
   @override
   String get loading => 'Loading…';
@@ -903,10 +908,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get metadataMissingSource => 'Source file missing';
-
-  @override
-  String get metadataAttribution =>
-      'This product uses the TMDB API but is not endorsed or certified by TMDB.';
 
   @override
   String get metadataForgetToken => 'Remove TMDB credential';
@@ -1805,7 +1806,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get asrServiceName => 'Name';
 
   @override
-  String get asrServiceUrl => 'Service URL (https://…)';
+  String get asrServiceUrl => 'Service URL';
 
   @override
   String get asrServiceToken => 'Access token';
@@ -1853,4 +1854,35 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get recognizedSubtitleFull => 'Whole episode';
+
+  @override
+  String get addSourceConnection => 'Add connection';
+
+  @override
+  String get sourcesDescription => 'Connect your storage. Organize your media.';
+
+  @override
+  String sourceActions(String name) {
+    return 'Actions for $name';
+  }
+
+  @override
+  String get browseSourceFiles => 'Browse files';
+
+  @override
+  String get sourceConnectionDetails => 'Connection details';
+
+  @override
+  String get sourceAwaitingVerification => 'Awaiting verification';
+
+  @override
+  String sourceFileCount(int count) {
+    return '$count file sources';
+  }
+
+  @override
+  String get sourceRootFolder => 'Root folder';
+
+  @override
+  String get rescanFileSource => 'Rescan';
 }

@@ -163,7 +163,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(library.create('Films', type: 'movie'), media);
+      library.addManual(media);
       service = MetadataService(library, sources);
     });
     tearDown(() async {
@@ -198,26 +198,19 @@ void main() {
             isFolder: false,
           ),
         );
-        final lib = library.libraries.single['id'] as String;
-        library.addManual(lib, episode);
+        library.addManual(episode);
         await service.importSidecars(episode);
-        final shows = library.query(lib, contentType: 'series');
+        final shows = library.query(contentType: 'series');
         expect(shows, hasLength(1));
-        final seasons = library.children(
-          shows.single['id'] as String,
-          library: lib,
-        );
+        final seasons = library.children(shows.single['id'] as String);
         expect(seasons, hasLength(1));
-        final episodes = library.children(
-          seasons.single['id'] as String,
-          library: lib,
-        );
+        final episodes = library.children(seasons.single['id'] as String);
         expect(episodes.single['id'], episode);
         expect(episodes.single['title'], 'Second episode');
-        expect(library.query(lib, year: 2020).single['id'], episode);
+        expect(library.query(year: 2020).single['id'], episode);
         expect(library.db.select('SELECT * FROM resources'), hasLength(2));
         await service.importSidecars(episode);
-        expect(library.query(lib, contentType: 'series'), hasLength(1));
+        expect(library.query(contentType: 'series'), hasLength(1));
       },
     );
     test('TMDB season IDs and parent show IDs stay separate', () async {
@@ -612,10 +605,9 @@ void main() {
             isFolder: false,
           ),
         );
-        final lib = library.libraries.single['id'] as String;
-        library.addManual(lib, episode);
+        library.addManual(episode);
         await service.importSidecars(episode);
-        expect(library.query(lib, contentType: 'series'), hasLength(1));
+        expect(library.query(contentType: 'series'), hasLength(1));
         final before = library.metadata.scrapedStats();
         expect(before.media, greaterThanOrEqualTo(2));
         expect(before.bytes, greaterThan(0));
@@ -631,8 +623,8 @@ void main() {
         expect(fields['year'], 1999);
         expect(library.metadata.association(media), isNull);
         // The series group is removed; the episode is a plain item again.
-        expect(library.query(lib, contentType: 'series'), isEmpty);
-        expect(library.query(lib).map((m) => m['id']), contains(episode));
+        expect(library.query(contentType: 'series'), isEmpty);
+        expect(library.query().map((m) => m['id']), contains(episode));
         expect(
           library.db.select("SELECT * FROM media WHERE id LIKE 'metadata:%'"),
           isEmpty,

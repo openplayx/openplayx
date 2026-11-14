@@ -143,6 +143,7 @@ class _FfmpegSnapshotDebugPageState extends State<FfmpegSnapshotDebugPage> {
       );
     }
     return AppPage(
+      pageContext: const PageContextData(pageType: 'ffmpeg_snapshot_debug'),
       title: Text(l.ffmpegSnapshotDebug),
       trailing: [
         ShadButton.outline(

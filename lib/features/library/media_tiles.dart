@@ -235,6 +235,7 @@ class _LibraryGridPageState extends State<LibraryGridPage> {
     ];
     final more = rows.length == _pages * _page;
     return AppPage(
+      pageContext: const PageContextData(pageType: 'library_grid'),
       title: Text(widget.title),
       body: NotificationListener<ScrollNotification>(
         onNotification: (n) {

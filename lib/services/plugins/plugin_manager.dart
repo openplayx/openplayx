@@ -10,8 +10,6 @@ import '../../data/sources/source_manager.dart';
 import '../ai_tools/tool_registry.dart';
 import '../media_processing/media_processing_service.dart';
 import '../subtitles/asr_backend_config.dart';
-import '../torrent/torrent_service.dart';
-import '../torrent_search/torrent_search_config.dart';
 import 'capability_registry.dart';
 import 'plugin_ai_policy.dart';
 import 'plugin_catalog.dart';
@@ -57,8 +55,7 @@ class PluginInstanceView {
     this.errorCode,
     this.playing = 0,
     this.running = 0,
-    this.networkTarget,
-    this.uploadAuthorized,
+    this.configured = true,
   });
   final String id;
   final String pluginId;
@@ -75,11 +72,8 @@ class PluginInstanceView {
   final int playing;
   final int running;
 
-  /// Host only (no credentials, paths or queries) for the permission view.
-  final String? networkTarget;
-
-  /// Upload consent of an uploading backend; null when not applicable.
-  final bool? uploadAuthorized;
+  /// Has everything it needs to run (address, token, model…).
+  final bool configured;
 
   bool get busy => playing > 0 || running > 0;
 
@@ -109,18 +103,22 @@ class PluginSnapshot {
   final List<PluginInstanceView> instances;
   final bool platformSupported;
 
-  /// Capabilities the AI may currently use (after all three switches).
+  /// Capabilities that can run now. The AI may use every one of them.
   final List<String> aiCapabilities;
 
   String get id => definition.id;
 
-  /// A multi-instance plugin nobody has configured: shown as "未配置", not
-  /// as something that needs attention.
-  bool get unconfigured =>
-      definition.multiInstance && instances.isEmpty && platformSupported;
+  /// First status dimension: at least one instance has what it needs.
+  bool get configured => instances.any((i) => i.configured);
 
-  /// Errors, missing configuration of used plugins, pending authorization.
-  bool get needsAttention => state.needsAttention && !unconfigured;
+  /// Second status dimension: usable right now ([reason] says why not).
+  bool get available =>
+      platformSupported &&
+      const {
+        PluginRuntimeState.ready,
+        PluginRuntimeState.validating,
+        PluginRuntimeState.starting,
+      }.contains(state);
   int get enabledInstances => instances.where((i) => i.enabled).length;
   bool get busy => instances.any((i) => i.busy);
 }
@@ -131,21 +129,18 @@ class PluginImpact {
     this.playing = 0,
     this.running = 0,
     this.instances = const [],
-    this.remoteTasks = false,
   });
   final int playing;
   final int running;
   final List<String> instances;
 
-  /// Work may continue on a server after the App adapter stops.
-  final bool remoteTasks;
-  bool get isEmpty => playing == 0 && running == 0 && !remoteTasks;
+  bool get isEmpty => playing == 0 && running == 0;
 }
 
 /// Plugin Manager: compiled catalog + configured instances + policy →
 /// runtime snapshots, capability registry and the AI tool policy.
 ///
-/// It adapts the existing family services (SourceManager, ASR, Torrent, …)
+/// It adapts the existing family services (SourceManager, ASR, …)
 /// instead of re-implementing them, and owns no second copy of their
 /// configuration: instance data stays where those services store it.
 class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
@@ -153,8 +148,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     PluginCatalog? catalog,
     this.sources,
     this.asr,
-    this.torrent,
-    this.torrentSearch,
     this.media,
     this.tmdbConfigured,
     this.model,
@@ -166,13 +159,15 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   final PluginCatalog catalog;
   final SourceManager? sources;
   final AsrBackendRegistry? Function()? asr;
-  final TorrentServiceStore? Function()? torrent;
-  final TorrentSearchRegistry? Function()? torrentSearch;
   final MediaProcessingService? Function()? media;
   final Future<bool> Function()? tmdbConfigured;
 
   /// Configured assistant model: (display name, configured).
   final (String, bool)? Function()? model;
+
+  /// Summary of user-configured external capabilities (AI → 外部能力) for
+  /// [describeForAi]; set by the shell once the external tools are bound.
+  List<Map<String, dynamic>> Function()? externalSummary;
 
   PluginPolicyStore? _store;
   PluginPolicy _policy = const PluginPolicy();
@@ -183,7 +178,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   String _fingerprint = '';
   bool _disposed = false;
   Future<void>? _refreshing;
-  StreamSubscription<void>? _torrentChanges;
 
   /// Registers this manager as the host gate for business services.
   void install() => PluginGate.current = this;
@@ -217,9 +211,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     try {
       await sources?.load();
     } catch (_) {}
-    _torrentChanges ??= torrent?.call()?.changes.stream.listen(
-      (_) => unawaited(refresh()),
-    );
     final store = _store ??= _defaultStore();
     final stored = store.read();
     if (stored != null) _policy = stored;
@@ -233,22 +224,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
         _unsupported.remove(d.id);
       }
     }
-    if (stored == null) {
-      // First run with plugin management: keep what the assistant could do
-      // before (existing plugins and instances stay AI-usable). Anything
-      // added afterwards starts outside the AI scope.
-      _policy = store.write(
-        PluginPolicy(
-          ai: {
-            for (final d in catalog.definitions)
-              d.id: PluginAiPolicy(
-                allowed: true,
-                instances: {for (final i in instances[d.id]!) i.id},
-              ),
-          },
-        ),
-      );
-    }
+    if (stored == null) _policy = store.write(const PluginPolicy());
     _rebuild(instances);
   }
 
@@ -365,13 +341,10 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     String capability,
     List<PluginInstanceView> instances,
   ) {
-    if (!aiAllows(d.id, capability: capability)) return false;
+    if (!pluginEnabled(d.id)) return false;
     if (!d.multiInstance) return true;
     return instances.any(
-      (i) =>
-          i.enabled &&
-          i.state != PluginRuntimeState.blocked &&
-          aiAllows(d.id, instanceId: i.id, capability: capability),
+      (i) => i.enabled && i.state != PluginRuntimeState.blocked,
     );
   }
 
@@ -397,8 +370,8 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
             configured
                 ? PluginRuntimeState.validating
                 : PluginRuntimeState.blocked,
-            detail: configured ? '令牌已保存 · 未检测' : '未配置访问令牌',
-            networkTarget: 'api.themoviedb.org',
+            detail: configured ? null : '未配置访问令牌',
+            configured: configured,
             health: InstanceHealth.unchecked,
           ),
         ];
@@ -411,7 +384,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
         _unsupported.remove(d.id);
         return [_builtin(d, '设备内处理', PluginRuntimeState.ready)];
       case 'asr.whisper':
-      case 'asr.http':
         return _asrInstances(d);
       case 'model.llm':
         final config = model?.call();
@@ -428,14 +400,11 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
             configured
                 ? PluginRuntimeState.validating
                 : PluginRuntimeState.blocked,
-            detail: configured ? '已配置 · 未检测' : '未配置模型或密钥',
+            detail: configured ? null : '未配置模型或密钥',
+            configured: configured,
             health: InstanceHealth.unchecked,
           ),
         ];
-      case 'torrent.search':
-        return _torrentSearchInstances(d);
-      case 'torrent.download':
-        return _torrentInstances(d);
     }
     return const [];
   }
@@ -445,7 +414,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     String name,
     PluginRuntimeState state, {
     String? detail,
-    String? networkTarget,
+    bool configured = true,
     InstanceHealth health = InstanceHealth.local,
   }) => PluginInstanceView(
     id: d.builtinInstanceId,
@@ -454,7 +423,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     enabled: true,
     state: state,
     detail: detail,
-    networkTarget: networkTarget,
+    configured: configured,
     health: health,
   );
 
@@ -491,6 +460,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       SourceApplicationStatus.saved => PluginRuntimeState.validating,
     };
     String? detail = manager.applicationLabel(c.id);
+    final configured = credential != SourceAuthorization.missing;
     if (c.enabled &&
         const [
           SourceAuthorization.missing,
@@ -522,11 +492,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       errorCode: app?['error_code'] as String?,
       playing: impact.playing,
       running: impact.running,
-      networkTarget: c.kind == SourceKind.local
-          ? null
-          : Uri.tryParse(c.address)?.host.isNotEmpty == true
-          ? Uri.parse(c.address).host
-          : c.address.replaceFirst(RegExp(r'^[a-z]+://'), '').split('/').first,
+      configured: configured,
     );
   }
 
@@ -537,9 +503,8 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       return const [];
     }
     _unsupported.remove(d.id);
-    final wantKind = d.id == 'asr.http' ? 'http' : 'embedded';
     final result = <PluginInstanceView>[];
-    for (final c in registry.list().where((c) => c.kind == wantKind)) {
+    for (final c in registry.list()) {
       var state = PluginRuntimeState.validating;
       String? detail;
       var health = InstanceHealth.unchecked;
@@ -555,11 +520,8 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
           state = PluginRuntimeState.blocked;
           detail = '本地识别引擎不可用';
         }
-      } else if (c.uploadConsentAt == null) {
-        state = PluginRuntimeState.blocked;
-        detail = '待授权上传音频到 ${c.host}';
       } else {
-        detail = '模型 ${c.modelId} · 未检测';
+        detail = '模型 ${c.modelId}';
       }
       result.add(
         PluginInstanceView(
@@ -570,71 +532,10 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
           state: state,
           detail: detail,
           health: health,
-          networkTarget: c.kind == 'http' ? c.host : null,
-          uploadAuthorized: c.uploads ? c.uploadConsentAt != null : null,
         ),
       );
     }
     return result;
-  }
-
-  Future<List<PluginInstanceView>> _torrentSearchInstances(
-    PluginDefinition d,
-  ) async {
-    final registry = torrentSearch?.call();
-    if (registry == null) {
-      _unsupported[d.id] = '此构建未接入 Torrent 搜索';
-      return const [];
-    }
-    _unsupported.remove(d.id);
-    return [
-      for (final c in registry.list())
-        await () async {
-          final token = await registry.hasToken(c);
-          return PluginInstanceView(
-            id: c.id,
-            pluginId: d.id,
-            name: c.name,
-            enabled: c.enabled,
-            state: !c.enabled
-                ? PluginRuntimeState.disabled
-                : token
-                ? PluginRuntimeState.validating
-                : PluginRuntimeState.blocked,
-            detail: token ? '令牌已保存 · 未检测' : '缺少访问令牌',
-            networkTarget: c.host,
-          );
-        }(),
-    ];
-  }
-
-  Future<List<PluginInstanceView>> _torrentInstances(PluginDefinition d) async {
-    final store = torrent?.call();
-    if (store == null) {
-      _unsupported[d.id] = '此构建未接入 BitTorrent 服务';
-      return const [];
-    }
-    _unsupported.remove(d.id);
-    if (!store.loaded) await store.load();
-    return [
-      for (final c in store.configs)
-        await () async {
-          final token = await store.hasToken(c.id);
-          return PluginInstanceView(
-            id: c.id,
-            pluginId: d.id,
-            name: c.name,
-            enabled: c.enabled,
-            state: !c.enabled
-                ? PluginRuntimeState.disabled
-                : token
-                ? PluginRuntimeState.validating
-                : PluginRuntimeState.blocked,
-            detail: token ? '令牌已保存 · 未检测' : '缺少 API 令牌',
-            networkTarget: Uri.tryParse(c.baseUrl)?.host,
-          );
-        }(),
-    ];
   }
 
   // ---- PluginAccess / ToolPolicy ----
@@ -652,24 +553,17 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     return d.dependsOn.every((dep) => _pluginEnabled(dep, depth + 1));
   }
 
+  /// Every capability of an enabled plugin (and enabled instance) is
+  /// AI-callable: there are no separate AI grants.
   @override
   bool aiAllows(String pluginId, {String? instanceId, String? capability}) {
     if (!pluginEnabled(pluginId)) return false;
-    final d = catalog[pluginId]!;
-    final ai = _policy.aiFor(pluginId);
-    if (!ai.allowed) return false;
-    if (capability != null) {
-      final optIn = d.capability(capability)?.optIn ?? false;
-      if (optIn
-          ? !ai.grantedCapabilities.contains(capability)
-          : ai.deniedCapabilities.contains(capability)) {
-        return false;
-      }
-    }
-    if (d.multiInstance && instanceId != null) {
-      return ai.instances.contains(instanceId);
-    }
-    return true;
+    if (catalog[pluginId]?.deprecated ?? true) return false;
+    if (instanceId == null) return true;
+    final instance = snapshot(pluginId)?.instances
+        .where((i) => i.id == instanceId)
+        .firstOrNull;
+    return instance == null || instance.enabled;
   }
 
   @override
@@ -683,6 +577,8 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     var usable = false;
     for (final (pluginId, capability) in providers) {
       if (!pluginEnabled(pluginId)) continue;
+      // Pending removal: its tools are never offered to the AI.
+      if (catalog[pluginId]!.deprecated) continue;
       usable = true;
       final d = catalog[pluginId]!;
       final instances = snapshot(pluginId)?.instances ?? const [];
@@ -721,50 +617,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     _write(_policy.withPluginEnabled(pluginId, enabled));
   }
 
-  void setAiAllowed(String pluginId, bool allowed) => _write(
-    _policy.withAi(
-      pluginId,
-      _policy.aiFor(pluginId).copyWith(allowed: allowed),
-    ),
-  );
-
-  void setAiInstance(String pluginId, String instanceId, bool allowed) {
-    final ai = _policy.aiFor(pluginId);
-    final instances = ai.instances.toSet();
-    allowed ? instances.add(instanceId) : instances.remove(instanceId);
-    _write(_policy.withAi(pluginId, ai.copyWith(instances: instances)));
-  }
-
-  void setAiCapability(String pluginId, String capability, bool allowed) {
-    final ai = _policy.aiFor(pluginId);
-    final denied = ai.deniedCapabilities.toSet();
-    final granted = ai.grantedCapabilities.toSet();
-    if (allowed) {
-      denied.remove(capability);
-      granted.add(capability);
-    } else {
-      denied.add(capability);
-      granted.remove(capability);
-    }
-    _write(
-      _policy.withAi(
-        pluginId,
-        ai.copyWith(deniedCapabilities: denied, grantedCapabilities: granted),
-      ),
-    );
-  }
-
-  /// Revokes upload consent of an HTTP recognition instance. Takes effect
-  /// for the next request; consent names one destination and is never
-  /// restored by re-enabling.
-  Future<void> revokeUploadConsent(String instanceId) async {
-    final registry = asr?.call();
-    final c = registry?.get(instanceId);
-    if (registry == null || c == null || !c.uploads) return;
-    registry.save(c.copyWith(clearConsent: true));
-    await refresh();
-  }
-
   /// Sanitised diagnostics: states, revisions and error codes only — no
   /// addresses, accounts, paths or secrets.
   Map<String, dynamic> diagnostics(String pluginId) {
@@ -778,11 +630,9 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       'platformSupported': s.platformSupported,
       'registryRevision': _revision,
       'policyRevision': _policy.revision,
-      'ai': {
-        'allowed': _policy.aiFor(s.id).allowed,
-        'capabilities': s.aiCapabilities,
-        'instances': _policy.aiFor(s.id).instances.length,
-      },
+      'configured': s.configured,
+      'available': s.available,
+      'capabilities': s.aiCapabilities,
       'instances': [
         for (final (index, i) in s.instances.indexed)
           {
@@ -814,7 +664,6 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
         for (final i in targets)
           if (i.busy) i.name,
       ],
-      remoteTasks: pluginId == 'torrent.download' && targets.isNotEmpty,
     );
   }
 
@@ -823,43 +672,42 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   Map<String, dynamic> describeForAi() => {
     'plugins': [
       for (final s in _snapshots)
-        {
-          'plugin_id': s.id,
-          'name': s.definition.name,
-          'category': s.definition.category.label,
-          'runs_on': s.definition.location.label,
-          'state': s.state.name,
-          if (s.state != PluginRuntimeState.ready)
-            'reason': switch (s.state) {
-              PluginRuntimeState.disabled => s.enabled ? '所有实例均已停用' : '插件已停用',
-              PluginRuntimeState.blocked =>
-                s.platformSupported ? '需要在设置中完成配置或授权' : '当前设备不支持',
-              PluginRuntimeState.error => '连接失败',
-              PluginRuntimeState.draining => '插件已停用，正在收尾',
-              _ => '尚未检测',
-            },
-          'ai_allowed': _policy.aiFor(s.id).allowed,
-          'ai_capabilities': [
-            for (final c in s.aiCapabilities)
-              CapabilityRegistry.label(catalog, c),
-          ],
-          'ai_instances': [
-            for (final i in s.instances)
-              if (s.definition.multiInstance &&
-                  aiAllows(s.id, instanceId: i.id))
-                {'instance_id': i.id, 'name': i.name},
-          ],
-          'settings_target': 'plugins/${s.id}',
-          'settings_path': '设置 → 插件管理 → ${s.definition.name}',
-        },
+        if (!s.definition.deprecated)
+          {
+            'plugin_id': s.id,
+            'name': s.definition.name,
+            'category': s.definition.category.label,
+            'runs_on': s.definition.location.label,
+            'configured': s.configured,
+            'available': s.available,
+            if (!s.available)
+              'reason':
+                  s.reason ??
+                  (!s.platformSupported
+                      ? '当前设备不支持'
+                      : !s.enabled
+                      ? '插件已停用'
+                      : '暂不可用'),
+            'capabilities': [
+              for (final c in s.aiCapabilities)
+                CapabilityRegistry.label(catalog, c),
+            ],
+            'instances': [
+              for (final i in s.instances)
+                if (s.definition.multiInstance && i.enabled)
+                  {'instance_id': i.id, 'name': i.name},
+            ],
+            'settings_target': 'plugins/${s.id}',
+            'settings_path': 'AI → ${s.definition.name}',
+          },
     ],
-    'note': 'Read-only. Enabling plugins, widening AI access, credentials and servers can only be changed by the user in Settings.',
+    'external_capabilities': externalSummary?.call() ?? const [],
+    'note': 'Read-only. Built-in capabilities are listed under plugins; services the user added under AI → 外部能力 are listed under external_capabilities, and their tools are offered directly (names start with mcp_). Credentials and servers can only be changed by the user on the AI page.',
   };
 
   @override
   void dispose() {
     _disposed = true;
-    _torrentChanges?.cancel();
     if (identical(PluginGate.current, this)) PluginGate.current = null;
     super.dispose();
   }

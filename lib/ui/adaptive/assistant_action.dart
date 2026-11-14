@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../icons/app_icons.dart';
+import 'page_context_scope.dart';
 
 /// Provides the app-wide assistant entry to the pages below it. Each page
 /// draws the button in its own header, so it moves with the page during
@@ -11,18 +12,27 @@ class AssistantAction extends InheritedWidget {
     super.key,
     required this.label,
     required this.onPressed,
+    this.onContext,
     required super.child,
   });
 
   final String label;
   final VoidCallback onPressed;
+  final void Function(PageContextSource? source)? onContext;
+
+  void open(BuildContext context) {
+    onContext?.call(PageContextScope.maybeOf(context));
+    onPressed();
+  }
 
   static AssistantAction? maybeOf(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<AssistantAction>();
 
   @override
   bool updateShouldNotify(AssistantAction old) =>
-      label != old.label || onPressed != old.onPressed;
+      label != old.label ||
+      onPressed != old.onPressed ||
+      onContext != old.onContext;
 }
 
 /// The assistant button for the nearest [AssistantAction]; empty without one.
@@ -50,7 +60,7 @@ class AssistantButton extends StatelessWidget {
               width: size,
               height: size,
               icon: const Icon(AppIcons.assistant),
-              onPressed: action.onPressed,
+              onPressed: () => action.open(context),
             ),
       ),
     );

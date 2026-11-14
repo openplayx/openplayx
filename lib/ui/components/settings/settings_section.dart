@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../forms/settings_text_input.dart';
 import '../../icons/app_icons.dart';
 import '../../tokens/app_metrics.dart';
 import '../../tokens/app_spacing.dart';
@@ -597,13 +598,11 @@ Future<String?> showSettingsInputDialog(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                ShadInput(
+                SettingsTextInput(
                   controller: controller,
                   autofocus: true,
-                  autocorrect: false,
-                  enableSuggestions: false,
                   keyboardType: keyboardType,
-                  placeholder: placeholder == null ? null : Text(placeholder),
+                  example: placeholder,
                   onSubmitted: (_) => submit(),
                 ),
                 if (error != null) ...[

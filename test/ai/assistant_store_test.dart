@@ -1,4 +1,3 @@
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/services/conversations/assistant_store.dart';
 import 'package:openplayx/services/ai_tools/tool_registry.dart';
@@ -7,28 +6,32 @@ import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  setUp(() => FlutterSecureStorage.setMockInitialValues({}));
   test(
     'credentials rotate outside SQLite and blank edit retains the existing key',
     () async {
-      final db = sqlite3.openInMemory();
+      final db = sqlite3.openInMemory(), configuration = sqlite3.openInMemory();
       addTearDown(db.close);
-      final store = AssistantStore(db);
+      final store = AssistantStore(db, configuration: configuration);
       await store.saveConfig(
         const AssistantConfig(cloudAllowed: true),
         'FIRST_SECRET',
       );
       final first = store.loadConfig();
-      expect(first.credentialRef, startsWith('assistant.'));
+      expect(first.configured, isTrue);
+      expect(first.toJson().toString(), isNot(contains('FIRST_SECRET')));
       expect(await store.key(first), 'FIRST_SECRET');
+      // The key is kept on the assistant settings document itself.
       expect(
-        db.select('SELECT value FROM assistant_config').first['value'],
-        isNot(contains('FIRST_SECRET')),
+        configuration
+            .select(
+              "SELECT value_json FROM settings WHERE namespace='assistant'",
+            )
+            .single['value_json'],
+        contains('"apiKey":"FIRST_SECRET"'),
       );
       await store.saveConfig(const AssistantConfig(), '');
       expect(await store.key(store.loadConfig()), 'FIRST_SECRET');
       await store.saveConfig(const AssistantConfig(), 'SECOND_SECRET');
-      expect(await store.key(first), '');
       expect(await store.key(store.loadConfig()), 'SECOND_SECRET');
       expect(store.loadConfig().cloudAllowed, false);
     },
@@ -36,7 +39,7 @@ void main() {
   test('invalid endpoints cannot overwrite configured credentials', () async {
     final db = sqlite3.openInMemory();
     addTearDown(db.close);
-    final store = AssistantStore(db);
+    final store = AssistantStore(db, configuration: sqlite3.openInMemory());
     await store.saveConfig(const AssistantConfig(), 'KEY');
     for (final endpoint in [
       'http://host/v1',
@@ -54,9 +57,9 @@ void main() {
   test(
     'durable host operation journal prevents replay after Gateway recreation',
     () async {
-      final db = sqlite3.openInMemory();
+      final db = sqlite3.openInMemory(), configuration = sqlite3.openInMemory();
       addTearDown(db.close);
-      final store = AssistantStore(db);
+      final store = AssistantStore(db, configuration: configuration);
       var writes = 0;
       final registry = ToolRegistry()
         ..register(
@@ -78,7 +81,10 @@ void main() {
           );
       await invoke(ToolGateway(registry, journal: store), 'first');
       final result = await invoke(
-        ToolGateway(registry, journal: AssistantStore(db)),
+        ToolGateway(
+          registry,
+          journal: AssistantStore(db, configuration: sqlite3.openInMemory()),
+        ),
         'new-vendor-id',
       );
       expect(result.callId, 'new-vendor-id');

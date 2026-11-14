@@ -13,11 +13,13 @@ class FormPage extends StatelessWidget {
     required this.children,
     required this.actions,
     this.canPop = true,
+    required this.pageContext,
     this.maxWidth = 560,
     this.crossAxisAlignment = CrossAxisAlignment.start,
   });
   final CrossAxisAlignment crossAxisAlignment;
   final Widget title;
+  final PageContextData pageContext;
   final List<Widget> children;
 
   /// Footer buttons, primary action last.
@@ -42,6 +44,7 @@ class FormPage extends StatelessWidget {
     return PopScope(
       canPop: canPop,
       child: AppPage(
+        pageContext: pageContext,
         title: title,
         body: Column(
           children: [

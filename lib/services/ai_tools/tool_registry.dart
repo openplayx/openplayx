@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:crypto/crypto.dart';
 
 import '../../core/models/text_model.dart';
+import 'json_schema_lite.dart';
 
 /// Host cancellation scope follows asynchronous business work across awaits.
 /// A timed-out resolver cannot start playback later, even in a new user turn.
@@ -81,11 +82,16 @@ class RegisteredTool {
     this.confirmation = false,
     this.readOnly = true,
     this.timeout,
+    this.schema,
   }) {
-    if (!RegExp(r'^[a-z][a-z0-9_]*$').hasMatch(name) ||
+    if (!RegExp(r'^[a-z][a-z0-9_]{0,63}$').hasMatch(name) ||
         fields.values.any(
           (f) => !['string', 'integer', 'number', 'boolean'].contains(f.type),
-        )) {
+        ) ||
+        (schema != null &&
+            (fields.isNotEmpty ||
+                schema!['type'] != 'object' ||
+                JsonSchemaLite.unsupported(schema) != null))) {
       throw ArgumentError('Unsupported tool definition');
     }
   }
@@ -100,15 +106,24 @@ class RegisteredTool {
   /// Overrides the gateway timeout for tools that wait on background work
   /// or upload; the work itself must stay cancellable via [ToolExecution].
   final Duration? timeout;
-  ModelTool get model => ModelTool(name, description, {
-    'type': 'object',
-    'properties': fields.map((k, v) => MapEntry(k, v.schema)),
-    'required': fields.entries
-        .where((e) => e.value.required)
-        .map((e) => e.key)
-        .toList(),
-    'additionalProperties': false,
-  });
+
+  /// A full input JSON Schema (external MCP tools) instead of [fields];
+  /// limited to [JsonSchemaLite] and validated before every execution.
+  final Map<String, dynamic>? schema;
+  ModelTool get model => ModelTool(
+    name,
+    description,
+    schema ??
+        {
+          'type': 'object',
+          'properties': fields.map((k, v) => MapEntry(k, v.schema)),
+          'required': fields.entries
+              .where((e) => e.value.required)
+              .map((e) => e.key)
+              .toList(),
+          'additionalProperties': false,
+        },
+  );
   Map<String, dynamic> parse(String raw) {
     if (raw.length > 16384) throw const ToolFailure('invalidArguments');
     dynamic decoded;
@@ -119,6 +134,13 @@ class RegisteredTool {
     }
     if (decoded is! Map<String, dynamic>) {
       throw const ToolFailure('invalidArguments');
+    }
+    final schema = this.schema;
+    if (schema != null) {
+      if (!JsonSchemaLite.valid(schema, decoded)) {
+        throw const ToolFailure('invalidArguments');
+      }
+      return decoded;
     }
     if (decoded.keys.any((k) => !fields.containsKey(k)) ||
         fields.entries.any(
@@ -153,10 +175,10 @@ abstract interface class ToolPolicy {
 class ToolRegistry {
   /// Upper bound of tools offered to a model in one request. Registration
   /// fails beyond it, so no tool is ever silently truncated away.
-  /// Media 18 (incl. set subtitle) + processing 10 (incl. save to source)
-  /// + subtitles 6 + BitTorrent 13 + search 6 + plugin status 1 = 54.
-  /// Mainstream model APIs accept well over a hundred tools.
-  static const maxTools = 56;
+  /// Built-in: media 18 (incl. set subtitle) + processing 10 (incl. save to
+  /// source) + subtitles 6 + plugin status 1 = 35; the rest is room for
+  /// external (MCP) tools. Mainstream model APIs accept over a hundred.
+  static const maxTools = 96;
   final _tools = <String, RegisteredTool>{};
 
   /// Installed by the Plugin Manager; null allows every registered tool.
@@ -169,6 +191,9 @@ class ToolRegistry {
     if (_tools.length >= maxTools) throw StateError('Tool limit exceeded');
     _tools[tool.name] = tool;
   }
+
+  /// Removes a dynamically registered (external) tool.
+  void unregister(String name) => _tools.remove(name);
 
   RegisteredTool? operator [](String name) => _tools[name];
   List<ModelTool> get available => _tools.values

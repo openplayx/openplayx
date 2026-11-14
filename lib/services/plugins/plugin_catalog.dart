@@ -10,8 +10,7 @@ enum PluginCategory {
   metadata('元数据'),
   mediaProcessing('媒体处理'),
   speech('字幕识别'),
-  model('模型'),
-  download('下载与搜索');
+  model('模型');
 
   const PluginCategory(this.label);
   final String label;
@@ -45,7 +44,6 @@ class PluginCapabilityInfo {
     this.taskTools = const [],
     this.uploads = false,
     this.writes = false,
-    this.optIn = false,
   });
   final String id;
   final String label;
@@ -59,10 +57,6 @@ class PluginCapabilityInfo {
 
   /// Changes state outside the App (downloads, deletions on a server).
   final bool writes;
-
-  /// Never covered by an existing AI grant: the user turns it on explicitly
-  /// (so adding a capability in an update never widens access).
-  final bool optIn;
 
   bool get hasAiTools =>
       tools.isNotEmpty || routedTools.isNotEmpty || taskTools.isNotEmpty;
@@ -86,6 +80,7 @@ class PluginDefinition {
     this.dependsOn = const [],
     this.dataNote,
     this.sourceKind,
+    this.deprecated = false,
   });
   final String id;
   final String name;
@@ -114,6 +109,10 @@ class PluginDefinition {
   /// Set for source-family plugins backed by SourceManager.
   final SourceKind? sourceKind;
 
+  /// Pending removal: hidden from the AI page and never offered to the AI.
+  /// Its legacy settings page keeps working on its own.
+  final bool deprecated;
+
   /// Id used for a single-instance plugin's only instance.
   String get builtinInstanceId => id;
 
@@ -127,7 +126,6 @@ class PluginDefinition {
 /// page context, generic task tools, plugin status).
 const hostToolNames = {
   'context_get',
-  'library_list',
   'library_query',
   'media_get',
   'progress_query',
@@ -181,7 +179,6 @@ const _sourceCapabilities = {
     '把 App 生成的片段写到同一共享的 OpenPlayX 文件夹；不覆盖、不删除，每次需确认',
     routedTools: ['media_save_to_source'],
     writes: true,
-    optIn: true,
   ),
 };
 
@@ -230,7 +227,7 @@ PluginDefinition _source(SourceKind kind) {
 }
 
 const _speechTools = [
-  'speech_recognition_backends',
+  'speech_recognition_status',
   'subtitle_generate',
   'transcript_generate',
   'subtitle_save',
@@ -316,15 +313,15 @@ class PluginCatalog {
       ],
     ),
     const PluginDefinition(
+      // One speech capability over every backend (on-device Whisper or the
+      // user's recognition service); which one runs is a host detail.
       id: 'asr.whisper',
-      name: '本地语音识别',
-      summary: '在本机用 Whisper 模型生成字幕与转录',
+      name: '语音识别',
+      summary: '为视频生成原语言字幕与转录',
       category: PluginCategory.speech,
       location: ExecutionLocation.device,
       icon: AppIcons.captions,
-      multiInstance: false,
       dependsOn: ['media.ffmpeg'],
-      dataNote: '音频不离开本机。',
       capabilities: [
         PluginCapabilityInfo(
           'speech.transcribe',
@@ -332,27 +329,6 @@ class PluginCatalog {
           '生成原语言字幕/转录；不包含翻译',
           tools: _speechTools,
           taskTools: _speechTaskTools,
-          writes: true,
-        ),
-      ],
-    ),
-    const PluginDefinition(
-      id: 'asr.http',
-      name: 'HTTP 语音识别服务',
-      summary: '把音频发送到你自建的识别服务',
-      category: PluginCategory.speech,
-      location: ExecutionLocation.selfHosted,
-      icon: AppIcons.captions,
-      dependsOn: ['media.ffmpeg'],
-      dataNote: '识别时会把音频上传到实例配置的服务器；每个实例需单独授权上传。',
-      capabilities: [
-        PluginCapabilityInfo(
-          'speech.transcribe',
-          '语音识别',
-          '生成原语言字幕/转录；不包含翻译',
-          tools: _speechTools,
-          taskTools: _speechTaskTools,
-          uploads: true,
           writes: true,
         ),
       ],
@@ -370,71 +346,6 @@ class PluginCatalog {
       dataNote: '对话内容、页面摘要与工具结果会发送给所配置的模型服务，可能产生费用。',
       capabilities: [
         PluginCapabilityInfo('model.chat', '对话推理', '为 AI 助手生成回复与工具调用'),
-      ],
-    ),
-    const PluginDefinition(
-      id: 'torrent.search',
-      name: 'Torrent 搜索',
-      summary: '在你的 Torrent 搜索服务中查找候选',
-      category: PluginCategory.download,
-      location: ExecutionLocation.selfHosted,
-      icon: AppIcons.search,
-      dataNote: '搜索词会发送到实例配置的搜索服务；只读，不会自动下载。',
-      capabilities: [
-        PluginCapabilityInfo(
-          'torrent.search',
-          '搜索候选',
-          '按关键词、分类搜索并保留候选出处',
-          tools: [
-            'torrent_search_capabilities',
-            'torrent_search',
-            'torrent_search_detail',
-            'torrent_search_browse',
-            'torrent_search_top',
-            'torrent_search_recent',
-          ],
-        ),
-      ],
-    ),
-    const PluginDefinition(
-      id: 'torrent.download',
-      name: 'BitTorrent 下载服务',
-      summary: '在你的服务器上下载 Magnet / 种子',
-      category: PluginCategory.download,
-      location: ExecutionLocation.selfHosted,
-      icon: AppIcons.server,
-      dataNote: '下载在服务器上进行；停用 App 连接不会停止服务器上的任务。',
-      capabilities: [
-        PluginCapabilityInfo(
-          'torrent.query',
-          '查看任务',
-          '查看服务器能力、任务与文件',
-          tools: [
-            'torrent_service_info',
-            'torrent_list',
-            'torrent_get',
-            'torrent_files',
-          ],
-        ),
-        PluginCapabilityInfo(
-          'torrent.download',
-          '创建下载',
-          '确认后在选定服务器上创建下载、选择文件、限速',
-          tools: [
-            'torrent_plan',
-            'torrent_add',
-            'torrent_select_files',
-            'torrent_set_limits',
-          ],
-          writes: true,
-        ),
-        PluginCapabilityInfo(
-          'torrent.remove',
-          '删除任务',
-          '确认后删除服务器上的任务（删除文件需额外允许）',
-          tools: ['torrent_remove_preview', 'torrent_remove'],
-          writes: true,
-        ),
       ],
     ),
   ]);

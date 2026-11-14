@@ -8,6 +8,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../services/conversations/conversation_coordinator.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_motion.dart';
 import 'adapters/flyer_chat_adapter.dart';
@@ -204,31 +205,21 @@ class _AiChatViewState extends State<AiChatView> {
       ),
     ),
   );
-  // Slim, ChatGPT-like bar: back, centered title, new chat and a "more" menu.
+  // Slim, ChatGPT-like bar: centered title; new chat, "more" and close on the
+  // right, the edge the page slides in from.
   Widget _header(BuildContext context) {
     final c = widget.coordinator,
         l = AppLocalizations.of(context),
         theme = ShadTheme.of(context);
+    // Equal side slots keep the title centred.
+    final side = widget.onBack == null ? 88.0 : 128.0;
     return SizedBox(
       height: 52,
       child: Padding(
         padding: const EdgeInsets.symmetric(horizontal: 6),
         child: Row(
           children: [
-            SizedBox(
-              width: 88,
-              child: Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: widget.onBack == null
-                    ? null
-                    : _icon(
-                        MaterialLocalizations.of(context).backButtonTooltip,
-                        AppIcons.back,
-                        widget.onBack,
-                        size: 22,
-                      ),
-              ),
-            ),
+            SizedBox(width: side),
             Expanded(
               child: Text(
                 l.aiAssistant,
@@ -239,7 +230,7 @@ class _AiChatViewState extends State<AiChatView> {
               ),
             ),
             SizedBox(
-              width: 88,
+              width: side,
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
@@ -255,6 +246,13 @@ class _AiChatViewState extends State<AiChatView> {
                     size: 20,
                   ),
                   _icon(l.aiMore, AppIcons.more, _more, size: 20),
+                  if (widget.onBack != null)
+                    _icon(
+                      MaterialLocalizations.of(context).closeButtonTooltip,
+                      AppIcons.close,
+                      widget.onBack,
+                      size: 22,
+                    ),
                 ],
               ),
             ),
@@ -356,6 +354,7 @@ class _AiChatViewState extends State<AiChatView> {
       AiPartKind.reasoning => AiReasoningBlock(
         text: part.text,
         streaming: part.streaming,
+        duration: part.duration,
       ),
       AiPartKind.activity => AiActivityRow(
         turn: part.turn,
@@ -369,16 +368,13 @@ class _AiChatViewState extends State<AiChatView> {
         onOpenMedia: widget.onOpenMedia,
         onFavorite: widget.onFavorite,
       ),
-      AiPartKind.error => ShadAlert.destructive(
-        title: Text(aiFailureMessage(part.text, l)),
-        description: c.canRetry(part.turn)
-            ? Align(
-                alignment: AlignmentDirectional.centerStart,
-                child: ShadButton.outline(
-                  enabled: !c.busy,
-                  onPressed: () => c.retry(part.turn),
-                  child: Text(l.retry),
-                ),
+      AiPartKind.error => AppAlert.error(
+        title: aiFailureMessage(part.text, l),
+        action: c.canRetry(part.turn)
+            ? ShadButton.outline(
+                enabled: !c.busy,
+                onPressed: () => c.retry(part.turn),
+                child: Text(l.retry),
               )
             : null,
       ),

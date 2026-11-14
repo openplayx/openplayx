@@ -1,10 +1,10 @@
 import 'dart:math';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:openplayx_whisper/openplayx_whisper.dart' show WhisperEngine;
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/plugins/speech_recognition_capability.dart';
+import '../../data/configuration/configuration_database.dart';
 import 'asr_model_store.dart';
 import 'embedded_whisper_backend.dart';
 import 'http_asr_backend.dart';
@@ -45,8 +45,8 @@ class AsrBackendConfig {
   bool get uploads => kind == 'http';
 
   /// Plugin implementing this instance (see the plugin catalog).
-  String get pluginId => kind == 'http' ? 'asr.http' : 'asr.whisper';
-  String get credentialKey => 'openplayx.asr.$id.token';
+  /// All backends belong to the single speech recognition plugin.
+  String get pluginId => 'asr.whisper';
   String get host => url == null ? '' : Uri.parse(url!).host;
 
   AsrBackendConfig copyWith({
@@ -71,73 +71,95 @@ class AsrBackendConfig {
   );
 }
 
-const asrCredentialStorage = FlutterSecureStorage(
-  mOptions: MacOsOptions(usesDataProtectionKeychain: false),
-);
-
-/// Persists backend instances and builds their capability objects.
+/// Persists backend instances, with their access token, as the
+/// `asr / backends` settings document in configuration.sqlite3 and builds
+/// their capability objects.
 class AsrBackendRegistry {
   AsrBackendRegistry({
     required this.db,
     required this.models,
     this.embeddedEngine,
-    this.credentials = asrCredentialStorage,
     this._readCredential,
   }) {
-    db.execute('''CREATE TABLE IF NOT EXISTS asr_backends (
-      id TEXT PRIMARY KEY, kind TEXT NOT NULL, name TEXT NOT NULL, url TEXT,
-      model_id TEXT NOT NULL, language TEXT NOT NULL DEFAULT 'auto',
-      allow_insecure_http INTEGER NOT NULL DEFAULT 0, upload_consent_at INTEGER,
-      created INTEGER NOT NULL)''');
-    if (db.select("SELECT 1 FROM asr_backends WHERE id='embedded'").isEmpty) {
-      db.execute(
-        "INSERT INTO asr_backends (id,kind,name,model_id,created) VALUES ('embedded','embedded','On device',?,?)",
-        ['whisper-base-multilingual', DateTime.now().millisecondsSinceEpoch],
-      );
+    ConfigurationDatabase.initialize(db);
+    if (_documents().every((d) => d['id'] != 'embedded')) {
+      _store([
+        {
+          'id': 'embedded',
+          'kind': 'embedded',
+          'name': 'On device',
+          'model_id': 'whisper-base-multilingual',
+          'language': 'auto',
+          'allow_insecure_http': false,
+          'created': DateTime.now().millisecondsSinceEpoch,
+        },
+        ..._documents(),
+      ]);
     }
   }
+
+  static const _namespace = 'asr';
+  static const _key = 'backends';
+
+  List<Map<String, dynamic>> _documents() {
+    final value = ConfigurationDatabase.readSetting(db, _namespace, _key);
+    return [
+      if (value is List)
+        for (final item in value)
+          if (item is Map) Map<String, dynamic>.from(item),
+    ];
+  }
+
+  void _store(List<Map<String, dynamic>> documents) =>
+      ConfigurationDatabase.writeSetting(db, _namespace, _key, documents);
 
   final Database db;
   final AsrModelStore models;
 
   /// Overrides the shared engine (tests load a host-built library).
   final WhisperEngine? embeddedEngine;
-  final FlutterSecureStorage credentials;
   final Future<String?> Function(String key)? _readCredential;
 
   Future<String?> credential(AsrBackendConfig c) async {
     try {
-      return await (_readCredential?.call(c.credentialKey) ??
-          credentials.read(key: c.credentialKey));
+      return await (_readCredential?.call(c.id) ?? Future.value(token(c.id)));
     } catch (_) {
       return null;
     }
   }
 
-  static AsrBackendConfig _row(Row r) => AsrBackendConfig(
-    id: r['id'] as String,
-    kind: r['kind'] as String,
-    name: r['name'] as String,
-    url: r['url'] as String?,
-    modelId: r['model_id'] as String,
-    language: r['language'] as String,
-    allowInsecureHttp: r['allow_insecure_http'] == 1,
-    uploadConsentAt: r['upload_consent_at'] == null
-        ? null
-        : DateTime.fromMillisecondsSinceEpoch(r['upload_consent_at'] as int),
-  );
+  static AsrBackendConfig _fromDocument(Map<String, dynamic> d) =>
+      AsrBackendConfig(
+        id: d['id'] as String,
+        kind: d['kind'] as String,
+        name: d['name'] as String,
+        url: d['url'] as String?,
+        modelId: d['model_id'] as String,
+        language: d['language'] as String? ?? 'auto',
+        allowInsecureHttp: d['allow_insecure_http'] == true,
+        uploadConsentAt: d['upload_consent_at'] == null
+            ? null
+            : DateTime.fromMillisecondsSinceEpoch(
+                d['upload_consent_at'] as int,
+              ),
+      );
 
-  List<AsrBackendConfig> list() => [
-    for (final r in db.select(
-      "SELECT * FROM asr_backends ORDER BY kind='embedded' DESC, created",
-    ))
-      _row(r),
-  ];
-
-  AsrBackendConfig? get(String id) {
-    final rows = db.select('SELECT * FROM asr_backends WHERE id=?', [id]);
-    return rows.isEmpty ? null : _row(rows.first);
+  /// The on-device instance first, then in the order they were added.
+  List<AsrBackendConfig> list() {
+    final documents = _documents()
+      ..sort((a, b) {
+        final embedded =
+            (b['kind'] == 'embedded' ? 1 : 0) -
+            (a['kind'] == 'embedded' ? 1 : 0);
+        return embedded != 0
+            ? embedded
+            : (a['created'] as int? ?? 0).compareTo(b['created'] as int? ?? 0);
+      });
+    return [for (final d in documents) _fromDocument(d)];
   }
+
+  AsrBackendConfig? get(String id) =>
+      list().where((c) => c.id == id).firstOrNull;
 
   /// Validates and stores an instance. A changed URL drops upload consent:
   /// consent names one destination.
@@ -162,40 +184,59 @@ class AsrBackendRegistry {
     final consent = previous != null && previous.url != c.url
         ? null
         : c.uploadConsentAt;
-    db.execute(
-      '''INSERT INTO asr_backends (id,kind,name,url,model_id,language,
-         allow_insecure_http,upload_consent_at,created) VALUES (?,?,?,?,?,?,?,?,?)
-         ON CONFLICT(id) DO UPDATE SET name=excluded.name,url=excluded.url,
-         model_id=excluded.model_id,language=excluded.language,
-         allow_insecure_http=excluded.allow_insecure_http,
-         upload_consent_at=excluded.upload_consent_at''',
-      [
-        c.id,
-        c.kind,
-        c.name.trim().isEmpty ? c.host : c.name.trim(),
-        c.url,
-        c.modelId,
-        c.language,
-        c.allowInsecureHttp ? 1 : 0,
-        consent?.millisecondsSinceEpoch,
-        DateTime.now().millisecondsSinceEpoch,
-      ],
-    );
+    final documents = _documents();
+    final existing = documents.where((d) => d['id'] == c.id).firstOrNull;
+    final document = {
+      'id': c.id,
+      'kind': c.kind,
+      'name': c.name.trim().isEmpty ? c.host : c.name.trim(),
+      'url': c.url,
+      'model_id': c.modelId,
+      'language': c.language,
+      'allow_insecure_http': c.allowInsecureHttp,
+      'upload_consent_at': consent?.millisecondsSinceEpoch,
+      // Editing keeps the instance's place in the list and its token.
+      'created': existing?['created'] ?? DateTime.now().millisecondsSinceEpoch,
+      if (existing?['token'] != null) 'token': existing!['token'],
+    };
+    _store([
+      for (final d in documents)
+        if (d['id'] != c.id) d,
+      document,
+    ]);
     return get(c.id)!;
   }
 
-  void grantUploadConsent(String id) => db.execute(
-    'UPDATE asr_backends SET upload_consent_at=? WHERE id=?',
-    [DateTime.now().millisecondsSinceEpoch, id],
-  );
+  /// The access token saved on backend [id].
+  String? token(String id) =>
+      _documents().where((d) => d['id'] == id).firstOrNull?['token'] as String?;
+
+  /// Saves [token] on backend [id]; empty removes it.
+  void setToken(String id, String token) => _store([
+    for (final d in _documents())
+      d['id'] == id
+          ? {
+              for (final e in d.entries)
+                if (e.key != 'token') e.key: e.value,
+              if (token.trim().isNotEmpty) 'token': token.trim(),
+            }
+          : d,
+  ]);
+
+  void grantUploadConsent(String id) => _store([
+    for (final d in _documents())
+      d['id'] == id
+          ? {...d, 'upload_consent_at': DateTime.now().millisecondsSinceEpoch}
+          : d,
+  ]);
 
   Future<void> remove(String id) async {
     final c = get(id);
     if (c == null || c.kind == 'embedded') return;
-    db.execute('DELETE FROM asr_backends WHERE id=?', [id]);
-    try {
-      await credentials.delete(key: c.credentialKey);
-    } catch (_) {}
+    _store([
+      for (final d in _documents())
+        if (d['id'] != id) d,
+    ]);
   }
 
   static String newId() {

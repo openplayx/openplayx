@@ -19,6 +19,9 @@ class AiChatPart {
     this.arguments = const {},
     this.progress,
     this.confirmation,
+    this.duration,
+    this.rawArguments = '',
+    this.rawResult = '',
   });
   final String id;
   final ConversationTurn turn;
@@ -35,6 +38,13 @@ class AiChatPart {
   /// Live progress of a running tool (see `ToolExecution.report`).
   final Map<String, dynamic>? progress;
   final PendingConfirmation? confirmation;
+
+  /// How long the model reasoned, when measured live.
+  final Duration? duration;
+
+  /// The call's arguments and the tool's result exactly as exchanged, for
+  /// the step's details panel (shown only when the user opens it).
+  final String rawArguments, rawResult;
   String get revision =>
-      '$text|$streaming|$tool|$phase|$data|$progress|${confirmation?.id}';
+      '$text|$streaming|$tool|$phase|$data|$progress|${confirmation?.id}|$duration|$rawResult';
 }

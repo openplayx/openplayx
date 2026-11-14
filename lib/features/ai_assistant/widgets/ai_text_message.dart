@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../ui/icons/app_icons.dart';
 import '../../../ui/tokens/app_metrics.dart';
+import '../../../ui/components/feedback/app_feedback.dart';
 
 class AiTextMessage extends StatelessWidget {
   const AiTextMessage({
@@ -23,8 +24,7 @@ class AiTextMessage extends StatelessWidget {
         !['https', 'http'].contains(uri.scheme) ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty) {
-      ShadToaster.of(context)
-          .show(ShadToast(description: Text(l.aiLinkBlocked)));
+      showAppToast(context, l.aiLinkBlocked, kind: FeedbackKind.warning);
       return;
     }
     final accepted = await showShadDialog<bool>(

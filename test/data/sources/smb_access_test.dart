@@ -33,6 +33,7 @@ class _FakeConnect implements SmbConnect {
     echoes++;
     return silent ? Completer<void>().future : Future.value();
   }
+
   @override
   Future<SmbFile> file(String path) async {
     final size = media?.lengthSync() ?? 0;
@@ -142,40 +143,43 @@ void main() {
     expect(seen, [0, 1]);
   }, timeout: const Timeout(Duration(seconds: 30)));
 
-  test('playback reads reopen on a new connection after a disconnect', () async {
-    final dir = await Directory.systemTemp.createTemp('smb_access_test');
-    addTearDown(() => dir.delete(recursive: true));
-    final media = File('${dir.path}/episode.mkv')
-      ..writeAsBytesSync(List.generate(4096, (i) => i % 251));
-    final connections = <_FakeConnect>[];
-    final plugin = SmbPlugin.withAccess(
-      config,
-      SmbAccess(
+  test(
+    'playback reads reopen on a new connection after a disconnect',
+    () async {
+      final dir = await Directory.systemTemp.createTemp('smb_access_test');
+      addTearDown(() => dir.delete(recursive: true));
+      final media = File('${dir.path}/episode.mkv')
+        ..writeAsBytesSync(List.generate(4096, (i) => i % 251));
+      final connections = <_FakeConnect>[];
+      final plugin = SmbPlugin.withAccess(
         config,
-        'secret',
-        connector: (_) async {
-          final connection = _FakeConnect(connections.length, media);
-          connections.add(connection);
-          return connection;
-        },
-      ),
-    );
-    final stream = await plugin.resolve(
-      const ResolveRequest(ResourceRef('smb-1', '/share/episode.mkv')),
-      CallContext.forInstance('smb-1'),
-    );
-    addTearDown(stream.release);
-    // The OS drops the socket while playback is paused in the background.
-    connections.single.transport.isClosed = true;
+        SmbAccess(
+          config,
+          'secret',
+          connector: (_) async {
+            final connection = _FakeConnect(connections.length, media);
+            connections.add(connection);
+            return connection;
+          },
+        ),
+      );
+      final stream = await plugin.resolve(
+        const ResolveRequest(ResourceRef('smb-1', '/share/episode.mkv')),
+        CallContext.forInstance('smb-1'),
+      );
+      addTearDown(stream.release);
+      // The OS drops the socket while playback is paused in the background.
+      connections.single.transport.isClosed = true;
 
-    final client = HttpClient();
-    addTearDown(client.close);
-    final response = await (await client.getUrl(stream.uri)).close();
-    final body = await response.fold<List<int>>([], (a, b) => a..addAll(b));
-    expect(response.statusCode, 200);
-    expect(body, media.readAsBytesSync());
-    expect(connections, hasLength(2));
-  });
+      final client = HttpClient();
+      addTearDown(client.close);
+      final response = await (await client.getUrl(stream.uri)).close();
+      final body = await response.fold<List<int>>([], (a, b) => a..addAll(b));
+      expect(response.statusCode, 200);
+      expect(body, media.readAsBytesSync());
+      expect(connections, hasLength(2));
+    },
+  );
 
   test('a fresh connection is used without probing', () async {
     await access.run((c) async {});

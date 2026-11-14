@@ -9,6 +9,7 @@ import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
+import '../../ui/components/feedback/app_feedback.dart';
 
 /// Shows how much scraped metadata is stored and clears all of it.
 class ScrapeManagementSection extends StatefulWidget {
@@ -198,9 +199,7 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
         ),
         if (_busy) const ShadProgress(),
         if (_message != null)
-          _failed
-              ? ShadAlert.destructive(title: Text(_message!))
-              : ShadAlert(title: Text(_message!)),
+          AppAlert.result(title: _message!, failed: _failed),
       ],
     );
   }

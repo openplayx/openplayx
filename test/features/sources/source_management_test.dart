@@ -2,9 +2,9 @@ import 'dart:convert';
 
 import '../../app_test_host.dart';
 
+import 'package:openplayx/ui/components/forms/settings_text_input.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
@@ -17,19 +17,16 @@ import 'package:openplayx/data/sources/source_sign_in.dart';
 
 import 'source_flow_test.dart' show MemorySources;
 
-import 'package:shared_preferences/shared_preferences.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
   testWidgets(
-    'narrow source management shows version, disables an idle source and preserves credentials',
+    'narrow source management keeps details off the list and preserves credentials when disabled',
     (tester) async {
       tester.view.physicalSize = const Size(360, 800);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      SharedPreferences.setMockInitialValues({});
-      FlutterSecureStorage.setMockInitialValues({});
       final service = SourceConfigurationService(sqlite3.openInMemory());
       final manager = SourceManager(configuration: service);
       await manager.save(
@@ -47,20 +44,25 @@ void main() {
       });
       await tester.pumpWidget(TestApp(home: SourcePage(manager: manager)));
       await tester.pumpAndSettle();
+      expect(find.textContaining('配置 v2'), findsNothing);
+      expect(find.text('待验证'), findsOneWidget);
+      await tester.tap(find.byKey(const ValueKey('source-menu-plex')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('source-details-plex')));
+      await tester.pumpAndSettle();
       expect(find.textContaining('配置 v2'), findsOneWidget);
       expect(find.textContaining('尚未验证'), findsOneWidget);
+      await tester.tap(find.text('关闭'));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
-      await tester.ensureVisible(find.byType(ShadSwitch));
-      await tester.tap(find.byType(ShadSwitch));
+      await tester.tap(find.byKey(const ValueKey('source-menu-plex')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('source-toggle-plex')));
       await tester.pumpAndSettle();
       // Nothing is playing or loading, so no confirmation is needed.
       expect(find.text('禁用媒体源？'), findsNothing);
       expect(manager.configs.single.enabled, isFalse);
-      expect(service.readSecret('source.plex'), isNull);
-      expect(
-        service.readSecret(manager.configs.single.credentialRef!),
-        'safe-token',
-      );
+      expect(service.readSecret(manager.configs.single.id), 'safe-token');
       expect(find.text('已禁用'), findsOneWidget);
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
@@ -71,8 +73,6 @@ void main() {
   testWidgets(
     'connection forms keep basic fields simple and hide management policies',
     (tester) async {
-      SharedPreferences.setMockInitialValues({});
-      FlutterSecureStorage.setMockInitialValues({});
       final service = SourceConfigurationService(sqlite3.openInMemory());
       final manager = SourceManager(configuration: service);
       addTearDown(() async {
@@ -167,13 +167,16 @@ void main() {
         isTrue,
       );
       expect(
-        tester.widget<ShadInput>(find.byKey(ValueKey('端口'))).controller!.text,
+        tester
+            .widget<SettingsTextInput>(find.byKey(ValueKey('端口')))
+            .controller
+            .text,
         '8443',
       );
       expect(
         tester
-            .widget<ShadInput>(find.byKey(ValueKey('路径（可选）')))
-            .controller!
+            .widget<SettingsTextInput>(find.byKey(ValueKey('路径（可选）')))
+            .controller
             .text,
         'jellyfin',
       );
@@ -318,7 +321,7 @@ void main() {
       await tester.tap(find.text('登录 Plex'));
       await tester.pumpAndSettle();
       expect(opened?.host, 'app.plex.tv');
-      expect(find.text('Home Plex'), findsOneWidget);
+      expect(find.text('Home Plex'), findsWidgets); // row + name hint
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.name, 'Home Plex');
@@ -329,7 +332,6 @@ void main() {
   testWidgets('remote access picks a proxy of the App-wide Relay connection', (
     tester,
   ) async {
-    FlutterSecureStorage.setMockInitialValues({});
     final manager = MemorySources()
       ..network = const RemoteNetwork(
         outbound: {
@@ -338,7 +340,7 @@ void main() {
           'server_port': 443,
           'tls': {'enabled': true, 'server_name': 'relay.example'},
         },
-        credentialRef: 'remote.outbound.fixture',
+        credential: {'uuid': '11111111-1111-4111-8111-111111111111'},
         proxies: [RemoteProxy('smb', 18445), RemoteProxy('jellyfin', 18096)],
       );
     final signIn = _FakeSignIn();

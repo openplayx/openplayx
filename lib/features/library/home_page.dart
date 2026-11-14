@@ -115,7 +115,7 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   _HomeShelves _load() {
     final service = widget.service;
     List<dynamic> posters(String? contentType) =>
-        service.query(null, contentType: contentType, limit: _shelfLimit);
+        service.query(contentType: contentType, limit: _shelfLimit);
     final shelves = _HomeShelves(
       continueWatching: service.continueWatching(limit: 200),
       recentlyAdded: posters(null),
@@ -183,7 +183,6 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
         onViewAll: () => _openAll(
           title,
           (offset, limit) => service.query(
-            null,
             contentType: contentType,
             offset: offset,
             limit: limit,

@@ -121,63 +121,69 @@ void main() {
   group('policy', () {
     tearDown(() => PluginGate.current = null);
 
-    test('first run keeps existing access; new instances start outside AI '
-        'scope', () async {
-      final sources = FakeSources();
-      final store = MemoryPolicyStore();
-      var manager = await _manager(sources: sources, store: store);
-      expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
-      expect(manager.aiAllows('source.smb', instanceId: 'office'), isTrue);
+    test(
+      'AI may call every capability of enabled plugins and instances',
+      () async {
+        final sources = FakeSources();
+        final store = MemoryPolicyStore();
+        var manager = await _manager(sources: sources, store: store);
+        expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
+        expect(manager.aiAllows('source.smb', instanceId: 'office'), isTrue);
+        // Writing files needs no separate grant either.
+        expect(
+          manager.aiAllows(
+            'source.smb',
+            instanceId: 'home',
+            capability: 'source.write',
+          ),
+          isTrue,
+        );
+        // New instances are usable at once.
+        sources.list.add(
+          const SourceConfig(
+            id: 'new',
+            name: '新 NAS',
+            kind: SourceKind.smb,
+            address: 'smb://new/media',
+          ),
+        );
+        manager = await _manager(sources: sources, store: store);
+        expect(manager.aiAllows('source.smb', instanceId: 'new'), isTrue);
+        // Only the plugin and instance switches narrow it.
+        manager.setPluginEnabled('source.smb', false);
+        expect(PluginGate.enabled('source.smb'), isFalse);
+        expect(manager.aiAllows('source.smb', instanceId: 'home'), isFalse);
+        manager.setPluginEnabled('source.smb', true);
+        expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
+      },
+    );
 
-      sources.list.add(
-        const SourceConfig(
-          id: 'new',
-          name: '新 NAS',
-          kind: SourceKind.smb,
-          address: 'smb://new/media',
-        ),
+    test('a disabled instance is hidden from the AI', () async {
+      final sources = FakeSources();
+      sources.list[1] = const SourceConfig(
+        id: 'office',
+        name: '办公室 NAS',
+        kind: SourceKind.smb,
+        address: 'smb://nas.office/media',
+        enabled: false,
       );
-      manager = await _manager(sources: sources, store: store);
-      expect(manager.aiAllows('source.smb', instanceId: 'new'), isFalse);
+      final manager = await _manager(sources: sources);
       expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
+      expect(manager.aiAllows('source.smb', instanceId: 'office'), isFalse);
     });
 
-    test('three switches are independent; re-enabling keeps instance '
-        'grants', () async {
+    test('status has two dimensions: configured and available', () async {
       final manager = await _manager();
-      manager.setAiInstance('source.smb', 'office', false);
-      expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
-      expect(manager.aiAllows('source.smb', instanceId: 'office'), isFalse);
-      // AI off does not disable business use.
-      manager.setAiAllowed('source.smb', false);
-      expect(manager.pluginEnabled('source.smb'), isTrue);
-      expect(PluginGate.ai('source.smb', instanceId: 'home'), isFalse);
-      manager.setAiAllowed('source.smb', true);
-
+      final smb = manager.snapshot('source.smb')!;
+      expect(smb.configured, isTrue);
+      expect(smb.available, isTrue);
+      final ftp = manager.snapshot('source.ftp')!;
+      expect(ftp.configured, isFalse);
+      expect(ftp.available, isFalse);
       manager.setPluginEnabled('source.smb', false);
-      expect(PluginGate.enabled('source.smb'), isFalse);
-      expect(manager.aiAllows('source.smb', instanceId: 'home'), isFalse);
-      manager.setPluginEnabled('source.smb', true);
-      expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
-      expect(manager.aiAllows('source.smb', instanceId: 'office'), isFalse);
-
-      manager.setAiCapability('source.smb', 'search.media', false);
-      expect(
-        manager.aiAllows(
-          'source.smb',
-          instanceId: 'home',
-          capability: 'search.media',
-        ),
-        isFalse,
-      );
-      expect(
-        manager.aiAllows(
-          'source.smb',
-          instanceId: 'home',
-          capability: 'source.browse',
-        ),
-        isTrue,
-      );
+      final off = manager.snapshot('source.smb')!;
+      expect(off.configured, isTrue);
+      expect(off.available, isFalse);
     });
 
     test('a disabled dependency blocks dependants without enabling or '
@@ -216,28 +222,12 @@ void main() {
       );
     });
 
-    test('writing files is opt-in even for instances the AI already '
-        'uses', () async {
-      final manager = await _manager();
-      bool write() => manager.aiAllows(
-        'source.smb',
-        instanceId: 'home',
-        capability: 'source.write',
-      );
-      expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
-      expect(write(), isFalse);
-      manager.setAiCapability('source.smb', 'source.write', true);
-      expect(write(), isTrue);
-      manager.setAiCapability('source.smb', 'source.write', false);
-      expect(write(), isFalse);
-    });
-
     test('stale writes conflict instead of overwriting', () async {
       final store = MemoryPolicyStore();
       final manager = await _manager(store: store);
       store.value = store.value!.copyWith(revision: store.value!.revision + 1);
       expect(
-        () => manager.setAiAllowed('source.smb', false),
+        () => manager.setPluginEnabled('source.smb', false),
         throwsA(isA<PluginException>()),
       );
     });
@@ -251,17 +241,17 @@ void main() {
       final registry = ToolRegistry()..policy = manager;
       var runs = 0;
       registry.register(
-        RegisteredTool('torrent_search', 'search', const {}, (_) async {
+        RegisteredTool('media_transcode', 'search', const {}, (_) async {
           runs++;
           return {};
         }),
       );
-      // No torrent search service in this build → not offered.
+      // No media processing service in this build → not offered.
       expect(registry.available, isEmpty);
       final result = await ToolGateway(registry).invoke(
         turn: 't',
-        call: _call('torrent_search'),
-        allowed: {'torrent_search'},
+        call: _call('media_transcode'),
+        allowed: {'media_transcode'},
         active: () => true,
         confirm: (_, _) async => true,
       );
@@ -295,7 +285,7 @@ void main() {
           allowed: {'write_thing'},
           active: () => true,
           confirm: (_, _) async {
-            manager.setAiInstance('source.smb', 'office', false);
+            manager.setPluginEnabled('source.smb', false);
             return true;
           },
         );
@@ -304,9 +294,16 @@ void main() {
       },
     );
 
-    test('media tools only expose and route to AI-granted instances', () async {
-      final manager = await _manager();
-      manager.setAiInstance('source.smb', 'office', false);
+    test('media tools only expose and route to enabled instances', () async {
+      final sources = FakeSources();
+      sources.list[1] = const SourceConfig(
+        id: 'office',
+        name: '办公室 NAS',
+        kind: SourceKind.smb,
+        address: 'smb://nas.office/media',
+        enabled: false,
+      );
+      final manager = await _manager(sources: sources);
       final library = LibraryService(sqlite3.openInMemory());
       addTearDown(library.close);
       final tools = MediaTools(
@@ -330,14 +327,6 @@ void main() {
       expect((list.data['sources'] as List).map((s) => s['source_id']), [
         'home',
       ]);
-      // Traditional pages still browse the instance; the AI cannot.
-      expect(
-        (await manager.sources!.browse(
-          'office',
-          const BrowseRequest(),
-        )).entries,
-        isNotEmpty,
-      );
       final denied = await call('source_browse', {'source_id': 'office'});
       expect(denied.error, 'unavailable');
       final allowed = await call('source_browse', {'source_id': 'home'});
@@ -348,28 +337,23 @@ void main() {
       // Hidden instances, addresses and accounts are never disclosed.
       expect(text, isNot(contains('办公室')));
       expect(text, isNot(contains('nas.home')));
-      expect(text, contains('设置 → 插件管理'));
+      expect(text, contains('AI → '));
     });
   });
 
-  test('policy document round-trips', () {
-    final policy = const PluginPolicy()
-        .withPluginEnabled('source.smb', false)
-        .withAi(
-          'source.smb',
-          const PluginAiPolicy(
-            allowed: true,
-            instances: {'home'},
-            deniedCapabilities: {'search.media'},
-          ),
-        );
-    final back = PluginPolicy.fromJson(
-      jsonDecode(jsonEncode(policy.toJson())) as Map<String, dynamic>,
-      3,
-    );
+  test('policy document round-trips and ignores old AI grants', () {
+    final policy = const PluginPolicy().withPluginEnabled('source.smb', false);
+    final json =
+        jsonDecode(jsonEncode(policy.toJson())) as Map<String, dynamic>;
+    expect(json.containsKey('ai'), isFalse);
+    final back = PluginPolicy.fromJson({
+      ...json,
+      'ai': {
+        'source.smb': {'allowed': false},
+      },
+    }, 3);
     expect(back.pluginEnabled('source.smb'), isFalse);
-    expect(back.aiFor('source.smb').instances, {'home'});
-    expect(back.aiFor('source.smb').deniedCapabilities, {'search.media'});
+    expect(back.pluginEnabled('source.ftp'), isTrue);
     expect(back.revision, 3);
   });
 }

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../l10n/generated/app_localizations.dart';
@@ -8,6 +9,7 @@ import '../features/design_system/component_gallery_page.dart';
 import 'theme/app_theme.dart';
 import 'theme/app_theme_controller.dart';
 import 'theme/material_theme_adapter.dart';
+import 'theme/system_ui.dart';
 
 class OpenPlayXApp extends StatefulWidget {
   const OpenPlayXApp({super.key, this.appearance, this.home});
@@ -60,7 +62,10 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
             AppShadLocalizationsDelegate(),
             ...AppLocalizations.localizationsDelegates,
           ],
-          builder: (context, child) => ShadAppBuilder(child: child!),
+          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
+            value: appSystemUiStyle(Theme.of(context).brightness),
+            child: ShadAppBuilder(child: child!),
+          ),
           routes: {'/design-system': (_) => const ComponentGalleryPage()},
           home: widget.home ?? const AppShell(),
         ),

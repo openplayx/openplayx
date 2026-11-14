@@ -28,10 +28,8 @@ void main() {
       final id = 'worker-${DateTime.now().microsecondsSinceEpoch}';
       final work = Workmanager();
       final artwork = ArtworkService(sources);
-      String? collection;
       addTearDown(() async {
         await work.cancelByUniqueName(id);
-        if (collection != null) library.delete(collection);
         await sources.remove(id);
         artwork.dispose();
         await sources.dispose();
@@ -57,7 +55,6 @@ void main() {
         ),
         '',
       );
-      collection = library.create('Background fixture', type: 'movie');
       final media = library.register(
         SourceEntry(
           ResourceRef(id, '${root.path}/raw.mkv'),
@@ -65,8 +62,8 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(collection, media);
-      expect(library.query(collection).single['title'], 'raw.mkv');
+      library.addManual(media);
+      expect(library.query().single['title'], 'raw.mkv');
       await work.initialize(metadataCallbackDispatcher);
       await work.registerOneOffTask(id, metadataCollectTask);
       await tester.runAsync(() async {
@@ -85,7 +82,7 @@ void main() {
         'completed',
         reason: queued['error_code'] as String?,
       );
-      expect(library.query(collection).single['title'], '后台已识别影片');
+      expect(library.query().single['title'], '后台已识别影片');
       final poster = library.metadata.displayArtwork(media)!;
       // Check the worker published the cache file before the UI tries to load it.
       await File('${root.path}/poster.png').delete();

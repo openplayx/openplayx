@@ -1,7 +1,5 @@
 import 'dart:convert';
-import 'dart:io';
 
-import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
@@ -43,68 +41,63 @@ const source = SourceConfig(
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  late Directory directory;
+  late Database db;
   late RemoteAccessService service;
-  setUp(() async {
-    directory = await Directory.systemTemp.createTemp('opx-remote-');
-    service = RemoteAccessService(directory);
-    FlutterSecureStorage.setMockInitialValues({});
+  String? setting() =>
+      db
+              .select(
+                "SELECT value_json FROM settings WHERE namespace='remote_access' AND key='network'",
+              )
+              .firstOrNull?['value_json']
+          as String?;
+  setUp(() {
+    db = sqlite3.openInMemory();
+    service = RemoteAccessService(db);
   });
-  tearDown(() async {
-    await directory.delete(recursive: true);
-  });
+  tearDown(() => db.close());
 
-  test(
-    'import keeps the uuid in secure storage and the rest in JSON',
-    () async {
-      Map<String, dynamic>? checked;
-      await service.importPairing(
-        appFile(),
-        check: (out, port) async {
-          checked = out;
-          expect(port, 18096);
-        },
-      );
-      expect(checked!['uuid'], uuid);
-      final json = await File('${directory.path}/remote_access.json')
-          .readAsString();
-      expect(json, isNot(contains(uuid)));
-      expect(json, contains('relay.example'));
-      final network = service.network;
-      expect(network.configured, isTrue);
-      expect(network.outbound!.containsKey('tag'), isFalse);
-      expect(network.proxies.map((p) => p.name), ['jellyfin', 'smb']);
-      expect(
-        jsonDecode(
-          (await const FlutterSecureStorage().read(
-            key: network.credentialRef!,
-          ))!,
-        ),
-        {'uuid': uuid},
-      );
-      final reopened = RemoteAccessService(directory);
-      await reopened.load();
-      expect(reopened.network.toJson(), network.toJson());
-    },
-  );
+  test('import keeps the uuid apart from the outbound, all in the settings document', () async {
+    Map<String, dynamic>? checked;
+    await service.importPairing(
+      appFile(),
+      check: (out, port) async {
+        checked = out;
+        expect(port, 18096);
+      },
+    );
+    expect(checked!['uuid'], uuid);
+    final saved = jsonDecode(setting()!) as Map<String, dynamic>;
+    expect(saved['credential'], {'uuid': uuid});
+    expect(jsonEncode(saved['outbound']), isNot(contains(uuid)));
+    final json = setting()!;
+    expect(json, contains('relay.example'));
+    final network = service.network;
+    expect(network.configured, isTrue);
+    expect(network.outbound!.containsKey('tag'), isFalse);
+    expect(network.proxies.map((p) => p.name), ['jellyfin', 'smb']);
+    expect(network.credential, {'uuid': uuid});
+    final reopened = RemoteAccessService(db);
+    await reopened.load();
+    expect(reopened.network.toJson(), network.toJson());
+  });
 
   test('re-import replaces the credential and clear removes it', () async {
     await service.importPairing(appFile());
-    final first = service.network.credentialRef!;
+    final first = service.network.credential!;
     await service.savePolicy(service.network.copyWith(stabilitySeconds: 45));
     await service.importPairing(
       appFile(id: '22222222-2222-4222-8222-222222222222'),
     );
-    final second = service.network.credentialRef!;
+    final second = service.network.credential!;
     expect(second, isNot(first));
     expect(service.network.stabilitySeconds, 30);
-    expect(await const FlutterSecureStorage().read(key: first), isNull);
+    expect(setting(), isNot(contains(first['uuid'] as String)));
     await service.savePolicy(service.network.copyWith(stabilitySeconds: 45));
     await service.clear();
     expect(service.network.configured, isFalse);
     expect(service.network.proxies, isEmpty);
     expect(service.network.stabilitySeconds, 30);
-    expect(await const FlutterSecureStorage().read(key: second), isNull);
+    expect(setting(), isNot(contains(second['uuid'] as String)));
   });
 
   test('a failed check saves nothing', () async {
@@ -116,11 +109,7 @@ void main() {
       throwsA(isA<PluginException>()),
     );
     expect(service.network.configured, isFalse);
-    expect(await const FlutterSecureStorage().readAll(), isEmpty);
-    expect(
-      await File('${directory.path}/remote_access.json').exists(),
-      isFalse,
-    );
+    expect(setting(), isNull);
   });
 
   test('policy outside the supported range is rejected', () async {
@@ -130,36 +119,16 @@ void main() {
     );
   });
 
-  test(
-    'an earlier schema is moved aside and remote access starts empty',
-    () async {
-      final file = File('${directory.path}/remote_access.json');
-      await file.writeAsString(
-        '{"schemaVersion":2,"revision":4,"outbounds":{},"bindings":{},"policy":{}}',
-      );
-      for (final name in ['state', 'backup', 'revision']) {
-        await File('${directory.path}/remote_access.$name.json')
-            .writeAsString('{}');
-      }
-      await service.load();
-      expect(service.network.configured, isFalse);
-      expect(await file.exists(), isFalse);
-      final names = await directory
-          .list()
-          .map((f) => f.path.split(Platform.pathSeparator).last)
-          .toList();
-      expect(
-        names.where((n) => n.startsWith('remote_access.discarded.')),
-        hasLength(1),
-      );
-      expect(
-        names.where((n) => n.contains('.state.') || n.contains('.backup.')),
-        isEmpty,
-      );
-      await service.importPairing(appFile());
-      expect(service.network.configured, isTrue);
-    },
-  );
+  test('unreadable saved settings start remote access empty', () async {
+    db.execute(
+      "INSERT INTO settings VALUES ('remote_access','device','local','network',?,1)",
+      ['{"schemaVersion":2,"outbounds":{},"bindings":{},"policy":{}}'],
+    );
+    await service.load();
+    expect(service.network.configured, isFalse);
+    await service.importPairing(appFile());
+    expect(service.network.configured, isTrue);
+  });
 
   test('a source resolves its route by proxy name', () async {
     expect(service.attach(source).remoteAccess, isNull);
@@ -167,7 +136,7 @@ void main() {
     final route = service.attach(source).remoteAccess!;
     expect(route.proxy, 'jellyfin');
     expect(route.remotePort, 18096);
-    expect(route.credentialRef, service.network.credentialRef);
+    expect(route.credential, service.network.credential);
     expect(route.outbound.containsKey('uuid'), isFalse);
     expect(
       service
