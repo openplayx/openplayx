@@ -10,7 +10,7 @@
 - 项目名称：`openplayx`。
 - 模板：Flutter 默认应用模板，保留计数器示例及其 Widget 测试。
 - 生成平台：Android、iOS、macOS、Windows、Linux、Web。
-- 当前组织标识：`com.openplayx`；应用标识为 `com.openplayx.openplayx`（组织标识加项目名）。
+- 当前组织标识：`com.openplayx`；应用标识（Android applicationId、iOS/macOS Bundle ID、Linux APPLICATION_ID）为 `com.openplayx.app`；Android namespace 与 Kotlin 包名仍为 `com.openplayx.openplayx`。
 
 本次使用电脑上已安装的 SDK，没有执行 Flutter 升级。初始化前目标目录仅包含已有的 `.git/`，直接在该目录创建工程，没有额外嵌套项目目录。
 
@@ -56,7 +56,7 @@ flutter analyze && flutter test
 
 初始化后根据项目要求，将模板默认组织标识改为 `com.openplayx`，同步修改 Android 的 namespace、applicationId、Kotlin 包声明和源码目录，iOS/macOS 应用与测试的 Bundle ID，Linux APPLICATION_ID，以及 Windows/macOS 的公司和版权信息。
 
-当前应用标识为 `com.openplayx.openplayx`，测试 Bundle ID 为 `com.openplayx.openplayx.RunnerTests`；Android 入口位于 `android/app/src/main/kotlin/com/openplayx/openplayx/MainActivity.kt`。
+当前应用标识为 `com.openplayx.app`，测试 Bundle ID 为 `com.openplayx.app.RunnerTests`；Android namespace 未改，入口仍位于 `android/app/src/main/kotlin/com/openplayx/openplayx/MainActivity.kt`。
 
 随后按要求在当前工程实际执行了重新初始化命令，直接由 Flutter 模板生成该组织标识的配置，保留 `.git/` 和 `docs/`：
 

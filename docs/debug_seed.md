@@ -39,10 +39,10 @@ make seed-check
 
 | 平台 | 位置 |
 |---|---|
-| macOS | `~/Library/Application Support/com.openplayx.openplayx/`（debug 构建未开沙盒） |
-| iOS 模拟器 | `xcrun simctl get_app_container booted com.openplayx.openplayx data` 下的 `Library/Application Support/` |
+| macOS | `~/Library/Application Support/com.openplayx.app/`（debug 构建未开沙盒） |
+| iOS 模拟器 | `xcrun simctl get_app_container booted com.openplayx.app data` 下的 `Library/Application Support/` |
 | Android | 应用的 `files/`，经 `adb push` + `run-as`，需 debuggable 构建；多台设备用 `ANDROID_SERIAL` 选择 |
-| Linux | `$XDG_DATA_HOME`（默认 `~/.local/share`）`/com.openplayx.openplayx/` |
+| Linux | `$XDG_DATA_HOME`（默认 `~/.local/share`）`/com.openplayx.app/` |
 | Windows | `%APPDATA%\com.openplayx\openplayx\` |
 
 iOS 真机没有可写入的位置，用 `make run-seeded`。

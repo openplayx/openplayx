@@ -13,7 +13,7 @@ import 'dart:io';
 
 import 'package:openplayx/app/debug_seed/seed_template.dart';
 
-const bundleId = 'com.openplayx.openplayx';
+const bundleId = 'com.openplayx.app';
 const output = 'build/debug-seed.json';
 
 Future<void> main(List<String> args) async {
