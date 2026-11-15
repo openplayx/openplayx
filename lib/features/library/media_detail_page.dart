@@ -369,9 +369,33 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
 
   List<dynamic> _episodesOf(dynamic season) => [
     ...(season == null
-        ? service.children(_id, limit: 500)
+        ? service.children(_id, limit: 500).where((c) => !_isExtra(c))
         : service.children(season['id'] as String, limit: 500)),
   ]..sort((a, b) => _number(a['episode']).compareTo(_number(b['episode'])));
+
+  /// Bonus clips filed directly under this movie or series: children that
+  /// are neither seasons nor episodes.
+  static bool _isExtra(dynamic child) =>
+      child['kind'] != 'season' && child['kind'] != 'episode';
+
+  List<dynamic> get _extras => [
+    for (final c in service.children(_id, limit: 500))
+      if (_isExtra(c)) c,
+  ];
+
+  /// "Show - S01 Extra - Making Of.mkv" shows as "Making Of".
+  static String _extraTitle(String name) {
+    final stem = name.replaceFirst(
+      RegExp(r'\.[a-z0-9]{2,5}$', caseSensitive: false),
+      '',
+    );
+    final marker = RegExp(
+      r'^.*?\b(?:S|Season\s*)\d{1,2}\s*Extras?\b[\s\d]*[-–:]?\s*',
+      caseSensitive: false,
+    ).firstMatch(stem);
+    final rest = marker == null ? stem : stem.substring(marker.end).trim();
+    return rest.isEmpty ? stem : rest;
+  }
 
   /// The episode the play button starts: one in progress, else the first
   /// unfinished, else the first.
@@ -862,6 +886,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final sections = <Widget>[
       if (_series) ..._episodeSection(),
       if (!_series) ..._collectionSection(),
+      ..._extrasSection(),
       ..._castSection(fields),
       if (!_series) ..._versionSection(),
       ..._genreSection(fields),
@@ -1051,6 +1076,33 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     ];
   }
 
+  List<Widget> _extrasSection() {
+    final extras = _extras;
+    if (extras.isEmpty) return const [];
+    final stillHeight = _M.stillWidth * 9 / 16;
+    return [
+      Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          _header(Text(l.detailExtras)),
+          _shelf(
+            height: stillHeight + 10 + _lines(13.5, 1) + 2,
+            count: extras.length,
+            itemWidth: _M.stillWidth,
+            gap: _M.stillGap,
+            item: (i) => _episodeCard(
+              extras[i],
+              label:
+                  service.metadata.fields(extras[i]['id'] as String)['title']
+                      as String? ??
+                  _extraTitle(extras[i]['title'] as String),
+            ),
+          ),
+        ],
+      ),
+    ];
+  }
+
   void _scrollEpisodes(double offset) {
     if (!_episodeScroll.hasClients) return;
     final position = _episodeScroll.position;
@@ -1061,11 +1113,11 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     );
   }
 
-  Widget _episodeCard(dynamic episode) {
+  Widget _episodeCard(dynamic episode, {String? label}) {
     final id = episode['id'] as String;
     final number = _number(episode['episode']);
     final fields = service.metadata.fields(id);
-    final title = (fields['title'] ?? episode['title']).toString();
+    final title = label ?? (fields['title'] ?? episode['title']).toString();
     final still =
         service.metadata.selectedArtwork(id, type: 'thumbnail') ??
         service.metadata.displayArtwork(id);

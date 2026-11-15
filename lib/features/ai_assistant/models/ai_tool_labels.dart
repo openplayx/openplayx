@@ -43,6 +43,8 @@ abstract final class AiToolLabels {
     'subtitle_task_cancel': '取消字幕任务',
     'subtitle_save': '保存字幕',
     'plugin_status': '查看插件状态',
+    'mcp_tavily_web_search': '联网搜索',
+    'web_fetch': '读取网页',
   };
 
   /// English falls back to a readable form of the tool name.
@@ -82,6 +84,7 @@ abstract final class AiToolLabels {
         (label: zh ? zhLabel : en, value: v);
     return [
       if (a['query'] case final String q) row('关键词', 'Query', '“${cut(q)}”'),
+      if (a['url'] case final String u) row('网址', 'URL', cut(u)),
       if (a['start_ms'] is num || a['end_ms'] is num)
         row(
           '范围',

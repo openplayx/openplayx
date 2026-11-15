@@ -374,6 +374,7 @@
     }
   },
   "detailNoEpisodes": "No episodes yet.",
+  "detailExtras": "Extras",
   "metadata": "Metadata",
   "metadataIdentify": "Identify / rematch",
   "metadataImport": "Import nearby NFO and artwork",

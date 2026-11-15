@@ -64,6 +64,65 @@ void main() {
     expect(parser.parse('Film.1080p.mkv').year, isNull);
     expect(parser.parse('三体 第2季第3集.mkv').episodes, [3]);
   });
+  test('series episodes named in words or only by folder are recognized', () {
+    final spelled = parser.parse(
+      'Desperate Housewives Season 6 Episode 21 - A Little Night Music.avi',
+    );
+    expect(
+      (spelled.title, spelled.season, spelled.kind),
+      ('Desperate Housewives', 6, MediaKind.episode),
+    );
+    expect(spelled.episodes, [21]);
+    // A year in the episode's own title is not the series' year.
+    final modern = parser.parse(
+      'Modern Family S01E22 Airport 2010  (1080p x265 10bit Joy).mkv',
+    );
+    expect((modern.title, modern.year), ('Modern Family', null));
+    final country = parser.parse(
+      'Shameless (US) (2011) - S04E12 - Lazarus (1080p BluRay x265 afm72).mkv',
+    );
+    expect((country.title, country.year), ('Shameless', 2011));
+    const bare = '/tv/The Wire (2002) Season 1-5/Season 3/S03E04.mkv';
+    final wire = parser.parse('S03E04.mkv', path: bare);
+    expect(
+      (wire.title, wire.year, wire.season, wire.extra),
+      ('The Wire', 2002, 3, false),
+    );
+    expect(wire.episodes, [4]);
+  });
+  test('bonus clips are marked and named after their series', () {
+    final named = parser.parse(
+      'Breaking Bad - S01 Extra - Screen Tests.mkv',
+      path: '/movie/Breaking Bad - Complete Season 1,2,3,4,5 + Extras - BluRay 1080p/Extras/Breaking Bad - S01 Extra - Screen Tests.mkv',
+    );
+    expect((named.extra, named.title, named.season), (true, 'Breaking Bad', 1));
+    expect(parser.parse('Show - S05Extra - Table Read.mkv').extra, isTrue);
+    final folder = parser.parse(
+      'Friends of Friends_new.mkv',
+      path: '/movie/Friends (1994) Season 1-10 S01-S10 (1080p BluRay x265)/Featurettes/Season 7/Friends of Friends_new.mkv',
+    );
+    expect(
+      (folder.extra, folder.title, folder.year, folder.season),
+      (true, 'Friends', 1994, 7),
+    );
+    final deleted = parser.parse(
+      'S08E06.mkv',
+      path: '/movie/Shameless (US) (2011) Season 1-11/Featurettes/Season 8/Deleted Scenes/S08E06.mkv',
+    );
+    expect((deleted.extra, deleted.title), (true, 'Shameless'));
+    expect(deleted.episodes, isEmpty);
+    expect(
+      parser.parse('Kung.fu.2004.BluRay.720p.x264.DTS-WiKi.Sample.mkv').extra,
+      isTrue,
+    );
+    expect(parser.parse('Interstellar.2014.2160p.BluRay.mkv').extra, isFalse);
+    expect(
+      MediaNameParser.hostFolder(
+        '/movie/Show (2011)/Featurettes/Season 8/Deleted Scenes/a.mkv',
+      ),
+      '/movie/Show (2011)',
+    );
+  });
   test('resolutions are not years and leading years/tags are not title', () {
     final bond = parser.parse(
       '1997.Tomorrow.Never.Dies.1920x820.BDRip.x264.DTS-HD.MA.mkv',

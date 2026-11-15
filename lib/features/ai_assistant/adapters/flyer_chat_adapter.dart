@@ -1,20 +1,30 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter_chat_core/flutter_chat_core.dart' as flyer;
 
 import '../../../services/conversations/conversation_coordinator.dart';
 import '../models/ai_chat_part.dart';
+import 'stream_text_smoother.dart';
 
 /// A per-view projection. ConversationCoordinator remains the sole authority.
 class FlyerChatAdapter {
-  FlyerChatAdapter(this.coordinator) {
+  FlyerChatAdapter(this.coordinator, {bool smooth = false}) {
+    if (smooth) _smoother = StreamTextSmoother(_sync);
     _sync();
     coordinator.addListener(_schedule);
   }
   final ConversationCoordinator coordinator;
   final chat = flyer.InMemoryChatController();
   final parts = <String, AiChatPart>{};
+
+  /// Bumped after every projection, including per-frame text reveals.
+  final version = ValueNotifier<int>(0);
+  StreamTextSmoother? _smoother;
+  String _text(String id, String text, {required bool live}) =>
+      _smoother?.view(id, text, live: live) ?? text;
+  bool _revealing(String id) => _smoother?.revealing(id) ?? false;
   bool _disposed = false;
   String? _conversation;
   // The coordinator coalesces text deltas at 40ms and flushes terminal events.
@@ -60,7 +70,11 @@ class FlyerChatAdapter {
               id: '${message.id}:reasoning',
               turn: turn,
               kind: AiPartKind.reasoning,
-              text: message.reasoning,
+              text: _text(
+                '${message.id}:reasoning',
+                message.reasoning,
+                live: false,
+              ),
               duration: _thought(
                 '${message.id}:reasoning',
                 live: false,
@@ -70,13 +84,20 @@ class FlyerChatAdapter {
           );
         }
         if (message.text.isNotEmpty) {
+          final user = message.role == 'user';
+          // A finished reply keeps its streaming id, so a reveal still in
+          // progress carries on instead of jumping to the end.
+          final text = user
+              ? message.text
+              : _text(message.id!, message.text, live: false);
           items.add(
             AiChatPart(
               id: message.id!,
               turn: turn,
               kind: AiPartKind.text,
-              text: message.text,
-              isUser: message.role == 'user',
+              text: text,
+              isUser: user,
+              streaming: !user && _revealing(message.id!),
             ),
           );
         }
@@ -141,7 +162,7 @@ class FlyerChatAdapter {
             id: id,
             turn: turn,
             kind: AiPartKind.reasoning,
-            text: turn.reasoning,
+            text: _text(id, turn.reasoning, live: !done),
             streaming: !done,
             duration: _thought(id, live: true, done: done),
           ),
@@ -153,7 +174,7 @@ class FlyerChatAdapter {
             id: turn.streamingMessageId!,
             turn: turn,
             kind: AiPartKind.text,
-            text: turn.streaming,
+            text: _text(turn.streamingMessageId!, turn.streaming, live: true),
             streaming: true,
           ),
         );
@@ -189,6 +210,7 @@ class FlyerChatAdapter {
 
   void _sync() {
     if (_disposed) return;
+    if (_conversation != coordinator.conversationId) _smoother?.reset();
     final projected = project();
     parts
       ..clear()
@@ -205,6 +227,7 @@ class FlyerChatAdapter {
     if (_conversation != coordinator.conversationId) {
       _conversation = coordinator.conversationId;
       unawaited(chat.setMessages(messages, animated: false));
+      version.value++;
       return;
     }
     final target = messages.map((m) => m.id).toSet();
@@ -222,11 +245,14 @@ class FlyerChatAdapter {
         unawaited(chat.updateMessage(old, next));
       }
     }
+    version.value++;
   }
 
   void dispose() {
     _disposed = true;
     coordinator.removeListener(_schedule);
+    _smoother?.dispose();
+    version.dispose();
     chat.dispose();
   }
 }

@@ -39,7 +39,7 @@ AsrTaskContext _ctx([AsrCancelToken? cancel, List<AsrStage>? stages]) =>
     );
 
 void main() {
-  final wav = File('../whisper-package/test/fixtures/en.wav').absolute;
+  final wav = File('../package-whisper/test/fixtures/en.wav').absolute;
   final sha = sha256.convert(wav.readAsBytesSync()).toString();
   final request = TranscriptionRequest(
     audioPath: wav.path,
@@ -224,7 +224,7 @@ void main() {
     }, skip: skip);
 
     test('cancel while running stops the remote job', () async {
-      final long = File('../whisper-package/test/fixtures/long.wav').absolute;
+      final long = File('../package-whisper/test/fixtures/long.wav').absolute;
       final b = HttpAsrBackend(
         config: _config(url!),
         token: () async => token,
@@ -292,7 +292,7 @@ void main() {
           root: Future.value(Directory('${tmp.path}/subtitles')),
         );
         try {
-          final input = File('../whisper-package/test/fixtures/long.wav')
+          final input = File('../package-whisper/test/fixtures/long.wav')
               .absolute
               .path;
           final run = service.start(

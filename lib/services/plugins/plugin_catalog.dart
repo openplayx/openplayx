@@ -123,7 +123,7 @@ class PluginDefinition {
 }
 
 /// Host tools that are never gated by a plugin switch (library, playback,
-/// page context, generic task tools, plugin status).
+/// page context, generic task tools, plugin status, web access).
 const hostToolNames = {
   'context_get',
   'library_query',
@@ -142,6 +142,7 @@ const hostToolNames = {
   'task_cancel',
   'task_retry',
   'plugin_status',
+  'web_fetch',
 };
 
 const _sourceCapabilities = {

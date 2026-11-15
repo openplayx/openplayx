@@ -1,4 +1,4 @@
-.PHONY: help ios-devices ios-build ios-install seed seed-check seed-push run-seeded
+.PHONY: help ios-devices ios-build ios-install ios-install-seeded seed seed-check seed-push run-seeded
 
 # iOS device to install on: UDID or name as shown by `make ios-devices`.
 # Empty picks the only connected iPhone/iPad; with several, set it explicitly:
@@ -18,6 +18,7 @@ help:
 	@echo "make ios-devices                 List connected iOS devices"
 	@echo "make ios-build                   Build a signed release Runner.app"
 	@echo "make ios-install [IOS_DEVICE=…]  Build release and install it on a device"
+	@echo "make ios-install-seeded [IOS_DEVICE=…]  Build profile with the seed and install it"
 	@echo "make seed                        Fill $(SEED) from $(SEED_ENV) into build/debug-seed.json"
 	@echo "make seed-check                  Check every seed item against the real services"
 	@echo "make seed-push PLATFORM=…        Put the seed into the installed debug App (next start)"
@@ -26,13 +27,28 @@ help:
 ios-devices:
 	@xcrun devicectl list devices
 
-# Release (AOT) builds launch from the home screen without `flutter run`
-# attached; debug builds on iOS 14+ only start while the tool is connected.
+# Release and profile (AOT) builds launch from the home screen without
+# `flutter run` attached; debug builds on iOS 14+ only start while the tool is
+# connected. build/ios is removed first: reusing it across build modes leaves
+# Flutter.framework modified after signing, and the device refuses to install.
 ios-build:
+	rm -rf build/ios
 	flutter build ios --release
 
 ios-install: ios-build
-	@device="$(IOS_DEVICE)"; \
+	@$(ios_install_app)
+
+# The seed is compiled in (a device has no writable spot for seed-push), so
+# this is a profile build: release builds ignore the seed. The App carries the
+# seed's credentials; keep it on your own devices.
+ios-install-seeded: seed
+	rm -rf build/ios
+	flutter build ios --profile "$$(dart run tool/debug_seed.dart define)"
+	@$(ios_install_app)
+
+# Installs $(IOS_APP) on $(IOS_DEVICE), or on the only paired iPhone/iPad.
+define ios_install_app
+device="$(IOS_DEVICE)"; \
 	if [ -z "$$device" ]; then \
 	  json=$$(mktemp); \
 	  xcrun devicectl list devices --json-output "$$json" >/dev/null || exit 1; \
@@ -53,6 +69,7 @@ sys.exit(0 if len(d)==1 else len(d) or 99)' "$$json"); status=$$?; \
 	fi; \
 	echo "Installing $(IOS_APP) on $$device"; \
 	xcrun devicectl device install app --device "$$device" "$(IOS_APP)"
+endef
 
 seed:
 	dart run tool/debug_seed.dart build --seed $(SEED) --env $(SEED_ENV)

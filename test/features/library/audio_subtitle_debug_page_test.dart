@@ -41,11 +41,11 @@ void main() {
       .absolute
       .path;
   final whisper = File(
-    '../whisper-package/build/host/libopenplayx_whisper.$ext',
+    '../package-whisper/build/host/libopenplayx_whisper.$ext',
   ).absolute.path;
   final model =
       '${Platform.environment['HOME']}/.cache/openplayx-asr-models/ggml-tiny.bin';
-  final wav = File('../whisper-package/test/fixtures/long.wav').absolute.path;
+  final wav = File('../package-whisper/test/fixtures/long.wav').absolute.path;
   final skip =
       !File(ffmpeg).existsSync() ||
       !File(whisper).existsSync() ||

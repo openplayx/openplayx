@@ -28,12 +28,13 @@ make seed-check
 
 它用 App 自己的代码把 seed 导入一个临时配置库（不碰 App 里的配置），然后逐项真实连接：每个媒体源和文件源都浏览一次目录，外部服务做 MCP 握手并列出工具，TMDB token 和模型 API Key 各发一个免费的只读请求（模型还会确认 `model` 在服务端的模型列表里）。任何一项不可用都会失败并给出原因。需要能访问 seed 里的服务。
 
-把 seed 交给 App，二选一：
+把 seed 交给 App，三选一：
 
 | 方式 | 命令 | 适用 |
 |---|---|---|
 | 启动时带入 | `make run-seeded [DEVICE=<flutter 设备 id>]` | 任何平台、任何设备，经 `flutter run` 启动 |
 | 推进已安装的 App | `make seed-push PLATFORM=macos\|ios-sim\|android\|linux\|windows` | 已装好的 debug 版，下次启动导入 |
+| 编进 iOS 真机安装包 | `make ios-install-seeded [IOS_DEVICE=<UDID>]` | iOS 真机，装好后从桌面直接打开，不用连着 `flutter run` |
 
 `seed-push` 写入的位置（App 支持目录下的 `debug-seed.json`，导入后改名为 `debug-seed.applied.json`）：
 
@@ -45,7 +46,13 @@ make seed-check
 | Linux | `$XDG_DATA_HOME`（默认 `~/.local/share`）`/com.openplayx.app/` |
 | Windows | `%APPDATA%\com.openplayx\openplayx\` |
 
-iOS 真机没有可写入的位置，用 `make run-seeded`。
+iOS 真机没有可写入的位置，用 `make run-seeded` 或 `make ios-install-seeded`。
+
+`ios-install-seeded` 把 seed 经 `--dart-define` 编进一个 profile 构建（release 构建不读 seed），再用 `xcrun devicectl` 安装，配对过的设备在同一局域网内经 Wi-Fi 安装即可，不用插线。设备选择同 `make ios-install`：只有一台配对的 iPhone/iPad 时自动选中，多台时用 `IOS_DEVICE=<UDID>` 指定（`make ios-devices` 列出）。注意：
+
+- 安装包里带着 seed 的全部凭据，只装在自己的设备上，不要分发。
+- 每次构建前会删除 `build/ios`。在 release 和 profile 之间复用它，会让 `Flutter.framework` 在签名后被改动，设备拒绝安装（`integrity could not be verified`）。
+- 导入日志经 `debugPrint` 进系统日志，`devicectl ... --console` 看不到。要确认是否导入，用 `xcrun devicectl device copy from --domain-type appDataContainer --domain-identifier com.openplayx.openplayx --source "Library/Application Support/configuration.sqlite3" ...` 取回配置库，查 `settings` 表里 `debug_seed` / `appliedSha256` 是否等于 `build/debug-seed.json` 的 sha256。
 
 ## 导入规则
 

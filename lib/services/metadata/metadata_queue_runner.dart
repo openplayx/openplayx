@@ -82,7 +82,21 @@ class MetadataQueueRunner {
         tmdbRevision,
       ]);
     }
-    return queue.reconcile(inputs);
+    final added = queue.reconcile(inputs);
+    // A new name rule can match items the previous one could not: give every
+    // automatic miss one more try (user-confirmed matches are untouched).
+    final rule = '${MediaNameEvidence.ruleVersion}/$matchRule';
+    if (library.metadata.setting('nameRule') != rule) {
+      library.db.execute(
+        '''UPDATE metadata_queue SET state='queued',phase=0,attempts=0,next_at=0,error_code=NULL,
+        job_id=NULL,lease_owner=NULL,lease_until=NULL
+        WHERE state IN ('unmatched','awaitingSelection','failed')
+          AND NOT EXISTS (SELECT 1 FROM metadata_state s WHERE s.media_id=metadata_queue.media_id AND s.association IS NOT NULL)''',
+      );
+      library.metadata.setSetting('nameRule', rule);
+      return added + library.db.updatedRows;
+    }
+    return added;
   }
 
   Future<MetadataService> _metadata({required bool allowOnline}) async {
@@ -369,6 +383,11 @@ class MetadataQueueRunner {
       if (_valid(media, owner)) queue.finish(media, owner, 'completed');
       return;
     }
+    final evidence = service.evidence(media);
+    if (selected == null && evidence.extra) {
+      await _extra(media, owner, service, evidence, allowOnline: allowOnline);
+      return;
+    }
     if (!allowOnline) {
       queue.finish(media, owner, 'queued', phase: 1);
       return;
@@ -391,7 +410,6 @@ class MetadataQueueRunner {
       }
       return;
     }
-    final evidence = service.evidence(media);
     final queryKind =
         [MediaKind.episode, MediaKind.season].contains(evidence.kind)
         ? MediaKind.series
@@ -477,6 +495,63 @@ class MetadataQueueRunner {
     if (_valid(media, owner)) {
       queue.finish(media, owner, 'completed', phase: 1, job: job);
     }
+  }
+
+  /// Bonus clips are never matched as titles of their own: they are filed
+  /// under the movie or series in their folder, or under the TMDB series
+  /// their name points to. Until then they stay out of matching.
+  Future<void> _extra(
+    String media,
+    String owner,
+    MetadataService service,
+    MediaNameEvidence evidence, {
+    required bool allowOnline,
+  }) async {
+    final host = service.extraHost(media);
+    if (host != null) {
+      service.attachExtra(media, host);
+      queue.finish(media, owner, 'skipped', phase: 1, error: 'extra');
+      return;
+    }
+    if (allowOnline && _configured) {
+      final job = await service.search(
+        media,
+        query: evidence.title,
+        year: evidence.year,
+        kind: MediaKind.series,
+      );
+      if (!_valid(media, owner)) return;
+      final input = jsonDecode(library.metadata.job(job)['input'] as String);
+      final match = uniqueMatch(
+        evidence,
+        _candidates(job),
+        completePage: input['nextPage'] == null,
+      );
+      if (match != null) {
+        await service.attachExtraToSeries(job, match.ref);
+        if (_valid(media, owner)) {
+          queue.finish(media, owner, 'skipped', phase: 1, error: 'extra');
+        }
+        return;
+      }
+    }
+    if (!allowOnline) {
+      queue.finish(media, owner, 'queued', phase: 1);
+      return;
+    }
+    // The movie or episodes beside it may be identified later.
+    if (service.extraHostPending(media)) {
+      queue.finish(
+        media,
+        owner,
+        'queued',
+        phase: 1,
+        delay: const Duration(minutes: 2),
+        retryable: true,
+      );
+      return;
+    }
+    queue.finish(media, owner, 'unmatched', phase: 1, error: 'extraNoHost');
   }
 
   void stop() {

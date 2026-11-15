@@ -393,12 +393,23 @@ class LibVlcBackend extends PlayerBackend {
   @override
   Future<void> addExternalSubtitle(Uri file) async {
     final before = value.status;
-    await _controller.addSubtitle(file);
-    if (defaultTargetPlatform == TargetPlatform.macOS &&
-        [PlaybackStatus.playing, PlaybackStatus.paused].contains(before)) {
-      _subtitlePlaybackStatus = before;
-      _onValue();
+    // VLCKit (macOS and iOS) reports ESAdded, which vlc_player maps to idle.
+    // Arm the override before the call: the event can arrive before the
+    // method channel reply.
+    final guard =
+        [
+          TargetPlatform.macOS,
+          TargetPlatform.iOS,
+        ].contains(defaultTargetPlatform) &&
+        [PlaybackStatus.playing, PlaybackStatus.paused].contains(before);
+    if (guard) _subtitlePlaybackStatus = before;
+    try {
+      await _controller.addSubtitle(file);
+    } catch (_) {
+      if (guard) _subtitlePlaybackStatus = null;
+      rethrow;
     }
+    if (guard) _onValue();
   }
 
   @override

@@ -1504,6 +1504,12 @@ abstract class AppLocalizations {
   /// **'No episodes yet.'**
   String get detailNoEpisodes;
 
+  /// No description provided for @detailExtras.
+  ///
+  /// In en, this message translates to:
+  /// **'Extras'**
+  String get detailExtras;
+
   /// No description provided for @metadata.
   ///
   /// In en, this message translates to:

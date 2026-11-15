@@ -1,6 +1,6 @@
 // End-to-end: real in-process FFmpeg extraction + real whisper.cpp
 // recognition. Needs ../ffmpeg-package/tool/build_host_lib.sh,
-// ../whisper-package/tool/build_host_lib.sh and a ggml-tiny.bin model in
+// ../package-whisper/tool/build_host_lib.sh and a ggml-tiny.bin model in
 // ~/.cache/openplayx-asr-models (or OPX_WHISPER_TINY_MODEL). Skipped otherwise.
 import 'dart:io';
 import 'dart:typed_data';
@@ -65,7 +65,7 @@ void main() {
       .absolute
       .path;
   final whisper = File(
-    '../whisper-package/build/host/libopenplayx_whisper.$ext',
+    '../package-whisper/build/host/libopenplayx_whisper.$ext',
   ).absolute.path;
   final model =
       Platform.environment['OPX_WHISPER_TINY_MODEL'] ??
@@ -103,7 +103,7 @@ void main() {
     if (skip != null) return;
     tmp = Directory.systemTemp.createTempSync('opx_sub');
     input = stereo32k(
-      File('../whisper-package/test/fixtures/long.wav'),
+      File('../package-whisper/test/fixtures/long.wav'),
       '${tmp.path}/episode.wav',
     ).path;
     library = LibraryService(sqlite3.openInMemory());

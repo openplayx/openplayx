@@ -747,6 +747,9 @@ class AppLocalizationsZh extends AppLocalizations {
   String get detailNoEpisodes => '还没有可播放的剧集。';
 
   @override
+  String get detailExtras => '花絮';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -2864,6 +2867,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get detailNoEpisodes => '还没有可播放的剧集。';
 
   @override
+  String get detailExtras => '花絮';
+
+  @override
   String get metadata => '影视信息';
 
   @override
@@ -4979,6 +4985,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get detailNoEpisodes => '還沒有可播放的劇集。';
+
+  @override
+  String get detailExtras => '花絮';
 
   @override
   String get metadata => '影視資訊';

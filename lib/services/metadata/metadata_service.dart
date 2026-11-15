@@ -87,7 +87,116 @@ class MetadataService {
     final known = MediaKind.values
         .where((k) => k.name == fields['kind'])
         .firstOrNull;
-    return const MediaNameParser().parse(name, kind: known);
+    return const MediaNameParser().parse(
+      name,
+      kind: known,
+      path: files.firstOrNull?['item'] as String?,
+    );
+  }
+
+  /// The identified movie or series that a bonus clip belongs to: the single
+  /// top-level title of the other (non-bonus) files in its owning folder.
+  /// Null when that folder holds none, several, or nothing identified yet.
+  String? extraHost(String media) {
+    final file = library.resources(media).firstOrNull;
+    if (file == null) return null;
+    final item = file['item'] as String;
+    final folder = MediaNameParser.hostFolder(item);
+    if (folder == null) return null;
+    final rows = library.db.select(
+      '''SELECT r.media_id,r.item,r.name FROM resources r JOIN memberships m ON m.media_id=r.media_id
+      WHERE r.source=? AND substr(r.item,1,?)=? AND r.media_id<>? LIMIT 3001''',
+      [file['source'], folder.length + 1, '$folder/', media],
+    );
+    if (rows.isEmpty || rows.length > 3000) return null;
+    const parser = MediaNameParser();
+    String top(String id) {
+      final seen = {id};
+      while (true) {
+        final parent =
+            library.db.select(
+                  'SELECT parent_id FROM metadata_relations WHERE child_id=?',
+                  [id],
+                ).firstOrNull?['parent_id']
+                as String?;
+        if (parent == null || !seen.add(parent)) return id;
+        id = parent;
+      }
+    }
+
+    final hosts = <String>{};
+    for (final r in rows) {
+      final name = r['name'] as String;
+      if (name.startsWith('.') ||
+          parser.parse(name, path: r['item'] as String).extra) {
+        continue;
+      }
+      hosts.add(top(r['media_id'] as String));
+    }
+    final identified = hosts
+        .where(
+          (h) =>
+              const ['movie', 'series'].contains(repository.fields(h)['kind']),
+        )
+        .toSet();
+    // Unidentified episodes leave their own rows among the hosts; the series
+    // they were grouped under is still the single identified one.
+    return identified.length == 1 ? identified.single : null;
+  }
+
+  /// Whether other files beside a bonus clip are still waiting for metadata,
+  /// so its owning title may become identifiable later.
+  bool extraHostPending(String media) {
+    final file = library.resources(media).firstOrNull;
+    final folder = file == null
+        ? null
+        : MediaNameParser.hostFolder(file['item'] as String);
+    if (folder == null) return false;
+    return library.db
+        .select(
+          '''SELECT 1 FROM resources r JOIN metadata_queue q ON q.media_id=r.media_id
+      WHERE r.source=? AND substr(r.item,1,?)=? AND r.media_id<>?
+        AND q.state IN ('queued','running') LIMIT 1''',
+          [file!['source'], folder.length + 1, '$folder/', media],
+        )
+        .isNotEmpty;
+  }
+
+  /// Files a bonus clip under [host] so it leaves the top-level library and
+  /// shows in the host's extras instead.
+  void attachExtra(String media, String host) => library.db.execute(
+    'INSERT INTO metadata_relations VALUES (?,?) ON CONFLICT(child_id) DO UPDATE SET parent_id=excluded.parent_id',
+    [host, media],
+  );
+
+  /// Files a bonus clip under a TMDB series found by search job [id]; the
+  /// series row is the same one its episodes are grouped under.
+  Future<void> attachExtraToSeries(String id, MetadataRef series) async {
+    final job = repository.job(id);
+    final media = job['media_id'] as String;
+    await _run(id, () async {
+      repository.stage(id, 'fetching');
+      final show = (await registry.lookup(
+        'tmdb',
+        MetadataRequest(
+          action: MetadataAction.details,
+          kind: MediaKind.series,
+          ref: series,
+          language: language,
+        ),
+      )).records.single;
+      await _validate(id);
+      final source =
+          library.resources(media).firstOrNull?['source'] as String? ?? 'local';
+      library.transaction(() {
+        _check(id);
+        repository.stage(id, 'applying');
+        repository.attachHierarchy(media, [
+          (scope: 'tmdb:$source:${show.ref.key}', record: show),
+        ], operationId: id);
+        repository.stage(id, 'completed');
+      });
+    });
   }
 
   bool _current(String id) =>

@@ -346,6 +346,7 @@
   "seasonLabel": "第 {n} 季",
   "episodeLabel": "第 {n} 集",
   "detailNoEpisodes": "还没有可播放的剧集。",
+  "detailExtras": "花絮",
   "metadata": "影视信息",
   "metadataIdentify": "识别 / 重新匹配",
   "metadataImport": "导入邻近 NFO 和图片",

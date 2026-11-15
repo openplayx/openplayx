@@ -254,12 +254,22 @@ class _SourcePageState extends State<SourcePage> {
     if (mounted) await _load();
   }
 
-  Widget _addSourceButton() => ShadButton(
-    key: const ValueKey('add-source'),
-    leading: const Icon(AppIcons.add, size: 18),
-    onPressed: _busy ? null : _openAddSource,
-    enabled: !_busy,
-    child: Text(l.addSourceConnection),
+  /// Plain ghost icon, same look as the assistant button beside it.
+  Widget _addSourceButton() => Tooltip(
+    message: l.addSourceConnection,
+    child: Semantics(
+      label: l.addSourceConnection,
+      button: true,
+      excludeSemantics: true,
+      child: ShadIconButton.ghost(
+        key: const ValueKey('add-source'),
+        width: 40,
+        height: 40,
+        icon: const Icon(AppIcons.add),
+        onPressed: _busy ? null : _openAddSource,
+        enabled: !_busy,
+      ),
+    ),
   );
 
   /// Shown in the middle of the page while no source exists.

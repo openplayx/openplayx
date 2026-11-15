@@ -10,7 +10,6 @@ import '../../services/conversations/conversation_coordinator.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/feedback/app_feedback.dart';
 import '../../ui/icons/app_icons.dart';
-import '../../ui/tokens/app_motion.dart';
 import 'adapters/flyer_chat_adapter.dart';
 import 'adapters/flyer_chat_theme.dart';
 import 'ai_chat_controller.dart';
@@ -51,7 +50,7 @@ class AiChatView extends StatefulWidget {
 class _AiChatViewState extends State<AiChatView> {
   late final _controller =
       widget.controller ?? AiChatController(widget.coordinator);
-  late final _adapter = FlyerChatAdapter(widget.coordinator);
+  late final _adapter = FlyerChatAdapter(widget.coordinator, smooth: true);
   final _scroll = ScrollController();
   bool _atBottom = true;
   final _viewportKey = GlobalKey();
@@ -98,11 +97,10 @@ class _AiChatViewState extends State<AiChatView> {
     });
   }
 
-  String? _lastRevision;
   @override
   void initState() {
     super.initState();
-    widget.coordinator.addListener(_onUpdate);
+    _adapter.version.addListener(_onUpdate);
     _scroll.addListener(_scrolled);
   }
 
@@ -119,31 +117,28 @@ class _AiChatViewState extends State<AiChatView> {
     }
   }
 
+  // Text is revealed a little every frame, so following it with a fresh
+  // eased animation per update would keep restarting and stutter. Pin to the
+  // end once the frame has laid out instead; leave the user's own drags and
+  // flings alone.
+  bool _followScheduled = false;
   void _onUpdate() {
-    final turn = widget.coordinator.currentTurn;
-    final revision =
-        '${turn?.id}:${turn?.streaming.length}:${turn?.reasoning.length}:'
-        '${turn?.executingCallId}:${turn?.activity}:${turn?.preparingTool}:'
-        '${turn?.toolProgress}';
-    if (_atBottom && _lastRevision != revision) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && _atBottom && _scroll.hasClients) {
-          unawaited(
-            _scroll.animateTo(
-              _scroll.position.maxScrollExtent,
-              duration: AppMotion.duration(context, AppMotion.feedback),
-              curve: Curves.easeOut,
-            ),
-          );
-        }
-      });
-    }
-    _lastRevision = revision;
+    if (!_atBottom || _followScheduled) return;
+    _followScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _followScheduled = false;
+      if (!mounted || !_atBottom || _restoring || !_scroll.hasClients) return;
+      final position = _scroll.position;
+      if (position.isScrollingNotifier.value) return;
+      if (position.maxScrollExtent - position.pixels > 0.5) {
+        position.jumpTo(position.maxScrollExtent);
+      }
+    });
   }
 
   @override
   void dispose() {
-    widget.coordinator.removeListener(_onUpdate);
+    _adapter.version.removeListener(_onUpdate);
     _adapter.dispose();
     _scroll.dispose();
     if (widget.controller == null) _controller.dispose();

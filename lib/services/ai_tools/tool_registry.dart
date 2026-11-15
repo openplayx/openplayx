@@ -176,7 +176,7 @@ class ToolRegistry {
   /// Upper bound of tools offered to a model in one request. Registration
   /// fails beyond it, so no tool is ever silently truncated away.
   /// Built-in: media 18 (incl. set subtitle) + processing 10 (incl. save to
-  /// source) + subtitles 6 + plugin status 1 = 35; the rest is room for
+  /// source) + subtitles 6 + plugin status 1 + web fetch 1 = 36; the rest is room for
   /// external (MCP) tools. Mainstream model APIs accept over a hundred.
   static const maxTools = 96;
   final _tools = <String, RegisteredTool>{};

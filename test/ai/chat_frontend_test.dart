@@ -145,9 +145,10 @@ void main() {
       await tester.pump(const Duration(milliseconds: 120));
       events.add(const ModelTextDelta('Hello'));
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump(const Duration(milliseconds: 50));
-      await tester.pump();
+      // Text is revealed over a few frames rather than in one jump.
+      for (var i = 0; i < 40; i++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
       final id = find
           .byType(AiTextMessage)
           .evaluate()

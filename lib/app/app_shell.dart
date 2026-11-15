@@ -40,9 +40,11 @@ import '../services/subtitles/asr_model_store.dart';
 import '../services/subtitles/subtitle_generation_service.dart';
 import '../services/media_processing/media_processing_service.dart';
 import '../services/ai_tools/tool_registry.dart';
+import '../services/ai_tools/web_tools.dart';
 import '../services/ai_tools/plugin_tools.dart';
 import '../services/ai_tools/external_tools.dart';
 import '../services/external/external_service_registry.dart';
+import '../services/external/external_presets.dart';
 import '../services/external/external_service_setup.dart';
 import '../services/metadata/tmdb_credentials.dart';
 import '../services/plugins/plugin_manager.dart';
@@ -353,16 +355,28 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         );
       }
     }
-    // External capabilities (AI → 外部能力): tools of user-configured MCP
-    // services.
-    final external = _externalTools = ExternalTools(
+    // Built-in reading of public web pages (private and local addresses are
+    // refused). Web search is the preset 联网搜索 service below.
+    WebTools(
       registry: tools.registry,
-      setup: ExternalServiceSetup(
-        registry: ExternalServiceRegistry.forDb(library.configuration),
-      ),
       canExecute: () => _assistant?.acceptingActions ?? false,
     );
-    unawaited(external.start().catchError((_) {}));
+    // External capabilities (AI → 外部能力): tools of MCP services, the
+    // user's and the App's presets (联网搜索 / mcp-tavily).
+    final externalRegistry = ExternalServiceRegistry.forDb(
+      library.configuration,
+    );
+    final external = _externalTools = ExternalTools(
+      registry: tools.registry,
+      setup: ExternalServiceSetup(registry: externalRegistry),
+      canExecute: () => _assistant?.acceptingActions ?? false,
+    );
+    unawaited(
+      ExternalPresets.ensure(externalRegistry, InstallId(library.configuration))
+          .then((_) {}, onError: (_) {})
+          .then((_) => external.start())
+          .catchError((_) {}),
+    );
     final plugins = _plugins;
     if (plugins != null) {
       // One tool catalog; the plugin policy narrows it per request and the

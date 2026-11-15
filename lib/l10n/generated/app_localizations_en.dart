@@ -770,6 +770,9 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailNoEpisodes => 'No episodes yet.';
 
   @override
+  String get detailExtras => 'Extras';
+
+  @override
   String get metadata => 'Metadata';
 
   @override
