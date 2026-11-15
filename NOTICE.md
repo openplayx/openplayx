@@ -2,11 +2,10 @@
 
 Copyright (C) 2026 OpenPlayX contributors.
 
-SPDX-License-Identifier: GPL-3.0-or-later
+SPDX-License-Identifier: MIT
 
 OpenPlayX's original application code and documentation are licensed under
-the GNU General Public License, version 3 or (at your option) any later
-version. See [LICENSE](LICENSE) for the full terms. The software is provided
+the MIT License. See [LICENSE](LICENSE) for the full terms. The software is provided
 without warranty, as described there.
 
 Third-party code, libraries, data and assets retain their own copyrights and

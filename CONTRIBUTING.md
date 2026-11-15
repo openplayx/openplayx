@@ -29,7 +29,7 @@ material or tokens. Use synthetic fixtures and fake services for routine tests.
 Live-service tests must remain explicitly enabled.
 
 Unless explicitly agreed otherwise, contributions of original application
-code and documentation are provided under GPL-3.0-or-later, the project
+code and documentation are provided under MIT, the project
 license in [LICENSE](LICENSE). Only submit work you have the right to license.
 Preserve upstream notices and update [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
 when dependencies change.

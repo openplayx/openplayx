@@ -23,7 +23,7 @@ sdk = Path(unquote(flutter_uri.path)).parent.parent
 for package in sorted(packages, key=lambda p: p["name"]):
     name = package["name"]
     if name in {"openplayx", "openplayx_playback"}:
-        continue  # Application-owned code uses the root GPL grant.
+        continue  # Application-owned code uses the root MIT grant.
     uri = urlparse(urljoin(config.as_uri(), package["rootUri"]))
     if uri.scheme != "file":
         raise SystemExit(f"Unsupported package URI for {name}")

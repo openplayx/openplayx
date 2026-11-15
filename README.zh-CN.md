@@ -2,7 +2,7 @@
 
 [English](README.md) | 简体中文
 
-[![License: GPL v3+](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
 基于 Flutter 与 libVLC 的媒体播放器，支持本地文件、网络存储和媒体服务器，提供本机媒体库及可选 AI 助手。
 
@@ -85,6 +85,6 @@ flutter test
 
 ## 许可证与致谢
 
-OpenPlayX 原创应用代码与文档采用 **GPL-3.0-or-later**，完整条款及版权见 [LICENSE](LICENSE) 和 [NOTICE.md](NOTICE.md)。应用链接 sing-box，并保留其 GPL 与命名声明。第三方代码仍适用各自条款，许可清单及二进制发布所需源码材料见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。私有构建依赖仍需单独授权访问，主项目许可不会使这些仓库自动公开。
+OpenPlayX 原创应用代码与文档采用 **MIT**，完整条款及版权见 [LICENSE](LICENSE) 和 [NOTICE.md](NOTICE.md)。应用链接 sing-box，并保留其 GPL 与命名声明；原创代码的 MIT 授权不替代组合构建适用的 GPL 条款。第三方代码仍适用各自条款，许可清单及二进制发布所需源码材料见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。私有构建依赖仍需单独授权访问，主项目许可不会使这些仓库自动公开。
 
 感谢 Flutter、VideoLAN/libVLC、vlc_player、shadcn_ui、Lucide、whisper.cpp、FFmpeg 等项目。依赖仍适用各自的许可和分发义务，见对应包及 [`native/remote_access/LICENSE`](native/remote_access/LICENSE)。

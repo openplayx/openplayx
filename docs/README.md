@@ -49,5 +49,5 @@ copy their credentials or internal operational details.
 
 ## Licensing
 
-[GPL-3.0-or-later](../LICENSE), [project notice](../NOTICE.md) and
+[MIT](../LICENSE), [project notice](../NOTICE.md) and
 [third-party notices / release source requirements](../THIRD_PARTY_NOTICES.md).

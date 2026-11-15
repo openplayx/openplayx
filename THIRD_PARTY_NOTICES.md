@@ -2,14 +2,15 @@
 
 This source-level inventory identifies major components of OpenPlayX. It is
 not a complete bill of materials for every platform binary. Dependencies
-retain their original notices, even when combined with this GPL application.
+retain their original notices. Original OpenPlayX application code and
+documentation use MIT; that grant does not relicense third-party components.
 
 | Component | Source / version authority | License and notices |
 |---|---|---|
 | Flutter / Dart | Flutter SDK used for the build | BSD-style SDK notices; Dart package snapshot below |
 | vlc_player | `packages/playback/pubspec.yaml` and `pubspec.lock` | MIT; original copyright retained in the Dart package snapshot |
 | libVLC / VLCKit / MobileVLCKit | Apple Pod locks currently pin VLCKit 3.7.3 | Upstream LGPL terms and bundled component notices; [VideoLAN licensing](https://www.videolan.org/legal.html) and the actual SDK's COPYING/acknowledgements govern; [macOS snapshot](LICENSES/MACOS_PODS.txt), [iOS snapshot](LICENSES/IOS_PODS.txt) |
-| sing-box | `native/remote_access/go.mod`, v1.12.12 | GPL-3.0-or-later with upstream naming/association restriction; [preserved notice](LICENSES/sing-box.txt), [upstream](https://github.com/SagerNet/sing-box/tree/v1.12.12) |
+| sing-box | `native/remote_access/go.mod`, v1.12.12 | GPL-3.0-or-later with upstream naming/association restriction; [preserved notice](LICENSES/sing-box.txt), [GPL text](LICENSES/GPL-3.0.txt), [upstream](https://github.com/SagerNet/sing-box/tree/v1.12.12) |
 | FFmpeg | Companion build pins 7.1.1 | LGPL-2.1-or-later for the configured LGPL-only build; [license](LICENSES/LGPL-2.1.txt), [source](https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz), [legal notes](https://ffmpeg.org/legal.html) |
 | whisper.cpp / ggml | package-whisper build pins whisper.cpp 1.9.5 | [Preserved MIT notice](LICENSES/whisper.cpp.txt); model weights have separate terms |
 | package-whisper | Companion checkout used for the build | MIT; original wrapper notice in Dart package snapshot |
@@ -39,6 +40,12 @@ claim that every listed package ships in an installer. Review missing entries
 and native dependencies separately. Keep copied texts verbatim.
 
 ## Binary releases
+
+The original application code uses MIT. Builds that link sing-box still
+need to comply with its GPL-3.0-or-later terms, including the applicable
+terms for the combined work. The root MIT license is not a claim that such
+binaries are distributable under MIT alone. Upstream GPL text and notices
+are retained in `LICENSES/` and `native/remote_access/LICENSE`.
 
 For each actual release, retain the exact source revisions, dependency locks,
 patches, build scripts and native build configuration. Provide corresponding
