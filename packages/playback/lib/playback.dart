@@ -54,6 +54,57 @@ class PlayerSnapshot {
   final double? readSpeedMBps;
 }
 
+/// One elementary stream of the current media, as far as VLC could discover.
+@immutable
+class PlayerTrackInfo {
+  const PlayerTrackInfo({
+    required this.type,
+    this.codec,
+    this.language,
+    this.bitrate,
+    this.width,
+    this.height,
+    this.channels,
+    this.sampleRate,
+  });
+
+  /// `video`, `audio`, `subtitle` or `unknown`.
+  final String type;
+  final String? codec, language;
+  final int? bitrate, width, height, channels, sampleRate;
+}
+
+@immutable
+class PlayerMediaInfo {
+  const PlayerMediaInfo({this.title, this.tracks = const []});
+  final String? title;
+  final List<PlayerTrackInfo> tracks;
+}
+
+/// Decoder and input counters of the current media. Bitrates are kbit/s.
+@immutable
+class PlayerStats {
+  const PlayerStats({
+    this.inputKbps = 0,
+    this.demuxKbps = 0,
+    this.readBytes = 0,
+    this.decodedVideo = 0,
+    this.decodedAudio = 0,
+    this.displayedPictures = 0,
+    this.lostPictures = 0,
+    this.playedAudioBuffers = 0,
+    this.lostAudioBuffers = 0,
+  });
+  final double inputKbps, demuxKbps;
+  final int readBytes,
+      decodedVideo,
+      decodedAudio,
+      displayedPictures,
+      lostPictures,
+      playedAudioBuffers,
+      lostAudioBuffers;
+}
+
 /// Application-facing contract; native VLC types stay inside this package.
 abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   PlayerBackend() : super(const PlayerSnapshot());
@@ -79,6 +130,26 @@ abstract class PlayerBackend extends ValueNotifier<PlayerSnapshot> {
   /// media and selects it. It then also appears in [getSubtitleTracks].
   Future<void> addExternalSubtitle(Uri file) =>
       Future.error(UnsupportedError('external subtitles'));
+
+  /// Whether audio/subtitle delays, snapshots and media details work.
+  bool get supportsDelays => false;
+  bool get supportsSnapshot => false;
+  bool get supportsMediaInfo => false;
+
+  /// Positive values play the audio (or show subtitles) later.
+  Future<void> setAudioDelay(Duration delay) =>
+      Future.error(UnsupportedError('audio delay'));
+  Future<void> setSubtitleDelay(Duration delay) =>
+      Future.error(UnsupportedError('subtitle delay'));
+
+  /// PNG bytes of the current video frame.
+  Future<Uint8List> takeSnapshot() =>
+      Future.error(UnsupportedError('snapshot'));
+  Future<PlayerMediaInfo> getMediaInfo() =>
+      Future.error(UnsupportedError('media info'));
+
+  /// Null while no statistics are available for the current media.
+  Future<PlayerStats?> getStats() => Future.error(UnsupportedError('stats'));
   Widget buildVideo();
 }
 
@@ -99,6 +170,11 @@ class LibVlcBackend extends PlayerBackend {
   bool _disposed = false;
   bool _hasStarted = false;
   bool _ended = false;
+
+  /// Last explicit playing/paused state. VLCKit reports buffering during
+  /// seeks; a seek while paused must stay paused, or the UI would show
+  /// "playing" and keep sending pause.
+  PlaybackStatus _lastActive = PlaybackStatus.playing;
   PlaybackStatus? _subtitlePlaybackStatus;
   Uri? _source;
   late final Timer _statsTimer;
@@ -161,7 +237,12 @@ class LibVlcBackend extends PlayerBackend {
 
   void _onValue() {
     final native = _controller.value;
-    if (native.state == VlcPlaybackState.playing) _hasStarted = true;
+    if (native.state == VlcPlaybackState.playing) {
+      _hasStarted = true;
+      _lastActive = PlaybackStatus.playing;
+    } else if (native.state == VlcPlaybackState.paused) {
+      _lastActive = PlaybackStatus.paused;
+    }
     if (native.state == VlcPlaybackState.ended) _ended = true;
     if (_subtitlePlaybackStatus != null) {
       if (native.state == VlcPlaybackState.playing) {
@@ -199,7 +280,7 @@ class LibVlcBackend extends PlayerBackend {
         // VLCKit may keep reporting buffering while time and video advance.
         // Buffering belongs to an active session and must not disable pause.
         VlcPlaybackState.buffering =>
-          _hasStarted ? PlaybackStatus.playing : PlaybackStatus.opening,
+          _hasStarted ? _lastActive : PlaybackStatus.opening,
         VlcPlaybackState.playing => PlaybackStatus.playing,
         VlcPlaybackState.paused => PlaybackStatus.paused,
         VlcPlaybackState.ended => PlaybackStatus.ended,
@@ -223,6 +304,7 @@ class LibVlcBackend extends PlayerBackend {
     _readSpeedMBps = null;
     _hasStarted = false;
     _ended = false;
+    _lastActive = PlaybackStatus.playing;
     _subtitlePlaybackStatus = null;
     _source = uri;
     return _controller.setMedia(
@@ -317,6 +399,77 @@ class LibVlcBackend extends PlayerBackend {
       _subtitlePlaybackStatus = before;
       _onValue();
     }
+  }
+
+  @override
+  bool get supportsDelays => true;
+  @override
+  bool get supportsSnapshot => true;
+  @override
+  bool get supportsMediaInfo => true;
+  @override
+  Future<void> setAudioDelay(Duration delay) =>
+      _controller.setAudioDelay(delay);
+  @override
+  Future<void> setSubtitleDelay(Duration delay) =>
+      _controller.setSubtitleDelay(delay);
+  @override
+  Future<Uint8List> takeSnapshot() {
+    // VLCKit raises an Objective-C exception (and the app aborts) when no
+    // video output exists, e.g. after the end of the media.
+    if (!_controller.isAttached ||
+        value.videoSize == null ||
+        ![
+          PlaybackStatus.playing,
+          PlaybackStatus.paused,
+        ].contains(value.status)) {
+      return Future.error(StateError('No video frame to snapshot'));
+    }
+    return _controller.takeSnapshot();
+  }
+
+  @override
+  Future<PlayerMediaInfo> getMediaInfo() async {
+    final info = await _controller.getMediaInfo();
+    return PlayerMediaInfo(
+      title: info.title,
+      tracks: [
+        for (final track in [
+          ...info.videoTracks,
+          ...info.audioTracks,
+          ...info.subtitleTracks,
+        ])
+          PlayerTrackInfo(
+            type: track.type,
+            codec: track.codec,
+            language: track.language,
+            bitrate: track.bitrate,
+            width: track.width,
+            height: track.height,
+            channels: track.channels,
+            sampleRate: track.sampleRate,
+          ),
+      ],
+    );
+  }
+
+  @override
+  Future<PlayerStats?> getStats() async {
+    final stats = await _controller.getMediaStats();
+    if (!stats.isAvailable) return null;
+    // libVLC reports bitrates in bytes per microsecond × 1000 (as VLC's own
+    // statistics panel does): × 8000 gives kbit/s.
+    return PlayerStats(
+      inputKbps: stats.inputBitrate * 8000,
+      demuxKbps: stats.demuxBitrate * 8000,
+      readBytes: stats.readBytes,
+      decodedVideo: stats.decodedVideo,
+      decodedAudio: stats.decodedAudio,
+      displayedPictures: stats.displayedPictures,
+      lostPictures: stats.lostPictures,
+      playedAudioBuffers: stats.playedAudioBuffers,
+      lostAudioBuffers: stats.lostAudioBuffers,
+    );
   }
 
   @override

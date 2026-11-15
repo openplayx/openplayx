@@ -1885,4 +1885,326 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get rescanFileSource => 'Rescan';
+
+  @override
+  String plAbASet(String time) {
+    return 'A set at $time';
+  }
+
+  @override
+  String get plAbClear => 'Clear A-B loop';
+
+  @override
+  String get plAbCleared => 'A-B loop cleared';
+
+  @override
+  String get plAbLoop => 'A-B loop';
+
+  @override
+  String plAbLooping(String a, String b) {
+    return 'Looping $a – $b';
+  }
+
+  @override
+  String get plAbSetA => 'Set point A';
+
+  @override
+  String get plAbSetB => 'Set point B';
+
+  @override
+  String get plAddBookmark => 'Add bookmark';
+
+  @override
+  String get plAdvancedTools => 'Advanced tools row';
+
+  @override
+  String get plAspectDefault => 'Default';
+
+  @override
+  String get plAspectRatio => 'Aspect ratio';
+
+  @override
+  String get plAudioDelay => 'Audio delay';
+
+  @override
+  String plBookmarkAdded(String time) {
+    return 'Bookmark at $time';
+  }
+
+  @override
+  String get plBookmarks => 'Bookmarks';
+
+  @override
+  String plBoosting(String speed) {
+    return '$speed fast forward · release to restore';
+  }
+
+  @override
+  String get plDelayHint =>
+      'Positive values play audio or show subtitles later.';
+
+  @override
+  String get plDeleteBookmark => 'Delete bookmark';
+
+  @override
+  String get plExitFullscreen => 'Exit full screen';
+
+  @override
+  String get plFaster => 'Faster';
+
+  @override
+  String get plFitBest => 'Best fit';
+
+  @override
+  String get plFitFill => 'Fill';
+
+  @override
+  String get plFitMode => 'Picture size';
+
+  @override
+  String get plFitOriginal => 'Original size';
+
+  @override
+  String get plFullscreen => 'Full screen';
+
+  @override
+  String get plGo => 'Go';
+
+  @override
+  String get plInfo => 'Info';
+
+  @override
+  String get plInfoDuration => 'Duration';
+
+  @override
+  String get plInfoResolution => 'Resolution';
+
+  @override
+  String get plInfoTitle => 'Title';
+
+  @override
+  String get plJumpBackMedium => 'Back 1 minute';
+
+  @override
+  String get plJumpExtraShort => 'Jump 3 seconds';
+
+  @override
+  String get plJumpForwardMedium => 'Forward 1 minute';
+
+  @override
+  String get plJumpLong => 'Jump 5 minutes';
+
+  @override
+  String plJumpSeconds(String seconds) {
+    return '$seconds s';
+  }
+
+  @override
+  String get plJumpToTime => 'Jump to time';
+
+  @override
+  String get plJumpToTimeInvalid => 'Enter a time such as 1:23:45 or 12:30.';
+
+  @override
+  String get plLoadSubtitle => 'Load subtitle file…';
+
+  @override
+  String get plLockShort => 'Lock';
+
+  @override
+  String get plMediaInfo => 'Media info';
+
+  @override
+  String get plMenuAudio => 'Audio';
+
+  @override
+  String get plMenuPlayback => 'Playback';
+
+  @override
+  String get plMenuSubtitle => 'Subtitles';
+
+  @override
+  String get plMenuVideo => 'Video';
+
+  @override
+  String get plMenuView => 'View';
+
+  @override
+  String get plMute => 'Mute';
+
+  @override
+  String get plMuted => 'Muted';
+
+  @override
+  String get plNextAudioTrack => 'Next audio track';
+
+  @override
+  String get plNextSubtitle => 'Next subtitle';
+
+  @override
+  String get plNoBookmarks => 'No bookmarks yet';
+
+  @override
+  String get plNormalSpeed => 'Normal speed';
+
+  @override
+  String get plOrientationShort => 'Rotate';
+
+  @override
+  String get plPicture => 'Picture';
+
+  @override
+  String get plPictureAndSound => 'Picture & sound';
+
+  @override
+  String plQuickBookmarkSet(String slot) {
+    return 'Quick bookmark $slot set';
+  }
+
+  @override
+  String get plRepeatMode => 'Repeat';
+
+  @override
+  String get plRepeatOff => 'No repeat';
+
+  @override
+  String get plRepeatOne => 'Repeat this item';
+
+  @override
+  String get plReset => 'Reset';
+
+  @override
+  String get plSettingsAndEffects => 'Settings & effects';
+
+  @override
+  String get plShortcuts => 'Keyboard shortcuts';
+
+  @override
+  String get plShowPosition => 'Show position';
+
+  @override
+  String get plSleepEndOfItem => 'End of item';
+
+  @override
+  String get plSleepFinished => 'Sleep timer paused playback';
+
+  @override
+  String plSleepMinutes(int minutes) {
+    return '$minutes minutes';
+  }
+
+  @override
+  String get plSleepOff => 'Off';
+
+  @override
+  String get plSleepShort => 'Sleep';
+
+  @override
+  String get plSleepTimer => 'Sleep timer';
+
+  @override
+  String get plSlideToUnlock => 'Slide right to unlock';
+
+  @override
+  String get plSlower => 'Slower';
+
+  @override
+  String get plSnapshot => 'Snapshot';
+
+  @override
+  String get plSnapshotFailed => 'Could not save the snapshot';
+
+  @override
+  String plSnapshotSaved(String path) {
+    return 'Snapshot saved: $path';
+  }
+
+  @override
+  String get plSpeedShort => 'Speed';
+
+  @override
+  String get plStatistics => 'Statistics';
+
+  @override
+  String get plStatsAudio => 'Audio played / lost';
+
+  @override
+  String get plStatsDemux => 'Demux bitrate';
+
+  @override
+  String get plStatsFrames => 'Frames shown / lost';
+
+  @override
+  String get plStatsInput => 'Input bitrate';
+
+  @override
+  String get plStatsOverlay => 'Statistics overlay';
+
+  @override
+  String get plStatsRead => 'Read speed';
+
+  @override
+  String get plStop => 'Stop';
+
+  @override
+  String get plSubtitleDelay => 'Subtitle delay';
+
+  @override
+  String get plSync => 'Sync';
+
+  @override
+  String get plTimeTooltip =>
+      'Click: total/remaining · Double-click: jump to time';
+
+  @override
+  String get plToggleControls => 'Show/hide controls';
+
+  @override
+  String get plToggleSubtitles => 'Subtitles on/off';
+
+  @override
+  String get plTrackAudio => 'Audio';
+
+  @override
+  String get plTracks => 'Audio & subtitles';
+
+  @override
+  String get plTracksShort => 'Tracks';
+
+  @override
+  String get plTrackSubtitle => 'Subtitle';
+
+  @override
+  String get plTrackVideo => 'Video';
+
+  @override
+  String get plUnsupported => 'Not available for this player';
+
+  @override
+  String get plZoom => 'Zoom';
+
+  @override
+  String get plZoomOriginal => 'Original';
+
+  @override
+  String get plMenuPlaybackControl => 'Playback controls';
+
+  @override
+  String plBoostingShort(String speed) {
+    return '$speed fast forward';
+  }
+
+  @override
+  String get plSwipeUpToLock => 'Swipe up to lock';
+
+  @override
+  String plSpeedLocked(String speed) {
+    return 'Speed locked at $speed';
+  }
+
+  @override
+  String get plExternalSubtitleShort => '+ External';
+
+  @override
+  String get plBookmarksShort => 'Bookmarks';
 }

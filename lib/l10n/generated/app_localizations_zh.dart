@@ -1800,6 +1800,326 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get rescanFileSource => '重新扫描';
+
+  @override
+  String plAbASet(String time) {
+    return '已设置 A 点 $time';
+  }
+
+  @override
+  String get plAbClear => '清除 A-B 循环';
+
+  @override
+  String get plAbCleared => '已清除 A-B 循环';
+
+  @override
+  String get plAbLoop => 'A-B 循环';
+
+  @override
+  String plAbLooping(String a, String b) {
+    return '循环 $a – $b';
+  }
+
+  @override
+  String get plAbSetA => '设置 A 点';
+
+  @override
+  String get plAbSetB => '设置 B 点';
+
+  @override
+  String get plAddBookmark => '添加书签';
+
+  @override
+  String get plAdvancedTools => '高级工具行';
+
+  @override
+  String get plAspectDefault => '默认';
+
+  @override
+  String get plAspectRatio => '宽高比';
+
+  @override
+  String get plAudioDelay => '音频延迟';
+
+  @override
+  String plBookmarkAdded(String time) {
+    return '已添加书签 $time';
+  }
+
+  @override
+  String get plBookmarks => '书签';
+
+  @override
+  String plBoosting(String speed) {
+    return '$speed 快进中 · 松手恢复';
+  }
+
+  @override
+  String get plDelayHint => '正值表示声音或字幕延后。';
+
+  @override
+  String get plDeleteBookmark => '删除书签';
+
+  @override
+  String get plExitFullscreen => '退出全屏';
+
+  @override
+  String get plFaster => '加速';
+
+  @override
+  String get plFitBest => '最佳适配';
+
+  @override
+  String get plFitFill => '填充';
+
+  @override
+  String get plFitMode => '画面尺寸';
+
+  @override
+  String get plFitOriginal => '原始尺寸';
+
+  @override
+  String get plFullscreen => '全屏';
+
+  @override
+  String get plGo => '跳转';
+
+  @override
+  String get plInfo => '信息';
+
+  @override
+  String get plInfoDuration => '时长';
+
+  @override
+  String get plInfoResolution => '分辨率';
+
+  @override
+  String get plInfoTitle => '标题';
+
+  @override
+  String get plJumpBackMedium => '后退 1 分钟';
+
+  @override
+  String get plJumpExtraShort => '跳转 3 秒';
+
+  @override
+  String get plJumpForwardMedium => '前进 1 分钟';
+
+  @override
+  String get plJumpLong => '跳转 5 分钟';
+
+  @override
+  String plJumpSeconds(String seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String get plJumpToTime => '跳到时间';
+
+  @override
+  String get plJumpToTimeInvalid => '请输入如 1:23:45 或 12:30 的时间。';
+
+  @override
+  String get plLoadSubtitle => '加载外部字幕…';
+
+  @override
+  String get plLockShort => '锁定';
+
+  @override
+  String get plMediaInfo => '媒体信息';
+
+  @override
+  String get plMenuAudio => '音频';
+
+  @override
+  String get plMenuPlayback => '播放';
+
+  @override
+  String get plMenuSubtitle => '字幕';
+
+  @override
+  String get plMenuVideo => '视频';
+
+  @override
+  String get plMenuView => '视图';
+
+  @override
+  String get plMute => '静音';
+
+  @override
+  String get plMuted => '已静音';
+
+  @override
+  String get plNextAudioTrack => '下一音轨';
+
+  @override
+  String get plNextSubtitle => '下一字幕';
+
+  @override
+  String get plNoBookmarks => '暂无书签';
+
+  @override
+  String get plNormalSpeed => '恢复正常速度';
+
+  @override
+  String get plOrientationShort => '方向';
+
+  @override
+  String get plPicture => '画面';
+
+  @override
+  String get plPictureAndSound => '画面与声音';
+
+  @override
+  String plQuickBookmarkSet(String slot) {
+    return '已设置快速书签 $slot';
+  }
+
+  @override
+  String get plRepeatMode => '重复模式';
+
+  @override
+  String get plRepeatOff => '不重复';
+
+  @override
+  String get plRepeatOne => '单项循环';
+
+  @override
+  String get plReset => '重置';
+
+  @override
+  String get plSettingsAndEffects => '设置与效果';
+
+  @override
+  String get plShortcuts => '快捷键';
+
+  @override
+  String get plShowPosition => '显示当前位置';
+
+  @override
+  String get plSleepEndOfItem => '本集结束后';
+
+  @override
+  String get plSleepFinished => '睡眠定时已暂停播放';
+
+  @override
+  String plSleepMinutes(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String get plSleepOff => '关闭';
+
+  @override
+  String get plSleepShort => '睡眠';
+
+  @override
+  String get plSleepTimer => '睡眠定时';
+
+  @override
+  String get plSlideToUnlock => '向右滑动解锁';
+
+  @override
+  String get plSlower => '减速';
+
+  @override
+  String get plSnapshot => '截图';
+
+  @override
+  String get plSnapshotFailed => '截图保存失败';
+
+  @override
+  String plSnapshotSaved(String path) {
+    return '截图已保存：$path';
+  }
+
+  @override
+  String get plSpeedShort => '倍速';
+
+  @override
+  String get plStatistics => '统计信息';
+
+  @override
+  String get plStatsAudio => '音频块 播放/丢失';
+
+  @override
+  String get plStatsDemux => '解复用码率';
+
+  @override
+  String get plStatsFrames => '帧 显示/丢失';
+
+  @override
+  String get plStatsInput => '输入码率';
+
+  @override
+  String get plStatsOverlay => '统计浮层';
+
+  @override
+  String get plStatsRead => '读取速度';
+
+  @override
+  String get plStop => '停止';
+
+  @override
+  String get plSubtitleDelay => '字幕延迟';
+
+  @override
+  String get plSync => '同步';
+
+  @override
+  String get plTimeTooltip => '单击切换剩余时间，双击跳到时间';
+
+  @override
+  String get plToggleControls => '显示/隐藏控制层';
+
+  @override
+  String get plToggleSubtitles => '字幕开关';
+
+  @override
+  String get plTrackAudio => '音频';
+
+  @override
+  String get plTracks => '音轨与字幕';
+
+  @override
+  String get plTracksShort => '音轨字幕';
+
+  @override
+  String get plTrackSubtitle => '字幕';
+
+  @override
+  String get plTrackVideo => '视频';
+
+  @override
+  String get plUnsupported => '当前播放器不支持';
+
+  @override
+  String get plZoom => '缩放';
+
+  @override
+  String get plZoomOriginal => '原始';
+
+  @override
+  String get plMenuPlaybackControl => '播放控制';
+
+  @override
+  String plBoostingShort(String speed) {
+    return '$speed 快进中';
+  }
+
+  @override
+  String get plSwipeUpToLock => '上滑锁定';
+
+  @override
+  String plSpeedLocked(String speed) {
+    return '已锁定 $speed';
+  }
+
+  @override
+  String get plExternalSubtitleShort => '+ 外部字幕';
+
+  @override
+  String get plBookmarksShort => '书签';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -3597,6 +3917,326 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get rescanFileSource => '重新扫描';
+
+  @override
+  String plAbASet(String time) {
+    return '已设置 A 点 $time';
+  }
+
+  @override
+  String get plAbClear => '清除 A-B 循环';
+
+  @override
+  String get plAbCleared => '已清除 A-B 循环';
+
+  @override
+  String get plAbLoop => 'A-B 循环';
+
+  @override
+  String plAbLooping(String a, String b) {
+    return '循环 $a – $b';
+  }
+
+  @override
+  String get plAbSetA => '设置 A 点';
+
+  @override
+  String get plAbSetB => '设置 B 点';
+
+  @override
+  String get plAddBookmark => '添加书签';
+
+  @override
+  String get plAdvancedTools => '高级工具行';
+
+  @override
+  String get plAspectDefault => '默认';
+
+  @override
+  String get plAspectRatio => '宽高比';
+
+  @override
+  String get plAudioDelay => '音频延迟';
+
+  @override
+  String plBookmarkAdded(String time) {
+    return '已添加书签 $time';
+  }
+
+  @override
+  String get plBookmarks => '书签';
+
+  @override
+  String plBoosting(String speed) {
+    return '$speed 快进中 · 松手恢复';
+  }
+
+  @override
+  String get plDelayHint => '正值表示声音或字幕延后。';
+
+  @override
+  String get plDeleteBookmark => '删除书签';
+
+  @override
+  String get plExitFullscreen => '退出全屏';
+
+  @override
+  String get plFaster => '加速';
+
+  @override
+  String get plFitBest => '最佳适配';
+
+  @override
+  String get plFitFill => '填充';
+
+  @override
+  String get plFitMode => '画面尺寸';
+
+  @override
+  String get plFitOriginal => '原始尺寸';
+
+  @override
+  String get plFullscreen => '全屏';
+
+  @override
+  String get plGo => '跳转';
+
+  @override
+  String get plInfo => '信息';
+
+  @override
+  String get plInfoDuration => '时长';
+
+  @override
+  String get plInfoResolution => '分辨率';
+
+  @override
+  String get plInfoTitle => '标题';
+
+  @override
+  String get plJumpBackMedium => '后退 1 分钟';
+
+  @override
+  String get plJumpExtraShort => '跳转 3 秒';
+
+  @override
+  String get plJumpForwardMedium => '前进 1 分钟';
+
+  @override
+  String get plJumpLong => '跳转 5 分钟';
+
+  @override
+  String plJumpSeconds(String seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String get plJumpToTime => '跳到时间';
+
+  @override
+  String get plJumpToTimeInvalid => '请输入如 1:23:45 或 12:30 的时间。';
+
+  @override
+  String get plLoadSubtitle => '加载外部字幕…';
+
+  @override
+  String get plLockShort => '锁定';
+
+  @override
+  String get plMediaInfo => '媒体信息';
+
+  @override
+  String get plMenuAudio => '音频';
+
+  @override
+  String get plMenuPlayback => '播放';
+
+  @override
+  String get plMenuSubtitle => '字幕';
+
+  @override
+  String get plMenuVideo => '视频';
+
+  @override
+  String get plMenuView => '视图';
+
+  @override
+  String get plMute => '静音';
+
+  @override
+  String get plMuted => '已静音';
+
+  @override
+  String get plNextAudioTrack => '下一音轨';
+
+  @override
+  String get plNextSubtitle => '下一字幕';
+
+  @override
+  String get plNoBookmarks => '暂无书签';
+
+  @override
+  String get plNormalSpeed => '恢复正常速度';
+
+  @override
+  String get plOrientationShort => '方向';
+
+  @override
+  String get plPicture => '画面';
+
+  @override
+  String get plPictureAndSound => '画面与声音';
+
+  @override
+  String plQuickBookmarkSet(String slot) {
+    return '已设置快速书签 $slot';
+  }
+
+  @override
+  String get plRepeatMode => '重复模式';
+
+  @override
+  String get plRepeatOff => '不重复';
+
+  @override
+  String get plRepeatOne => '单项循环';
+
+  @override
+  String get plReset => '重置';
+
+  @override
+  String get plSettingsAndEffects => '设置与效果';
+
+  @override
+  String get plShortcuts => '快捷键';
+
+  @override
+  String get plShowPosition => '显示当前位置';
+
+  @override
+  String get plSleepEndOfItem => '本集结束后';
+
+  @override
+  String get plSleepFinished => '睡眠定时已暂停播放';
+
+  @override
+  String plSleepMinutes(int minutes) {
+    return '$minutes 分钟';
+  }
+
+  @override
+  String get plSleepOff => '关闭';
+
+  @override
+  String get plSleepShort => '睡眠';
+
+  @override
+  String get plSleepTimer => '睡眠定时';
+
+  @override
+  String get plSlideToUnlock => '向右滑动解锁';
+
+  @override
+  String get plSlower => '减速';
+
+  @override
+  String get plSnapshot => '截图';
+
+  @override
+  String get plSnapshotFailed => '截图保存失败';
+
+  @override
+  String plSnapshotSaved(String path) {
+    return '截图已保存：$path';
+  }
+
+  @override
+  String get plSpeedShort => '倍速';
+
+  @override
+  String get plStatistics => '统计信息';
+
+  @override
+  String get plStatsAudio => '音频块 播放/丢失';
+
+  @override
+  String get plStatsDemux => '解复用码率';
+
+  @override
+  String get plStatsFrames => '帧 显示/丢失';
+
+  @override
+  String get plStatsInput => '输入码率';
+
+  @override
+  String get plStatsOverlay => '统计浮层';
+
+  @override
+  String get plStatsRead => '读取速度';
+
+  @override
+  String get plStop => '停止';
+
+  @override
+  String get plSubtitleDelay => '字幕延迟';
+
+  @override
+  String get plSync => '同步';
+
+  @override
+  String get plTimeTooltip => '单击切换剩余时间，双击跳到时间';
+
+  @override
+  String get plToggleControls => '显示/隐藏控制层';
+
+  @override
+  String get plToggleSubtitles => '字幕开关';
+
+  @override
+  String get plTrackAudio => '音频';
+
+  @override
+  String get plTracks => '音轨与字幕';
+
+  @override
+  String get plTracksShort => '音轨字幕';
+
+  @override
+  String get plTrackSubtitle => '字幕';
+
+  @override
+  String get plTrackVideo => '视频';
+
+  @override
+  String get plUnsupported => '当前播放器不支持';
+
+  @override
+  String get plZoom => '缩放';
+
+  @override
+  String get plZoomOriginal => '原始';
+
+  @override
+  String get plMenuPlaybackControl => '播放控制';
+
+  @override
+  String plBoostingShort(String speed) {
+    return '$speed 快进中';
+  }
+
+  @override
+  String get plSwipeUpToLock => '上滑锁定';
+
+  @override
+  String plSpeedLocked(String speed) {
+    return '已锁定 $speed';
+  }
+
+  @override
+  String get plExternalSubtitleShort => '+ 外部字幕';
+
+  @override
+  String get plBookmarksShort => '书签';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -5394,4 +6034,324 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get rescanFileSource => '重新掃描';
+
+  @override
+  String plAbASet(String time) {
+    return '已設定 A 點 $time';
+  }
+
+  @override
+  String get plAbClear => '清除 A-B 循環';
+
+  @override
+  String get plAbCleared => '已清除 A-B 循環';
+
+  @override
+  String get plAbLoop => 'A-B 循環';
+
+  @override
+  String plAbLooping(String a, String b) {
+    return '循環 $a – $b';
+  }
+
+  @override
+  String get plAbSetA => '設定 A 點';
+
+  @override
+  String get plAbSetB => '設定 B 點';
+
+  @override
+  String get plAddBookmark => '新增書籤';
+
+  @override
+  String get plAdvancedTools => '進階工具列';
+
+  @override
+  String get plAspectDefault => '預設';
+
+  @override
+  String get plAspectRatio => '長寬比';
+
+  @override
+  String get plAudioDelay => '音訊延遲';
+
+  @override
+  String plBookmarkAdded(String time) {
+    return '已新增書籤 $time';
+  }
+
+  @override
+  String get plBookmarks => '書籤';
+
+  @override
+  String plBoosting(String speed) {
+    return '$speed 快轉中 · 放開恢復';
+  }
+
+  @override
+  String get plDelayHint => '正值表示聲音或字幕延後。';
+
+  @override
+  String get plDeleteBookmark => '刪除書籤';
+
+  @override
+  String get plExitFullscreen => '結束全螢幕';
+
+  @override
+  String get plFaster => '加速';
+
+  @override
+  String get plFitBest => '最佳適配';
+
+  @override
+  String get plFitFill => '填滿';
+
+  @override
+  String get plFitMode => '畫面尺寸';
+
+  @override
+  String get plFitOriginal => '原始尺寸';
+
+  @override
+  String get plFullscreen => '全螢幕';
+
+  @override
+  String get plGo => '跳轉';
+
+  @override
+  String get plInfo => '資訊';
+
+  @override
+  String get plInfoDuration => '時長';
+
+  @override
+  String get plInfoResolution => '解析度';
+
+  @override
+  String get plInfoTitle => '標題';
+
+  @override
+  String get plJumpBackMedium => '倒退 1 分鐘';
+
+  @override
+  String get plJumpExtraShort => '跳轉 3 秒';
+
+  @override
+  String get plJumpForwardMedium => '前進 1 分鐘';
+
+  @override
+  String get plJumpLong => '跳轉 5 分鐘';
+
+  @override
+  String plJumpSeconds(String seconds) {
+    return '$seconds 秒';
+  }
+
+  @override
+  String get plJumpToTime => '跳到時間';
+
+  @override
+  String get plJumpToTimeInvalid => '請輸入如 1:23:45 或 12:30 的時間。';
+
+  @override
+  String get plLoadSubtitle => '載入外部字幕…';
+
+  @override
+  String get plLockShort => '鎖定';
+
+  @override
+  String get plMediaInfo => '媒體資訊';
+
+  @override
+  String get plMenuAudio => '音訊';
+
+  @override
+  String get plMenuPlayback => '播放';
+
+  @override
+  String get plMenuSubtitle => '字幕';
+
+  @override
+  String get plMenuVideo => '影片';
+
+  @override
+  String get plMenuView => '檢視';
+
+  @override
+  String get plMute => '靜音';
+
+  @override
+  String get plMuted => '已靜音';
+
+  @override
+  String get plNextAudioTrack => '下一音軌';
+
+  @override
+  String get plNextSubtitle => '下一字幕';
+
+  @override
+  String get plNoBookmarks => '尚無書籤';
+
+  @override
+  String get plNormalSpeed => '恢復正常速度';
+
+  @override
+  String get plOrientationShort => '方向';
+
+  @override
+  String get plPicture => '畫面';
+
+  @override
+  String get plPictureAndSound => '畫面與聲音';
+
+  @override
+  String plQuickBookmarkSet(String slot) {
+    return '已設定快速書籤 $slot';
+  }
+
+  @override
+  String get plRepeatMode => '重複模式';
+
+  @override
+  String get plRepeatOff => '不重複';
+
+  @override
+  String get plRepeatOne => '單項循環';
+
+  @override
+  String get plReset => '重設';
+
+  @override
+  String get plSettingsAndEffects => '設定與效果';
+
+  @override
+  String get plShortcuts => '快捷鍵';
+
+  @override
+  String get plShowPosition => '顯示目前位置';
+
+  @override
+  String get plSleepEndOfItem => '本集結束後';
+
+  @override
+  String get plSleepFinished => '睡眠定時已暫停播放';
+
+  @override
+  String plSleepMinutes(int minutes) {
+    return '$minutes 分鐘';
+  }
+
+  @override
+  String get plSleepOff => '關閉';
+
+  @override
+  String get plSleepShort => '睡眠';
+
+  @override
+  String get plSleepTimer => '睡眠定時';
+
+  @override
+  String get plSlideToUnlock => '向右滑動解鎖';
+
+  @override
+  String get plSlower => '減速';
+
+  @override
+  String get plSnapshot => '截圖';
+
+  @override
+  String get plSnapshotFailed => '截圖儲存失敗';
+
+  @override
+  String plSnapshotSaved(String path) {
+    return '截圖已儲存：$path';
+  }
+
+  @override
+  String get plSpeedShort => '倍速';
+
+  @override
+  String get plStatistics => '統計資訊';
+
+  @override
+  String get plStatsAudio => '音訊區塊 播放/遺失';
+
+  @override
+  String get plStatsDemux => '解多工位元率';
+
+  @override
+  String get plStatsFrames => '影格 顯示/遺失';
+
+  @override
+  String get plStatsInput => '輸入位元率';
+
+  @override
+  String get plStatsOverlay => '統計浮層';
+
+  @override
+  String get plStatsRead => '讀取速度';
+
+  @override
+  String get plStop => '停止';
+
+  @override
+  String get plSubtitleDelay => '字幕延遲';
+
+  @override
+  String get plSync => '同步';
+
+  @override
+  String get plTimeTooltip => '按一下切換剩餘時間，按兩下跳到時間';
+
+  @override
+  String get plToggleControls => '顯示/隱藏控制層';
+
+  @override
+  String get plToggleSubtitles => '字幕開關';
+
+  @override
+  String get plTrackAudio => '音訊';
+
+  @override
+  String get plTracks => '音軌與字幕';
+
+  @override
+  String get plTracksShort => '音軌字幕';
+
+  @override
+  String get plTrackSubtitle => '字幕';
+
+  @override
+  String get plTrackVideo => '影片';
+
+  @override
+  String get plUnsupported => '目前播放器不支援';
+
+  @override
+  String get plZoom => '縮放';
+
+  @override
+  String get plZoomOriginal => '原始';
+
+  @override
+  String get plMenuPlaybackControl => '播放控制';
+
+  @override
+  String plBoostingShort(String speed) {
+    return '$speed 快轉中';
+  }
+
+  @override
+  String get plSwipeUpToLock => '上滑鎖定';
+
+  @override
+  String plSpeedLocked(String speed) {
+    return '已鎖定 $speed';
+  }
+
+  @override
+  String get plExternalSubtitleShort => '+ 外部字幕';
+
+  @override
+  String get plBookmarksShort => '書籤';
 }

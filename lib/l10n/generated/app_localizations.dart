@@ -3488,6 +3488,606 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Rescan'**
   String get rescanFileSource;
+
+  /// No description provided for @plAbASet.
+  ///
+  /// In en, this message translates to:
+  /// **'A set at {time}'**
+  String plAbASet(String time);
+
+  /// No description provided for @plAbClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear A-B loop'**
+  String get plAbClear;
+
+  /// No description provided for @plAbCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'A-B loop cleared'**
+  String get plAbCleared;
+
+  /// No description provided for @plAbLoop.
+  ///
+  /// In en, this message translates to:
+  /// **'A-B loop'**
+  String get plAbLoop;
+
+  /// No description provided for @plAbLooping.
+  ///
+  /// In en, this message translates to:
+  /// **'Looping {a} – {b}'**
+  String plAbLooping(String a, String b);
+
+  /// No description provided for @plAbSetA.
+  ///
+  /// In en, this message translates to:
+  /// **'Set point A'**
+  String get plAbSetA;
+
+  /// No description provided for @plAbSetB.
+  ///
+  /// In en, this message translates to:
+  /// **'Set point B'**
+  String get plAbSetB;
+
+  /// No description provided for @plAddBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Add bookmark'**
+  String get plAddBookmark;
+
+  /// No description provided for @plAdvancedTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Advanced tools row'**
+  String get plAdvancedTools;
+
+  /// No description provided for @plAspectDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Default'**
+  String get plAspectDefault;
+
+  /// No description provided for @plAspectRatio.
+  ///
+  /// In en, this message translates to:
+  /// **'Aspect ratio'**
+  String get plAspectRatio;
+
+  /// No description provided for @plAudioDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio delay'**
+  String get plAudioDelay;
+
+  /// No description provided for @plBookmarkAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmark at {time}'**
+  String plBookmarkAdded(String time);
+
+  /// No description provided for @plBookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get plBookmarks;
+
+  /// No description provided for @plBoosting.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed} fast forward · release to restore'**
+  String plBoosting(String speed);
+
+  /// No description provided for @plDelayHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Positive values play audio or show subtitles later.'**
+  String get plDelayHint;
+
+  /// No description provided for @plDeleteBookmark.
+  ///
+  /// In en, this message translates to:
+  /// **'Delete bookmark'**
+  String get plDeleteBookmark;
+
+  /// No description provided for @plExitFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit full screen'**
+  String get plExitFullscreen;
+
+  /// No description provided for @plFaster.
+  ///
+  /// In en, this message translates to:
+  /// **'Faster'**
+  String get plFaster;
+
+  /// No description provided for @plFitBest.
+  ///
+  /// In en, this message translates to:
+  /// **'Best fit'**
+  String get plFitBest;
+
+  /// No description provided for @plFitFill.
+  ///
+  /// In en, this message translates to:
+  /// **'Fill'**
+  String get plFitFill;
+
+  /// No description provided for @plFitMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture size'**
+  String get plFitMode;
+
+  /// No description provided for @plFitOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original size'**
+  String get plFitOriginal;
+
+  /// No description provided for @plFullscreen.
+  ///
+  /// In en, this message translates to:
+  /// **'Full screen'**
+  String get plFullscreen;
+
+  /// No description provided for @plGo.
+  ///
+  /// In en, this message translates to:
+  /// **'Go'**
+  String get plGo;
+
+  /// No description provided for @plInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Info'**
+  String get plInfo;
+
+  /// No description provided for @plInfoDuration.
+  ///
+  /// In en, this message translates to:
+  /// **'Duration'**
+  String get plInfoDuration;
+
+  /// No description provided for @plInfoResolution.
+  ///
+  /// In en, this message translates to:
+  /// **'Resolution'**
+  String get plInfoResolution;
+
+  /// No description provided for @plInfoTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Title'**
+  String get plInfoTitle;
+
+  /// No description provided for @plJumpBackMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Back 1 minute'**
+  String get plJumpBackMedium;
+
+  /// No description provided for @plJumpExtraShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump 3 seconds'**
+  String get plJumpExtraShort;
+
+  /// No description provided for @plJumpForwardMedium.
+  ///
+  /// In en, this message translates to:
+  /// **'Forward 1 minute'**
+  String get plJumpForwardMedium;
+
+  /// No description provided for @plJumpLong.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump 5 minutes'**
+  String get plJumpLong;
+
+  /// No description provided for @plJumpSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'{seconds} s'**
+  String plJumpSeconds(String seconds);
+
+  /// No description provided for @plJumpToTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Jump to time'**
+  String get plJumpToTime;
+
+  /// No description provided for @plJumpToTimeInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a time such as 1:23:45 or 12:30.'**
+  String get plJumpToTimeInvalid;
+
+  /// No description provided for @plLoadSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Load subtitle file…'**
+  String get plLoadSubtitle;
+
+  /// No description provided for @plLockShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Lock'**
+  String get plLockShort;
+
+  /// No description provided for @plMediaInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'Media info'**
+  String get plMediaInfo;
+
+  /// No description provided for @plMenuAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get plMenuAudio;
+
+  /// No description provided for @plMenuPlayback.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback'**
+  String get plMenuPlayback;
+
+  /// No description provided for @plMenuSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get plMenuSubtitle;
+
+  /// No description provided for @plMenuVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get plMenuVideo;
+
+  /// No description provided for @plMenuView.
+  ///
+  /// In en, this message translates to:
+  /// **'View'**
+  String get plMenuView;
+
+  /// No description provided for @plMute.
+  ///
+  /// In en, this message translates to:
+  /// **'Mute'**
+  String get plMute;
+
+  /// No description provided for @plMuted.
+  ///
+  /// In en, this message translates to:
+  /// **'Muted'**
+  String get plMuted;
+
+  /// No description provided for @plNextAudioTrack.
+  ///
+  /// In en, this message translates to:
+  /// **'Next audio track'**
+  String get plNextAudioTrack;
+
+  /// No description provided for @plNextSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Next subtitle'**
+  String get plNextSubtitle;
+
+  /// No description provided for @plNoBookmarks.
+  ///
+  /// In en, this message translates to:
+  /// **'No bookmarks yet'**
+  String get plNoBookmarks;
+
+  /// No description provided for @plNormalSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Normal speed'**
+  String get plNormalSpeed;
+
+  /// No description provided for @plOrientationShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Rotate'**
+  String get plOrientationShort;
+
+  /// No description provided for @plPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture'**
+  String get plPicture;
+
+  /// No description provided for @plPictureAndSound.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture & sound'**
+  String get plPictureAndSound;
+
+  /// No description provided for @plQuickBookmarkSet.
+  ///
+  /// In en, this message translates to:
+  /// **'Quick bookmark {slot} set'**
+  String plQuickBookmarkSet(String slot);
+
+  /// No description provided for @plRepeatMode.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat'**
+  String get plRepeatMode;
+
+  /// No description provided for @plRepeatOff.
+  ///
+  /// In en, this message translates to:
+  /// **'No repeat'**
+  String get plRepeatOff;
+
+  /// No description provided for @plRepeatOne.
+  ///
+  /// In en, this message translates to:
+  /// **'Repeat this item'**
+  String get plRepeatOne;
+
+  /// No description provided for @plReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset'**
+  String get plReset;
+
+  /// No description provided for @plSettingsAndEffects.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings & effects'**
+  String get plSettingsAndEffects;
+
+  /// No description provided for @plShortcuts.
+  ///
+  /// In en, this message translates to:
+  /// **'Keyboard shortcuts'**
+  String get plShortcuts;
+
+  /// No description provided for @plShowPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Show position'**
+  String get plShowPosition;
+
+  /// No description provided for @plSleepEndOfItem.
+  ///
+  /// In en, this message translates to:
+  /// **'End of item'**
+  String get plSleepEndOfItem;
+
+  /// No description provided for @plSleepFinished.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer paused playback'**
+  String get plSleepFinished;
+
+  /// No description provided for @plSleepMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'{minutes} minutes'**
+  String plSleepMinutes(int minutes);
+
+  /// No description provided for @plSleepOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get plSleepOff;
+
+  /// No description provided for @plSleepShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep'**
+  String get plSleepShort;
+
+  /// No description provided for @plSleepTimer.
+  ///
+  /// In en, this message translates to:
+  /// **'Sleep timer'**
+  String get plSleepTimer;
+
+  /// No description provided for @plSlideToUnlock.
+  ///
+  /// In en, this message translates to:
+  /// **'Slide right to unlock'**
+  String get plSlideToUnlock;
+
+  /// No description provided for @plSlower.
+  ///
+  /// In en, this message translates to:
+  /// **'Slower'**
+  String get plSlower;
+
+  /// No description provided for @plSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot'**
+  String get plSnapshot;
+
+  /// No description provided for @plSnapshotFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not save the snapshot'**
+  String get plSnapshotFailed;
+
+  /// No description provided for @plSnapshotSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot saved: {path}'**
+  String plSnapshotSaved(String path);
+
+  /// No description provided for @plSpeedShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get plSpeedShort;
+
+  /// No description provided for @plStatistics.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics'**
+  String get plStatistics;
+
+  /// No description provided for @plStatsAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio played / lost'**
+  String get plStatsAudio;
+
+  /// No description provided for @plStatsDemux.
+  ///
+  /// In en, this message translates to:
+  /// **'Demux bitrate'**
+  String get plStatsDemux;
+
+  /// No description provided for @plStatsFrames.
+  ///
+  /// In en, this message translates to:
+  /// **'Frames shown / lost'**
+  String get plStatsFrames;
+
+  /// No description provided for @plStatsInput.
+  ///
+  /// In en, this message translates to:
+  /// **'Input bitrate'**
+  String get plStatsInput;
+
+  /// No description provided for @plStatsOverlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Statistics overlay'**
+  String get plStatsOverlay;
+
+  /// No description provided for @plStatsRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Read speed'**
+  String get plStatsRead;
+
+  /// No description provided for @plStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop'**
+  String get plStop;
+
+  /// No description provided for @plSubtitleDelay.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle delay'**
+  String get plSubtitleDelay;
+
+  /// No description provided for @plSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync'**
+  String get plSync;
+
+  /// No description provided for @plTimeTooltip.
+  ///
+  /// In en, this message translates to:
+  /// **'Click: total/remaining · Double-click: jump to time'**
+  String get plTimeTooltip;
+
+  /// No description provided for @plToggleControls.
+  ///
+  /// In en, this message translates to:
+  /// **'Show/hide controls'**
+  String get plToggleControls;
+
+  /// No description provided for @plToggleSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles on/off'**
+  String get plToggleSubtitles;
+
+  /// No description provided for @plTrackAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get plTrackAudio;
+
+  /// No description provided for @plTracks.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio & subtitles'**
+  String get plTracks;
+
+  /// No description provided for @plTracksShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Tracks'**
+  String get plTracksShort;
+
+  /// No description provided for @plTrackSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle'**
+  String get plTrackSubtitle;
+
+  /// No description provided for @plTrackVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get plTrackVideo;
+
+  /// No description provided for @plUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available for this player'**
+  String get plUnsupported;
+
+  /// No description provided for @plZoom.
+  ///
+  /// In en, this message translates to:
+  /// **'Zoom'**
+  String get plZoom;
+
+  /// No description provided for @plZoomOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Original'**
+  String get plZoomOriginal;
+
+  /// No description provided for @plMenuPlaybackControl.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback controls'**
+  String get plMenuPlaybackControl;
+
+  /// No description provided for @plBoostingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'{speed} fast forward'**
+  String plBoostingShort(String speed);
+
+  /// No description provided for @plSwipeUpToLock.
+  ///
+  /// In en, this message translates to:
+  /// **'Swipe up to lock'**
+  String get plSwipeUpToLock;
+
+  /// No description provided for @plSpeedLocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed locked at {speed}'**
+  String plSpeedLocked(String speed);
+
+  /// No description provided for @plExternalSubtitleShort.
+  ///
+  /// In en, this message translates to:
+  /// **'+ External'**
+  String get plExternalSubtitleShort;
+
+  /// No description provided for @plBookmarksShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Bookmarks'**
+  String get plBookmarksShort;
 }
 
 class _AppLocalizationsDelegate

@@ -72,4 +72,26 @@ abstract final class AppIcons {
   static const rotateVideo = LucideIcons.rotateCw;
   static const screenOrientation = LucideIcons.smartphone;
   static const fullscreen = LucideIcons.maximize;
+  static const exitFullscreen = LucideIcons.minimize;
+  static const clock = LucideIcons.clock;
+  static const speed = LucideIcons.gauge;
+  static const rewindOsd = LucideIcons.rewind;
+  static const forwardOsd = LucideIcons.fastForward;
+  static const repeat = LucideIcons.repeat;
+  static const repeatOne = LucideIcons.repeat1;
+  static const aspect = LucideIcons.ratio;
+  static const bookmark = LucideIcons.bookmark;
+  static const sleep = LucideIcons.moon;
+  static const snapshot = LucideIcons.camera;
+  static const effects = LucideIcons.slidersHorizontal;
+  static const playlist = LucideIcons.listVideo;
+  static const stats = LucideIcons.activity;
+  static const keyboard = LucideIcons.keyboard;
+  static const chapters = LucideIcons.list;
+  static const addSubtitle = LucideIcons.filePlus;
+  static const collapsePlayer = LucideIcons.chevronDown;
+  static const minus = LucideIcons.minus;
+  static const plus = LucideIcons.plus;
+  static const tools = LucideIcons.wrench;
+  static const chevronsRight = LucideIcons.chevronsRight;
 }

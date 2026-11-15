@@ -156,6 +156,28 @@ void main() {
     expect(backend.value.status, PlaybackStatus.paused);
     expect(backend.value.position, pausedPosition);
 
+    // 5b. 播放页新增能力：音频/字幕延迟、截图、媒体信息与统计都走真实插件。
+    await backend.setAudioDelay(const Duration(milliseconds: 300));
+    await backend.setSubtitleDelay(const Duration(milliseconds: -200));
+    await backend.setAudioDelay(Duration.zero);
+    await backend.setSubtitleDelay(Duration.zero);
+    final png = await backend.takeSnapshot();
+    expect(png.length, greaterThan(100));
+    expect(png.sublist(0, 4), [0x89, 0x50, 0x4E, 0x47]); // PNG signature
+    final info = await backend.getMediaInfo();
+    expect(info.tracks.where((t) => t.type == 'video'), isNotEmpty);
+    // Statistics may be unavailable right after a pause; it must not throw.
+    await backend.getStats();
+    expect(backend.value.status, PlaybackStatus.paused);
+
+    // 5c. 暂停时跳转：VLCKit 会上报缓冲，状态必须仍是暂停，否则界面会一直
+    // 以为在播放、只会发送暂停，再也恢复不了。
+    await backend.seek(const Duration(seconds: 2));
+    for (var i = 0; i < 8; i++) {
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(backend.value.status, PlaybackStatus.paused);
+    }
+
     // 6. 确认媒体支持跳转，跳到第 7 秒后继续播放。
     // 等待进度达到至少第 6 秒，给原生 Seek 的定位和事件上报预留余量。
     expect(backend.value.canSeek, isTrue);

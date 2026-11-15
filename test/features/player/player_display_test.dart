@@ -52,15 +52,23 @@ void main() {
         addTearDown(() => debugDefaultTargetPlatformOverride = null);
         final backend = await openPlayer(tester);
         final viewElement = tester.element(find.byType(PlayerVideoView));
+        await tester.tap(find.byTooltip('Settings & effects'));
+        await tester.pumpAndSettle();
+        final choices = find.byKey(const Key('rotation-choices'));
+        await tester.ensureVisible(choices);
+        await tester.pumpAndSettle();
+        final area = tester.getSize(find.byKey(const Key('video-gestures')));
         final controls = tester.getSize(
           find.byKey(const Key('player-control-bar')),
         );
         for (final degrees in [90, 180, 270, 0]) {
-          await choose(
-            tester,
-            'Video rotation',
-            degrees == 0 ? 'Original (0°)' : '$degrees°',
+          await tester.tap(
+            find.descendant(
+              of: choices,
+              matching: find.text(degrees == 0 ? 'Original (0°)' : '$degrees°'),
+            ),
           );
+          await tester.pumpAndSettle();
           expect(
             tester
                 .widget<RotatedBox>(find.byKey(const Key('video-rotation')))
@@ -69,7 +77,7 @@ void main() {
           );
           expect(
             tester.getSize(find.byType(PlayerVideoView)),
-            degrees % 180 == 0 ? const Size(800, 600) : const Size(600, 800),
+            degrees % 180 == 0 ? area : area.flipped,
           );
           expect(
             tester.element(find.byType(PlayerVideoView)),
@@ -147,9 +155,15 @@ void main() {
     await openPlayer(tester);
     await tester.tap(find.byTooltip('More playback settings'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('Video rotation'));
+    // Narrow windows float the panel over the video instead of docking it.
+    expect(tester.getSize(find.byKey(const Key('panel-settings'))).width, 320);
+    final choice = find.descendant(
+      of: find.byKey(const Key('rotation-choices')),
+      matching: find.text('270°'),
+    );
+    await tester.ensureVisible(choice);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('270°'));
+    await tester.tap(choice);
     await tester.pumpAndSettle();
     expect(
       tester

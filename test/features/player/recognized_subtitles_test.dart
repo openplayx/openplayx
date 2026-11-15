@@ -139,11 +139,11 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('字幕'));
+      await tester.tap(find.byTooltip('音轨与字幕'));
       await tester.pumpAndSettle();
       expect(find.text('简体中文'), findsOneWidget); // embedded tracks stay
       expect(find.text('识别字幕'), findsOneWidget);
-      expect(find.text('识别'), findsOneWidget); // badge
+      expect(find.textContaining('识别 · '), findsOneWidget); // badge
       expect(find.textContaining('部分 00:00–01:00'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('recognized-b1')));
       await tester.pumpAndSettle();
@@ -151,12 +151,12 @@ void main() {
 
       // Re-opening: the loaded copy is not listed again as an embedded track,
       // and selecting the recognised entry again switches without re-adding.
-      await tester.tap(find.byTooltip('字幕'));
+      await tester.tapAt(const Offset(10, 300)); // outside the sheet
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('音轨与字幕'));
       await tester.pumpAndSettle();
       expect(find.text('Track 20'), findsNothing);
       await tester.tap(find.text('简体中文'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('字幕'));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('recognized-b1')));
       await tester.pumpAndSettle();
@@ -189,7 +189,7 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('字幕'));
+    await tester.tap(find.byTooltip('音轨与字幕'));
     await tester.pumpAndSettle();
     expect(find.text('识别字幕'), findsNothing);
     await tester.pumpWidget(const SizedBox());

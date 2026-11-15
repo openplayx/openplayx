@@ -49,6 +49,24 @@ class FakeBackend extends PlayerBackend {
     subtitleSelections.add(null);
   }
 
+  final audioDelays = <Duration>[];
+  final subtitleDelays = <Duration>[];
+  @override
+  bool get supportsDelays => true;
+  @override
+  Future<void> setAudioDelay(Duration delay) async => audioDelays.add(delay);
+  @override
+  Future<void> setSubtitleDelay(Duration delay) async =>
+      subtitleDelays.add(delay);
+  @override
+  bool get supportsMediaInfo => true;
+  @override
+  Future<PlayerMediaInfo> getMediaInfo() async => const PlayerMediaInfo(
+    tracks: [PlayerTrackInfo(type: 'video', codec: 'h264')],
+  );
+  @override
+  Future<PlayerStats?> getStats() async => const PlayerStats(inputKbps: 4200);
+
   bool released = false;
   bool fail = false;
   @override
@@ -234,6 +252,11 @@ void main() {
     },
   );
 
+  /// A point on the video away from the centre controls.
+  Offset videoSpot(WidgetTester tester, {double dx = 150, double dy = 300}) =>
+      tester.getTopLeft(find.byKey(const Key('video-gestures'))) +
+      Offset(dx, dy);
+
   testWidgets(
     'temporary speed restores persistent choice on release and cancel',
     (tester) async {
@@ -244,17 +267,17 @@ void main() {
       await tester.tap(find.text('1.5×').last);
       await tester.pumpAndSettle();
       expect(backend.speeds.last, 1.5);
-      var gesture = await tester.startGesture(
-        tester.getCenter(find.byKey(const Key('video-gestures'))),
-      );
+      // Selecting keeps the sheet open; tapping outside closes it.
+      await tester.tapAt(const Offset(10, 300)); // outside the sheet
+      await tester.pumpAndSettle();
+      var gesture = await tester.startGesture(videoSpot(tester));
       await tester.pump(const Duration(milliseconds: 600));
+      // From 1.5× the boost is 2×.
       expect(backend.speeds.last, 2);
       await gesture.up();
       await tester.pumpAndSettle();
       expect(backend.speeds.last, 1.5);
-      gesture = await tester.startGesture(
-        tester.getCenter(find.byKey(const Key('video-gestures'))),
-      );
+      gesture = await tester.startGesture(videoSpot(tester));
       await tester.pump(const Duration(milliseconds: 600));
       await gesture.cancel();
       await tester.pumpAndSettle();
@@ -262,7 +285,7 @@ void main() {
     },
   );
 
-  testWidgets('lock hides controls and blocks long press until unlocked', (
+  testWidgets('lock hides controls, blocks gestures and slides to unlock', (
     tester,
   ) async {
     final backend = FakeBackend();
@@ -270,59 +293,178 @@ void main() {
     await tester.tap(find.byTooltip('锁定控制'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('播放速度'), findsNothing);
-    expect(find.byTooltip('打开文件'), findsNothing);
     final count = backend.speeds.length;
-    await tester.longPress(find.byKey(const Key('video-gestures')));
+    await tester.longPressAt(videoSpot(tester));
     await tester.pumpAndSettle();
     expect(backend.speeds.length, count);
-    await tester.tap(find.byTooltip('解锁控制'));
+    // A short drag springs back; a long one unlocks.
+    await tester.drag(
+      find.byKey(const Key('unlock-knob')),
+      const Offset(40, 0),
+    );
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('暂停'), findsNothing);
+    await tester.drag(
+      find.byKey(const Key('unlock-knob')),
+      const Offset(260, 0),
+    );
     await tester.pumpAndSettle();
     expect(find.byTooltip('暂停'), findsOneWidget);
   });
 
-  testWidgets('volume, video dimming and native audio track ids are wired', (
+  testWidgets('edge swipes set volume and brightness; tracks are wired', (
     tester,
   ) async {
     final backend = FakeBackend();
     await openPlayer(tester, backend);
-    expect(find.byKey(const Key('playback-volume')), findsNothing);
-    await tester.tap(find.byTooltip('播放器音量'));
-    await tester.pumpAndSettle();
-    await tester.tapAt(
-      tester.getCenter(find.byKey(const Key('playback-volume'))),
+    // Right half, upwards: volume.
+    await tester.dragFrom(
+      videoSpot(tester, dx: 650, dy: 400),
+      const Offset(0, -150),
     );
+    await tester.pump();
+    expect(backend.volumes, isNotEmpty);
+    expect(backend.volumes.last, greaterThan(0));
     await tester.pumpAndSettle();
-    expect(backend.volumes.last, inInclusiveRange(40, 60));
-    await tester.tapAt(const Offset(10, 100));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('画面亮度'));
-    await tester.pumpAndSettle();
-    await tester.tapAt(
-      tester.getCenter(find.byKey(const Key('playback-brightness'))),
+    // Left half, downwards: brightness (dims the picture).
+    await tester.dragFrom(
+      videoSpot(tester, dx: 150, dy: 150),
+      const Offset(0, 200),
     );
     await tester.pumpAndSettle();
     expect(
       tester.widget<ColoredBox>(find.byKey(const Key('video-dimming'))).color.a,
       greaterThan(0),
     );
-    await tester.tapAt(const Offset(10, 100));
+    await tester.tap(find.byTooltip('音轨与字幕'));
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('音轨'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('English'));
+    expect(find.byKey(const Key('panel-tracks')), findsOneWidget);
+    await tester.tap(find.text('English').first);
     await tester.pumpAndSettle();
     expect(backend.audioSelections, [7]);
-    // Subtitles: pick an embedded track, then switch them off.
-    await tester.tap(find.byTooltip('字幕'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('简体中文'));
     await tester.pumpAndSettle();
     expect(backend.subtitleSelections, [2]);
-    await tester.tap(find.byTooltip('字幕'));
-    await tester.pumpAndSettle();
     await tester.tap(find.text('关闭字幕'));
     await tester.pumpAndSettle();
     expect(backend.subtitleSelections, [2, null]);
+  });
+
+  testWidgets('double taps seek on the sides (accumulating) and pause in the '
+      'middle', (tester) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      position: Duration(seconds: 30),
+      duration: Duration(seconds: 120),
+      canSeek: true,
+    );
+    await tester.pump();
+    Future<void> doubleTap(Offset at) async {
+      await tester.tapAt(at);
+      await tester.pump(const Duration(milliseconds: 50));
+      await tester.tapAt(at);
+      await tester.pump(const Duration(milliseconds: 50));
+    }
+
+    final right = videoSpot(tester, dx: 720, dy: 150);
+    await doubleTap(right);
+    expect(backend.seeks.last, const Duration(seconds: 40));
+    expect(find.byKey(const Key('double-tap-ripple')), findsOneWidget);
+    expect(find.text('+10 秒'), findsOneWidget);
+    await doubleTap(right);
+    expect(find.text('+20 秒'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('double-tap-ripple')), findsNothing);
+    await doubleTap(videoSpot(tester, dx: 400, dy: 150));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.paused);
+  });
+
+  testWidgets('horizontal drag previews the target and seeks once', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      position: Duration(seconds: 60),
+      duration: Duration(minutes: 10),
+      canSeek: true,
+    );
+    await tester.pump();
+    final gesture = await tester.startGesture(
+      videoSpot(tester, dx: 200, dy: 200),
+    );
+    await gesture.moveBy(const Offset(40, 0));
+    await gesture.moveBy(const Offset(360, 0));
+    await tester.pump();
+    expect(find.byKey(const Key('seek-feedback')), findsOneWidget);
+    expect(backend.seeks, isEmpty);
+    await gesture.up();
+    await tester.pump(const Duration(seconds: 1));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('seek-feedback')), findsNothing);
+    expect(backend.seeks, hasLength(1));
+    // 400 px of an 800 px screen ≈ 45 s of the 90 s span.
+    expect(backend.seeks.single.inSeconds, inInclusiveRange(100, 110));
+  });
+
+  testWidgets('more sheet: A-B loop, delays and media info', (tester) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      position: Duration(seconds: 10),
+      duration: Duration(seconds: 60),
+      canSeek: true,
+      readSpeedMBps: 12.345,
+    );
+    await tester.pump();
+    await tester.tap(find.byTooltip('更多播放设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('A-B 循环'));
+    await tester.pumpAndSettle();
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      position: Duration(seconds: 20),
+      duration: Duration(seconds: 60),
+      canSeek: true,
+    );
+    await tester.pump();
+    await tester.tap(find.text('A-B 循环'));
+    await tester.pumpAndSettle();
+    // Reaching B jumps back to A.
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      position: Duration(seconds: 21),
+      duration: Duration(seconds: 60),
+      canSeek: true,
+    );
+    await tester.pumpAndSettle();
+    expect(backend.seeks.last, const Duration(seconds: 10));
+    expect(find.text('A-B'), findsOneWidget); // status chip
+
+    await tester.tap(find.text('同步'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const Key('audio-delay-plus')));
+    await tester.tap(find.byKey(const Key('subtitle-delay-minus')));
+    await tester.pumpAndSettle();
+    expect(backend.audioDelays, [const Duration(milliseconds: 50)]);
+    expect(backend.subtitleDelays, [const Duration(milliseconds: -50)]);
+    expect(find.byKey(const Key('panel-sync')), findsOneWidget);
+
+    await tester.tapAt(const Offset(10, 300)); // outside the sheet
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('更多播放设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('媒体信息'));
+    await tester.pumpAndSettle();
+    expect(find.text('h264'), findsOneWidget);
+    expect(find.text('4.20 Mb/s'), findsOneWidget);
   });
 
   testWidgets('backgrounding restores speed and pauses active playback', (
@@ -330,9 +472,7 @@ void main() {
   ) async {
     final backend = FakeBackend();
     await openPlayer(tester, backend);
-    final gesture = await tester.startGesture(
-      tester.getCenter(find.byKey(const Key('video-gestures'))),
-    );
+    final gesture = await tester.startGesture(videoSpot(tester));
     await tester.pump(const Duration(milliseconds: 600));
     expect(backend.speeds.last, 2);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
@@ -355,6 +495,8 @@ void main() {
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
       await openPlayer(tester, FakeBackend());
+      await tester.tap(find.byTooltip('更多播放设置'));
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
     }
   });
@@ -367,7 +509,6 @@ void main() {
       expect(videoSize, const Size(800, 600));
       expect(
         tester.getSize(find.byKey(const Key('player-control-bar'))).height,
-        // 48px seek target + 48px controls + time text and padding.
         lessThanOrEqualTo(136),
       );
       await tester.pump(const Duration(seconds: 4));
@@ -377,22 +518,25 @@ void main() {
         tester.getSize(find.byKey(const Key('video-gestures'))),
         videoSize,
       );
-      await tester.tap(find.byKey(const Key('video-gestures')));
+      await tester.tapAt(videoSpot(tester));
+      // A single tap waits out the double-tap window.
+      await tester.pump(const Duration(milliseconds: 350));
       await tester.pumpAndSettle();
       expect(find.byTooltip('暂停').hitTestable(), findsOneWidget);
       await tester.tap(find.byTooltip('播放速度'));
       await tester.pumpAndSettle();
-      await tester.pump(const Duration(seconds: 4));
+      await tester.pump(const Duration(seconds: 5));
+      // An open sheet keeps the controls up.
+      expect(find.byTooltip('暂停').hitTestable(), findsNothing); // under barrier
       expect(find.text('1.5×'), findsOneWidget);
       await tester.tap(find.text('1.5×'));
       await tester.pumpAndSettle();
       expect(backend.speeds.last, 1.5);
+      expect(find.text('1.5×'), findsWidgets);
     },
   );
 
-  testWidgets('narrow layout keeps secondary controls in the more menu', (
-    tester,
-  ) async {
+  testWidgets('narrow layout reaches lock from the more sheet', (tester) async {
     tester.view.physicalSize = const Size(320, 640);
     tester.view.devicePixelRatio = 1;
     addTearDown(() {
@@ -400,20 +544,27 @@ void main() {
       tester.view.resetDevicePixelRatio();
     });
     await openPlayer(tester, FakeBackend());
-    expect(find.byTooltip('音轨'), findsNothing);
-    expect(find.byTooltip('字幕'), findsNothing);
-    expect(find.byKey(const Key('playback-volume')), findsNothing);
     await tester.tap(find.byTooltip('更多播放设置'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('锁定控制'));
+    await tester.tap(
+      find.descendant(
+        of: find.byKey(const Key('panel-more')),
+        matching: find.text('锁定'),
+      ),
+    );
     await tester.pumpAndSettle();
-    expect(find.byTooltip('解锁控制'), findsOneWidget);
+    expect(find.byKey(const Key('slide-to-unlock')), findsOneWidget);
   });
-  testWidgets('read speed shows measured MB/s or an unavailable placeholder', (
+
+  testWidgets('read speed lives in the statistics, measured or placeholder', (
     tester,
   ) async {
     final backend = FakeBackend();
     await openPlayer(tester, backend);
+    await tester.tap(find.byTooltip('更多播放设置'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('媒体信息'));
+    await tester.pumpAndSettle();
     expect(find.text('-- MB/s'), findsOneWidget);
     backend.value = const PlayerSnapshot(
       status: PlaybackStatus.playing,
@@ -423,11 +574,51 @@ void main() {
     );
     await tester.pump();
     expect(find.text('12.35 MB/s'), findsOneWidget);
+    await tester.tapAt(const Offset(10, 300)); // outside the sheet
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('portrait puts the picture on top and the controls below it', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
     backend.value = const PlayerSnapshot(
-      status: PlaybackStatus.paused,
-      readSpeedMBps: 0,
+      status: PlaybackStatus.playing,
+      duration: Duration(seconds: 60),
+      canSeek: true,
+      videoSize: Size(1920, 1080),
     );
     await tester.pump();
-    expect(find.text('0.00 MB/s'), findsOneWidget);
+    final video = tester.getRect(find.byType(PlayerVideoView));
+    expect(video.top, 56);
+    expect(video.height, closeTo(390 * 9 / 16, 0.5));
+    final controls = tester.getRect(
+      find.byKey(const Key('player-control-bar')),
+    );
+    expect(controls.top, greaterThanOrEqualTo(video.bottom));
+    expect(find.text('demo.mp4'), findsOneWidget); // title below the picture
+    expect(find.byTooltip('锁定控制'), findsOneWidget); // in the second row
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('swiping up during a long press keeps the boost speed', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    final gesture = await tester.startGesture(videoSpot(tester));
+    await tester.pump(const Duration(milliseconds: 600));
+    expect(find.text('上滑锁定'), findsOneWidget);
+    await gesture.moveBy(const Offset(0, -80));
+    await tester.pump();
+    await gesture.up();
+    await tester.pumpAndSettle();
+    expect(backend.speeds.last, 2);
+    expect(find.text('2×'), findsWidgets); // status chip and speed button
+    await tester.pump(const Duration(seconds: 1));
   });
 }

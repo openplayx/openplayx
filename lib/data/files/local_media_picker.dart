@@ -49,3 +49,20 @@ Future<LocalMedia?> pickLocalMedia() async {
       : Uri.file(file.path);
   return LocalMedia(uri, file.name);
 }
+
+/// Picks an external subtitle file to add to the current playback.
+Future<Uri?> pickSubtitleFile() async {
+  final file = await openFile(
+    acceptedTypeGroups: const [
+      XTypeGroup(
+        label: 'Subtitles',
+        extensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'idx', 'smi', 'txt'],
+      ),
+      XTypeGroup(label: '*'),
+    ],
+  );
+  if (file == null) return null;
+  return file.path.startsWith('content://')
+      ? Uri.parse(file.path)
+      : Uri.file(file.path);
+}

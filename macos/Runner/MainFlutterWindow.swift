@@ -12,6 +12,60 @@ final class PlayerWindowCloser: NSObject, NSWindowDelegate {
   }
 }
 
+/// Native full screen for the Flutter player (`openplayx/window`). Each
+/// Flutter view controller (main window and player windows) gets its own
+/// channel; Dart is told when the user changes full screen natively.
+final class WindowFullScreenChannel: NSObject {
+  static var key: UInt8 = 0
+  private let channel: FlutterMethodChannel
+  private weak var controller: FlutterViewController?
+  private var observers: [NSObjectProtocol] = []
+
+  static func register(_ controller: FlutterViewController) {
+    let handler = WindowFullScreenChannel(controller)
+    objc_setAssociatedObject(controller, &key, handler, .OBJC_ASSOCIATION_RETAIN)
+  }
+
+  private init(_ controller: FlutterViewController) {
+    self.controller = controller
+    channel = FlutterMethodChannel(
+      name: "openplayx/window", binaryMessenger: controller.engine.binaryMessenger)
+    super.init()
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let window = self?.controller?.view.window else {
+        result(false)
+        return
+      }
+      let isFull = window.styleMask.contains(.fullScreen)
+      switch call.method {
+      case "isFullScreen":
+        result(isFull)
+      case "setFullScreen":
+        let wanted = call.arguments as? Bool ?? !isFull
+        if wanted != isFull { window.toggleFullScreen(nil) }
+        result(wanted)
+      default:
+        result(FlutterMethodNotImplemented)
+      }
+    }
+    for name in [NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification] {
+      observers.append(
+        NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
+          [weak self] note in
+          guard let self = self, let window = note.object as? NSWindow,
+            window === self.controller?.view.window
+          else { return }
+          self.channel.invokeMethod(
+            "fullScreenChanged", arguments: window.styleMask.contains(.fullScreen))
+        })
+    }
+  }
+
+  deinit {
+    observers.forEach(NotificationCenter.default.removeObserver)
+  }
+}
+
 class MainFlutterWindow: NSWindow {
   private var sourceAccess: FlutterMethodChannel?
   private var accessedURLs: [URL] = []
@@ -79,7 +133,9 @@ class MainFlutterWindow: NSWindow {
     FlutterMultiWindowPlugin.setOnWindowCreatedCallback { controller in
       RegisterGeneratedPlugins(registry: controller)
       MainFlutterWindow.configurePlayerWindow(controller)
+      WindowFullScreenChannel.register(controller)
     }
+    WindowFullScreenChannel.register(flutterViewController)
 
     sourceAccess = FlutterMethodChannel(name: "openplayx/source_access", binaryMessenger: flutterViewController.engine.binaryMessenger)
     sourceAccess?.setMethodCallHandler { [weak self] call, result in
