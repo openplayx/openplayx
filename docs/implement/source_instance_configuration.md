@@ -1,5 +1,7 @@
 # 数据源与插件实例配置（设计 3.4）
 
+> Current code note (2026-11-15): Current storage: source credentials are stored on their configuration items in `configuration.sqlite3`; the earlier OS-keychain design below is historical. See [current overview](../README.md).
+
 当前实现覆盖已有本地目录、SMB、Plex、Jellyfin 四类内置插件，不新增 WebDAV、S3 或网盘连接器。
 
 ## 调用和存储

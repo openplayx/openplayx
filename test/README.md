@@ -62,3 +62,15 @@ flutter test --no-pub test/metadata/tmdb_live_test.dart \
 ## AI 助手测试
 
 `flutter test test/ai` 覆盖模型事件适配、有限工具循环、Schema 校验、UI 确认、取消与预算、操作去重和持久化、密钥轮换、多来源搜索、过期播放会话及共享会话界面。SDK 协议测试只访问本地 HTTP/SSE 替身，不调用真实云服务或使用个人 API Key。真实供应商能力通过应用设置中的三项独立连接测试按需验证。
+
+## 公网网页与联网搜索
+
+`test/services/web_tools_test.dart` 覆盖公网地址策略、网页转 Markdown、分段读取和工具调用；
+`test/ai/stream_text_smoother_test.dart` 覆盖流式文本平滑。默认测试不访问真实互联网。
+需要真实网页和预置 MCP 搜索服务时，显式运行：
+
+```sh
+WEB_LIVE=1 flutter test test/ai/live_web_test.dart
+```
+
+这会请求第三方网站和搜索服务，请按当前网络及服务额度选择是否运行。

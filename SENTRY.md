@@ -13,7 +13,7 @@ without diagnostics. Build with values matching the actual artifact, for example
 flutter build macos --release \
   --dart-define=SENTRY_DSN=https://PUBLIC_KEY@HOST/PROJECT_ID \
   --dart-define=SENTRY_ENVIRONMENT=staging \
-  --dart-define=SENTRY_RELEASE=openplayx@1.0.0+1 \
+  --dart-define=SENTRY_RELEASE=openplayx@0.0.1+1 \
   --dart-define=SENTRY_DIST=macos-arm64-1 \
   --split-debug-info=build/symbols
 ```

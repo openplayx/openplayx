@@ -1,5 +1,7 @@
 # AI 聊天前端
 
+> Current code note (2026-11-15): Current navigation has a dedicated AI management destination; Home is the library. Shared conversations also use incremental text smoothing. See [current overview](../README.md).
+
 依据 `design/ai/ai_chat_frontend.md`，并沿用 AI 交互、前端设计系统和 LangChain 集成文档的职责划分。
 
 ## 已接入

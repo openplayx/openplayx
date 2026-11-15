@@ -1,5 +1,7 @@
 # LangChain.dart 与 AI 助手实现
 
+> Current code note (2026-11-15): Current credentials are stored on configuration items in `configuration.sqlite3`, without a separate OS keychain. AI also has external MCP services, a removable web-search preset and built-in public-page reading. See [current overview](../README.md).
+
 本次实现设计文档的首次接入范围：云模型配置、独立协议测试、流式文本、宿主控制的工具循环、Gateway、会话与操作记录持久化，以及真实媒体查询和基础播放控制。
 
 ## 使用

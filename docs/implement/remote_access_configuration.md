@@ -1,5 +1,7 @@
 # 远程访问三端配置管理
 
+> Current code note (2026-11-15): Current app storage: remote-access settings are owned by the configuration service in `configuration.sqlite3`; app `remote_access.json` references below describe an earlier design. Home/Relay retain their own service configuration files. See [current overview](../README.md).
+
 实现对应远程访问设计第 11 节。App、Relay、Home 各自拥有本端权威 JSON，不把完整配置自动同步到另外两端。
 
 ## App 设置入口

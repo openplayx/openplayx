@@ -1,5 +1,7 @@
 # 媒体库首版实现
 
+> Current code note (2026-11-15): Current navigation: Home is the media library; top-level destinations are Home, Sources, AI and Settings. Source coverage and database boundaries are summarized in the [current overview](../README.md).
+
 对应目标设计：`../../../design/media/media_library.md`（工作区上层设计目录）。
 
 ## 使用入口
