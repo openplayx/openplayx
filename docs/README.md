@@ -46,3 +46,8 @@ cover installation, build dependencies, current limits and privacy.
 Private architecture and deployment repositories are maintained separately.
 Public documentation must be usable without those repositories and must not
 copy their credentials or internal operational details.
+
+## Licensing
+
+[GPL-3.0-or-later](../LICENSE), [project notice](../NOTICE.md) and
+[third-party notices / release source requirements](../THIRD_PARTY_NOTICES.md).

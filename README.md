@@ -2,6 +2,8 @@
 
 English | [简体中文](README.zh-CN.md)
 
+[![License: GPL v3+](https://img.shields.io/badge/license-GPLv3%2B-blue.svg)](LICENSE)
+
 A Flutter and libVLC media player for local files, network storage and media
 servers, with a local media library and an optional AI assistant.
 
@@ -128,9 +130,12 @@ Report vulnerabilities privately as described in [SECURITY.md](SECURITY.md).
 
 ## License and acknowledgements
 
-This repository currently has no root project license. Public source access
-does not grant a project-wide open-source license; dependency licenses do
-not define the app's license. No new license is granted by this README.
+OpenPlayX original application code and documentation are licensed under
+**GPL-3.0-or-later**; see [LICENSE](LICENSE) and [NOTICE.md](NOTICE.md). The app
+links sing-box, whose GPL and naming notices are preserved. Third-party code
+retains its own terms; see [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) for
+notices and release source requirements. Private build dependencies still
+need separate access; this license does not make them public.
 
 Thanks to Flutter, VideoLAN/libVLC, vlc_player, shadcn_ui, Lucide,
 whisper.cpp, FFmpeg and the other dependencies. Their own licenses and

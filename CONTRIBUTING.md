@@ -28,5 +28,8 @@ Never commit `.env`, populated debug seeds, databases, private media, signing
 material or tokens. Use synthetic fixtures and fake services for routine tests.
 Live-service tests must remain explicitly enabled.
 
-The root project license has not yet been established. Dependency licenses
-remain in force; this guide does not assign a new license to contributions.
+Unless explicitly agreed otherwise, contributions of original application
+code and documentation are provided under GPL-3.0-or-later, the project
+license in [LICENSE](LICENSE). Only submit work you have the right to license.
+Preserve upstream notices and update [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)
+when dependencies change.
