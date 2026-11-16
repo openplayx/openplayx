@@ -713,16 +713,23 @@ extension _MobilePlayer on PlayerPageState {
         : _showRemaining
         ? '-${formatClock(value.duration - at, value.duration)}'
         : formatClock(value.duration, value.duration);
-    return Row(
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        Text(current, style: timeStyle),
-        const SizedBox(width: 10),
-        Expanded(child: _seekBar(value, lane: 32)),
-        const SizedBox(width: 10),
-        GestureDetector(
-          key: const Key('playback-time'),
-          onTap: () => _update(() => _showRemaining = !_showRemaining),
-          child: Text(rest, style: timeStyle),
+        _readSpeedLabel(value),
+        Row(
+          children: [
+            Text(current, style: timeStyle),
+            const SizedBox(width: 10),
+            Expanded(child: _seekBar(value, lane: 32)),
+            const SizedBox(width: 10),
+            GestureDetector(
+              key: const Key('playback-time'),
+              onTap: () => _update(() => _showRemaining = !_showRemaining),
+              child: Text(rest, style: timeStyle),
+            ),
+          ],
         ),
       ],
     );

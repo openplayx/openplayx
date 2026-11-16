@@ -343,6 +343,8 @@ extension _DesktopPlayer on PlayerPageState {
                       ),
                     ),
                   ),
+                  const SizedBox(width: 12),
+                  Flexible(child: _readSpeedLabel(value)),
                   const Spacer(),
                   _desktopVolume(value),
                   PlayerIconButton(

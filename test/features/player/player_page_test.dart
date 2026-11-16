@@ -556,6 +556,24 @@ void main() {
     expect(find.byKey(const Key('slide-to-unlock')), findsOneWidget);
   });
 
+  testWidgets('control bar shows the read speed, measured or placeholder', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    final speed = find.byKey(const Key('playback-read-speed'));
+    expect(speed, findsOneWidget);
+    expect(tester.widget<Text>(speed).data, '读取 -- MB/s');
+    backend.value = const PlayerSnapshot(
+      status: PlaybackStatus.playing,
+      readSpeedMBps: 12.345,
+      duration: Duration(seconds: 60),
+      canSeek: true,
+    );
+    await tester.pump();
+    expect(tester.widget<Text>(speed).data, '读取 12.35 MB/s');
+  });
+
   testWidgets('read speed lives in the statistics, measured or placeholder', (
     tester,
   ) async {

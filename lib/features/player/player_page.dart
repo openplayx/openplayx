@@ -1778,6 +1778,24 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   /// Current position text, honouring the remaining-time preference.
+  /// Player input read speed shown beside the time (docs: 读取速度).
+  Widget _readSpeedLabel(PlayerSnapshot value) => Text(
+    l.readSpeed(
+      value.readSpeedMBps == null
+          ? '--'
+          : value.readSpeedMBps!.toStringAsFixed(2),
+    ),
+    key: const Key('playback-read-speed'),
+    maxLines: 1,
+    overflow: TextOverflow.ellipsis,
+    style: const TextStyle(
+      color: PlayerStyle.muted,
+      fontSize: 12,
+      fontFeatures: PlayerStyle.tabular,
+      shadows: PlayerStyle.shadow,
+    ),
+  );
+
   String _timeText(PlayerSnapshot value, double position) {
     final duration = value.duration;
     final current = formatClock(
