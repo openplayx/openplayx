@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/services/external/external_service_setup.dart';
 import 'package:openplayx/services/external/external_service_registry.dart';
+import 'package:openplayx/l10n/l10n.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 /// A tiny MCP server: [path] answers JSON-RPC as [name]; every other path
@@ -110,7 +111,11 @@ void main() {
     expect(
       () => setup.probe(url, 'bad'),
       throwsA(
-        isA<ExternalServiceException>().having((e) => e.message, 'm', '访问令牌无效'),
+        isA<ExternalServiceException>().having(
+          (e) => e.message,
+          'm',
+          appStrings.errExtTokenInvalid,
+        ),
       ),
     );
     expect(

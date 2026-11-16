@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../../l10n/l10n.dart';
+
 /// `configuration.sqlite3`: everything the user configured, and nothing the
 /// App produces while it is used (that lives in `library.sqlite3`). It stays
 /// small and is the only place configuration is kept.
@@ -40,7 +42,7 @@ abstract final class ConfigurationDatabase {
     db.execute('PRAGMA busy_timeout = 5000');
     final current = db.select('PRAGMA user_version').first.values.first as int;
     if (current > version) {
-      throw StateError('本地配置数据库版本较新，请升级应用。');
+      throw StateError(appStrings.errConfigDbTooNew);
     }
     if (current != 0 && current < 4) {
       // Not migrated (no backward compatibility): credentials moved onto

@@ -106,9 +106,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get continueEmpty => '还没有未看完的视频，播放后会在这里显示。';
 
   @override
-  String get recentlyPlayed => '最近播放';
-
-  @override
   String get recentEmpty => '还没有播放记录。去媒体库或来源中选择视频。';
 
   @override
@@ -570,12 +567,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String removeBindingDescription(int count) {
-    return '此绑定关联 $count 项内容。仅移除失去全部来源证据的自动成员，保留手动成员、共享媒体和原文件。';
-  }
-
-  @override
-  String sourceVersion(String kind, String plugin, int config, int revision) {
-    return '$kind · 插件 $plugin · 配置 v$config · r$revision';
+    return '此文件源关联 $count 项内容。删除后，只由它扫描到的文件记录、播放进度和刮削信息会一并删除；其他文件源也扫描到的内容会保留。存储上的原文件不受影响。';
   }
 
   @override
@@ -584,8 +576,8 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
-  String deleteSourceDescription(int playing, int running) {
-    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
+  String deleteSourceDescription(int fileSources, int playing, int running) {
+    return '删除此连接的配置与凭据，并删除它下面的 $fileSources 个文件源及其扫描到的内容（文件记录、播放进度、刮削信息）。存储上的原文件不受影响。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
   }
 
   @override
@@ -1788,9 +1780,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get browseSourceFiles => '浏览文件';
 
   @override
-  String get sourceConnectionDetails => '连接详情';
-
-  @override
   String get sourceAwaitingVerification => '待验证';
 
   @override
@@ -2123,6 +2112,1757 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plBookmarksShort => '书签';
+
+  @override
+  String get listSeparator => '、';
+
+  @override
+  String get remoteAccess => '远程访问';
+
+  @override
+  String get remoteHomeAndRoutes => '家庭与连接线路';
+
+  @override
+  String get remoteImportTitle => '导入远程配置';
+
+  @override
+  String get remoteImportFooter => '粘贴 Relay 导出的 App 配置，导入后立即生效。';
+
+  @override
+  String get remoteImportPlaceholder => 'App 配置 JSON';
+
+  @override
+  String get remoteImport => '导入';
+
+  @override
+  String get remoteImporting => '正在导入…';
+
+  @override
+  String get remoteImported => '已导入并生效。';
+
+  @override
+  String get remoteClearConfirmTitle => '清空远程配置？';
+
+  @override
+  String get remoteClearConfirmMessage => '清空本机的远程配置与凭据，重新导入后可恢复远程访问。';
+
+  @override
+  String get remoteClear => '清空';
+
+  @override
+  String get remoteClearing => '正在清空…';
+
+  @override
+  String get remoteCleared => '已清空远程配置。';
+
+  @override
+  String get remoteNotImported => '尚未导入';
+
+  @override
+  String get remoteNotImportedHint => '点击“导入”添加远程配置。';
+
+  @override
+  String get remoteServerName => '服务器名称';
+
+  @override
+  String get remoteCredentials => '认证凭据';
+
+  @override
+  String get remoteCredentialsSecure => '已保存在系统安全存储';
+
+  @override
+  String get remoteProxyUnused => '未被来源使用';
+
+  @override
+  String remoteProxyUsedBy(String sources) {
+    return '来源：$sources';
+  }
+
+  @override
+  String remoteProxyPort(int port) {
+    return '端口 $port';
+  }
+
+  @override
+  String get remoteRelayServer => '中继服务器';
+
+  @override
+  String get remoteRelayFooter => '整个 App 共用此连接；认证凭据保存在系统安全存储。';
+
+  @override
+  String get remoteAvailableServices => '可用服务';
+
+  @override
+  String get remoteAvailableServicesFooter =>
+      '由 Home 注册在 Relay 上。来源在“编辑来源 → 家庭远程访问”中选择其中一个。';
+
+  @override
+  String get remoteNeedsAttention => '需要处理';
+
+  @override
+  String remoteSourceProxyMissing(String proxy) {
+    return '使用的 proxy「$proxy」不在当前配置中，远程连接不可用。';
+  }
+
+  @override
+  String get statusConfigured => '已配置';
+
+  @override
+  String get statusNotConfigured => '未配置';
+
+  @override
+  String get statusAvailable => '可用';
+
+  @override
+  String get statusUnavailable => '不可用';
+
+  @override
+  String get plgGroupModel => '模型';
+
+  @override
+  String get plgGroupExternal => '外部能力';
+
+  @override
+  String get plgGroupBuiltIn => '内部能力';
+
+  @override
+  String get plgGroupModelDescription => '配置 Agent 使用的模型';
+
+  @override
+  String get plgGroupExternalDescription => '自部署或云端服务，由你添加';
+
+  @override
+  String get plgGroupBuiltInDescription => '随 App 提供，默认全部开放';
+
+  @override
+  String plgCount(int count) {
+    return '$count 项';
+  }
+
+  @override
+  String extToolCount(int count) {
+    return '$count 个工具';
+  }
+
+  @override
+  String plgInstanceCount(int count) {
+    return '$count 个实例';
+  }
+
+  @override
+  String get plgExternalHint => '填写地址和令牌，自动识别并配置服务';
+
+  @override
+  String get plgExternalEmpty => '还没有配置外部服务';
+
+  @override
+  String get extConfigureTitle => '配置外部能力';
+
+  @override
+  String plgBuiltInHint(int count) {
+    return '随 App 提供 $count 项，默认全部开放，无需逐项启用';
+  }
+
+  @override
+  String plgGroupEmpty(String group) {
+    return '暂无$group';
+  }
+
+  @override
+  String get plgNoAssistant => '此构建未接入 AI 助手';
+
+  @override
+  String get plgSelectForDetail => '选择一项查看详情';
+
+  @override
+  String get plgDeviceUnsupported => '当前设备不支持';
+
+  @override
+  String get plgTemporarilyUnavailable => '暂不可用';
+
+  @override
+  String get plgDisabled => '插件已停用';
+
+  @override
+  String plgDisableConfirmTitle(String name) {
+    return '停用「$name」？';
+  }
+
+  @override
+  String get plgImpactIntro => '停用后立即阻止新的调用；实例配置、已生成的字幕和历史记录都会保留。';
+
+  @override
+  String plgImpactPlaying(int count) {
+    return '$count 个正在播放的会话会继续到播放结束后再释放连接。';
+  }
+
+  @override
+  String plgImpactRunning(int count) {
+    return '$count 个进行中的请求会在完成后释放。';
+  }
+
+  @override
+  String plgImpactInstances(String instances) {
+    return '受影响的实例：$instances。';
+  }
+
+  @override
+  String get actionFailedRetry => '操作失败，请重试。';
+
+  @override
+  String get plgUnavailableReason => '不可用原因';
+
+  @override
+  String get plgSwitch => '插件开关';
+
+  @override
+  String get plgSwitchOn => '允许承接新的业务调用';
+
+  @override
+  String get plgSwitchOff => '已阻止新的调用；实例配置保留';
+
+  @override
+  String get plgLocation => '执行位置';
+
+  @override
+  String get plgLocationDevice => '在本机运行';
+
+  @override
+  String get plgLocationNetwork => 'App 在本机连接你配置的存储服务';
+
+  @override
+  String get plgLocationSelfHosted => 'App 在本机运行适配器，实际工作在你配置的服务器上进行';
+
+  @override
+  String get plgLocationCloudApi => 'App 在本机调用云端 API';
+
+  @override
+  String get plgDependencies => '依赖';
+
+  @override
+  String plgDependency(String name, String status) {
+    return '$name（$status）';
+  }
+
+  @override
+  String get plgCapabilities => '能力';
+
+  @override
+  String get plgCapabilitiesFooter => '只列出此插件真实实现的方法；未实现的能力不会显示。';
+
+  @override
+  String plgInstancesTitle(int count) {
+    return '实例（$count 个）';
+  }
+
+  @override
+  String plgInstanceBusy(int playing, int running) {
+    return '使用中：播放 $playing · 请求 $running';
+  }
+
+  @override
+  String get plgNoInstances => '暂无实例';
+
+  @override
+  String get plgOpenSettings => '打开设置';
+
+  @override
+  String get plgRuntime => '运行状态与诊断';
+
+  @override
+  String plgRevisions(String saved, String applied) {
+    return '已保存修订 $saved · 实际生效 $applied';
+  }
+
+  @override
+  String get plgNotApplied => '尚未生效';
+
+  @override
+  String get plgPendingApply => '新配置待生效，旧修订仍在服务进行中的调用';
+
+  @override
+  String plgActivity(int playing, int running) {
+    return '活动播放 $playing · 进行中请求 $running';
+  }
+
+  @override
+  String plgLastError(String code) {
+    return '最近错误：$code';
+  }
+
+  @override
+  String get plgRefreshStatus => '刷新状态';
+
+  @override
+  String get plgCopyDiagnostics => '复制脱敏诊断信息';
+
+  @override
+  String get plgCopyDiagnosticsHint => '不含地址、账号、路径或密钥';
+
+  @override
+  String get plgDiagnosticsCopied => '已复制诊断信息';
+
+  @override
+  String get extConnectionOk => '连接正常';
+
+  @override
+  String extRemoveConfirmTitle(String name) {
+    return '移除「$name」？';
+  }
+
+  @override
+  String get extRemoveConfirmMessage => '只移除 App 中的地址和令牌，不会影响服务器上的数据。';
+
+  @override
+  String get extNeedsRecheck => '需要重新检测';
+
+  @override
+  String extToolAiUnavailable(String problem) {
+    return 'AI 暂不可用：$problem';
+  }
+
+  @override
+  String get extToolNeedsConfirm => '调用前需要你确认';
+
+  @override
+  String get extAiServiceUnavailable => '服务当前不可用，AI 暂时无法调用';
+
+  @override
+  String get extAiNeedsRecheck => '请点“重新检测”以获取工具定义';
+
+  @override
+  String extAiSummary(int usable, int total) {
+    return 'AI 可直接调用 $usable / $total 个工具；会改变状态的操作会先请你确认';
+  }
+
+  @override
+  String get extRemoved => '这个外部能力已移除';
+
+  @override
+  String extVersion(String version) {
+    return '版本 $version';
+  }
+
+  @override
+  String get extAiCalls => 'AI 调用';
+
+  @override
+  String extToolsTitle(int count) {
+    return '工具（$count 个）';
+  }
+
+  @override
+  String get extNoTools => '没有工具';
+
+  @override
+  String get extRecheck => '重新检测';
+
+  @override
+  String get extConnecting => '正在连接并识别…';
+
+  @override
+  String extAdded(String name) {
+    return '已添加「$name」';
+  }
+
+  @override
+  String get extConfigureFooter =>
+      '填写服务地址和访问令牌，App 会通过 MCP 连接，读取它是什么服务、提供哪些工具。';
+
+  @override
+  String get extServiceAddress => '服务地址';
+
+  @override
+  String get extAccessToken => '访问令牌';
+
+  @override
+  String get extNameOptional => '名称（可选）';
+
+  @override
+  String get extDetected => '识别结果';
+
+  @override
+  String get extTools => '工具';
+
+  @override
+  String get extConnect => '连接并识别';
+
+  @override
+  String get scanStatusPending => '待扫描';
+
+  @override
+  String get scanStatusScanning => '扫描中';
+
+  @override
+  String get scanStatusDone => '扫描完成';
+
+  @override
+  String get scanStatusFailed => '扫描失败';
+
+  @override
+  String get scanStatusInterrupted => '扫描中断';
+
+  @override
+  String get scanRescanHint => '请重新扫描';
+
+  @override
+  String get libraryDbTooNew => '媒体库版本较新，请升级应用';
+
+  @override
+  String get errConfigUnknownFields => '配置包含未知字段，原始配置必须保留。';
+
+  @override
+  String get errRemoteKinds => '当前远程访问支持 Jellyfin、Emby、Plex 和 SMB。';
+
+  @override
+  String get errRemoteProtocolMismatch => '远程服务协议不匹配；SMB 当前仅支持远程模式。';
+
+  @override
+  String get errConfigVersionNoOverwrite => '配置版本不兼容，不能覆盖保存。';
+
+  @override
+  String get errAddressRequired => '请填写地址。';
+
+  @override
+  String get errTimeoutConcurrency => '请求超时须为 1–120 秒，并发须为 1–8。';
+
+  @override
+  String get errScopeCount => '至少设置一个访问范围，范围和排除项最多各 100 条。';
+
+  @override
+  String get errScopeRelative => '访问范围和排除项须为根目录内的相对路径，不允许 .. 或绝对路径。';
+
+  @override
+  String get errBrowseModeUnsupported => '此插件不支持该浏览方式。';
+
+  @override
+  String get errNoSearchIndex => '此插件尚未提供搜索或后台索引能力。';
+
+  @override
+  String get errLibraryNoDirPolicy => '媒体库来源暂不支持文件目录策略。';
+
+  @override
+  String get errChooseLocalFolder => '请选择本地文件夹。';
+
+  @override
+  String get errAddressRelativeSegments => '地址不能包含相对路径片段。';
+
+  @override
+  String get errInvalidServerAddress => '请输入有效的服务器地址，凭据请填在单独字段。';
+
+  @override
+  String get errSmbAddressFormat => 'SMB 使用标准 445 端口：smb://主机/共享名/可选目录。';
+
+  @override
+  String errUserIdRequired(String kind) {
+    return '请填写 $kind 用户 ID。';
+  }
+
+  @override
+  String get errSftpUsernameRequired => '请填写 SFTP 用户名。';
+
+  @override
+  String get errServerAddressRequired => '请填写服务器地址。';
+
+  @override
+  String get errInvalidHost => '请输入有效的 IP、主机名或服务器地址。';
+
+  @override
+  String get errPortRange => '端口须为 1–65535。';
+
+  @override
+  String get errSmbPort => '当前 SMB 连接使用 445 端口。';
+
+  @override
+  String get errPathDots => '路径不能包含 . 或 ..。';
+
+  @override
+  String get errSignInFailed => '登录失败，请检查账号和密码或重新授权。';
+
+  @override
+  String get errAddressRedirected => '地址发生跳转，请填写服务器的实际入口。';
+
+  @override
+  String get errCannotConnectService => '无法连接服务，请检查地址和网络。';
+
+  @override
+  String get errConnectTimeout => '连接超时，请重试。';
+
+  @override
+  String errKindUsernameRequired(String kind) {
+    return '请填写 $kind 用户名。';
+  }
+
+  @override
+  String get errNoValidSignIn => '服务器未返回有效的登录结果。';
+
+  @override
+  String get errPlexSessionExpired => '登录已过期，请重新登录 Plex。';
+
+  @override
+  String get errPlexServerUnreachable => '无法连接这台 Plex 服务器，请确认服务器在线。';
+
+  @override
+  String errDlnaHttp(int status) {
+    return 'DLNA 设备请求失败（HTTP $status）。';
+  }
+
+  @override
+  String get errDlnaForeignHost => 'DLNA 设备返回了其他主机的地址。';
+
+  @override
+  String get errDlnaNotMediaServer => '该设备不是媒体服务器（没有内容目录服务）。';
+
+  @override
+  String get errChooseFolder => '请选择文件夹。';
+
+  @override
+  String get untitled => '未命名';
+
+  @override
+  String get errChooseVideoOrAudio => '请选择视频或音频。';
+
+  @override
+  String get errNoPlayableAddress => '此项目没有可播放的地址。';
+
+  @override
+  String get plexPartMedia => '媒体';
+
+  @override
+  String get errPathOutsideRoot => '路径超出配置的根目录。';
+
+  @override
+  String get errOutsideScope => '目录不在此实例配置的访问范围内。';
+
+  @override
+  String get errAttachmentTooLarge => '附件过大';
+
+  @override
+  String errServiceAccessDenied(String service, int status) {
+    return '$service 拒绝访问（HTTP $status），请检查用户名和密码。';
+  }
+
+  @override
+  String get errFileNotFound => '文件或文件夹不存在。';
+
+  @override
+  String errServiceRequestFailed(String service, int status) {
+    return '$service 请求失败（HTTP $status）。';
+  }
+
+  @override
+  String get errFtpRefused => 'FTP 服务器拒绝连接。';
+
+  @override
+  String get errFtpLogin => 'FTP 登录失败，请检查用户名和密码。';
+
+  @override
+  String get errFtpNoBinary => 'FTP 服务器不支持二进制传输。';
+
+  @override
+  String get errPathChars => '路径包含不支持的字符。';
+
+  @override
+  String get errFtpNoPassive => 'FTP 服务器不支持被动模式。';
+
+  @override
+  String get errFolderNotFoundOrDenied => '文件夹不存在或无权访问。';
+
+  @override
+  String get errFtpList => 'FTP 无法列出文件夹。';
+
+  @override
+  String get errFtpNoResume => 'FTP 服务器不支持断点续传，无法拖动进度。';
+
+  @override
+  String get errFtpRead => '无法读取该 FTP 文件。';
+
+  @override
+  String get errFtpNoSize => 'FTP 服务器未返回文件大小，无法播放。';
+
+  @override
+  String get errSftpLogin => 'SFTP 登录失败，请检查用户名和密码。';
+
+  @override
+  String get errSftpDisabled => '服务器未启用 SFTP。';
+
+  @override
+  String get errPathDenied => '没有权限访问该路径。';
+
+  @override
+  String get errSftpRequest => 'SFTP 请求失败。';
+
+  @override
+  String get errSftpConnect => 'SFTP 连接失败。';
+
+  @override
+  String get errSftpPlay => '无法播放该 SFTP 文件。';
+
+  @override
+  String get errChooseFile => '请选择文件。';
+
+  @override
+  String get errConnectionClosed => '连接已关闭。';
+
+  @override
+  String get errUnsafeResourceUrl => '媒体服务返回了不安全的资源地址。';
+
+  @override
+  String errMediaServerHttp(int status) {
+    return '媒体服务请求失败（HTTP $status），请检查地址和凭据。';
+  }
+
+  @override
+  String get errServerArtworkUnavailable => '服务端图片不可用';
+
+  @override
+  String get errImageTooLarge => '图片过大';
+
+  @override
+  String get errNoPlayableVersion => '此媒体没有可播放版本。';
+
+  @override
+  String get errReselectVersion => '请返回媒体库重新选择一个版本。';
+
+  @override
+  String get errServerIdentityMismatch => '服务端对象身份不匹配';
+
+  @override
+  String plexPartLabel(int index, String container) {
+    return '文件 $index · $container';
+  }
+
+  @override
+  String get errNoPlayableFile => '此媒体没有可播放文件。';
+
+  @override
+  String get errMultiPartUnsupported => '该媒体包含多个版本或分段，暂不支持直接播放。';
+
+  @override
+  String get errMetadataNotThisServer => '元数据查询不属于此服务端实例';
+
+  @override
+  String get errArtworkNotThisServer => '图片不属于此服务端实例';
+
+  @override
+  String get srcFieldFolder => '文件夹';
+
+  @override
+  String get srcFieldWorkgroup => '工作组（可选）';
+
+  @override
+  String get srcFieldRegion => '区域（可选）';
+
+  @override
+  String srcFieldRequired(String field) {
+    return '请填写$field。';
+  }
+
+  @override
+  String get errResourceNotThisSource => '资源不属于此媒体源。';
+
+  @override
+  String get errOutsideAuthorizedFolder => '文件超出已授权文件夹。';
+
+  @override
+  String get errOutsideSmbShare => '路径超出配置的 SMB 共享。';
+
+  @override
+  String get errSmbListShares => '无法读取共享列表，请在“高级”中填写共享文件夹路径后重试。';
+
+  @override
+  String get errSmbPlay => '无法播放该 SMB 文件。';
+
+  @override
+  String get errAttachmentNotFound => '附件不存在';
+
+  @override
+  String get errInvalidFileName => '文件名无效。';
+
+  @override
+  String get errUnknownWriteShare => '无法确定要写入的共享。';
+
+  @override
+  String get errOpenPlayXFolderBlocked => '共享中已有同名文件，无法创建 OpenPlayX 文件夹。';
+
+  @override
+  String get errTooManySameName => '同名文件过多，请先整理 OpenPlayX 文件夹。';
+
+  @override
+  String get errTempNameConflict => '临时文件名冲突，请重试。';
+
+  @override
+  String get errUploadIncomplete => '上传不完整，已丢弃临时文件。';
+
+  @override
+  String get errSmbWrite => '写入 SMB 失败，请确认账号对该共享有写权限。';
+
+  @override
+  String get errAttachmentTypeOrLimit => '不支持的附件类型或读取上限';
+
+  @override
+  String get errSourceMissing => '媒体源不存在或配置不兼容。';
+
+  @override
+  String get errSourceKindChange => '编辑时不能更改源类型。';
+
+  @override
+  String get errTokenRequired => '请填写访问令牌。';
+
+  @override
+  String get srcStatusDisabled => '已禁用';
+
+  @override
+  String get srcStatusReady => '已就绪';
+
+  @override
+  String get srcStatusFailed => '连接失败';
+
+  @override
+  String get srcStatusInitialized => '已初始化 · 待连接验证';
+
+  @override
+  String get srcStatusSaved => '已保存 · 下次访问生效';
+
+  @override
+  String get errArtworkCacheLimit => '不支持的图片缓存上限。';
+
+  @override
+  String get errExtensions => '文件后缀只能包含字母和数字，最多 100 个。';
+
+  @override
+  String get errSourceDisabled => '媒体源已禁用，配置仍保留。';
+
+  @override
+  String get errPluginDisabled => '此插件已停用，实例配置仍保留。';
+
+  @override
+  String get errTokenExpired => '令牌已到期，请更新凭据。';
+
+  @override
+  String get errReselectLocalFolder => '请重新选择本地文件夹以恢复授权。';
+
+  @override
+  String get errCredentialsUnavailable => '凭据不可用，请重新登录或更新凭据。';
+
+  @override
+  String get errInstanceChanged => '实例配置已改变，请重试。';
+
+  @override
+  String get errRequestTimedOut => '请求已超时。';
+
+  @override
+  String get errSourceUnreachable => '无法访问媒体源，请检查地址、权限和凭据。';
+
+  @override
+  String get errInvalidPaging => '无效的分页参数。';
+
+  @override
+  String get errInvalidSearchPaging => '无效搜索或分页';
+
+  @override
+  String get errSearchUnsupported => '此来源不支持搜索';
+
+  @override
+  String get errMetadataUnsupported => '此来源不支持影视信息查询';
+
+  @override
+  String get errAttachmentsUnsupported => '此来源不支持附件读取';
+
+  @override
+  String get errWriteUnsupported => '此来源不支持写入。';
+
+  @override
+  String get errWriteTimeout => '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。';
+
+  @override
+  String errSourceProxyMissing(String proxy) {
+    return '此来源使用远程访问 proxy「$proxy」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。';
+  }
+
+  @override
+  String get errReloadBeforeTest => '请重新加载配置后测试。';
+
+  @override
+  String get errTestTimeout => '连接测试超时。';
+
+  @override
+  String get errTestFailed => '连接测试失败，请检查地址、权限和凭据。';
+
+  @override
+  String get errManualScanDisabled => '此实例未启用手动文件扫描。';
+
+  @override
+  String get errScanLimit => '扫描上限须为 1–5000。';
+
+  @override
+  String get errScanPageLimit => '扫描达到 1000 次目录分页上限，请缩小访问范围。';
+
+  @override
+  String get errScanConfigChanged => '扫描期间实例配置已改变，请重新扫描。';
+
+  @override
+  String get errTooManyQueued => '此实例排队请求过多，请稍后重试。';
+
+  @override
+  String get credNotRequired => '无需账号凭据';
+
+  @override
+  String get credMissing => '缺少凭据';
+
+  @override
+  String get credConfigured => '凭据已保存 · 尚未验证';
+
+  @override
+  String get credExpiring => '令牌将在 7 天内到期';
+
+  @override
+  String get credExpired => '令牌已到期';
+
+  @override
+  String get credRejected => '认证失败 · 请更新凭据';
+
+  @override
+  String get credVerified => '连接已验证';
+
+  @override
+  String get errConfigDbTooNew => '本地配置数据库版本较新，请升级应用。';
+
+  @override
+  String get errConfigVersionKept => '配置版本不兼容，原数据已保留。';
+
+  @override
+  String get errInstanceMetaMismatch => '实例配置与元数据不一致。';
+
+  @override
+  String get errInstanceQuarantined => '实例配置不兼容或损坏，已隔离且保留原数据。';
+
+  @override
+  String get errInstanceNoOverwrite => '不能覆盖版本不兼容的实例配置。';
+
+  @override
+  String get errConfigChangedElsewhereEdit => '配置已被其他窗口修改，请重新加载后编辑。';
+
+  @override
+  String get errConfigChangedDelete => '配置已更新，请重新加载后删除。';
+
+  @override
+  String get errDefaultInstanceChanged => '默认实例设置已更新，请重新加载。';
+
+  @override
+  String get errSettingsChangedElsewhere => '设置已被其他窗口修改，请重新加载。';
+
+  @override
+  String get pickerVideoAudio => '视频和音频';
+
+  @override
+  String get pickerAllFiles => '所有文件';
+
+  @override
+  String get errSeriesIdentityConflict => '剧集或季的身份存在冲突';
+
+  @override
+  String get errInfoChangedReload => '信息已更改，请重新加载后操作';
+
+  @override
+  String get errWorkIdConflict => '作品 ID 冲突，需要人工确认';
+
+  @override
+  String get errInvalidFieldValue => '字段值无效';
+
+  @override
+  String get errPosterNotThisWork => '海报不属于当前作品';
+
+  @override
+  String get errRemoteConfigVersion => '远程访问配置版本不兼容或包含未知字段。';
+
+  @override
+  String get errRemoteOutboundCredential => 'outbound 与凭据必须同时存在。';
+
+  @override
+  String get errRemoteUuidPlacement => 'UUID 只能保存在 credential 中。';
+
+  @override
+  String get errRemoteCredentialInvalid => '远程凭据无效。';
+
+  @override
+  String get errRemoteProxiesInvalid =>
+      'proxies 的 name 不能为空或重复，remotePort 须为有效端口。';
+
+  @override
+  String get errRemotePolicyUnsupported => '远程连接策略超出支持范围。';
+
+  @override
+  String get errRemoteLanNeedsHttps => '局域网自动访问需要 HTTPS 端点和配对确认的证书 SHA-256。';
+
+  @override
+  String get errRemoteUnknownField => '未知远程访问字段。';
+
+  @override
+  String get errRemoteChooseProxy => '请选择远程访问使用的 proxy。';
+
+  @override
+  String get errRemoteEndpoint => '远程访问需要有效的 HTTP(S) 或 SMB 服务端点。';
+
+  @override
+  String get errRemoteProxyRef => 'proxy name、remotePort 或凭据引用无效。';
+
+  @override
+  String get errRemoteProxyHost => '代理主机或配置长度无效。';
+
+  @override
+  String get errRemoteTlsName => '代理 TLS 服务名称无效。';
+
+  @override
+  String get errRemoteNeedsVless => '配对需要开启证书校验的 VLESS TLS/REALITY 出站。';
+
+  @override
+  String get errRemoteCaPrivateKey => 'CA 配置不能包含私钥。';
+
+  @override
+  String get errRemoteRealityPublic => 'REALITY 客户端只保存公开参数。';
+
+  @override
+  String get errRemoteAuthHeader => '传输认证头不能写入公开线路配置。';
+
+  @override
+  String get errRemoteTlsField => '不支持的 TLS 配置字段。';
+
+  @override
+  String get errRemoteConfigTooLarge => '配置过大。';
+
+  @override
+  String get errRemoteInvalidJson => '不是有效的 JSON，请粘贴 Relay 导出的完整 App 配置。';
+
+  @override
+  String get errRemoteAppConfigShape =>
+      'App 配置须为只含“outbound”（对象）和“proxies”（数组）的 JSON 对象。';
+
+  @override
+  String get errRemoteProxyShape =>
+      'proxies 每项须只含“name”（字符串）和“remotePort”（端口）。';
+
+  @override
+  String get errRemoteProxiesEmpty => 'proxies 不能为空，name 不能重复。';
+
+  @override
+  String get errRemoteOutsideEndpoint => '请求超出已授权的服务端点。';
+
+  @override
+  String get errRemoteCertMismatch => '服务证书与已配对身份不匹配。';
+
+  @override
+  String get errRemoteOutsidePaired => '连接超出已配对服务。';
+
+  @override
+  String get errRemoteLanUnreachable => '局域网服务不可达或身份验证失败。';
+
+  @override
+  String get errRemoteCellularBlocked => '当前设置禁止蜂窝网络远程访问，或无法确认当前网络。';
+
+  @override
+  String get errRemoteCellularUnknown => '无法确认蜂窝网络状态，已阻止远程连接。';
+
+  @override
+  String get errRemoteNoCore => '此构建缺少远程连接内核，请安装包含 sing-box 的构建。';
+
+  @override
+  String get errRemoteNativeConfigTooLarge => '远程连接配置过大。';
+
+  @override
+  String get errRemoteCoreStart => '远程内核启动失败，请检查线路配置。';
+
+  @override
+  String get rtDisabled => '已停用';
+
+  @override
+  String get rtUnchecked => '未检测';
+
+  @override
+  String get rtStarting => '启动中';
+
+  @override
+  String get rtBlocked => '需处理';
+
+  @override
+  String get rtError => '出错';
+
+  @override
+  String get rtDraining => '收尾中';
+
+  @override
+  String get healthLastOk => '上次连接成功';
+
+  @override
+  String get healthLocal => '本机';
+
+  @override
+  String get plgDraining => '已阻止新调用，正在等待播放或任务结束';
+
+  @override
+  String plgDependencyBlocked(String name) {
+    return '依赖的「$name」已停用或不可用';
+  }
+
+  @override
+  String get plgNoInstanceAdded => '尚未添加实例';
+
+  @override
+  String get plgAllInstancesDisabled => '所有实例均已停用';
+
+  @override
+  String get plgInstanceFailing => '有实例连接失败';
+
+  @override
+  String get plgSomeInstancesBlocked => '部分实例需处理';
+
+  @override
+  String get plgNfoInstance => '邻近文件规则';
+
+  @override
+  String get plgNoTmdb => '此构建未接入 TMDB 设置';
+
+  @override
+  String get plgTmdbInstance => 'TMDB 配置';
+
+  @override
+  String get plgTmdbNoToken => '未配置访问令牌';
+
+  @override
+  String get plgNoFfmpeg => '当前平台或构建未包含 FFmpeg 媒体处理';
+
+  @override
+  String get plgFfmpegInstance => '设备内处理';
+
+  @override
+  String get plgModelNotConfigured => '未配置模型或密钥';
+
+  @override
+  String get plgNoSources => '此构建未接入媒体来源';
+
+  @override
+  String get plgNoAsr => '此构建未接入语音识别';
+
+  @override
+  String plgModelDetail(String model) {
+    return '模型 $model';
+  }
+
+  @override
+  String get plgLocalAsrUnavailable => '本地识别引擎不可用';
+
+  @override
+  String get errTmdbTokenRequired => '请配置 TMDB 读取访问令牌';
+
+  @override
+  String get errQueryCancelled => '查询已取消';
+
+  @override
+  String get errTmdbResponseTooLarge => 'TMDB 响应过大';
+
+  @override
+  String get errTmdbAuth => 'TMDB 认证失败，请更新令牌';
+
+  @override
+  String get errTmdbNotFound => 'TMDB 对象不存在';
+
+  @override
+  String get errTmdbRateLimited => 'TMDB 请求受限，请稍后重试';
+
+  @override
+  String get errTmdbUnavailable => 'TMDB 暂时不可用';
+
+  @override
+  String get errTmdbRequestFailed => 'TMDB 请求失败';
+
+  @override
+  String get errTmdbInvalidResponse => 'TMDB 响应格式无效';
+
+  @override
+  String get errTmdbUnreachable => '无法连接 TMDB，请检查网络';
+
+  @override
+  String get errTmdbNoAttachments => 'TMDB 不读取来源附件';
+
+  @override
+  String get errTmdbInvalidIds => 'TMDB ID 或季集编号无效';
+
+  @override
+  String get errIdentifySeriesFirst => '请先识别剧集，再选择季集';
+
+  @override
+  String get errTmdbRefRequired => '详情需要 TMDB 引用';
+
+  @override
+  String get errTmdbInvalidIdentity => 'TMDB 对象身份或标题无效';
+
+  @override
+  String get errNfoRefRequired => 'NFO 详情需要附件引用';
+
+  @override
+  String get errNfoParse => 'NFO 解析失败';
+
+  @override
+  String get errNfoTooLarge => 'NFO 超过 1 MiB';
+
+  @override
+  String get errNfoDtd => 'NFO 不允许 DTD 或实体声明';
+
+  @override
+  String get errNfoTooManyNodes => 'NFO 节点过多';
+
+  @override
+  String get errNfoTooDeep => 'NFO 嵌套过深';
+
+  @override
+  String get errNfoType => '不支持的 NFO 对象类型';
+
+  @override
+  String get errNfoFieldTooLong => 'NFO 字段过长';
+
+  @override
+  String get errInvalidMetadataQuery => '无效的元数据查询参数';
+
+  @override
+  String get errMetadataQueryUnsupported => '此元数据实例不支持该查询';
+
+  @override
+  String get errMediaKindUnsupported => '不支持此媒体类型的影视信息';
+
+  @override
+  String get errBackgroundIdentify => '后台识别失败';
+
+  @override
+  String get errQueryStale => '查询已过期或已取消';
+
+  @override
+  String get errTmdbConfigChanged => 'TMDB 配置已改变';
+
+  @override
+  String get errRequeryCandidates => '请重新查询候选';
+
+  @override
+  String get errChooseEpisodeFirst => '请先选择具体季集';
+
+  @override
+  String get errCandidateNotThisQuery => '候选不属于此查询';
+
+  @override
+  String get errDetailIdentityMismatch => '详情身份不匹配';
+
+  @override
+  String get errReloadCandidates => '请重新加载候选';
+
+  @override
+  String get errInvalidLocalCandidate => '无效的本地候选';
+
+  @override
+  String get errChooseSeriesFirst => '请先选择剧集';
+
+  @override
+  String get errConfirmMatchFirst => '请先确认匹配';
+
+  @override
+  String get errCatalogTooLarge => '目录过大，请缩小元数据范围';
+
+  @override
+  String get errCursorStuck => '分页游标未前进';
+
+  @override
+  String get errEpisodeSeasonMissing => '单集所属季不存在';
+
+  @override
+  String get errSourceConfigChanged => '来源配置已改变';
+
+  @override
+  String get errInvalidYear => '年份无效';
+
+  @override
+  String get catSourceBrowse => '浏览目录';
+
+  @override
+  String get catSourceBrowseDesc => '列出该来源的文件夹与文件';
+
+  @override
+  String get catSourceResolve => '播放';
+
+  @override
+  String get catSourceResolveDesc => '把选中的资源交给播放器；严格绑定资源所属实例';
+
+  @override
+  String get catSourceAttachments => '读取附件';
+
+  @override
+  String get catSourceAttachmentsDesc => '读取 NFO、外挂字幕等小文件（有大小上限）';
+
+  @override
+  String get catSearchMedia => '搜索媒体';
+
+  @override
+  String get catSearchMediaDesc => '在服务端搜索影片与剧集';
+
+  @override
+  String get catMetadataLookup => '影视信息';
+
+  @override
+  String get catMetadataLookupDesc => '读取媒体服务器整理好的影视信息';
+
+  @override
+  String get catSourceWrite => '写入新文件';
+
+  @override
+  String get catSourceWriteDesc =>
+      '把 App 生成的片段写到同一共享的 OpenPlayX 文件夹；不覆盖、不删除，每次需确认';
+
+  @override
+  String get catSummaryLocal => '本机或已挂载的文件夹';
+
+  @override
+  String get catSummarySmb => 'Windows 共享、NAS 的 SMB 共享目录';
+
+  @override
+  String get catSummaryWebdav => 'WebDAV 网盘或 NAS 目录';
+
+  @override
+  String get catSummaryFtp => 'FTP 服务器目录';
+
+  @override
+  String get catSummarySftp => '通过 SSH 访问的服务器目录';
+
+  @override
+  String get catSummaryS3 => 'S3 兼容对象存储桶';
+
+  @override
+  String get catSummaryPlex => 'Plex 媒体服务器';
+
+  @override
+  String get catSummaryJellyfin => 'Jellyfin 媒体服务器';
+
+  @override
+  String get catSummaryEmby => 'Emby 媒体服务器';
+
+  @override
+  String get catSummaryDlna => '局域网 DLNA 媒体服务器';
+
+  @override
+  String get catDataLocal => '只读取你授权的文件夹。';
+
+  @override
+  String get catDataRemote =>
+      'App 在本机连接你配置的服务器；文件名和目录名会出现在 AI 对话中（仅当允许 AI 使用时）。';
+
+  @override
+  String get catNfoName => 'NFO 元数据';
+
+  @override
+  String get catNfoSummary => '读取媒体旁边的 .nfo 文件';
+
+  @override
+  String get catNfoToggle => '由“刮削管理”控制是否刮削；后台刮削独立运行，暂不支持单独停用。';
+
+  @override
+  String get catNfoCap => '本地元数据';
+
+  @override
+  String get catNfoCapDesc => '按邻近文件规则匹配影片信息';
+
+  @override
+  String get catTmdbSummary => '从 The Movie Database 查询影片与剧集信息';
+
+  @override
+  String get catTmdbToggle => '清除访问令牌即停止使用；后台刮削独立运行，暂不支持单独停用。';
+
+  @override
+  String get catTmdbData => '查询时向 TMDB 发送解析出的片名与年份，不发送文件内容。';
+
+  @override
+  String get catTmdbCap => '查询元数据';
+
+  @override
+  String get catTmdbCapDesc => '搜索、匹配影片与剧集信息；写入由宿主完成';
+
+  @override
+  String get catFfmpegName => 'FFmpeg 媒体处理';
+
+  @override
+  String get catFfmpegSummary => '截图、探测、转码与音频提取';
+
+  @override
+  String get catFfmpegData => '在本机处理媒体，产物保存在应用目录。';
+
+  @override
+  String get catProbe => '探测';
+
+  @override
+  String get catProbeDesc => '读取时长、编码与音轨';
+
+  @override
+  String get catTranscode => '转码';
+
+  @override
+  String get catTranscodeDesc => '按预设转码为新文件';
+
+  @override
+  String get catExtractAudio => '提取音频';
+
+  @override
+  String get catExtractAudioDesc => '导出音轨用于识别或保存';
+
+  @override
+  String get catSnapshot => '截图';
+
+  @override
+  String get catSnapshotDesc => '截取指定时间的画面';
+
+  @override
+  String get catAsrName => '语音识别';
+
+  @override
+  String get catAsrSummary => '为视频生成原语言字幕与转录';
+
+  @override
+  String get catAsrCapDesc => '生成原语言字幕/转录；不包含翻译';
+
+  @override
+  String get catLlmName => '对话模型';
+
+  @override
+  String get catLlmSummary => '为 AI 助手提供大语言模型';
+
+  @override
+  String get catLlmToggle => '在“AI 与模型”中配置或清除模型；不会生成可递归调用自身的推理工具。';
+
+  @override
+  String get catLlmData => '对话内容、页面摘要与工具结果会发送给所配置的模型服务，可能产生费用。';
+
+  @override
+  String get catLlmCap => '对话推理';
+
+  @override
+  String get catLlmCapDesc => '为 AI 助手生成回复与工具调用';
+
+  @override
+  String get catCategorySource => '媒体来源';
+
+  @override
+  String get catCategoryMetadata => '元数据';
+
+  @override
+  String get catCategoryMediaProcessing => '媒体处理';
+
+  @override
+  String get catCategorySpeech => '字幕识别';
+
+  @override
+  String get catLocationNetwork => '网络存储';
+
+  @override
+  String get catLocationSelfHosted => '自建服务';
+
+  @override
+  String get catLocationCloudApi => '云 API';
+
+  @override
+  String get webSearchPresetName => '联网搜索';
+
+  @override
+  String get errAssistantConfig => '请填写有效的 HTTPS API 基址、模型和输出上限（128–16384）';
+
+  @override
+  String get errExtRootAddress => '请输入服务根地址，例如 https://bt.example.com';
+
+  @override
+  String get errExtHttpsRequired => '公网地址必须使用 HTTPS；HTTP 仅允许局域网或本机地址';
+
+  @override
+  String get errExtTokenRequired => '请填写访问令牌';
+
+  @override
+  String get errExtTimeout => '连接超时';
+
+  @override
+  String get errExtUnreachable => '无法连接到这个地址';
+
+  @override
+  String get errExtTls => 'TLS 证书校验失败';
+
+  @override
+  String get errExtTooLarge => '服务返回的数据过大';
+
+  @override
+  String errExtRejected(String reason) {
+    return '服务拒绝了请求：$reason';
+  }
+
+  @override
+  String errExtError(String code) {
+    return '服务返回错误（$code）';
+  }
+
+  @override
+  String get errExtTokenInvalid => '访问令牌无效';
+
+  @override
+  String get errExtNoMcp => '这个地址没有提供 MCP 入口';
+
+  @override
+  String get errArtworkCancelled => '图片加载已取消';
+
+  @override
+  String get errArtworkQuota => '图片缓存额度不足';
+
+  @override
+  String get errArtworkUnauthorized => '图片地址未经授权';
+
+  @override
+  String get errArtworkTypeSize => '图片类型或大小无效';
+
+  @override
+  String get errArtworkEmptyOrLarge => '图片为空或过大';
+
+  @override
+  String get errArtworkContentType => '不支持的图片内容类型';
+
+  @override
+  String get errArtworkDecodeSize => '图片解码尺寸过大';
+
+  @override
+  String get errArtworkWait => '请等待图片加载完成';
+
+  @override
+  String get errLibraryClosing => '媒体库正在关闭';
+
+  @override
+  String get errNameRequired => '请输入名称';
+
+  @override
+  String get errSeasonCycle => '来源返回了循环季集关系';
+
+  @override
+  String get errInvalidPagingShort => '无效分页';
+
+  @override
+  String get errTitleRequired => '请输入标题';
+
+  @override
+  String get errScanRunning => '扫描已在运行';
+
+  @override
+  String get errFileSourceMissing => '文件源不存在';
+
+  @override
+  String get errFileSourceDisabled => '文件源已停用';
+
+  @override
+  String get errSourceScanDisabled => '来源未启用扫描';
+
+  @override
+  String get errScanTooLarge => '扫描范围过大，请缩小范围';
+
+  @override
+  String get errScanBindingChanged => '来源或绑定已变更，请重新扫描';
+
+  @override
+  String get errSourceIdentityMismatch => '来源身份不匹配';
+
+  @override
+  String get errSourceCursorStuck => '来源分页游标未前进';
+
+  @override
+  String get errScanIncomplete => '扫描未完成，请检查来源后重试';
+
+  @override
+  String get aiToolContextGet => '读取当前页面';
+
+  @override
+  String get aiToolSourceList => '列出媒体来源';
+
+  @override
+  String get aiToolSourceBrowse => '浏览文件夹';
+
+  @override
+  String get aiToolLibraryQuery => '查询媒体库';
+
+  @override
+  String get aiToolMediaGet => '查看媒体详情';
+
+  @override
+  String get aiToolSearchMedia => '搜索媒体';
+
+  @override
+  String get aiToolProgressQuery => '查看观看进度';
+
+  @override
+  String get aiToolMediaSetFavorite => '设置收藏';
+
+  @override
+  String get aiToolPlaybackGet => '读取播放状态';
+
+  @override
+  String get aiToolPlaybackOpen => '打开播放';
+
+  @override
+  String get aiToolPlaybackPause => '暂停';
+
+  @override
+  String get aiToolPlaybackResume => '继续播放';
+
+  @override
+  String get aiToolPlaybackStop => '停止播放';
+
+  @override
+  String get aiToolPlaybackSeek => '跳转';
+
+  @override
+  String get aiToolPlaybackSetSpeed => '设置倍速';
+
+  @override
+  String get aiToolPlaybackSetVolume => '设置音量';
+
+  @override
+  String get aiToolPlaybackSetSubtitle => '设置字幕';
+
+  @override
+  String get aiToolMediaProcessingCapabilities => '查询媒体处理能力';
+
+  @override
+  String get aiToolMediaProbe => '分析媒体';
+
+  @override
+  String get aiToolMediaTranscode => '转码 / 截取片段';
+
+  @override
+  String get aiToolMediaExtractAudio => '提取音频';
+
+  @override
+  String get aiToolMediaSnapshot => '截图';
+
+  @override
+  String get aiToolMediaSaveToSource => '存回媒体来源';
+
+  @override
+  String get aiToolTaskGet => '查询处理任务';
+
+  @override
+  String get aiToolTaskList => '列出处理任务';
+
+  @override
+  String get aiToolTaskCancel => '取消处理任务';
+
+  @override
+  String get aiToolTaskRetry => '重试处理任务';
+
+  @override
+  String get aiToolSpeechRecognitionStatus => '查询语音识别状态';
+
+  @override
+  String get aiToolSubtitleGenerate => '识别字幕';
+
+  @override
+  String get aiToolTranscriptGenerate => '生成转录';
+
+  @override
+  String get aiToolSubtitleTaskGet => '查询字幕任务';
+
+  @override
+  String get aiToolSubtitleTaskCancel => '取消字幕任务';
+
+  @override
+  String get aiToolSubtitleSave => '保存字幕';
+
+  @override
+  String get aiToolPluginStatus => '查看插件状态';
+
+  @override
+  String get aiToolMcpTavilyWebSearch => '联网搜索';
+
+  @override
+  String get aiToolWebFetch => '读取网页';
+
+  @override
+  String get aiArgQuery => '关键词';
+
+  @override
+  String get aiArgUrl => '网址';
+
+  @override
+  String get aiArgRange => '范围';
+
+  @override
+  String get aiArgEnd => '结尾';
+
+  @override
+  String get aiArgWholeMedia => '整部';
+
+  @override
+  String get aiArgTime => '时间';
+
+  @override
+  String get aiArgPosition => '位置';
+
+  @override
+  String get aiArgPreset => '预设';
+
+  @override
+  String get aiArgLanguage => '语言';
+
+  @override
+  String get aiArgFormat => '格式';
+
+  @override
+  String get aiArgSpeed => '倍速';
+
+  @override
+  String get aiArgVolume => '音量';
+
+  @override
+  String get aiArgSwitch => '开关';
+
+  @override
+  String get aiArgOff => '关闭';
+
+  @override
+  String get aiArgFavorite => '收藏';
+
+  @override
+  String get aiArgFavoriteOn => '收藏';
+
+  @override
+  String get aiArgFavoriteOff => '取消收藏';
+
+  @override
+  String get aiArgWait => '等待';
+
+  @override
+  String get aiToolInput => '输入';
+
+  @override
+  String get aiToolOutput => '输出';
+
+  @override
+  String get aiActivityThinking => '正在思考';
+
+  @override
+  String get aiActivityAnswering => '正在回复';
+
+  @override
+  String get aiActivityRunningDefault => '运行中';
+
+  @override
+  String get aiReasoningStreaming => '思考中…';
+
+  @override
+  String get aiReasoningDone => '已思考';
+
+  @override
+  String get aiReasoningUnderSecond => '思考了不到 1 秒';
+
+  @override
+  String get aiStillRunning => '等待超时，任务仍在后台运行（未失败、未停止）';
+
+  @override
+  String get aiStatusQueued => '排队中';
+
+  @override
+  String get aiStatusPreparing => '准备中';
+
+  @override
+  String get aiStatusRunning => '处理中';
+
+  @override
+  String get aiStatusCancelling => '取消中';
+
+  @override
+  String get aiStatusSucceeded => '已完成';
+
+  @override
+  String get aiStatusFailed => '失败';
+
+  @override
+  String get aiStatusCancelled => '已取消';
+
+  @override
+  String get aiStatusInterrupted => '已中断';
+
+  @override
+  String get aiStageExtracting => '提取音频';
+
+  @override
+  String get aiStageUploading => '上传';
+
+  @override
+  String get aiStageQueued => '排队';
+
+  @override
+  String get aiStageTranscribing => '识别';
+
+  @override
+  String get aiStageFormatting => '整理字幕';
+
+  @override
+  String aiArgWaitValue(String seconds) {
+    return '最多等 ${seconds}s';
+  }
+
+  @override
+  String aiStepPreparing(String name) {
+    return '准备调用 $name…';
+  }
+
+  @override
+  String aiStepRunning(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String aiStepWaiting(String name) {
+    return '允许执行 $name？';
+  }
+
+  @override
+  String aiStepFailed(String name) {
+    return '$name 失败';
+  }
+
+  @override
+  String aiStepCancelled(String name) {
+    return '已取消 $name';
+  }
+
+  @override
+  String aiShowAll(int count) {
+    return '显示全部（$count 个字符）';
+  }
+
+  @override
+  String aiActivityPreparingTool(String name) {
+    return '准备调用：$name';
+  }
+
+  @override
+  String aiActivityTool(String name) {
+    return '正在执行：$name';
+  }
+
+  @override
+  String aiActivityConfirm(String name) {
+    return '等待你确认：$name';
+  }
+
+  @override
+  String aiStepNumber(int step) {
+    return '第 $step 步';
+  }
+
+  @override
+  String aiReasoningSeconds(int seconds) {
+    return '思考了 $seconds 秒';
+  }
+
+  @override
+  String aiReasoningMinutes(int minutes) {
+    return '思考了 $minutes 分钟';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -2226,9 +3966,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get continueEmpty => '还没有未看完的视频，播放后会在这里显示。';
 
   @override
-  String get recentlyPlayed => '最近播放';
-
-  @override
   String get recentEmpty => '还没有播放记录。去媒体库或来源中选择视频。';
 
   @override
@@ -2690,12 +4427,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String removeBindingDescription(int count) {
-    return '此绑定关联 $count 项内容。仅移除失去全部来源证据的自动成员，保留手动成员、共享媒体和原文件。';
-  }
-
-  @override
-  String sourceVersion(String kind, String plugin, int config, int revision) {
-    return '$kind · 插件 $plugin · 配置 v$config · r$revision';
+    return '此文件源关联 $count 项内容。删除后，只由它扫描到的文件记录、播放进度和刮削信息会一并删除；其他文件源也扫描到的内容会保留。存储上的原文件不受影响。';
   }
 
   @override
@@ -2704,8 +4436,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
-  String deleteSourceDescription(int playing, int running) {
-    return '仅删除此实例配置与凭据引用，不删除原始文件、收藏或产物。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
+  String deleteSourceDescription(int fileSources, int playing, int running) {
+    return '删除此连接的配置与凭据，并删除它下面的 $fileSources 个文件源及其扫描到的内容（文件记录、播放进度、刮削信息）。存储上的原文件不受影响。当前播放 $playing 个、进行中请求 $running 个可完成，之后释放连接。';
   }
 
   @override
@@ -3908,9 +5640,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get browseSourceFiles => '浏览文件';
 
   @override
-  String get sourceConnectionDetails => '连接详情';
-
-  @override
   String get sourceAwaitingVerification => '待验证';
 
   @override
@@ -4243,6 +5972,1757 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plBookmarksShort => '书签';
+
+  @override
+  String get listSeparator => '、';
+
+  @override
+  String get remoteAccess => '远程访问';
+
+  @override
+  String get remoteHomeAndRoutes => '家庭与连接线路';
+
+  @override
+  String get remoteImportTitle => '导入远程配置';
+
+  @override
+  String get remoteImportFooter => '粘贴 Relay 导出的 App 配置，导入后立即生效。';
+
+  @override
+  String get remoteImportPlaceholder => 'App 配置 JSON';
+
+  @override
+  String get remoteImport => '导入';
+
+  @override
+  String get remoteImporting => '正在导入…';
+
+  @override
+  String get remoteImported => '已导入并生效。';
+
+  @override
+  String get remoteClearConfirmTitle => '清空远程配置？';
+
+  @override
+  String get remoteClearConfirmMessage => '清空本机的远程配置与凭据，重新导入后可恢复远程访问。';
+
+  @override
+  String get remoteClear => '清空';
+
+  @override
+  String get remoteClearing => '正在清空…';
+
+  @override
+  String get remoteCleared => '已清空远程配置。';
+
+  @override
+  String get remoteNotImported => '尚未导入';
+
+  @override
+  String get remoteNotImportedHint => '点击“导入”添加远程配置。';
+
+  @override
+  String get remoteServerName => '服务器名称';
+
+  @override
+  String get remoteCredentials => '认证凭据';
+
+  @override
+  String get remoteCredentialsSecure => '已保存在系统安全存储';
+
+  @override
+  String get remoteProxyUnused => '未被来源使用';
+
+  @override
+  String remoteProxyUsedBy(String sources) {
+    return '来源：$sources';
+  }
+
+  @override
+  String remoteProxyPort(int port) {
+    return '端口 $port';
+  }
+
+  @override
+  String get remoteRelayServer => '中继服务器';
+
+  @override
+  String get remoteRelayFooter => '整个 App 共用此连接；认证凭据保存在系统安全存储。';
+
+  @override
+  String get remoteAvailableServices => '可用服务';
+
+  @override
+  String get remoteAvailableServicesFooter =>
+      '由 Home 注册在 Relay 上。来源在“编辑来源 → 家庭远程访问”中选择其中一个。';
+
+  @override
+  String get remoteNeedsAttention => '需要处理';
+
+  @override
+  String remoteSourceProxyMissing(String proxy) {
+    return '使用的 proxy「$proxy」不在当前配置中，远程连接不可用。';
+  }
+
+  @override
+  String get statusConfigured => '已配置';
+
+  @override
+  String get statusNotConfigured => '未配置';
+
+  @override
+  String get statusAvailable => '可用';
+
+  @override
+  String get statusUnavailable => '不可用';
+
+  @override
+  String get plgGroupModel => '模型';
+
+  @override
+  String get plgGroupExternal => '外部能力';
+
+  @override
+  String get plgGroupBuiltIn => '内部能力';
+
+  @override
+  String get plgGroupModelDescription => '配置 Agent 使用的模型';
+
+  @override
+  String get plgGroupExternalDescription => '自部署或云端服务，由你添加';
+
+  @override
+  String get plgGroupBuiltInDescription => '随 App 提供，默认全部开放';
+
+  @override
+  String plgCount(int count) {
+    return '$count 项';
+  }
+
+  @override
+  String extToolCount(int count) {
+    return '$count 个工具';
+  }
+
+  @override
+  String plgInstanceCount(int count) {
+    return '$count 个实例';
+  }
+
+  @override
+  String get plgExternalHint => '填写地址和令牌，自动识别并配置服务';
+
+  @override
+  String get plgExternalEmpty => '还没有配置外部服务';
+
+  @override
+  String get extConfigureTitle => '配置外部能力';
+
+  @override
+  String plgBuiltInHint(int count) {
+    return '随 App 提供 $count 项，默认全部开放，无需逐项启用';
+  }
+
+  @override
+  String plgGroupEmpty(String group) {
+    return '暂无$group';
+  }
+
+  @override
+  String get plgNoAssistant => '此构建未接入 AI 助手';
+
+  @override
+  String get plgSelectForDetail => '选择一项查看详情';
+
+  @override
+  String get plgDeviceUnsupported => '当前设备不支持';
+
+  @override
+  String get plgTemporarilyUnavailable => '暂不可用';
+
+  @override
+  String get plgDisabled => '插件已停用';
+
+  @override
+  String plgDisableConfirmTitle(String name) {
+    return '停用「$name」？';
+  }
+
+  @override
+  String get plgImpactIntro => '停用后立即阻止新的调用；实例配置、已生成的字幕和历史记录都会保留。';
+
+  @override
+  String plgImpactPlaying(int count) {
+    return '$count 个正在播放的会话会继续到播放结束后再释放连接。';
+  }
+
+  @override
+  String plgImpactRunning(int count) {
+    return '$count 个进行中的请求会在完成后释放。';
+  }
+
+  @override
+  String plgImpactInstances(String instances) {
+    return '受影响的实例：$instances。';
+  }
+
+  @override
+  String get actionFailedRetry => '操作失败，请重试。';
+
+  @override
+  String get plgUnavailableReason => '不可用原因';
+
+  @override
+  String get plgSwitch => '插件开关';
+
+  @override
+  String get plgSwitchOn => '允许承接新的业务调用';
+
+  @override
+  String get plgSwitchOff => '已阻止新的调用；实例配置保留';
+
+  @override
+  String get plgLocation => '执行位置';
+
+  @override
+  String get plgLocationDevice => '在本机运行';
+
+  @override
+  String get plgLocationNetwork => 'App 在本机连接你配置的存储服务';
+
+  @override
+  String get plgLocationSelfHosted => 'App 在本机运行适配器，实际工作在你配置的服务器上进行';
+
+  @override
+  String get plgLocationCloudApi => 'App 在本机调用云端 API';
+
+  @override
+  String get plgDependencies => '依赖';
+
+  @override
+  String plgDependency(String name, String status) {
+    return '$name（$status）';
+  }
+
+  @override
+  String get plgCapabilities => '能力';
+
+  @override
+  String get plgCapabilitiesFooter => '只列出此插件真实实现的方法；未实现的能力不会显示。';
+
+  @override
+  String plgInstancesTitle(int count) {
+    return '实例（$count 个）';
+  }
+
+  @override
+  String plgInstanceBusy(int playing, int running) {
+    return '使用中：播放 $playing · 请求 $running';
+  }
+
+  @override
+  String get plgNoInstances => '暂无实例';
+
+  @override
+  String get plgOpenSettings => '打开设置';
+
+  @override
+  String get plgRuntime => '运行状态与诊断';
+
+  @override
+  String plgRevisions(String saved, String applied) {
+    return '已保存修订 $saved · 实际生效 $applied';
+  }
+
+  @override
+  String get plgNotApplied => '尚未生效';
+
+  @override
+  String get plgPendingApply => '新配置待生效，旧修订仍在服务进行中的调用';
+
+  @override
+  String plgActivity(int playing, int running) {
+    return '活动播放 $playing · 进行中请求 $running';
+  }
+
+  @override
+  String plgLastError(String code) {
+    return '最近错误：$code';
+  }
+
+  @override
+  String get plgRefreshStatus => '刷新状态';
+
+  @override
+  String get plgCopyDiagnostics => '复制脱敏诊断信息';
+
+  @override
+  String get plgCopyDiagnosticsHint => '不含地址、账号、路径或密钥';
+
+  @override
+  String get plgDiagnosticsCopied => '已复制诊断信息';
+
+  @override
+  String get extConnectionOk => '连接正常';
+
+  @override
+  String extRemoveConfirmTitle(String name) {
+    return '移除「$name」？';
+  }
+
+  @override
+  String get extRemoveConfirmMessage => '只移除 App 中的地址和令牌，不会影响服务器上的数据。';
+
+  @override
+  String get extNeedsRecheck => '需要重新检测';
+
+  @override
+  String extToolAiUnavailable(String problem) {
+    return 'AI 暂不可用：$problem';
+  }
+
+  @override
+  String get extToolNeedsConfirm => '调用前需要你确认';
+
+  @override
+  String get extAiServiceUnavailable => '服务当前不可用，AI 暂时无法调用';
+
+  @override
+  String get extAiNeedsRecheck => '请点“重新检测”以获取工具定义';
+
+  @override
+  String extAiSummary(int usable, int total) {
+    return 'AI 可直接调用 $usable / $total 个工具；会改变状态的操作会先请你确认';
+  }
+
+  @override
+  String get extRemoved => '这个外部能力已移除';
+
+  @override
+  String extVersion(String version) {
+    return '版本 $version';
+  }
+
+  @override
+  String get extAiCalls => 'AI 调用';
+
+  @override
+  String extToolsTitle(int count) {
+    return '工具（$count 个）';
+  }
+
+  @override
+  String get extNoTools => '没有工具';
+
+  @override
+  String get extRecheck => '重新检测';
+
+  @override
+  String get extConnecting => '正在连接并识别…';
+
+  @override
+  String extAdded(String name) {
+    return '已添加「$name」';
+  }
+
+  @override
+  String get extConfigureFooter =>
+      '填写服务地址和访问令牌，App 会通过 MCP 连接，读取它是什么服务、提供哪些工具。';
+
+  @override
+  String get extServiceAddress => '服务地址';
+
+  @override
+  String get extAccessToken => '访问令牌';
+
+  @override
+  String get extNameOptional => '名称（可选）';
+
+  @override
+  String get extDetected => '识别结果';
+
+  @override
+  String get extTools => '工具';
+
+  @override
+  String get extConnect => '连接并识别';
+
+  @override
+  String get scanStatusPending => '待扫描';
+
+  @override
+  String get scanStatusScanning => '扫描中';
+
+  @override
+  String get scanStatusDone => '扫描完成';
+
+  @override
+  String get scanStatusFailed => '扫描失败';
+
+  @override
+  String get scanStatusInterrupted => '扫描中断';
+
+  @override
+  String get scanRescanHint => '请重新扫描';
+
+  @override
+  String get libraryDbTooNew => '媒体库版本较新，请升级应用';
+
+  @override
+  String get errConfigUnknownFields => '配置包含未知字段，原始配置必须保留。';
+
+  @override
+  String get errRemoteKinds => '当前远程访问支持 Jellyfin、Emby、Plex 和 SMB。';
+
+  @override
+  String get errRemoteProtocolMismatch => '远程服务协议不匹配；SMB 当前仅支持远程模式。';
+
+  @override
+  String get errConfigVersionNoOverwrite => '配置版本不兼容，不能覆盖保存。';
+
+  @override
+  String get errAddressRequired => '请填写地址。';
+
+  @override
+  String get errTimeoutConcurrency => '请求超时须为 1–120 秒，并发须为 1–8。';
+
+  @override
+  String get errScopeCount => '至少设置一个访问范围，范围和排除项最多各 100 条。';
+
+  @override
+  String get errScopeRelative => '访问范围和排除项须为根目录内的相对路径，不允许 .. 或绝对路径。';
+
+  @override
+  String get errBrowseModeUnsupported => '此插件不支持该浏览方式。';
+
+  @override
+  String get errNoSearchIndex => '此插件尚未提供搜索或后台索引能力。';
+
+  @override
+  String get errLibraryNoDirPolicy => '媒体库来源暂不支持文件目录策略。';
+
+  @override
+  String get errChooseLocalFolder => '请选择本地文件夹。';
+
+  @override
+  String get errAddressRelativeSegments => '地址不能包含相对路径片段。';
+
+  @override
+  String get errInvalidServerAddress => '请输入有效的服务器地址，凭据请填在单独字段。';
+
+  @override
+  String get errSmbAddressFormat => 'SMB 使用标准 445 端口：smb://主机/共享名/可选目录。';
+
+  @override
+  String errUserIdRequired(String kind) {
+    return '请填写 $kind 用户 ID。';
+  }
+
+  @override
+  String get errSftpUsernameRequired => '请填写 SFTP 用户名。';
+
+  @override
+  String get errServerAddressRequired => '请填写服务器地址。';
+
+  @override
+  String get errInvalidHost => '请输入有效的 IP、主机名或服务器地址。';
+
+  @override
+  String get errPortRange => '端口须为 1–65535。';
+
+  @override
+  String get errSmbPort => '当前 SMB 连接使用 445 端口。';
+
+  @override
+  String get errPathDots => '路径不能包含 . 或 ..。';
+
+  @override
+  String get errSignInFailed => '登录失败，请检查账号和密码或重新授权。';
+
+  @override
+  String get errAddressRedirected => '地址发生跳转，请填写服务器的实际入口。';
+
+  @override
+  String get errCannotConnectService => '无法连接服务，请检查地址和网络。';
+
+  @override
+  String get errConnectTimeout => '连接超时，请重试。';
+
+  @override
+  String errKindUsernameRequired(String kind) {
+    return '请填写 $kind 用户名。';
+  }
+
+  @override
+  String get errNoValidSignIn => '服务器未返回有效的登录结果。';
+
+  @override
+  String get errPlexSessionExpired => '登录已过期，请重新登录 Plex。';
+
+  @override
+  String get errPlexServerUnreachable => '无法连接这台 Plex 服务器，请确认服务器在线。';
+
+  @override
+  String errDlnaHttp(int status) {
+    return 'DLNA 设备请求失败（HTTP $status）。';
+  }
+
+  @override
+  String get errDlnaForeignHost => 'DLNA 设备返回了其他主机的地址。';
+
+  @override
+  String get errDlnaNotMediaServer => '该设备不是媒体服务器（没有内容目录服务）。';
+
+  @override
+  String get errChooseFolder => '请选择文件夹。';
+
+  @override
+  String get untitled => '未命名';
+
+  @override
+  String get errChooseVideoOrAudio => '请选择视频或音频。';
+
+  @override
+  String get errNoPlayableAddress => '此项目没有可播放的地址。';
+
+  @override
+  String get plexPartMedia => '媒体';
+
+  @override
+  String get errPathOutsideRoot => '路径超出配置的根目录。';
+
+  @override
+  String get errOutsideScope => '目录不在此实例配置的访问范围内。';
+
+  @override
+  String get errAttachmentTooLarge => '附件过大';
+
+  @override
+  String errServiceAccessDenied(String service, int status) {
+    return '$service 拒绝访问（HTTP $status），请检查用户名和密码。';
+  }
+
+  @override
+  String get errFileNotFound => '文件或文件夹不存在。';
+
+  @override
+  String errServiceRequestFailed(String service, int status) {
+    return '$service 请求失败（HTTP $status）。';
+  }
+
+  @override
+  String get errFtpRefused => 'FTP 服务器拒绝连接。';
+
+  @override
+  String get errFtpLogin => 'FTP 登录失败，请检查用户名和密码。';
+
+  @override
+  String get errFtpNoBinary => 'FTP 服务器不支持二进制传输。';
+
+  @override
+  String get errPathChars => '路径包含不支持的字符。';
+
+  @override
+  String get errFtpNoPassive => 'FTP 服务器不支持被动模式。';
+
+  @override
+  String get errFolderNotFoundOrDenied => '文件夹不存在或无权访问。';
+
+  @override
+  String get errFtpList => 'FTP 无法列出文件夹。';
+
+  @override
+  String get errFtpNoResume => 'FTP 服务器不支持断点续传，无法拖动进度。';
+
+  @override
+  String get errFtpRead => '无法读取该 FTP 文件。';
+
+  @override
+  String get errFtpNoSize => 'FTP 服务器未返回文件大小，无法播放。';
+
+  @override
+  String get errSftpLogin => 'SFTP 登录失败，请检查用户名和密码。';
+
+  @override
+  String get errSftpDisabled => '服务器未启用 SFTP。';
+
+  @override
+  String get errPathDenied => '没有权限访问该路径。';
+
+  @override
+  String get errSftpRequest => 'SFTP 请求失败。';
+
+  @override
+  String get errSftpConnect => 'SFTP 连接失败。';
+
+  @override
+  String get errSftpPlay => '无法播放该 SFTP 文件。';
+
+  @override
+  String get errChooseFile => '请选择文件。';
+
+  @override
+  String get errConnectionClosed => '连接已关闭。';
+
+  @override
+  String get errUnsafeResourceUrl => '媒体服务返回了不安全的资源地址。';
+
+  @override
+  String errMediaServerHttp(int status) {
+    return '媒体服务请求失败（HTTP $status），请检查地址和凭据。';
+  }
+
+  @override
+  String get errServerArtworkUnavailable => '服务端图片不可用';
+
+  @override
+  String get errImageTooLarge => '图片过大';
+
+  @override
+  String get errNoPlayableVersion => '此媒体没有可播放版本。';
+
+  @override
+  String get errReselectVersion => '请返回媒体库重新选择一个版本。';
+
+  @override
+  String get errServerIdentityMismatch => '服务端对象身份不匹配';
+
+  @override
+  String plexPartLabel(int index, String container) {
+    return '文件 $index · $container';
+  }
+
+  @override
+  String get errNoPlayableFile => '此媒体没有可播放文件。';
+
+  @override
+  String get errMultiPartUnsupported => '该媒体包含多个版本或分段，暂不支持直接播放。';
+
+  @override
+  String get errMetadataNotThisServer => '元数据查询不属于此服务端实例';
+
+  @override
+  String get errArtworkNotThisServer => '图片不属于此服务端实例';
+
+  @override
+  String get srcFieldFolder => '文件夹';
+
+  @override
+  String get srcFieldWorkgroup => '工作组（可选）';
+
+  @override
+  String get srcFieldRegion => '区域（可选）';
+
+  @override
+  String srcFieldRequired(String field) {
+    return '请填写$field。';
+  }
+
+  @override
+  String get errResourceNotThisSource => '资源不属于此媒体源。';
+
+  @override
+  String get errOutsideAuthorizedFolder => '文件超出已授权文件夹。';
+
+  @override
+  String get errOutsideSmbShare => '路径超出配置的 SMB 共享。';
+
+  @override
+  String get errSmbListShares => '无法读取共享列表，请在“高级”中填写共享文件夹路径后重试。';
+
+  @override
+  String get errSmbPlay => '无法播放该 SMB 文件。';
+
+  @override
+  String get errAttachmentNotFound => '附件不存在';
+
+  @override
+  String get errInvalidFileName => '文件名无效。';
+
+  @override
+  String get errUnknownWriteShare => '无法确定要写入的共享。';
+
+  @override
+  String get errOpenPlayXFolderBlocked => '共享中已有同名文件，无法创建 OpenPlayX 文件夹。';
+
+  @override
+  String get errTooManySameName => '同名文件过多，请先整理 OpenPlayX 文件夹。';
+
+  @override
+  String get errTempNameConflict => '临时文件名冲突，请重试。';
+
+  @override
+  String get errUploadIncomplete => '上传不完整，已丢弃临时文件。';
+
+  @override
+  String get errSmbWrite => '写入 SMB 失败，请确认账号对该共享有写权限。';
+
+  @override
+  String get errAttachmentTypeOrLimit => '不支持的附件类型或读取上限';
+
+  @override
+  String get errSourceMissing => '媒体源不存在或配置不兼容。';
+
+  @override
+  String get errSourceKindChange => '编辑时不能更改源类型。';
+
+  @override
+  String get errTokenRequired => '请填写访问令牌。';
+
+  @override
+  String get srcStatusDisabled => '已禁用';
+
+  @override
+  String get srcStatusReady => '已就绪';
+
+  @override
+  String get srcStatusFailed => '连接失败';
+
+  @override
+  String get srcStatusInitialized => '已初始化 · 待连接验证';
+
+  @override
+  String get srcStatusSaved => '已保存 · 下次访问生效';
+
+  @override
+  String get errArtworkCacheLimit => '不支持的图片缓存上限。';
+
+  @override
+  String get errExtensions => '文件后缀只能包含字母和数字，最多 100 个。';
+
+  @override
+  String get errSourceDisabled => '媒体源已禁用，配置仍保留。';
+
+  @override
+  String get errPluginDisabled => '此插件已停用，实例配置仍保留。';
+
+  @override
+  String get errTokenExpired => '令牌已到期，请更新凭据。';
+
+  @override
+  String get errReselectLocalFolder => '请重新选择本地文件夹以恢复授权。';
+
+  @override
+  String get errCredentialsUnavailable => '凭据不可用，请重新登录或更新凭据。';
+
+  @override
+  String get errInstanceChanged => '实例配置已改变，请重试。';
+
+  @override
+  String get errRequestTimedOut => '请求已超时。';
+
+  @override
+  String get errSourceUnreachable => '无法访问媒体源，请检查地址、权限和凭据。';
+
+  @override
+  String get errInvalidPaging => '无效的分页参数。';
+
+  @override
+  String get errInvalidSearchPaging => '无效搜索或分页';
+
+  @override
+  String get errSearchUnsupported => '此来源不支持搜索';
+
+  @override
+  String get errMetadataUnsupported => '此来源不支持影视信息查询';
+
+  @override
+  String get errAttachmentsUnsupported => '此来源不支持附件读取';
+
+  @override
+  String get errWriteUnsupported => '此来源不支持写入。';
+
+  @override
+  String get errWriteTimeout => '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。';
+
+  @override
+  String errSourceProxyMissing(String proxy) {
+    return '此来源使用远程访问 proxy「$proxy」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。';
+  }
+
+  @override
+  String get errReloadBeforeTest => '请重新加载配置后测试。';
+
+  @override
+  String get errTestTimeout => '连接测试超时。';
+
+  @override
+  String get errTestFailed => '连接测试失败，请检查地址、权限和凭据。';
+
+  @override
+  String get errManualScanDisabled => '此实例未启用手动文件扫描。';
+
+  @override
+  String get errScanLimit => '扫描上限须为 1–5000。';
+
+  @override
+  String get errScanPageLimit => '扫描达到 1000 次目录分页上限，请缩小访问范围。';
+
+  @override
+  String get errScanConfigChanged => '扫描期间实例配置已改变，请重新扫描。';
+
+  @override
+  String get errTooManyQueued => '此实例排队请求过多，请稍后重试。';
+
+  @override
+  String get credNotRequired => '无需账号凭据';
+
+  @override
+  String get credMissing => '缺少凭据';
+
+  @override
+  String get credConfigured => '凭据已保存 · 尚未验证';
+
+  @override
+  String get credExpiring => '令牌将在 7 天内到期';
+
+  @override
+  String get credExpired => '令牌已到期';
+
+  @override
+  String get credRejected => '认证失败 · 请更新凭据';
+
+  @override
+  String get credVerified => '连接已验证';
+
+  @override
+  String get errConfigDbTooNew => '本地配置数据库版本较新，请升级应用。';
+
+  @override
+  String get errConfigVersionKept => '配置版本不兼容，原数据已保留。';
+
+  @override
+  String get errInstanceMetaMismatch => '实例配置与元数据不一致。';
+
+  @override
+  String get errInstanceQuarantined => '实例配置不兼容或损坏，已隔离且保留原数据。';
+
+  @override
+  String get errInstanceNoOverwrite => '不能覆盖版本不兼容的实例配置。';
+
+  @override
+  String get errConfigChangedElsewhereEdit => '配置已被其他窗口修改，请重新加载后编辑。';
+
+  @override
+  String get errConfigChangedDelete => '配置已更新，请重新加载后删除。';
+
+  @override
+  String get errDefaultInstanceChanged => '默认实例设置已更新，请重新加载。';
+
+  @override
+  String get errSettingsChangedElsewhere => '设置已被其他窗口修改，请重新加载。';
+
+  @override
+  String get pickerVideoAudio => '视频和音频';
+
+  @override
+  String get pickerAllFiles => '所有文件';
+
+  @override
+  String get errSeriesIdentityConflict => '剧集或季的身份存在冲突';
+
+  @override
+  String get errInfoChangedReload => '信息已更改，请重新加载后操作';
+
+  @override
+  String get errWorkIdConflict => '作品 ID 冲突，需要人工确认';
+
+  @override
+  String get errInvalidFieldValue => '字段值无效';
+
+  @override
+  String get errPosterNotThisWork => '海报不属于当前作品';
+
+  @override
+  String get errRemoteConfigVersion => '远程访问配置版本不兼容或包含未知字段。';
+
+  @override
+  String get errRemoteOutboundCredential => 'outbound 与凭据必须同时存在。';
+
+  @override
+  String get errRemoteUuidPlacement => 'UUID 只能保存在 credential 中。';
+
+  @override
+  String get errRemoteCredentialInvalid => '远程凭据无效。';
+
+  @override
+  String get errRemoteProxiesInvalid =>
+      'proxies 的 name 不能为空或重复，remotePort 须为有效端口。';
+
+  @override
+  String get errRemotePolicyUnsupported => '远程连接策略超出支持范围。';
+
+  @override
+  String get errRemoteLanNeedsHttps => '局域网自动访问需要 HTTPS 端点和配对确认的证书 SHA-256。';
+
+  @override
+  String get errRemoteUnknownField => '未知远程访问字段。';
+
+  @override
+  String get errRemoteChooseProxy => '请选择远程访问使用的 proxy。';
+
+  @override
+  String get errRemoteEndpoint => '远程访问需要有效的 HTTP(S) 或 SMB 服务端点。';
+
+  @override
+  String get errRemoteProxyRef => 'proxy name、remotePort 或凭据引用无效。';
+
+  @override
+  String get errRemoteProxyHost => '代理主机或配置长度无效。';
+
+  @override
+  String get errRemoteTlsName => '代理 TLS 服务名称无效。';
+
+  @override
+  String get errRemoteNeedsVless => '配对需要开启证书校验的 VLESS TLS/REALITY 出站。';
+
+  @override
+  String get errRemoteCaPrivateKey => 'CA 配置不能包含私钥。';
+
+  @override
+  String get errRemoteRealityPublic => 'REALITY 客户端只保存公开参数。';
+
+  @override
+  String get errRemoteAuthHeader => '传输认证头不能写入公开线路配置。';
+
+  @override
+  String get errRemoteTlsField => '不支持的 TLS 配置字段。';
+
+  @override
+  String get errRemoteConfigTooLarge => '配置过大。';
+
+  @override
+  String get errRemoteInvalidJson => '不是有效的 JSON，请粘贴 Relay 导出的完整 App 配置。';
+
+  @override
+  String get errRemoteAppConfigShape =>
+      'App 配置须为只含“outbound”（对象）和“proxies”（数组）的 JSON 对象。';
+
+  @override
+  String get errRemoteProxyShape =>
+      'proxies 每项须只含“name”（字符串）和“remotePort”（端口）。';
+
+  @override
+  String get errRemoteProxiesEmpty => 'proxies 不能为空，name 不能重复。';
+
+  @override
+  String get errRemoteOutsideEndpoint => '请求超出已授权的服务端点。';
+
+  @override
+  String get errRemoteCertMismatch => '服务证书与已配对身份不匹配。';
+
+  @override
+  String get errRemoteOutsidePaired => '连接超出已配对服务。';
+
+  @override
+  String get errRemoteLanUnreachable => '局域网服务不可达或身份验证失败。';
+
+  @override
+  String get errRemoteCellularBlocked => '当前设置禁止蜂窝网络远程访问，或无法确认当前网络。';
+
+  @override
+  String get errRemoteCellularUnknown => '无法确认蜂窝网络状态，已阻止远程连接。';
+
+  @override
+  String get errRemoteNoCore => '此构建缺少远程连接内核，请安装包含 sing-box 的构建。';
+
+  @override
+  String get errRemoteNativeConfigTooLarge => '远程连接配置过大。';
+
+  @override
+  String get errRemoteCoreStart => '远程内核启动失败，请检查线路配置。';
+
+  @override
+  String get rtDisabled => '已停用';
+
+  @override
+  String get rtUnchecked => '未检测';
+
+  @override
+  String get rtStarting => '启动中';
+
+  @override
+  String get rtBlocked => '需处理';
+
+  @override
+  String get rtError => '出错';
+
+  @override
+  String get rtDraining => '收尾中';
+
+  @override
+  String get healthLastOk => '上次连接成功';
+
+  @override
+  String get healthLocal => '本机';
+
+  @override
+  String get plgDraining => '已阻止新调用，正在等待播放或任务结束';
+
+  @override
+  String plgDependencyBlocked(String name) {
+    return '依赖的「$name」已停用或不可用';
+  }
+
+  @override
+  String get plgNoInstanceAdded => '尚未添加实例';
+
+  @override
+  String get plgAllInstancesDisabled => '所有实例均已停用';
+
+  @override
+  String get plgInstanceFailing => '有实例连接失败';
+
+  @override
+  String get plgSomeInstancesBlocked => '部分实例需处理';
+
+  @override
+  String get plgNfoInstance => '邻近文件规则';
+
+  @override
+  String get plgNoTmdb => '此构建未接入 TMDB 设置';
+
+  @override
+  String get plgTmdbInstance => 'TMDB 配置';
+
+  @override
+  String get plgTmdbNoToken => '未配置访问令牌';
+
+  @override
+  String get plgNoFfmpeg => '当前平台或构建未包含 FFmpeg 媒体处理';
+
+  @override
+  String get plgFfmpegInstance => '设备内处理';
+
+  @override
+  String get plgModelNotConfigured => '未配置模型或密钥';
+
+  @override
+  String get plgNoSources => '此构建未接入媒体来源';
+
+  @override
+  String get plgNoAsr => '此构建未接入语音识别';
+
+  @override
+  String plgModelDetail(String model) {
+    return '模型 $model';
+  }
+
+  @override
+  String get plgLocalAsrUnavailable => '本地识别引擎不可用';
+
+  @override
+  String get errTmdbTokenRequired => '请配置 TMDB 读取访问令牌';
+
+  @override
+  String get errQueryCancelled => '查询已取消';
+
+  @override
+  String get errTmdbResponseTooLarge => 'TMDB 响应过大';
+
+  @override
+  String get errTmdbAuth => 'TMDB 认证失败，请更新令牌';
+
+  @override
+  String get errTmdbNotFound => 'TMDB 对象不存在';
+
+  @override
+  String get errTmdbRateLimited => 'TMDB 请求受限，请稍后重试';
+
+  @override
+  String get errTmdbUnavailable => 'TMDB 暂时不可用';
+
+  @override
+  String get errTmdbRequestFailed => 'TMDB 请求失败';
+
+  @override
+  String get errTmdbInvalidResponse => 'TMDB 响应格式无效';
+
+  @override
+  String get errTmdbUnreachable => '无法连接 TMDB，请检查网络';
+
+  @override
+  String get errTmdbNoAttachments => 'TMDB 不读取来源附件';
+
+  @override
+  String get errTmdbInvalidIds => 'TMDB ID 或季集编号无效';
+
+  @override
+  String get errIdentifySeriesFirst => '请先识别剧集，再选择季集';
+
+  @override
+  String get errTmdbRefRequired => '详情需要 TMDB 引用';
+
+  @override
+  String get errTmdbInvalidIdentity => 'TMDB 对象身份或标题无效';
+
+  @override
+  String get errNfoRefRequired => 'NFO 详情需要附件引用';
+
+  @override
+  String get errNfoParse => 'NFO 解析失败';
+
+  @override
+  String get errNfoTooLarge => 'NFO 超过 1 MiB';
+
+  @override
+  String get errNfoDtd => 'NFO 不允许 DTD 或实体声明';
+
+  @override
+  String get errNfoTooManyNodes => 'NFO 节点过多';
+
+  @override
+  String get errNfoTooDeep => 'NFO 嵌套过深';
+
+  @override
+  String get errNfoType => '不支持的 NFO 对象类型';
+
+  @override
+  String get errNfoFieldTooLong => 'NFO 字段过长';
+
+  @override
+  String get errInvalidMetadataQuery => '无效的元数据查询参数';
+
+  @override
+  String get errMetadataQueryUnsupported => '此元数据实例不支持该查询';
+
+  @override
+  String get errMediaKindUnsupported => '不支持此媒体类型的影视信息';
+
+  @override
+  String get errBackgroundIdentify => '后台识别失败';
+
+  @override
+  String get errQueryStale => '查询已过期或已取消';
+
+  @override
+  String get errTmdbConfigChanged => 'TMDB 配置已改变';
+
+  @override
+  String get errRequeryCandidates => '请重新查询候选';
+
+  @override
+  String get errChooseEpisodeFirst => '请先选择具体季集';
+
+  @override
+  String get errCandidateNotThisQuery => '候选不属于此查询';
+
+  @override
+  String get errDetailIdentityMismatch => '详情身份不匹配';
+
+  @override
+  String get errReloadCandidates => '请重新加载候选';
+
+  @override
+  String get errInvalidLocalCandidate => '无效的本地候选';
+
+  @override
+  String get errChooseSeriesFirst => '请先选择剧集';
+
+  @override
+  String get errConfirmMatchFirst => '请先确认匹配';
+
+  @override
+  String get errCatalogTooLarge => '目录过大，请缩小元数据范围';
+
+  @override
+  String get errCursorStuck => '分页游标未前进';
+
+  @override
+  String get errEpisodeSeasonMissing => '单集所属季不存在';
+
+  @override
+  String get errSourceConfigChanged => '来源配置已改变';
+
+  @override
+  String get errInvalidYear => '年份无效';
+
+  @override
+  String get catSourceBrowse => '浏览目录';
+
+  @override
+  String get catSourceBrowseDesc => '列出该来源的文件夹与文件';
+
+  @override
+  String get catSourceResolve => '播放';
+
+  @override
+  String get catSourceResolveDesc => '把选中的资源交给播放器；严格绑定资源所属实例';
+
+  @override
+  String get catSourceAttachments => '读取附件';
+
+  @override
+  String get catSourceAttachmentsDesc => '读取 NFO、外挂字幕等小文件（有大小上限）';
+
+  @override
+  String get catSearchMedia => '搜索媒体';
+
+  @override
+  String get catSearchMediaDesc => '在服务端搜索影片与剧集';
+
+  @override
+  String get catMetadataLookup => '影视信息';
+
+  @override
+  String get catMetadataLookupDesc => '读取媒体服务器整理好的影视信息';
+
+  @override
+  String get catSourceWrite => '写入新文件';
+
+  @override
+  String get catSourceWriteDesc =>
+      '把 App 生成的片段写到同一共享的 OpenPlayX 文件夹；不覆盖、不删除，每次需确认';
+
+  @override
+  String get catSummaryLocal => '本机或已挂载的文件夹';
+
+  @override
+  String get catSummarySmb => 'Windows 共享、NAS 的 SMB 共享目录';
+
+  @override
+  String get catSummaryWebdav => 'WebDAV 网盘或 NAS 目录';
+
+  @override
+  String get catSummaryFtp => 'FTP 服务器目录';
+
+  @override
+  String get catSummarySftp => '通过 SSH 访问的服务器目录';
+
+  @override
+  String get catSummaryS3 => 'S3 兼容对象存储桶';
+
+  @override
+  String get catSummaryPlex => 'Plex 媒体服务器';
+
+  @override
+  String get catSummaryJellyfin => 'Jellyfin 媒体服务器';
+
+  @override
+  String get catSummaryEmby => 'Emby 媒体服务器';
+
+  @override
+  String get catSummaryDlna => '局域网 DLNA 媒体服务器';
+
+  @override
+  String get catDataLocal => '只读取你授权的文件夹。';
+
+  @override
+  String get catDataRemote =>
+      'App 在本机连接你配置的服务器；文件名和目录名会出现在 AI 对话中（仅当允许 AI 使用时）。';
+
+  @override
+  String get catNfoName => 'NFO 元数据';
+
+  @override
+  String get catNfoSummary => '读取媒体旁边的 .nfo 文件';
+
+  @override
+  String get catNfoToggle => '由“刮削管理”控制是否刮削；后台刮削独立运行，暂不支持单独停用。';
+
+  @override
+  String get catNfoCap => '本地元数据';
+
+  @override
+  String get catNfoCapDesc => '按邻近文件规则匹配影片信息';
+
+  @override
+  String get catTmdbSummary => '从 The Movie Database 查询影片与剧集信息';
+
+  @override
+  String get catTmdbToggle => '清除访问令牌即停止使用；后台刮削独立运行，暂不支持单独停用。';
+
+  @override
+  String get catTmdbData => '查询时向 TMDB 发送解析出的片名与年份，不发送文件内容。';
+
+  @override
+  String get catTmdbCap => '查询元数据';
+
+  @override
+  String get catTmdbCapDesc => '搜索、匹配影片与剧集信息；写入由宿主完成';
+
+  @override
+  String get catFfmpegName => 'FFmpeg 媒体处理';
+
+  @override
+  String get catFfmpegSummary => '截图、探测、转码与音频提取';
+
+  @override
+  String get catFfmpegData => '在本机处理媒体，产物保存在应用目录。';
+
+  @override
+  String get catProbe => '探测';
+
+  @override
+  String get catProbeDesc => '读取时长、编码与音轨';
+
+  @override
+  String get catTranscode => '转码';
+
+  @override
+  String get catTranscodeDesc => '按预设转码为新文件';
+
+  @override
+  String get catExtractAudio => '提取音频';
+
+  @override
+  String get catExtractAudioDesc => '导出音轨用于识别或保存';
+
+  @override
+  String get catSnapshot => '截图';
+
+  @override
+  String get catSnapshotDesc => '截取指定时间的画面';
+
+  @override
+  String get catAsrName => '语音识别';
+
+  @override
+  String get catAsrSummary => '为视频生成原语言字幕与转录';
+
+  @override
+  String get catAsrCapDesc => '生成原语言字幕/转录；不包含翻译';
+
+  @override
+  String get catLlmName => '对话模型';
+
+  @override
+  String get catLlmSummary => '为 AI 助手提供大语言模型';
+
+  @override
+  String get catLlmToggle => '在“AI 与模型”中配置或清除模型；不会生成可递归调用自身的推理工具。';
+
+  @override
+  String get catLlmData => '对话内容、页面摘要与工具结果会发送给所配置的模型服务，可能产生费用。';
+
+  @override
+  String get catLlmCap => '对话推理';
+
+  @override
+  String get catLlmCapDesc => '为 AI 助手生成回复与工具调用';
+
+  @override
+  String get catCategorySource => '媒体来源';
+
+  @override
+  String get catCategoryMetadata => '元数据';
+
+  @override
+  String get catCategoryMediaProcessing => '媒体处理';
+
+  @override
+  String get catCategorySpeech => '字幕识别';
+
+  @override
+  String get catLocationNetwork => '网络存储';
+
+  @override
+  String get catLocationSelfHosted => '自建服务';
+
+  @override
+  String get catLocationCloudApi => '云 API';
+
+  @override
+  String get webSearchPresetName => '联网搜索';
+
+  @override
+  String get errAssistantConfig => '请填写有效的 HTTPS API 基址、模型和输出上限（128–16384）';
+
+  @override
+  String get errExtRootAddress => '请输入服务根地址，例如 https://bt.example.com';
+
+  @override
+  String get errExtHttpsRequired => '公网地址必须使用 HTTPS；HTTP 仅允许局域网或本机地址';
+
+  @override
+  String get errExtTokenRequired => '请填写访问令牌';
+
+  @override
+  String get errExtTimeout => '连接超时';
+
+  @override
+  String get errExtUnreachable => '无法连接到这个地址';
+
+  @override
+  String get errExtTls => 'TLS 证书校验失败';
+
+  @override
+  String get errExtTooLarge => '服务返回的数据过大';
+
+  @override
+  String errExtRejected(String reason) {
+    return '服务拒绝了请求：$reason';
+  }
+
+  @override
+  String errExtError(String code) {
+    return '服务返回错误（$code）';
+  }
+
+  @override
+  String get errExtTokenInvalid => '访问令牌无效';
+
+  @override
+  String get errExtNoMcp => '这个地址没有提供 MCP 入口';
+
+  @override
+  String get errArtworkCancelled => '图片加载已取消';
+
+  @override
+  String get errArtworkQuota => '图片缓存额度不足';
+
+  @override
+  String get errArtworkUnauthorized => '图片地址未经授权';
+
+  @override
+  String get errArtworkTypeSize => '图片类型或大小无效';
+
+  @override
+  String get errArtworkEmptyOrLarge => '图片为空或过大';
+
+  @override
+  String get errArtworkContentType => '不支持的图片内容类型';
+
+  @override
+  String get errArtworkDecodeSize => '图片解码尺寸过大';
+
+  @override
+  String get errArtworkWait => '请等待图片加载完成';
+
+  @override
+  String get errLibraryClosing => '媒体库正在关闭';
+
+  @override
+  String get errNameRequired => '请输入名称';
+
+  @override
+  String get errSeasonCycle => '来源返回了循环季集关系';
+
+  @override
+  String get errInvalidPagingShort => '无效分页';
+
+  @override
+  String get errTitleRequired => '请输入标题';
+
+  @override
+  String get errScanRunning => '扫描已在运行';
+
+  @override
+  String get errFileSourceMissing => '文件源不存在';
+
+  @override
+  String get errFileSourceDisabled => '文件源已停用';
+
+  @override
+  String get errSourceScanDisabled => '来源未启用扫描';
+
+  @override
+  String get errScanTooLarge => '扫描范围过大，请缩小范围';
+
+  @override
+  String get errScanBindingChanged => '来源或绑定已变更，请重新扫描';
+
+  @override
+  String get errSourceIdentityMismatch => '来源身份不匹配';
+
+  @override
+  String get errSourceCursorStuck => '来源分页游标未前进';
+
+  @override
+  String get errScanIncomplete => '扫描未完成，请检查来源后重试';
+
+  @override
+  String get aiToolContextGet => '读取当前页面';
+
+  @override
+  String get aiToolSourceList => '列出媒体来源';
+
+  @override
+  String get aiToolSourceBrowse => '浏览文件夹';
+
+  @override
+  String get aiToolLibraryQuery => '查询媒体库';
+
+  @override
+  String get aiToolMediaGet => '查看媒体详情';
+
+  @override
+  String get aiToolSearchMedia => '搜索媒体';
+
+  @override
+  String get aiToolProgressQuery => '查看观看进度';
+
+  @override
+  String get aiToolMediaSetFavorite => '设置收藏';
+
+  @override
+  String get aiToolPlaybackGet => '读取播放状态';
+
+  @override
+  String get aiToolPlaybackOpen => '打开播放';
+
+  @override
+  String get aiToolPlaybackPause => '暂停';
+
+  @override
+  String get aiToolPlaybackResume => '继续播放';
+
+  @override
+  String get aiToolPlaybackStop => '停止播放';
+
+  @override
+  String get aiToolPlaybackSeek => '跳转';
+
+  @override
+  String get aiToolPlaybackSetSpeed => '设置倍速';
+
+  @override
+  String get aiToolPlaybackSetVolume => '设置音量';
+
+  @override
+  String get aiToolPlaybackSetSubtitle => '设置字幕';
+
+  @override
+  String get aiToolMediaProcessingCapabilities => '查询媒体处理能力';
+
+  @override
+  String get aiToolMediaProbe => '分析媒体';
+
+  @override
+  String get aiToolMediaTranscode => '转码 / 截取片段';
+
+  @override
+  String get aiToolMediaExtractAudio => '提取音频';
+
+  @override
+  String get aiToolMediaSnapshot => '截图';
+
+  @override
+  String get aiToolMediaSaveToSource => '存回媒体来源';
+
+  @override
+  String get aiToolTaskGet => '查询处理任务';
+
+  @override
+  String get aiToolTaskList => '列出处理任务';
+
+  @override
+  String get aiToolTaskCancel => '取消处理任务';
+
+  @override
+  String get aiToolTaskRetry => '重试处理任务';
+
+  @override
+  String get aiToolSpeechRecognitionStatus => '查询语音识别状态';
+
+  @override
+  String get aiToolSubtitleGenerate => '识别字幕';
+
+  @override
+  String get aiToolTranscriptGenerate => '生成转录';
+
+  @override
+  String get aiToolSubtitleTaskGet => '查询字幕任务';
+
+  @override
+  String get aiToolSubtitleTaskCancel => '取消字幕任务';
+
+  @override
+  String get aiToolSubtitleSave => '保存字幕';
+
+  @override
+  String get aiToolPluginStatus => '查看插件状态';
+
+  @override
+  String get aiToolMcpTavilyWebSearch => '联网搜索';
+
+  @override
+  String get aiToolWebFetch => '读取网页';
+
+  @override
+  String get aiArgQuery => '关键词';
+
+  @override
+  String get aiArgUrl => '网址';
+
+  @override
+  String get aiArgRange => '范围';
+
+  @override
+  String get aiArgEnd => '结尾';
+
+  @override
+  String get aiArgWholeMedia => '整部';
+
+  @override
+  String get aiArgTime => '时间';
+
+  @override
+  String get aiArgPosition => '位置';
+
+  @override
+  String get aiArgPreset => '预设';
+
+  @override
+  String get aiArgLanguage => '语言';
+
+  @override
+  String get aiArgFormat => '格式';
+
+  @override
+  String get aiArgSpeed => '倍速';
+
+  @override
+  String get aiArgVolume => '音量';
+
+  @override
+  String get aiArgSwitch => '开关';
+
+  @override
+  String get aiArgOff => '关闭';
+
+  @override
+  String get aiArgFavorite => '收藏';
+
+  @override
+  String get aiArgFavoriteOn => '收藏';
+
+  @override
+  String get aiArgFavoriteOff => '取消收藏';
+
+  @override
+  String get aiArgWait => '等待';
+
+  @override
+  String get aiToolInput => '输入';
+
+  @override
+  String get aiToolOutput => '输出';
+
+  @override
+  String get aiActivityThinking => '正在思考';
+
+  @override
+  String get aiActivityAnswering => '正在回复';
+
+  @override
+  String get aiActivityRunningDefault => '运行中';
+
+  @override
+  String get aiReasoningStreaming => '思考中…';
+
+  @override
+  String get aiReasoningDone => '已思考';
+
+  @override
+  String get aiReasoningUnderSecond => '思考了不到 1 秒';
+
+  @override
+  String get aiStillRunning => '等待超时，任务仍在后台运行（未失败、未停止）';
+
+  @override
+  String get aiStatusQueued => '排队中';
+
+  @override
+  String get aiStatusPreparing => '准备中';
+
+  @override
+  String get aiStatusRunning => '处理中';
+
+  @override
+  String get aiStatusCancelling => '取消中';
+
+  @override
+  String get aiStatusSucceeded => '已完成';
+
+  @override
+  String get aiStatusFailed => '失败';
+
+  @override
+  String get aiStatusCancelled => '已取消';
+
+  @override
+  String get aiStatusInterrupted => '已中断';
+
+  @override
+  String get aiStageExtracting => '提取音频';
+
+  @override
+  String get aiStageUploading => '上传';
+
+  @override
+  String get aiStageQueued => '排队';
+
+  @override
+  String get aiStageTranscribing => '识别';
+
+  @override
+  String get aiStageFormatting => '整理字幕';
+
+  @override
+  String aiArgWaitValue(String seconds) {
+    return '最多等 ${seconds}s';
+  }
+
+  @override
+  String aiStepPreparing(String name) {
+    return '准备调用 $name…';
+  }
+
+  @override
+  String aiStepRunning(String name) {
+    return '正在执行 $name…';
+  }
+
+  @override
+  String aiStepWaiting(String name) {
+    return '允许执行 $name？';
+  }
+
+  @override
+  String aiStepFailed(String name) {
+    return '$name 失败';
+  }
+
+  @override
+  String aiStepCancelled(String name) {
+    return '已取消 $name';
+  }
+
+  @override
+  String aiShowAll(int count) {
+    return '显示全部（$count 个字符）';
+  }
+
+  @override
+  String aiActivityPreparingTool(String name) {
+    return '准备调用：$name';
+  }
+
+  @override
+  String aiActivityTool(String name) {
+    return '正在执行：$name';
+  }
+
+  @override
+  String aiActivityConfirm(String name) {
+    return '等待你确认：$name';
+  }
+
+  @override
+  String aiStepNumber(int step) {
+    return '第 $step 步';
+  }
+
+  @override
+  String aiReasoningSeconds(int seconds) {
+    return '思考了 $seconds 秒';
+  }
+
+  @override
+  String aiReasoningMinutes(int minutes) {
+    return '思考了 $minutes 分钟';
+  }
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -4344,9 +7824,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get continueEmpty => '尚無未看完的影片，播放後會在這裡顯示。';
-
-  @override
-  String get recentlyPlayed => '最近播放';
 
   @override
   String get recentEmpty => '尚無播放紀錄。到媒體庫或來源中選擇影片。';
@@ -4810,12 +8287,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String removeBindingDescription(int count) {
-    return '此綁定關聯 $count 項內容。僅移除失去全部來源依據的自動成員，保留手動成員、共用媒體及原檔案。';
-  }
-
-  @override
-  String sourceVersion(String kind, String plugin, int config, int revision) {
-    return '$kind · 外掛程式 $plugin · 設定 v$config · r$revision';
+    return '此檔案來源關聯 $count 項內容。刪除後，只由它掃描到的檔案記錄、播放進度和刮削資訊會一併刪除；其他檔案來源也掃描到的內容會保留。儲存空間上的原始檔案不受影響。';
   }
 
   @override
@@ -4824,8 +8296,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
-  String deleteSourceDescription(int playing, int running) {
-    return '僅刪除此實例設定與憑證參照，不刪除原始檔案、收藏或產物。目前播放 $playing 個、進行中請求 $running 個可完成，之後釋放連線。';
+  String deleteSourceDescription(int fileSources, int playing, int running) {
+    return '刪除此連線的設定與憑證，並刪除其下的 $fileSources 個檔案來源及其掃描到的內容（檔案記錄、播放進度、刮削資訊）。儲存空間上的原始檔案不受影響。目前播放 $playing 個、進行中請求 $running 個可完成，之後釋放連線。';
   }
 
   @override
@@ -6028,9 +9500,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get browseSourceFiles => '瀏覽檔案';
 
   @override
-  String get sourceConnectionDetails => '連線詳情';
-
-  @override
   String get sourceAwaitingVerification => '待驗證';
 
   @override
@@ -6363,4 +9832,1755 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plBookmarksShort => '書籤';
+
+  @override
+  String get listSeparator => '、';
+
+  @override
+  String get remoteAccess => '遠端存取';
+
+  @override
+  String get remoteHomeAndRoutes => '家庭與連線路線';
+
+  @override
+  String get remoteImportTitle => '匯入遠端設定';
+
+  @override
+  String get remoteImportFooter => '貼上 Relay 匯出的 App 設定，匯入後立即生效。';
+
+  @override
+  String get remoteImportPlaceholder => 'App 設定 JSON';
+
+  @override
+  String get remoteImport => '匯入';
+
+  @override
+  String get remoteImporting => '正在匯入…';
+
+  @override
+  String get remoteImported => '已匯入並生效。';
+
+  @override
+  String get remoteClearConfirmTitle => '清除遠端設定？';
+
+  @override
+  String get remoteClearConfirmMessage => '清除本機的遠端設定與憑證，重新匯入後可恢復遠端存取。';
+
+  @override
+  String get remoteClear => '清除';
+
+  @override
+  String get remoteClearing => '正在清除…';
+
+  @override
+  String get remoteCleared => '已清除遠端設定。';
+
+  @override
+  String get remoteNotImported => '尚未匯入';
+
+  @override
+  String get remoteNotImportedHint => '點選「匯入」新增遠端設定。';
+
+  @override
+  String get remoteServerName => '伺服器名稱';
+
+  @override
+  String get remoteCredentials => '認證憑證';
+
+  @override
+  String get remoteCredentialsSecure => '已儲存在系統安全儲存區';
+
+  @override
+  String get remoteProxyUnused => '未被來源使用';
+
+  @override
+  String remoteProxyUsedBy(String sources) {
+    return '來源：$sources';
+  }
+
+  @override
+  String remoteProxyPort(int port) {
+    return '連接埠 $port';
+  }
+
+  @override
+  String get remoteRelayServer => '中繼伺服器';
+
+  @override
+  String get remoteRelayFooter => '整個 App 共用此連線；認證憑證儲存在系統安全儲存區。';
+
+  @override
+  String get remoteAvailableServices => '可用服務';
+
+  @override
+  String get remoteAvailableServicesFooter =>
+      '由 Home 註冊在 Relay 上。來源在「編輯來源 → 家庭遠端存取」中選擇其中一個。';
+
+  @override
+  String get remoteNeedsAttention => '需要處理';
+
+  @override
+  String remoteSourceProxyMissing(String proxy) {
+    return '使用的 proxy「$proxy」不在目前設定中，遠端連線無法使用。';
+  }
+
+  @override
+  String get statusConfigured => '已設定';
+
+  @override
+  String get statusNotConfigured => '未設定';
+
+  @override
+  String get statusAvailable => '可用';
+
+  @override
+  String get statusUnavailable => '無法使用';
+
+  @override
+  String get plgGroupModel => '模型';
+
+  @override
+  String get plgGroupExternal => '外部能力';
+
+  @override
+  String get plgGroupBuiltIn => '內部能力';
+
+  @override
+  String get plgGroupModelDescription => '設定 Agent 使用的模型';
+
+  @override
+  String get plgGroupExternalDescription => '自架或雲端服務，由你新增';
+
+  @override
+  String get plgGroupBuiltInDescription => '隨 App 提供，預設全部開放';
+
+  @override
+  String plgCount(int count) {
+    return '$count 項';
+  }
+
+  @override
+  String extToolCount(int count) {
+    return '$count 個工具';
+  }
+
+  @override
+  String plgInstanceCount(int count) {
+    return '$count 個實例';
+  }
+
+  @override
+  String get plgExternalHint => '填寫位址和權杖，自動識別並設定服務';
+
+  @override
+  String get plgExternalEmpty => '還沒有設定外部服務';
+
+  @override
+  String get extConfigureTitle => '設定外部能力';
+
+  @override
+  String plgBuiltInHint(int count) {
+    return '隨 App 提供 $count 項，預設全部開放，無需逐項啟用';
+  }
+
+  @override
+  String plgGroupEmpty(String group) {
+    return '暫無$group';
+  }
+
+  @override
+  String get plgNoAssistant => '此版本未接入 AI 助理';
+
+  @override
+  String get plgSelectForDetail => '選擇一項檢視詳細資訊';
+
+  @override
+  String get plgDeviceUnsupported => '目前裝置不支援';
+
+  @override
+  String get plgTemporarilyUnavailable => '暫時無法使用';
+
+  @override
+  String get plgDisabled => '外掛已停用';
+
+  @override
+  String plgDisableConfirmTitle(String name) {
+    return '停用「$name」？';
+  }
+
+  @override
+  String get plgImpactIntro => '停用後立即阻止新的呼叫；實例設定、已產生的字幕和歷史記錄都會保留。';
+
+  @override
+  String plgImpactPlaying(int count) {
+    return '$count 個正在播放的工作階段會持續到播放結束後再釋放連線。';
+  }
+
+  @override
+  String plgImpactRunning(int count) {
+    return '$count 個進行中的請求會在完成後釋放。';
+  }
+
+  @override
+  String plgImpactInstances(String instances) {
+    return '受影響的實例：$instances。';
+  }
+
+  @override
+  String get actionFailedRetry => '操作失敗，請重試。';
+
+  @override
+  String get plgUnavailableReason => '無法使用的原因';
+
+  @override
+  String get plgSwitch => '外掛開關';
+
+  @override
+  String get plgSwitchOn => '允許承接新的業務呼叫';
+
+  @override
+  String get plgSwitchOff => '已阻止新的呼叫；實例設定保留';
+
+  @override
+  String get plgLocation => '執行位置';
+
+  @override
+  String get plgLocationDevice => '在本機執行';
+
+  @override
+  String get plgLocationNetwork => 'App 在本機連線你設定的儲存服務';
+
+  @override
+  String get plgLocationSelfHosted => 'App 在本機執行轉接器，實際工作在你設定的伺服器上進行';
+
+  @override
+  String get plgLocationCloudApi => 'App 在本機呼叫雲端 API';
+
+  @override
+  String get plgDependencies => '相依項目';
+
+  @override
+  String plgDependency(String name, String status) {
+    return '$name（$status）';
+  }
+
+  @override
+  String get plgCapabilities => '能力';
+
+  @override
+  String get plgCapabilitiesFooter => '只列出此外掛實際實作的方法；未實作的能力不會顯示。';
+
+  @override
+  String plgInstancesTitle(int count) {
+    return '實例（$count 個）';
+  }
+
+  @override
+  String plgInstanceBusy(int playing, int running) {
+    return '使用中：播放 $playing · 請求 $running';
+  }
+
+  @override
+  String get plgNoInstances => '暫無實例';
+
+  @override
+  String get plgOpenSettings => '開啟設定';
+
+  @override
+  String get plgRuntime => '執行狀態與診斷';
+
+  @override
+  String plgRevisions(String saved, String applied) {
+    return '已儲存修訂 $saved · 實際生效 $applied';
+  }
+
+  @override
+  String get plgNotApplied => '尚未生效';
+
+  @override
+  String get plgPendingApply => '新設定待生效，舊修訂仍在服務進行中的呼叫';
+
+  @override
+  String plgActivity(int playing, int running) {
+    return '活動播放 $playing · 進行中請求 $running';
+  }
+
+  @override
+  String plgLastError(String code) {
+    return '最近錯誤：$code';
+  }
+
+  @override
+  String get plgRefreshStatus => '重新整理狀態';
+
+  @override
+  String get plgCopyDiagnostics => '複製去識別化診斷資訊';
+
+  @override
+  String get plgCopyDiagnosticsHint => '不含位址、帳號、路徑或金鑰';
+
+  @override
+  String get plgDiagnosticsCopied => '已複製診斷資訊';
+
+  @override
+  String get extConnectionOk => '連線正常';
+
+  @override
+  String extRemoveConfirmTitle(String name) {
+    return '移除「$name」？';
+  }
+
+  @override
+  String get extRemoveConfirmMessage => '只移除 App 中的位址和權杖，不會影響伺服器上的資料。';
+
+  @override
+  String get extNeedsRecheck => '需要重新偵測';
+
+  @override
+  String extToolAiUnavailable(String problem) {
+    return 'AI 暫時無法使用：$problem';
+  }
+
+  @override
+  String get extToolNeedsConfirm => '呼叫前需要你確認';
+
+  @override
+  String get extAiServiceUnavailable => '服務目前無法使用，AI 暫時無法呼叫';
+
+  @override
+  String get extAiNeedsRecheck => '請點「重新偵測」以取得工具定義';
+
+  @override
+  String extAiSummary(int usable, int total) {
+    return 'AI 可直接呼叫 $usable / $total 個工具；會改變狀態的操作會先請你確認';
+  }
+
+  @override
+  String get extRemoved => '這個外部能力已移除';
+
+  @override
+  String extVersion(String version) {
+    return '版本 $version';
+  }
+
+  @override
+  String get extAiCalls => 'AI 呼叫';
+
+  @override
+  String extToolsTitle(int count) {
+    return '工具（$count 個）';
+  }
+
+  @override
+  String get extNoTools => '沒有工具';
+
+  @override
+  String get extRecheck => '重新偵測';
+
+  @override
+  String get extConnecting => '正在連線並識別…';
+
+  @override
+  String extAdded(String name) {
+    return '已新增「$name」';
+  }
+
+  @override
+  String get extConfigureFooter =>
+      '填寫服務位址和存取權杖，App 會透過 MCP 連線，讀取它是什麼服務、提供哪些工具。';
+
+  @override
+  String get extServiceAddress => '服務位址';
+
+  @override
+  String get extAccessToken => '存取權杖';
+
+  @override
+  String get extNameOptional => '名稱（選填）';
+
+  @override
+  String get extDetected => '識別結果';
+
+  @override
+  String get extTools => '工具';
+
+  @override
+  String get extConnect => '連線並識別';
+
+  @override
+  String get scanStatusPending => '待掃描';
+
+  @override
+  String get scanStatusScanning => '掃描中';
+
+  @override
+  String get scanStatusDone => '掃描完成';
+
+  @override
+  String get scanStatusFailed => '掃描失敗';
+
+  @override
+  String get scanStatusInterrupted => '掃描中斷';
+
+  @override
+  String get scanRescanHint => '請重新掃描';
+
+  @override
+  String get libraryDbTooNew => '媒體庫版本較新，請更新 App';
+
+  @override
+  String get errConfigUnknownFields => '設定包含未知欄位，原始設定必須保留。';
+
+  @override
+  String get errRemoteKinds => '目前遠端存取支援 Jellyfin、Emby、Plex 和 SMB。';
+
+  @override
+  String get errRemoteProtocolMismatch => '遠端服務協定不相符；SMB 目前僅支援遠端模式。';
+
+  @override
+  String get errConfigVersionNoOverwrite => '設定版本不相容，無法覆寫儲存。';
+
+  @override
+  String get errAddressRequired => '請填寫位址。';
+
+  @override
+  String get errTimeoutConcurrency => '請求逾時須為 1–120 秒，並行數須為 1–8。';
+
+  @override
+  String get errScopeCount => '至少設定一個存取範圍，範圍和排除項最多各 100 條。';
+
+  @override
+  String get errScopeRelative => '存取範圍和排除項須為根目錄內的相對路徑，不允許 .. 或絕對路徑。';
+
+  @override
+  String get errBrowseModeUnsupported => '此外掛不支援該瀏覽方式。';
+
+  @override
+  String get errNoSearchIndex => '此外掛尚未提供搜尋或背景索引能力。';
+
+  @override
+  String get errLibraryNoDirPolicy => '媒體庫來源暫不支援檔案目錄策略。';
+
+  @override
+  String get errChooseLocalFolder => '請選擇本機資料夾。';
+
+  @override
+  String get errAddressRelativeSegments => '位址不能包含相對路徑片段。';
+
+  @override
+  String get errInvalidServerAddress => '請輸入有效的伺服器位址，憑證請填在獨立欄位。';
+
+  @override
+  String get errSmbAddressFormat => 'SMB 使用標準 445 連接埠：smb://主機/共用名稱/選用目錄。';
+
+  @override
+  String errUserIdRequired(String kind) {
+    return '請填寫 $kind 使用者 ID。';
+  }
+
+  @override
+  String get errSftpUsernameRequired => '請填寫 SFTP 使用者名稱。';
+
+  @override
+  String get errServerAddressRequired => '請填寫伺服器位址。';
+
+  @override
+  String get errInvalidHost => '請輸入有效的 IP、主機名稱或伺服器位址。';
+
+  @override
+  String get errPortRange => '連接埠須為 1–65535。';
+
+  @override
+  String get errSmbPort => '目前 SMB 連線使用 445 連接埠。';
+
+  @override
+  String get errPathDots => '路徑不能包含 . 或 ..。';
+
+  @override
+  String get errSignInFailed => '登入失敗，請檢查帳號和密碼或重新授權。';
+
+  @override
+  String get errAddressRedirected => '位址發生跳轉，請填寫伺服器的實際入口。';
+
+  @override
+  String get errCannotConnectService => '無法連線服務，請檢查位址和網路。';
+
+  @override
+  String get errConnectTimeout => '連線逾時，請重試。';
+
+  @override
+  String errKindUsernameRequired(String kind) {
+    return '請填寫 $kind 使用者名稱。';
+  }
+
+  @override
+  String get errNoValidSignIn => '伺服器未傳回有效的登入結果。';
+
+  @override
+  String get errPlexSessionExpired => '登入已過期，請重新登入 Plex。';
+
+  @override
+  String get errPlexServerUnreachable => '無法連線這台 Plex 伺服器，請確認伺服器在線上。';
+
+  @override
+  String errDlnaHttp(int status) {
+    return 'DLNA 裝置請求失敗（HTTP $status）。';
+  }
+
+  @override
+  String get errDlnaForeignHost => 'DLNA 裝置傳回了其他主機的位址。';
+
+  @override
+  String get errDlnaNotMediaServer => '該裝置不是媒體伺服器（沒有內容目錄服務）。';
+
+  @override
+  String get errChooseFolder => '請選擇資料夾。';
+
+  @override
+  String get untitled => '未命名';
+
+  @override
+  String get errChooseVideoOrAudio => '請選擇影片或音訊。';
+
+  @override
+  String get errNoPlayableAddress => '此項目沒有可播放的位址。';
+
+  @override
+  String get plexPartMedia => '媒體';
+
+  @override
+  String get errPathOutsideRoot => '路徑超出設定的根目錄。';
+
+  @override
+  String get errOutsideScope => '目錄不在此實例設定的存取範圍內。';
+
+  @override
+  String get errAttachmentTooLarge => '附件過大';
+
+  @override
+  String errServiceAccessDenied(String service, int status) {
+    return '$service 拒絕存取（HTTP $status），請檢查使用者名稱和密碼。';
+  }
+
+  @override
+  String get errFileNotFound => '檔案或資料夾不存在。';
+
+  @override
+  String errServiceRequestFailed(String service, int status) {
+    return '$service 請求失敗（HTTP $status）。';
+  }
+
+  @override
+  String get errFtpRefused => 'FTP 伺服器拒絕連線。';
+
+  @override
+  String get errFtpLogin => 'FTP 登入失敗，請檢查使用者名稱和密碼。';
+
+  @override
+  String get errFtpNoBinary => 'FTP 伺服器不支援二進位傳輸。';
+
+  @override
+  String get errPathChars => '路徑包含不支援的字元。';
+
+  @override
+  String get errFtpNoPassive => 'FTP 伺服器不支援被動模式。';
+
+  @override
+  String get errFolderNotFoundOrDenied => '資料夾不存在或無權存取。';
+
+  @override
+  String get errFtpList => 'FTP 無法列出資料夾。';
+
+  @override
+  String get errFtpNoResume => 'FTP 伺服器不支援續傳，無法拖曳進度。';
+
+  @override
+  String get errFtpRead => '無法讀取該 FTP 檔案。';
+
+  @override
+  String get errFtpNoSize => 'FTP 伺服器未傳回檔案大小，無法播放。';
+
+  @override
+  String get errSftpLogin => 'SFTP 登入失敗，請檢查使用者名稱和密碼。';
+
+  @override
+  String get errSftpDisabled => '伺服器未啟用 SFTP。';
+
+  @override
+  String get errPathDenied => '沒有權限存取該路徑。';
+
+  @override
+  String get errSftpRequest => 'SFTP 請求失敗。';
+
+  @override
+  String get errSftpConnect => 'SFTP 連線失敗。';
+
+  @override
+  String get errSftpPlay => '無法播放該 SFTP 檔案。';
+
+  @override
+  String get errChooseFile => '請選擇檔案。';
+
+  @override
+  String get errConnectionClosed => '連線已關閉。';
+
+  @override
+  String get errUnsafeResourceUrl => '媒體服務傳回了不安全的資源位址。';
+
+  @override
+  String errMediaServerHttp(int status) {
+    return '媒體服務請求失敗（HTTP $status），請檢查位址和憑證。';
+  }
+
+  @override
+  String get errServerArtworkUnavailable => '伺服器圖片無法使用';
+
+  @override
+  String get errImageTooLarge => '圖片過大';
+
+  @override
+  String get errNoPlayableVersion => '此媒體沒有可播放版本。';
+
+  @override
+  String get errReselectVersion => '請返回媒體庫重新選擇一個版本。';
+
+  @override
+  String get errServerIdentityMismatch => '伺服器物件身分不相符';
+
+  @override
+  String plexPartLabel(int index, String container) {
+    return '檔案 $index · $container';
+  }
+
+  @override
+  String get errNoPlayableFile => '此媒體沒有可播放檔案。';
+
+  @override
+  String get errMultiPartUnsupported => '該媒體包含多個版本或分段，暫不支援直接播放。';
+
+  @override
+  String get errMetadataNotThisServer => '中繼資料查詢不屬於此伺服器實例';
+
+  @override
+  String get errArtworkNotThisServer => '圖片不屬於此伺服器實例';
+
+  @override
+  String get srcFieldFolder => '資料夾';
+
+  @override
+  String get srcFieldWorkgroup => '工作群組（選填）';
+
+  @override
+  String get srcFieldRegion => '區域（選填）';
+
+  @override
+  String srcFieldRequired(String field) {
+    return '請填寫$field。';
+  }
+
+  @override
+  String get errResourceNotThisSource => '資源不屬於此媒體來源。';
+
+  @override
+  String get errOutsideAuthorizedFolder => '檔案超出已授權資料夾。';
+
+  @override
+  String get errOutsideSmbShare => '路徑超出設定的 SMB 共用。';
+
+  @override
+  String get errSmbListShares => '無法讀取共用清單，請在「進階」中填寫共用資料夾路徑後重試。';
+
+  @override
+  String get errSmbPlay => '無法播放該 SMB 檔案。';
+
+  @override
+  String get errAttachmentNotFound => '附件不存在';
+
+  @override
+  String get errInvalidFileName => '檔案名稱無效。';
+
+  @override
+  String get errUnknownWriteShare => '無法確定要寫入的共用。';
+
+  @override
+  String get errOpenPlayXFolderBlocked => '共用中已有同名檔案，無法建立 OpenPlayX 資料夾。';
+
+  @override
+  String get errTooManySameName => '同名檔案過多，請先整理 OpenPlayX 資料夾。';
+
+  @override
+  String get errTempNameConflict => '暫存檔名衝突，請重試。';
+
+  @override
+  String get errUploadIncomplete => '上傳不完整，已捨棄暫存檔。';
+
+  @override
+  String get errSmbWrite => '寫入 SMB 失敗，請確認帳號對該共用有寫入權限。';
+
+  @override
+  String get errAttachmentTypeOrLimit => '不支援的附件類型或讀取上限';
+
+  @override
+  String get errSourceMissing => '媒體來源不存在或設定不相容。';
+
+  @override
+  String get errSourceKindChange => '編輯時不能變更來源類型。';
+
+  @override
+  String get errTokenRequired => '請填寫存取權杖。';
+
+  @override
+  String get srcStatusDisabled => '已停用';
+
+  @override
+  String get srcStatusReady => '已就緒';
+
+  @override
+  String get srcStatusFailed => '連線失敗';
+
+  @override
+  String get srcStatusInitialized => '已初始化 · 待連線驗證';
+
+  @override
+  String get srcStatusSaved => '已儲存 · 下次存取生效';
+
+  @override
+  String get errArtworkCacheLimit => '不支援的圖片快取上限。';
+
+  @override
+  String get errExtensions => '副檔名只能包含字母和數字，最多 100 個。';
+
+  @override
+  String get errSourceDisabled => '媒體來源已停用，設定仍保留。';
+
+  @override
+  String get errPluginDisabled => '此外掛已停用，實例設定仍保留。';
+
+  @override
+  String get errTokenExpired => '權杖已到期，請更新憑證。';
+
+  @override
+  String get errReselectLocalFolder => '請重新選擇本機資料夾以恢復授權。';
+
+  @override
+  String get errCredentialsUnavailable => '憑證無法使用，請重新登入或更新憑證。';
+
+  @override
+  String get errInstanceChanged => '實例設定已變更，請重試。';
+
+  @override
+  String get errRequestTimedOut => '請求已逾時。';
+
+  @override
+  String get errSourceUnreachable => '無法存取媒體來源，請檢查位址、權限和憑證。';
+
+  @override
+  String get errInvalidPaging => '無效的分頁參數。';
+
+  @override
+  String get errInvalidSearchPaging => '無效的搜尋或分頁';
+
+  @override
+  String get errSearchUnsupported => '此來源不支援搜尋';
+
+  @override
+  String get errMetadataUnsupported => '此來源不支援影視資訊查詢';
+
+  @override
+  String get errAttachmentsUnsupported => '此來源不支援附件讀取';
+
+  @override
+  String get errWriteUnsupported => '此來源不支援寫入。';
+
+  @override
+  String get errWriteTimeout => '寫入逾時，伺服器上可能殘留以 .openplayx- 開頭的暫存檔。';
+
+  @override
+  String errSourceProxyMissing(String proxy) {
+    return '此來源使用遠端存取 proxy「$proxy」，但目前 App 沒有該 proxy；請在 設定 → 遠端存取 匯入 Relay 的 App 設定。';
+  }
+
+  @override
+  String get errReloadBeforeTest => '請重新載入設定後再測試。';
+
+  @override
+  String get errTestTimeout => '連線測試逾時。';
+
+  @override
+  String get errTestFailed => '連線測試失敗，請檢查位址、權限和憑證。';
+
+  @override
+  String get errManualScanDisabled => '此實例未啟用手動檔案掃描。';
+
+  @override
+  String get errScanLimit => '掃描上限須為 1–5000。';
+
+  @override
+  String get errScanPageLimit => '掃描達到 1000 次目錄分頁上限，請縮小存取範圍。';
+
+  @override
+  String get errScanConfigChanged => '掃描期間實例設定已變更，請重新掃描。';
+
+  @override
+  String get errTooManyQueued => '此實例排隊請求過多，請稍後重試。';
+
+  @override
+  String get credNotRequired => '無需帳號憑證';
+
+  @override
+  String get credMissing => '缺少憑證';
+
+  @override
+  String get credConfigured => '憑證已儲存 · 尚未驗證';
+
+  @override
+  String get credExpiring => '權杖將在 7 天內到期';
+
+  @override
+  String get credExpired => '權杖已到期';
+
+  @override
+  String get credRejected => '認證失敗 · 請更新憑證';
+
+  @override
+  String get credVerified => '連線已驗證';
+
+  @override
+  String get errConfigDbTooNew => '本機設定資料庫版本較新，請更新 App。';
+
+  @override
+  String get errConfigVersionKept => '設定版本不相容，原資料已保留。';
+
+  @override
+  String get errInstanceMetaMismatch => '實例設定與中繼資料不一致。';
+
+  @override
+  String get errInstanceQuarantined => '實例設定不相容或損毀，已隔離並保留原資料。';
+
+  @override
+  String get errInstanceNoOverwrite => '無法覆寫版本不相容的實例設定。';
+
+  @override
+  String get errConfigChangedElsewhereEdit => '設定已被其他視窗修改，請重新載入後編輯。';
+
+  @override
+  String get errConfigChangedDelete => '設定已更新，請重新載入後刪除。';
+
+  @override
+  String get errDefaultInstanceChanged => '預設實例設定已更新，請重新載入。';
+
+  @override
+  String get errSettingsChangedElsewhere => '設定已被其他視窗修改，請重新載入。';
+
+  @override
+  String get pickerVideoAudio => '影片和音訊';
+
+  @override
+  String get pickerAllFiles => '所有檔案';
+
+  @override
+  String get errSeriesIdentityConflict => '劇集或季的身分存在衝突';
+
+  @override
+  String get errInfoChangedReload => '資訊已變更，請重新載入後操作';
+
+  @override
+  String get errWorkIdConflict => '作品 ID 衝突，需要人工確認';
+
+  @override
+  String get errInvalidFieldValue => '欄位值無效';
+
+  @override
+  String get errPosterNotThisWork => '海報不屬於目前作品';
+
+  @override
+  String get errRemoteConfigVersion => '遠端存取設定版本不相容或包含未知欄位。';
+
+  @override
+  String get errRemoteOutboundCredential => 'outbound 與憑證必須同時存在。';
+
+  @override
+  String get errRemoteUuidPlacement => 'UUID 只能儲存在 credential 中。';
+
+  @override
+  String get errRemoteCredentialInvalid => '遠端憑證無效。';
+
+  @override
+  String get errRemoteProxiesInvalid =>
+      'proxies 的 name 不能為空或重複，remotePort 須為有效連接埠。';
+
+  @override
+  String get errRemotePolicyUnsupported => '遠端連線策略超出支援範圍。';
+
+  @override
+  String get errRemoteLanNeedsHttps => '區域網路自動存取需要 HTTPS 端點和配對確認的憑證 SHA-256。';
+
+  @override
+  String get errRemoteUnknownField => '未知的遠端存取欄位。';
+
+  @override
+  String get errRemoteChooseProxy => '請選擇遠端存取使用的 proxy。';
+
+  @override
+  String get errRemoteEndpoint => '遠端存取需要有效的 HTTP(S) 或 SMB 服務端點。';
+
+  @override
+  String get errRemoteProxyRef => 'proxy name、remotePort 或憑證參照無效。';
+
+  @override
+  String get errRemoteProxyHost => '代理主機或設定長度無效。';
+
+  @override
+  String get errRemoteTlsName => '代理 TLS 伺服器名稱無效。';
+
+  @override
+  String get errRemoteNeedsVless => '配對需要開啟憑證驗證的 VLESS TLS/REALITY 出站。';
+
+  @override
+  String get errRemoteCaPrivateKey => 'CA 設定不能包含私密金鑰。';
+
+  @override
+  String get errRemoteRealityPublic => 'REALITY 用戶端只儲存公開參數。';
+
+  @override
+  String get errRemoteAuthHeader => '傳輸認證標頭不能寫入公開線路設定。';
+
+  @override
+  String get errRemoteTlsField => '不支援的 TLS 設定欄位。';
+
+  @override
+  String get errRemoteConfigTooLarge => '設定過大。';
+
+  @override
+  String get errRemoteInvalidJson => '不是有效的 JSON，請貼上 Relay 匯出的完整 App 設定。';
+
+  @override
+  String get errRemoteAppConfigShape =>
+      'App 設定須為只含「outbound」（物件）和「proxies」（陣列）的 JSON 物件。';
+
+  @override
+  String get errRemoteProxyShape =>
+      'proxies 每項須只含「name」（字串）和「remotePort」（連接埠）。';
+
+  @override
+  String get errRemoteProxiesEmpty => 'proxies 不能為空，name 不能重複。';
+
+  @override
+  String get errRemoteOutsideEndpoint => '請求超出已授權的服務端點。';
+
+  @override
+  String get errRemoteCertMismatch => '服務憑證與已配對身分不相符。';
+
+  @override
+  String get errRemoteOutsidePaired => '連線超出已配對服務。';
+
+  @override
+  String get errRemoteLanUnreachable => '區域網路服務無法連線或身分驗證失敗。';
+
+  @override
+  String get errRemoteCellularBlocked => '目前設定禁止行動網路遠端存取，或無法確認目前網路。';
+
+  @override
+  String get errRemoteCellularUnknown => '無法確認行動網路狀態，已阻止遠端連線。';
+
+  @override
+  String get errRemoteNoCore => '此版本缺少遠端連線核心，請安裝包含 sing-box 的版本。';
+
+  @override
+  String get errRemoteNativeConfigTooLarge => '遠端連線設定過大。';
+
+  @override
+  String get errRemoteCoreStart => '遠端核心啟動失敗，請檢查線路設定。';
+
+  @override
+  String get rtDisabled => '已停用';
+
+  @override
+  String get rtUnchecked => '未偵測';
+
+  @override
+  String get rtStarting => '啟動中';
+
+  @override
+  String get rtBlocked => '需處理';
+
+  @override
+  String get rtError => '出錯';
+
+  @override
+  String get rtDraining => '收尾中';
+
+  @override
+  String get healthLastOk => '上次連線成功';
+
+  @override
+  String get healthLocal => '本機';
+
+  @override
+  String get plgDraining => '已阻止新呼叫，正在等待播放或工作結束';
+
+  @override
+  String plgDependencyBlocked(String name) {
+    return '相依的「$name」已停用或無法使用';
+  }
+
+  @override
+  String get plgNoInstanceAdded => '尚未新增實例';
+
+  @override
+  String get plgAllInstancesDisabled => '所有實例均已停用';
+
+  @override
+  String get plgInstanceFailing => '有實例連線失敗';
+
+  @override
+  String get plgSomeInstancesBlocked => '部分實例需處理';
+
+  @override
+  String get plgNfoInstance => '鄰近檔案規則';
+
+  @override
+  String get plgNoTmdb => '此版本未接入 TMDB 設定';
+
+  @override
+  String get plgTmdbInstance => 'TMDB 設定';
+
+  @override
+  String get plgTmdbNoToken => '未設定存取權杖';
+
+  @override
+  String get plgNoFfmpeg => '目前平台或版本未包含 FFmpeg 媒體處理';
+
+  @override
+  String get plgFfmpegInstance => '裝置內處理';
+
+  @override
+  String get plgModelNotConfigured => '未設定模型或金鑰';
+
+  @override
+  String get plgNoSources => '此版本未接入媒體來源';
+
+  @override
+  String get plgNoAsr => '此版本未接入語音辨識';
+
+  @override
+  String plgModelDetail(String model) {
+    return '模型 $model';
+  }
+
+  @override
+  String get plgLocalAsrUnavailable => '本機辨識引擎無法使用';
+
+  @override
+  String get errTmdbTokenRequired => '請設定 TMDB 讀取存取權杖';
+
+  @override
+  String get errQueryCancelled => '查詢已取消';
+
+  @override
+  String get errTmdbResponseTooLarge => 'TMDB 回應過大';
+
+  @override
+  String get errTmdbAuth => 'TMDB 認證失敗，請更新權杖';
+
+  @override
+  String get errTmdbNotFound => 'TMDB 物件不存在';
+
+  @override
+  String get errTmdbRateLimited => 'TMDB 請求受限，請稍後重試';
+
+  @override
+  String get errTmdbUnavailable => 'TMDB 暫時無法使用';
+
+  @override
+  String get errTmdbRequestFailed => 'TMDB 請求失敗';
+
+  @override
+  String get errTmdbInvalidResponse => 'TMDB 回應格式無效';
+
+  @override
+  String get errTmdbUnreachable => '無法連線 TMDB，請檢查網路';
+
+  @override
+  String get errTmdbNoAttachments => 'TMDB 不讀取來源附件';
+
+  @override
+  String get errTmdbInvalidIds => 'TMDB ID 或季集編號無效';
+
+  @override
+  String get errIdentifySeriesFirst => '請先識別劇集，再選擇季集';
+
+  @override
+  String get errTmdbRefRequired => '詳細資訊需要 TMDB 參照';
+
+  @override
+  String get errTmdbInvalidIdentity => 'TMDB 物件身分或標題無效';
+
+  @override
+  String get errNfoRefRequired => 'NFO 詳細資訊需要附件參照';
+
+  @override
+  String get errNfoParse => 'NFO 解析失敗';
+
+  @override
+  String get errNfoTooLarge => 'NFO 超過 1 MiB';
+
+  @override
+  String get errNfoDtd => 'NFO 不允許 DTD 或實體宣告';
+
+  @override
+  String get errNfoTooManyNodes => 'NFO 節點過多';
+
+  @override
+  String get errNfoTooDeep => 'NFO 巢狀過深';
+
+  @override
+  String get errNfoType => '不支援的 NFO 物件類型';
+
+  @override
+  String get errNfoFieldTooLong => 'NFO 欄位過長';
+
+  @override
+  String get errInvalidMetadataQuery => '無效的中繼資料查詢參數';
+
+  @override
+  String get errMetadataQueryUnsupported => '此中繼資料實例不支援該查詢';
+
+  @override
+  String get errMediaKindUnsupported => '不支援此媒體類型的影視資訊';
+
+  @override
+  String get errBackgroundIdentify => '背景識別失敗';
+
+  @override
+  String get errQueryStale => '查詢已過期或已取消';
+
+  @override
+  String get errTmdbConfigChanged => 'TMDB 設定已變更';
+
+  @override
+  String get errRequeryCandidates => '請重新查詢候選';
+
+  @override
+  String get errChooseEpisodeFirst => '請先選擇具體季集';
+
+  @override
+  String get errCandidateNotThisQuery => '候選不屬於此查詢';
+
+  @override
+  String get errDetailIdentityMismatch => '詳細資訊身分不相符';
+
+  @override
+  String get errReloadCandidates => '請重新載入候選';
+
+  @override
+  String get errInvalidLocalCandidate => '無效的本機候選';
+
+  @override
+  String get errChooseSeriesFirst => '請先選擇劇集';
+
+  @override
+  String get errConfirmMatchFirst => '請先確認比對';
+
+  @override
+  String get errCatalogTooLarge => '目錄過大，請縮小中繼資料範圍';
+
+  @override
+  String get errCursorStuck => '分頁游標未前進';
+
+  @override
+  String get errEpisodeSeasonMissing => '單集所屬季不存在';
+
+  @override
+  String get errSourceConfigChanged => '來源設定已變更';
+
+  @override
+  String get errInvalidYear => '年份無效';
+
+  @override
+  String get catSourceBrowse => '瀏覽目錄';
+
+  @override
+  String get catSourceBrowseDesc => '列出該來源的資料夾與檔案';
+
+  @override
+  String get catSourceResolve => '播放';
+
+  @override
+  String get catSourceResolveDesc => '把選中的資源交給播放器；嚴格綁定資源所屬實例';
+
+  @override
+  String get catSourceAttachments => '讀取附件';
+
+  @override
+  String get catSourceAttachmentsDesc => '讀取 NFO、外掛字幕等小檔案（有大小上限）';
+
+  @override
+  String get catSearchMedia => '搜尋媒體';
+
+  @override
+  String get catSearchMediaDesc => '在伺服器端搜尋影片與劇集';
+
+  @override
+  String get catMetadataLookup => '影視資訊';
+
+  @override
+  String get catMetadataLookupDesc => '讀取媒體伺服器整理好的影視資訊';
+
+  @override
+  String get catSourceWrite => '寫入新檔案';
+
+  @override
+  String get catSourceWriteDesc =>
+      '把 App 產生的片段寫到同一共用的 OpenPlayX 資料夾；不覆寫、不刪除，每次需確認';
+
+  @override
+  String get catSummaryLocal => '本機或已掛載的資料夾';
+
+  @override
+  String get catSummarySmb => 'Windows 共用、NAS 的 SMB 共用目錄';
+
+  @override
+  String get catSummaryWebdav => 'WebDAV 雲端硬碟或 NAS 目錄';
+
+  @override
+  String get catSummaryFtp => 'FTP 伺服器目錄';
+
+  @override
+  String get catSummarySftp => '透過 SSH 存取的伺服器目錄';
+
+  @override
+  String get catSummaryS3 => 'S3 相容物件儲存貯體';
+
+  @override
+  String get catSummaryPlex => 'Plex 媒體伺服器';
+
+  @override
+  String get catSummaryJellyfin => 'Jellyfin 媒體伺服器';
+
+  @override
+  String get catSummaryEmby => 'Emby 媒體伺服器';
+
+  @override
+  String get catSummaryDlna => '區域網路 DLNA 媒體伺服器';
+
+  @override
+  String get catDataLocal => '只讀取你授權的資料夾。';
+
+  @override
+  String get catDataRemote =>
+      'App 在本機連線你設定的伺服器；檔名和目錄名稱會出現在 AI 對話中（僅當允許 AI 使用時）。';
+
+  @override
+  String get catNfoName => 'NFO 中繼資料';
+
+  @override
+  String get catNfoSummary => '讀取媒體旁邊的 .nfo 檔案';
+
+  @override
+  String get catNfoToggle => '由「刮削管理」控制是否刮削；背景刮削獨立執行，暫不支援單獨停用。';
+
+  @override
+  String get catNfoCap => '本機中繼資料';
+
+  @override
+  String get catNfoCapDesc => '依鄰近檔案規則比對影片資訊';
+
+  @override
+  String get catTmdbSummary => '從 The Movie Database 查詢影片與劇集資訊';
+
+  @override
+  String get catTmdbToggle => '清除存取權杖即停止使用；背景刮削獨立執行，暫不支援單獨停用。';
+
+  @override
+  String get catTmdbData => '查詢時向 TMDB 傳送解析出的片名與年份，不傳送檔案內容。';
+
+  @override
+  String get catTmdbCap => '查詢中繼資料';
+
+  @override
+  String get catTmdbCapDesc => '搜尋、比對影片與劇集資訊；寫入由主程式完成';
+
+  @override
+  String get catFfmpegName => 'FFmpeg 媒體處理';
+
+  @override
+  String get catFfmpegSummary => '截圖、探測、轉碼與音訊擷取';
+
+  @override
+  String get catFfmpegData => '在本機處理媒體，產物儲存在應用程式目錄。';
+
+  @override
+  String get catProbe => '探測';
+
+  @override
+  String get catProbeDesc => '讀取時長、編碼與音軌';
+
+  @override
+  String get catTranscode => '轉碼';
+
+  @override
+  String get catTranscodeDesc => '依預設轉碼為新檔案';
+
+  @override
+  String get catExtractAudio => '擷取音訊';
+
+  @override
+  String get catExtractAudioDesc => '匯出音軌用於辨識或儲存';
+
+  @override
+  String get catSnapshot => '截圖';
+
+  @override
+  String get catSnapshotDesc => '擷取指定時間的畫面';
+
+  @override
+  String get catAsrName => '語音辨識';
+
+  @override
+  String get catAsrSummary => '為影片產生原語言字幕與逐字稿';
+
+  @override
+  String get catAsrCapDesc => '產生原語言字幕／逐字稿；不包含翻譯';
+
+  @override
+  String get catLlmName => '對話模型';
+
+  @override
+  String get catLlmSummary => '為 AI 助理提供大型語言模型';
+
+  @override
+  String get catLlmToggle => '在「AI 與模型」中設定或清除模型；不會產生可遞迴呼叫自身的推理工具。';
+
+  @override
+  String get catLlmData => '對話內容、頁面摘要與工具結果會傳送給所設定的模型服務，可能產生費用。';
+
+  @override
+  String get catLlmCap => '對話推理';
+
+  @override
+  String get catLlmCapDesc => '為 AI 助理產生回覆與工具呼叫';
+
+  @override
+  String get catCategorySource => '媒體來源';
+
+  @override
+  String get catCategoryMetadata => '中繼資料';
+
+  @override
+  String get catCategoryMediaProcessing => '媒體處理';
+
+  @override
+  String get catCategorySpeech => '字幕辨識';
+
+  @override
+  String get catLocationNetwork => '網路儲存';
+
+  @override
+  String get catLocationSelfHosted => '自架服務';
+
+  @override
+  String get catLocationCloudApi => '雲端 API';
+
+  @override
+  String get webSearchPresetName => '聯網搜尋';
+
+  @override
+  String get errAssistantConfig => '請填寫有效的 HTTPS API 基礎位址、模型和輸出上限（128–16384）';
+
+  @override
+  String get errExtRootAddress => '請輸入服務根位址，例如 https://bt.example.com';
+
+  @override
+  String get errExtHttpsRequired => '公開網路位址必須使用 HTTPS；HTTP 僅允許區域網路或本機位址';
+
+  @override
+  String get errExtTokenRequired => '請填寫存取權杖';
+
+  @override
+  String get errExtTimeout => '連線逾時';
+
+  @override
+  String get errExtUnreachable => '無法連線到這個位址';
+
+  @override
+  String get errExtTls => 'TLS 憑證驗證失敗';
+
+  @override
+  String get errExtTooLarge => '服務傳回的資料過大';
+
+  @override
+  String errExtRejected(String reason) {
+    return '服務拒絕了請求：$reason';
+  }
+
+  @override
+  String errExtError(String code) {
+    return '服務傳回錯誤（$code）';
+  }
+
+  @override
+  String get errExtTokenInvalid => '存取權杖無效';
+
+  @override
+  String get errExtNoMcp => '這個位址沒有提供 MCP 入口';
+
+  @override
+  String get errArtworkCancelled => '圖片載入已取消';
+
+  @override
+  String get errArtworkQuota => '圖片快取額度不足';
+
+  @override
+  String get errArtworkUnauthorized => '圖片位址未經授權';
+
+  @override
+  String get errArtworkTypeSize => '圖片類型或大小無效';
+
+  @override
+  String get errArtworkEmptyOrLarge => '圖片為空或過大';
+
+  @override
+  String get errArtworkContentType => '不支援的圖片內容類型';
+
+  @override
+  String get errArtworkDecodeSize => '圖片解碼尺寸過大';
+
+  @override
+  String get errArtworkWait => '請等待圖片載入完成';
+
+  @override
+  String get errLibraryClosing => '媒體庫正在關閉';
+
+  @override
+  String get errNameRequired => '請輸入名稱';
+
+  @override
+  String get errSeasonCycle => '來源傳回了循環季集關係';
+
+  @override
+  String get errInvalidPagingShort => '無效分頁';
+
+  @override
+  String get errTitleRequired => '請輸入標題';
+
+  @override
+  String get errScanRunning => '掃描已在執行';
+
+  @override
+  String get errFileSourceMissing => '檔案來源不存在';
+
+  @override
+  String get errFileSourceDisabled => '檔案來源已停用';
+
+  @override
+  String get errSourceScanDisabled => '來源未啟用掃描';
+
+  @override
+  String get errScanTooLarge => '掃描範圍過大，請縮小範圍';
+
+  @override
+  String get errScanBindingChanged => '來源或綁定已變更，請重新掃描';
+
+  @override
+  String get errSourceIdentityMismatch => '來源身分不相符';
+
+  @override
+  String get errSourceCursorStuck => '來源分頁游標未前進';
+
+  @override
+  String get errScanIncomplete => '掃描未完成，請檢查來源後重試';
+
+  @override
+  String get aiToolContextGet => '讀取目前頁面';
+
+  @override
+  String get aiToolSourceList => '列出媒體來源';
+
+  @override
+  String get aiToolSourceBrowse => '瀏覽資料夾';
+
+  @override
+  String get aiToolLibraryQuery => '查詢媒體庫';
+
+  @override
+  String get aiToolMediaGet => '檢視媒體詳細資訊';
+
+  @override
+  String get aiToolSearchMedia => '搜尋媒體';
+
+  @override
+  String get aiToolProgressQuery => '檢視觀看進度';
+
+  @override
+  String get aiToolMediaSetFavorite => '設定收藏';
+
+  @override
+  String get aiToolPlaybackGet => '讀取播放狀態';
+
+  @override
+  String get aiToolPlaybackOpen => '開啟播放';
+
+  @override
+  String get aiToolPlaybackPause => '暫停';
+
+  @override
+  String get aiToolPlaybackResume => '繼續播放';
+
+  @override
+  String get aiToolPlaybackStop => '停止播放';
+
+  @override
+  String get aiToolPlaybackSeek => '跳轉';
+
+  @override
+  String get aiToolPlaybackSetSpeed => '設定倍速';
+
+  @override
+  String get aiToolPlaybackSetVolume => '設定音量';
+
+  @override
+  String get aiToolPlaybackSetSubtitle => '設定字幕';
+
+  @override
+  String get aiToolMediaProcessingCapabilities => '查詢媒體處理能力';
+
+  @override
+  String get aiToolMediaProbe => '分析媒體';
+
+  @override
+  String get aiToolMediaTranscode => '轉碼 / 擷取片段';
+
+  @override
+  String get aiToolMediaExtractAudio => '擷取音訊';
+
+  @override
+  String get aiToolMediaSnapshot => '截圖';
+
+  @override
+  String get aiToolMediaSaveToSource => '存回媒體來源';
+
+  @override
+  String get aiToolTaskGet => '查詢處理工作';
+
+  @override
+  String get aiToolTaskList => '列出處理工作';
+
+  @override
+  String get aiToolTaskCancel => '取消處理工作';
+
+  @override
+  String get aiToolTaskRetry => '重試處理工作';
+
+  @override
+  String get aiToolSpeechRecognitionStatus => '查詢語音辨識狀態';
+
+  @override
+  String get aiToolSubtitleGenerate => '辨識字幕';
+
+  @override
+  String get aiToolTranscriptGenerate => '產生逐字稿';
+
+  @override
+  String get aiToolSubtitleTaskGet => '查詢字幕工作';
+
+  @override
+  String get aiToolSubtitleTaskCancel => '取消字幕工作';
+
+  @override
+  String get aiToolSubtitleSave => '儲存字幕';
+
+  @override
+  String get aiToolPluginStatus => '檢視外掛狀態';
+
+  @override
+  String get aiToolMcpTavilyWebSearch => '聯網搜尋';
+
+  @override
+  String get aiToolWebFetch => '讀取網頁';
+
+  @override
+  String get aiArgQuery => '關鍵字';
+
+  @override
+  String get aiArgUrl => '網址';
+
+  @override
+  String get aiArgRange => '範圍';
+
+  @override
+  String get aiArgEnd => '結尾';
+
+  @override
+  String get aiArgWholeMedia => '整部';
+
+  @override
+  String get aiArgTime => '時間';
+
+  @override
+  String get aiArgPosition => '位置';
+
+  @override
+  String get aiArgPreset => '預設';
+
+  @override
+  String get aiArgLanguage => '語言';
+
+  @override
+  String get aiArgFormat => '格式';
+
+  @override
+  String get aiArgSpeed => '倍速';
+
+  @override
+  String get aiArgVolume => '音量';
+
+  @override
+  String get aiArgSwitch => '開關';
+
+  @override
+  String get aiArgOff => '關閉';
+
+  @override
+  String get aiArgFavorite => '收藏';
+
+  @override
+  String get aiArgFavoriteOn => '收藏';
+
+  @override
+  String get aiArgFavoriteOff => '取消收藏';
+
+  @override
+  String get aiArgWait => '等待';
+
+  @override
+  String get aiToolInput => '輸入';
+
+  @override
+  String get aiToolOutput => '輸出';
+
+  @override
+  String get aiActivityThinking => '正在思考';
+
+  @override
+  String get aiActivityAnswering => '正在回覆';
+
+  @override
+  String get aiActivityRunningDefault => '執行中';
+
+  @override
+  String get aiReasoningStreaming => '思考中…';
+
+  @override
+  String get aiReasoningDone => '已思考';
+
+  @override
+  String get aiReasoningUnderSecond => '思考了不到 1 秒';
+
+  @override
+  String get aiStillRunning => '等待逾時，工作仍在背景執行（未失敗、未停止）';
+
+  @override
+  String get aiStatusQueued => '排隊中';
+
+  @override
+  String get aiStatusPreparing => '準備中';
+
+  @override
+  String get aiStatusRunning => '處理中';
+
+  @override
+  String get aiStatusCancelling => '取消中';
+
+  @override
+  String get aiStatusSucceeded => '已完成';
+
+  @override
+  String get aiStatusFailed => '失敗';
+
+  @override
+  String get aiStatusCancelled => '已取消';
+
+  @override
+  String get aiStatusInterrupted => '已中斷';
+
+  @override
+  String get aiStageExtracting => '擷取音訊';
+
+  @override
+  String get aiStageUploading => '上傳';
+
+  @override
+  String get aiStageQueued => '排隊';
+
+  @override
+  String get aiStageTranscribing => '辨識';
+
+  @override
+  String get aiStageFormatting => '整理字幕';
+
+  @override
+  String aiArgWaitValue(String seconds) {
+    return '最多等 ${seconds}s';
+  }
+
+  @override
+  String aiStepPreparing(String name) {
+    return '準備呼叫 $name…';
+  }
+
+  @override
+  String aiStepRunning(String name) {
+    return '正在執行 $name…';
+  }
+
+  @override
+  String aiStepWaiting(String name) {
+    return '允許執行 $name？';
+  }
+
+  @override
+  String aiStepFailed(String name) {
+    return '$name 失敗';
+  }
+
+  @override
+  String aiStepCancelled(String name) {
+    return '已取消 $name';
+  }
+
+  @override
+  String aiShowAll(int count) {
+    return '顯示全部（$count 個字元）';
+  }
+
+  @override
+  String aiActivityPreparingTool(String name) {
+    return '準備呼叫：$name';
+  }
+
+  @override
+  String aiActivityTool(String name) {
+    return '正在執行：$name';
+  }
+
+  @override
+  String aiActivityConfirm(String name) {
+    return '等待你確認：$name';
+  }
+
+  @override
+  String aiStepNumber(int step) {
+    return '第 $step 步';
+  }
+
+  @override
+  String aiReasoningSeconds(int seconds) {
+    return '思考了 $seconds 秒';
+  }
+
+  @override
+  String aiReasoningMinutes(int minutes) {
+    return '思考了 $minutes 分鐘';
+  }
 }

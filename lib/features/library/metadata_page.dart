@@ -10,7 +10,6 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
-import '../../l10n/generated/app_localizations.dart';
 import '../../plugins/metadata_tmdb/tmdb_metadata_plugin.dart';
 import '../../services/artwork/artwork_service.dart';
 import '../../services/library/library_service.dart';
@@ -19,6 +18,7 @@ import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/feedback/app_feedback.dart';
 import '../../ui/components/media/content_row.dart';
 import 'metadata_artwork.dart';
+import '../../l10n/l10n.dart';
 
 class MetadataPage extends StatefulWidget {
   const MetadataPage({
@@ -238,7 +238,7 @@ class _MetadataPageState extends State<MetadataPage> {
     await _run(() async {
       final dynamic parsed = field == 'year' ? int.tryParse(value) : value;
       if (field == 'year' && parsed == null) {
-        throw const PluginException('invalidInput', '年份无效');
+        throw PluginException('invalidInput', appStrings.errInvalidYear);
       }
       widget.library.transaction(
         () => repository.overrideField(
@@ -442,7 +442,10 @@ class _MetadataPageState extends State<MetadataPage> {
                       onPressed: () => _run(() async {
                         if (_year.text.isNotEmpty &&
                             int.tryParse(_year.text) == null) {
-                          throw const PluginException('invalidInput', '年份无效');
+                          throw PluginException(
+                            'invalidInput',
+                            appStrings.errInvalidYear,
+                          );
                         }
                         _job = await _service.search(
                           widget.media,

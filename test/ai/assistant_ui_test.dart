@@ -11,7 +11,7 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx/ui/components/settings/settings_section.dart';
 
 import '../app_test_host.dart';
-import '../features/library/library_page_test.dart' show Sources;
+import '../support/fake_sources.dart';
 import '../features/player/player_page_test.dart' show FakeBackend;
 
 void main() {

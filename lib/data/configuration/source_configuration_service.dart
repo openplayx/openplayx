@@ -6,6 +6,7 @@ import '../../core/plugins/source_capability.dart';
 import '../sources/source_config.dart';
 import '../sources/source_schema.dart';
 import 'configuration_database.dart';
+import '../../l10n/l10n.dart';
 
 class ConfigurationIssue {
   const ConfigurationIssue(this.instanceId, this.message);
@@ -47,7 +48,7 @@ class SourceConfigurationService {
       ConfigurationDatabase.initialize(_db);
     } on StateError {
       _db.close();
-      throw const PluginException('unsupported', '本地配置数据库版本较新，请升级应用。');
+      throw PluginException('unsupported', appStrings.errConfigDbTooNew);
     }
   }
 
@@ -71,7 +72,7 @@ class SourceConfigurationService {
     )) {
       try {
         if (row['config_version'] != 2) {
-          throw const FormatException('配置版本不兼容，原数据已保留。');
+          throw FormatException(appStrings.errConfigVersionKept);
         }
         final config = SourceConfig.fromJson(
           jsonDecode(row['config_json'] as String) as Map<String, dynamic>,
@@ -81,14 +82,14 @@ class SourceConfigurationService {
             config.pluginId != row['plugin_id'] ||
             config.revision != row['revision'] ||
             config.enabled != (row['enabled_desired'] == 1)) {
-          throw const FormatException('实例配置与元数据不一致。');
+          throw FormatException(appStrings.errInstanceMetaMismatch);
         }
         configs.add(config.copyWith(hasSecret: row['secret'] != null));
       } catch (_) {
         issues.add(
           ConfigurationIssue(
             row['instance_id'] as String,
-            '实例配置不兼容或损坏，已隔离且保留原数据。',
+            appStrings.errInstanceQuarantined,
           ),
         );
       }
@@ -110,11 +111,14 @@ class SourceConfigurationService {
         [config.id],
       );
       if (rows.isNotEmpty && rows.first['config_version'] != 2) {
-        throw const PluginException('unsupported', '不能覆盖版本不兼容的实例配置。');
+        throw PluginException('unsupported', appStrings.errInstanceNoOverwrite);
       }
       final revision = rows.isEmpty ? 0 : rows.first['revision'] as int;
       if (revision != expectedRevision) {
-        throw const PluginException('conflict', '配置已被其他窗口修改，请重新加载后编辑。');
+        throw PluginException(
+          'conflict',
+          appStrings.errConfigChangedElsewhereEdit,
+        );
       }
       final stored =
           secret ?? (rows.isEmpty ? null : rows.first['secret'] as String?);
@@ -146,7 +150,7 @@ class SourceConfigurationService {
     );
     if (rows.isEmpty) return;
     if (rows.first['revision'] != expectedRevision) {
-      throw const PluginException('conflict', '配置已更新，请重新加载后删除。');
+      throw PluginException('conflict', appStrings.errConfigChangedDelete);
     }
     _removeBindings(id);
     _db.execute('DELETE FROM plugin_instance_configs WHERE instance_id=?', [
@@ -174,7 +178,10 @@ class SourceConfigurationService {
   void saveBindings(SourceBindings next, {required int expectedRevision}) =>
       _transaction(() {
         if (bindings().revision != expectedRevision) {
-          throw const PluginException('conflict', '默认实例设置已更新，请重新加载。');
+          throw PluginException(
+            'conflict',
+            appStrings.errDefaultInstanceChanged,
+          );
         }
         _writeBindings(next);
       });
@@ -286,7 +293,7 @@ class SourceConfigurationService {
   }) => _transaction(() {
     final (_, revision) = readDocument(namespace, key);
     if (revision != expectedRevision) {
-      throw const PluginException('conflict', '设置已被其他窗口修改，请重新加载。');
+      throw PluginException('conflict', appStrings.errSettingsChangedElsewhere);
     }
     _db.execute('INSERT OR REPLACE INTO settings VALUES (?,?,?,?,?,?)', [
       namespace,

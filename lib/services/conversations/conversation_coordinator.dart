@@ -265,15 +265,16 @@ class ConversationCoordinator extends ChangeNotifier {
         offset += page.length;
         for (final row in page.reversed) {
           if (row['id'] == turn.id || row['status'] != 'completed') continue;
-          final past = _readTurn(row);
-          final size = jsonEncode(past.messages.map((m) => m.toJson()).toList())
-              .length;
-          if (chars + size > 24000) {
+          final past = _fitTurn(
+            _readTurn(row).messages,
+            _historyBudget - chars,
+          );
+          if (past == null) {
             withinBudget = false;
             break;
           }
-          chars += size;
-          history.insertAll(0, past.messages);
+          chars += _size(past);
+          history.insertAll(0, past);
         }
       }
       final messages = [
@@ -515,6 +516,75 @@ class ConversationCoordinator extends ChangeNotifier {
       _current = null;
       _notify();
     }
+  }
+
+  static const _historyBudget = 24000;
+  static int _size(List<ModelMessage> messages) =>
+      jsonEncode(messages.map((m) => m.toJson()).toList()).length;
+
+  /// Fits a completed past turn into [budget] characters of history.
+  ///
+  /// Tool results (up to 20k each) dominate a turn's size. Dropping a whole
+  /// turn because of them hid what the user saw, e.g. a numbered result table,
+  /// from follow-ups like "download #2". Instead the user's words and the
+  /// assistant's replies stay intact, and tool results are shortened, oldest
+  /// first, so the latest result keeps as much data as possible. Tool call and
+  /// result pairs stay complete for the provider protocol. Returns null only
+  /// when even the shortest form does not fit.
+  static List<ModelMessage>? _fitTurn(List<ModelMessage> source, int budget) {
+    // Reasoning and message IDs are never sent to a model.
+    final messages = [
+      for (final m in source)
+        ModelMessage(m.role, m.text, calls: m.calls, callId: m.callId),
+    ];
+    if (_size(messages) <= budget) return messages;
+    final tools = [
+      for (var i = 0; i < messages.length; i++)
+        if (messages[i].role == 'tool') i,
+    ];
+    if (tools.isEmpty) return null;
+    final limits = {for (final i in tools) i: 0};
+    List<ModelMessage> shortened() => [
+      for (var i = 0; i < messages.length; i++)
+        if (limits[i] case final limit?)
+          ModelMessage(
+            'tool',
+            _shorten(messages[i].text, limit),
+            callId: messages[i].callId,
+          )
+        else
+          messages[i],
+    ];
+    if (_size(shortened()) > budget) return null;
+    for (final i in tools.reversed) {
+      final full = messages[i].text.length;
+      // Largest raw slice whose encoded form fits; escaping is not 1:1.
+      var low = 0, high = full;
+      while (low < high) {
+        final mid = (low + high + 1) ~/ 2;
+        limits[i] = mid;
+        if (_size(shortened()) <= budget) {
+          low = mid;
+        } else {
+          high = mid - 1;
+        }
+      }
+      // A few hundred characters of a result is noise, not data.
+      limits[i] = low < 500 ? 0 : low;
+      if (low < full) break;
+    }
+    return shortened();
+  }
+
+  static String _shorten(String text, int limit) {
+    if (limit >= text.length) return text;
+    if (limit <= 0) {
+      return '[tool result omitted from history; call the tool again if needed]';
+    }
+    var end = limit;
+    final unit = text.codeUnitAt(end - 1);
+    if (unit >= 0xD800 && unit <= 0xDBFF) end--; // Keep surrogate pairs whole.
+    return '${text.substring(0, end)}…[truncated in history; call the tool again for full data]';
   }
 
   static bool _containsTextToolCall(String text) {

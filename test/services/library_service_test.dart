@@ -7,6 +7,8 @@ import 'package:openplayx/data/sources/source_manager.dart';
 import 'package:openplayx/core/plugins/metadata_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
 
+import '../support/library_test_helpers.dart';
+
 class FakeSources extends SourceManager {
   bool fail = false;
   Future<BrowseResult> Function(BrowseRequest)? handler;
@@ -75,24 +77,389 @@ void main() {
         throwsA(isA<StateError>()),
         reason: 'disabled sources are not scanned',
       );
-      // Manually kept titles stay visible even if their source is disabled.
-      final one =
-          service.db
-                  .select("SELECT id FROM media WHERE title='One.mp4'")
-                  .single['id']
-              as String;
-      service.addManual(one);
-      expect(service.query(), hasLength(2));
       service.setFileSourceEnabled(a, true);
       service.renameFileSource(b, '  Shows ');
       expect(service.fileSources().last['name'], 'Shows');
       expect(() => service.renameFileSource(b, ' '), throwsArgumentError);
     },
   );
+  test(
+    'metadata series and seasons follow their episodes\' file sources',
+    () async {
+      final a = service.addFileSource('s', root: '/a');
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/a/show.s01e01.mp4'),
+          'Show.S01E01.mp4',
+          isFolder: false,
+        ),
+      ];
+      await service.scan(a, sources);
+      final episode =
+          service.db.select('SELECT id FROM media').single['id'] as String;
+      // Scraping groups the episode under series and season containers that
+      // have no files or evidence of their own.
+      for (final id in ['metadata:series', 'metadata:season']) {
+        service.db.execute('INSERT INTO media(id,title) VALUES (?,?)', [
+          id,
+          'Show',
+        ]);
+      }
+      final now = DateTime.now().microsecondsSinceEpoch;
+      service.db.execute('INSERT INTO memberships VALUES (?,?),(?,?)', [
+        'metadata:series',
+        now,
+        'metadata:season',
+        now,
+      ]);
+      service.db.execute('INSERT INTO metadata_relations VALUES (?,?),(?,?)', [
+        'metadata:series',
+        'metadata:season',
+        'metadata:season',
+        episode,
+      ]);
+      expect(service.query().map((r) => r['id']), ['metadata:series']);
+      expect(service.children('metadata:series'), hasLength(1));
+
+      service.setFileSourceEnabled(a, false);
+      expect(service.query(), isEmpty);
+      expect(service.children('metadata:series'), isEmpty);
+      expect(service.children('metadata:season'), isEmpty);
+
+      service.setFileSourceEnabled(a, true);
+      expect(service.query().map((r) => r['id']), ['metadata:series']);
+
+      // Deleting the file source deletes the episode, then the season and
+      // series left without episodes.
+      service.removeFileSource(a);
+      expect(service.query(), isEmpty);
+      expect(service.db.select('SELECT * FROM media'), isEmpty);
+      expect(service.db.select('SELECT * FROM metadata_relations'), isEmpty);
+      expect(service.db.select('SELECT * FROM memberships'), isEmpty);
+    },
+  );
+  test('continue watching follows file sources like the poster wall', () async {
+    final a = service.addFileSource('s', root: '/a');
+    sources.entries = [
+      const SourceEntry(
+        ResourceRef('s', '/a/film.mp4'),
+        'Film.mp4',
+        isFolder: false,
+      ),
+    ];
+    await service.scan(a, sources);
+    final media = service.query().single['id'] as String;
+    void watchHalf(String media) {
+      final resource = service.resources(media).single['id'] as String;
+      service.saveProgress(
+        resource,
+        service.beginSession(resource),
+        const Duration(minutes: 5),
+        const Duration(minutes: 10),
+      );
+    }
+
+    watchHalf(media);
+    // Played by browsing a source, never scanned: progress is kept but the
+    // media is in no file source.
+    final browsed = service.register(
+      const SourceEntry(
+        ResourceRef('s', '/elsewhere/clip.mp4'),
+        'Clip.mp4',
+        isFolder: false,
+      ),
+    );
+    watchHalf(browsed);
+    expect(service.continueWatching().map((r) => r['id']), [media]);
+
+    service.setFileSourceEnabled(a, false);
+    expect(service.continueWatching(), isEmpty);
+    service.setFileSourceEnabled(a, true);
+    expect(service.continueWatching().map((r) => r['id']), [media]);
+
+    service.removeFileSource(a);
+    expect(service.continueWatching(), isEmpty);
+  });
+  test(
+    'a series split across file sources keeps only enabled episodes',
+    () async {
+      final a = service.addFileSource('s', root: '/a');
+      final b = service.addFileSource('s', root: '/b');
+      Future<String> scanEpisode(String fileSource, String path) async {
+        sources.entries = [
+          SourceEntry(ResourceRef('s', path), path, isFolder: false),
+        ];
+        await service.scan(fileSource, sources);
+        return service.db.select(
+              'SELECT r.media_id FROM resources r '
+              'JOIN resource_locators l ON l.resource_id=r.id WHERE l.item=?',
+              [path],
+            ).single['media_id']
+            as String;
+      }
+
+      final e1 = await scanEpisode(a, '/a/show.s01e01.mp4');
+      final e2 = await scanEpisode(b, '/b/show.s01e02.mp4');
+      for (final id in ['metadata:series', 'metadata:season']) {
+        service.db.execute('INSERT INTO media(id,title) VALUES (?,?)', [
+          id,
+          'Show',
+        ]);
+        service.db.execute('INSERT INTO memberships VALUES (?,?)', [id, 1]);
+      }
+      service.db.execute(
+        'INSERT INTO metadata_relations VALUES (?,?),(?,?),(?,?)',
+        [
+          'metadata:series',
+          'metadata:season',
+          'metadata:season',
+          e1,
+          'metadata:season',
+          e2,
+        ],
+      );
+      List<Object?> episodes() =>
+          service.children('metadata:season').map((r) => r['id']).toList();
+      expect(service.query().map((r) => r['id']), ['metadata:series']);
+      expect(episodes(), unorderedEquals([e1, e2]));
+
+      service.setFileSourceEnabled(a, false);
+      expect(service.query().map((r) => r['id']), ['metadata:series']);
+      expect(episodes(), [e2]);
+
+      // Deleting B deletes its episode; the series keeps A's (disabled)
+      // episode and stays hidden until A is enabled again.
+      service.removeFileSource(b);
+      expect(service.query(), isEmpty);
+      expect(episodes(), isEmpty);
+      expect(
+        service.db.select('SELECT 1 FROM media WHERE id=?', [e2]),
+        isEmpty,
+      );
+      service.setFileSourceEnabled(a, true);
+      expect(service.query().map((r) => r['id']), ['metadata:series']);
+      expect(episodes(), [e1]);
+    },
+  );
+  test(
+    'disabled connections hide their file sources; deleted ones remove them',
+    () async {
+      final a = service.addFileSource('s', root: '/a');
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/a/film.mp4'),
+          'Film.mp4',
+          isFolder: false,
+        ),
+      ];
+      await service.scan(a, sources);
+      final media = service.query().single['id'] as String;
+      final resource = service.resources(media).single['id'] as String;
+      service.saveProgress(
+        resource,
+        service.beginSession(resource),
+        const Duration(minutes: 5),
+        const Duration(minutes: 10),
+      );
+      // The connection `s` as the source page saves it, disabled.
+      service.repository.configuration.execute(
+        'INSERT INTO plugin_instance_configs VALUES (?,?,?,?,?,?,?)',
+        ['s', 'source.local', '{}', 1, 1, 0, null],
+      );
+      expect(service.query(), isEmpty);
+      expect(service.continueWatching(), isEmpty);
+      service.repository.configuration.execute(
+        'UPDATE plugin_instance_configs SET enabled_desired=1',
+      );
+      expect(service.query().single['id'], media);
+      expect(service.continueWatching().single['id'], media);
+
+      expect(service.fileSourcesOf('s'), [a]);
+      service.removeFileSourcesOf('s');
+      expect(service.fileSources(), isEmpty);
+      expect(service.db.select('SELECT * FROM media'), isEmpty);
+    },
+  );
+  group('versions', () {
+    /// Scans [files] (path → size) into one file source and identifies each
+    /// as the TMDB title [ids] maps it to.
+    Future<Map<String, String>> scanIdentified(
+      Map<String, int?> files,
+      Map<String, String> ids, {
+      String kind = 'movie',
+    }) async {
+      final fileSource = service.addFileSource('s');
+      sources.entries = [
+        for (final e in files.entries)
+          SourceEntry(
+            ResourceRef('s', e.key),
+            e.key.substring(1),
+            isFolder: false,
+            size: e.value,
+          ),
+      ];
+      await service.scan(fileSource, sources);
+      final media = {
+        for (final path in files.keys)
+          path:
+              service.db.select('SELECT media_id FROM resources WHERE item=?', [
+                    path,
+                  ]).single['media_id']
+                  as String,
+      };
+      for (final e in ids.entries) {
+        service.db.execute(
+          'INSERT OR REPLACE INTO metadata_state(media_id,fallback_title,association) VALUES (?,?,?)',
+          [
+            media[e.key],
+            e.key,
+            '{"provider":"tmdb","kind":"$kind","id":"${e.value}"}',
+          ],
+        );
+      }
+      return media;
+    }
+
+    test('files identified as one movie show once, largest first', () async {
+      final media = await scanIdentified(
+        {'/small.mkv': 1 << 30, '/large.mkv': 4 << 30, '/unknown.mkv': null},
+        {'/small.mkv': '1', '/large.mkv': '1', '/unknown.mkv': '1'},
+      );
+      final rows = service.query();
+      expect(rows, hasLength(1));
+      expect(rows.single['total'], 1);
+      final card = rows.single['id'] as String;
+      expect(service.versions(card).map((r) => r['name']), [
+        'large.mkv',
+        'small.mkv',
+        'unknown.mkv',
+      ]);
+      expect(service.versions(card).first['size'], 4 << 30);
+
+      // Favorites and hiding cover every version.
+      service.favorite(card, true);
+      expect(service.db.select('SELECT favorite FROM media').map((r) => r[0]), [
+        1,
+        1,
+        1,
+      ]);
+      service.hide(card);
+      expect(service.query(), isEmpty);
+      service.clearIgnored();
+
+      // Correcting a match splits that file off again.
+      service.db.execute(
+        'UPDATE metadata_state SET association=? WHERE media_id=?',
+        ['{"provider":"tmdb","kind":"movie","id":"2"}', media['/small.mkv']],
+      );
+      expect(service.versions(media['/small.mkv']!), hasLength(1));
+      expect(service.versions(media['/large.mkv']!).map((r) => r['name']), [
+        'large.mkv',
+        'unknown.mkv',
+      ]);
+    });
+
+    test('rescans record and update file sizes', () async {
+      final media = await scanIdentified({'/film.mkv': 100}, {});
+      expect(service.versions(media['/film.mkv']!).single['size'], 100);
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/film.mkv'),
+          'film.mkv',
+          isFolder: false,
+          size: 200,
+        ),
+      ];
+      await service.scan(service.fileSources().single['id'] as String, sources);
+      expect(service.versions(media['/film.mkv']!).single['size'], 200);
+    });
+
+    test('an episode with several files is listed once', () async {
+      final media = await scanIdentified(
+        {'/e1.mkv': 10, '/e1.hd.mkv': 20, '/e2.mkv': 10},
+        {'/e1.mkv': '101', '/e1.hd.mkv': '101', '/e2.mkv': '102'},
+        kind: 'episode',
+      );
+      service.db.execute('INSERT INTO media(id,title) VALUES (?,?)', [
+        'metadata:season',
+        'Season 1',
+      ]);
+      for (final episode in media.values) {
+        service.db.execute('INSERT INTO metadata_relations VALUES (?,?)', [
+          'metadata:season',
+          episode,
+        ]);
+      }
+      final episodes = service.children('metadata:season');
+      expect(episodes, hasLength(2));
+      expect(service.versions(media['/e1.mkv']!).map((r) => r['name']), [
+        'e1.hd.mkv',
+        'e1.mkv',
+      ]);
+    });
+
+    test(
+      'continue watching shows a title once, at the version played last',
+      () async {
+        final media = await scanIdentified(
+          {'/a.mkv': 10, '/b.mkv': 20},
+          {'/a.mkv': '1', '/b.mkv': '1'},
+        );
+        String watch(String path) {
+          final resource =
+              service.resources(media[path]!).single['id'] as String;
+          service.saveProgress(
+            resource,
+            service.beginSession(resource),
+            const Duration(minutes: 5),
+            const Duration(minutes: 10),
+          );
+          return resource;
+        }
+
+        watch('/a.mkv');
+        await Future<void>.delayed(const Duration(milliseconds: 2));
+        final last = watch('/b.mkv');
+        final rows = service.continueWatching();
+        expect(rows, hasLength(1));
+        expect(rows.single['resource_id'], last);
+      },
+    );
+
+    test('versions from disabled file sources are left out', () async {
+      final media = await scanIdentified({'/a.mkv': 10}, {'/a.mkv': '1'});
+      final other = service.addFileSource('s', root: '/other');
+      sources.entries = [
+        const SourceEntry(
+          ResourceRef('s', '/other/b.mkv'),
+          'b.mkv',
+          isFolder: false,
+          size: 99,
+        ),
+      ];
+      await service.scan(other, sources);
+      final b =
+          service.db
+                  .select(
+                    "SELECT media_id FROM resources WHERE item='/other/b.mkv'",
+                  )
+                  .single['media_id']
+              as String;
+      service.db.execute(
+        'INSERT OR REPLACE INTO metadata_state(media_id,fallback_title,association) VALUES (?,?,?)',
+        [b, 'b', '{"provider":"tmdb","kind":"movie","id":"1"}'],
+      );
+      expect(service.versions(media['/a.mkv']!), hasLength(2));
+      service.setFileSourceEnabled(other, false);
+      expect(service.versions(media['/a.mkv']!).map((r) => r['name']), [
+        'a.mkv',
+      ]);
+    });
+  });
   test('hide removes a title from every library and can be restored', () {
     final media = service.register(sources.entries.first);
-    service.addManual(media);
-    service.addManual(media);
+    addToLibrary(service, media);
+    addToLibrary(service, media);
     service.hide(media);
     expect(service.query(), isEmpty);
     expect(service.db.select('SELECT * FROM resources'), hasLength(1));
@@ -103,8 +470,8 @@ void main() {
     'all libraries deduplicate shared media and exclude unfiled playback',
     () {
       final shared = service.register(sources.entries.first);
-      service.addManual(shared);
-      service.addManual(shared);
+      addToLibrary(service, shared);
+      addToLibrary(service, shared);
       service.register(
         const SourceEntry(
           ResourceRef('s', '/unfiled.mp4'),
@@ -117,24 +484,18 @@ void main() {
     },
   );
 
-  test(
-    'recent playback includes completed media and keeps the latest resource',
-    () {
-      final media = service.register(sources.entries.first);
-      final resource = service.resources(media).single['id'] as String;
-      service.saveProgress(
-        resource,
-        service.beginSession(resource),
-        const Duration(minutes: 10),
-        const Duration(minutes: 10),
-        completed: true,
-      );
-      expect(service.continueWatching(), isEmpty);
-      expect(service.recentlyPlayed().single['id'], media);
-      service.beginSession(resource);
-      expect(service.recentlyPlayed(), hasLength(1));
-    },
-  );
+  test('completed media leave continue watching', () {
+    final media = service.register(sources.entries.first);
+    final resource = service.resources(media).single['id'] as String;
+    service.saveProgress(
+      resource,
+      service.beginSession(resource),
+      const Duration(minutes: 10),
+      const Duration(minutes: 10),
+      completed: true,
+    );
+    expect(service.continueWatching(), isEmpty);
+  });
   test('direct identity is reused, repeated scans and multiple libraries share media', () async {
     final media = service.register(sources.entries.first);
     expect(service.query(), isEmpty);
@@ -172,7 +533,7 @@ void main() {
     expect(service.query(), hasLength(1));
   });
   test(
-    'removal persists across scan and deletion preserves media and favorites',
+    'hiding persists across scans and removing the file source deletes it',
     () async {
       final binding = service.addFileSource('s');
       await service.scan(binding, sources);
@@ -185,11 +546,8 @@ void main() {
       await service.scan(binding, sources);
       expect(service.query(), hasLength(1));
       service.removeFileSource(binding);
-      expect(service.resources(media), hasLength(1));
-      expect(
-        service.db.select('SELECT favorite FROM media').single['favorite'],
-        1,
-      );
+      expect(service.resources(media), isEmpty);
+      expect(service.db.select('SELECT * FROM media'), isEmpty);
     },
   );
   test('stable pagination and literal search', () async {
@@ -239,6 +597,7 @@ void main() {
   });
   test('new session rejects stale checkpoints and permits rewinding', () {
     final media = service.register(sources.entries.first);
+    addToLibrary(service, media);
     final resource = service.resources(media).single['id'] as String;
     final old = service.beginSession(resource);
     service.saveProgress(
@@ -271,19 +630,46 @@ void main() {
     );
     expect(service.continueWatching(), isEmpty);
   });
-  test('manual and other binding evidence survive binding removal', () async {
-    final one = service.addFileSource('s');
-    final two = service.addFileSource('s');
-    await service.scan(one, sources);
-    await service.scan(two, sources);
-    final media = service.query().single['id'] as String;
-    service.removeFileSource(one);
-    expect(service.query(), hasLength(1));
-    service.addManual(media);
-    service.removeFileSource(two);
-    expect(service.query(), hasLength(1));
-    expect(service.resources(media), hasLength(1));
-  });
+  test(
+    'other file sources keep shared media until the last one is removed',
+    () async {
+      final one = service.addFileSource('s');
+      final two = service.addFileSource('s');
+      await service.scan(one, sources);
+      await service.scan(two, sources);
+      final media = service.query().single['id'] as String;
+      final resource = service.resources(media).single['id'] as String;
+      service.saveProgress(
+        resource,
+        service.beginSession(resource),
+        const Duration(minutes: 5),
+        const Duration(minutes: 10),
+      );
+      service.removeFileSource(one);
+      expect(service.query().single['id'], media);
+      expect(service.checkpoint(resource), isNotNull);
+      // The last file source takes the file record, progress and media along.
+      service.removeFileSource(two);
+      expect(service.query(), isEmpty);
+      expect(service.checkpoint(resource), isNull);
+      for (final table in [
+        'media',
+        'resources',
+        'resource_locators',
+        'progress',
+        'evidence',
+        'media_evidence',
+        'memberships',
+        'metadata_queue',
+      ]) {
+        expect(
+          service.db.select('SELECT * FROM $table'),
+          isEmpty,
+          reason: table,
+        );
+      }
+    },
+  );
   test('persisted page cursor resumes after restart without re-reading completed pages', () async {
     final binding = service.addFileSource('s');
     sources.handler = (request) async {
@@ -463,7 +849,7 @@ void main() {
     expect(seen, [2]);
     expect(service.scannedMediaCount(binding), 0, reason: 'scan finished');
   });
-  test('media that are only hidden dot files never show in the library', () {
+  test('media that are only hidden dot files never show anywhere', () {
     final sidecar = service.register(
       const SourceEntry(
         ResourceRef('s', '/._Film.mp4'),
@@ -478,9 +864,24 @@ void main() {
         isFolder: false,
       ),
     );
-    service.addManual(sidecar);
-    service.addManual(film);
+    addToLibrary(service, sidecar);
+    addToLibrary(service, film);
     expect(service.query().map((m) => m['id']), [film]);
+    // Even with progress, as kept from an old scan.
+    for (final media in [sidecar, film]) {
+      final resource =
+          service.db.select('SELECT id FROM resources WHERE media_id=?', [
+                media,
+              ]).single['id']
+              as String;
+      service.saveProgress(
+        resource,
+        service.beginSession(resource),
+        const Duration(minutes: 1),
+        const Duration(minutes: 10),
+      );
+    }
+    expect(service.continueWatching().map((m) => m['id']), [film]);
   });
 
   test(
@@ -522,7 +923,7 @@ void main() {
         ),
       );
       // A macOS sidecar registered as its own episode (the duplicate row bug).
-      service.register(
+      final sidecar = service.register(
         SourceEntry(
           const ResourceRef('s', '/._S01E01.mkv'),
           '._S01E01.mkv',
@@ -547,6 +948,9 @@ void main() {
           media: episode('real'),
         ),
       );
+      // Both came from a scan of an enabled file source.
+      addToLibrary(service, sidecar);
+      addToLibrary(service, real);
       final seasonRow = service.children(show).single;
       final episodes = service.children(seasonRow['id'] as String);
       expect(episodes.map((e) => e['id']), [real]);
@@ -561,7 +965,7 @@ void main() {
         final media = service.register(
           SourceEntry(ResourceRef('s', '/show/$name'), name, isFolder: false),
         );
-        service.addManual(media);
+        addToLibrary(service, media);
         return media;
       }
 
@@ -601,7 +1005,7 @@ void main() {
         isFolder: false,
       ),
     );
-    service.addManual(sidecar);
+    addToLibrary(service, sidecar);
     final queue = MetadataQueue(service.db);
     while (true) {
       final work = queue.claim('test');

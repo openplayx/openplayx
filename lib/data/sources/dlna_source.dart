@@ -9,6 +9,7 @@ import 'file_sources.dart';
 import 'network_file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
+import '../../l10n/l10n.dart';
 
 /// A UPnP media server found on the local network.
 class DlnaDevice {
@@ -119,7 +120,7 @@ Future<XmlDocument> _fetchXml(
   if (response.statusCode != 200) {
     throw PluginException(
       'networkUnavailable',
-      'DLNA 设备请求失败（HTTP ${response.statusCode}）。',
+      appStrings.errDlnaHttp(response.statusCode),
       retryable: true,
     );
   }
@@ -156,11 +157,14 @@ class DlnaPlugin implements Plugin, SourceCapability {
       }
       final uri = (base.hasAuthority ? base : _location).resolve(control);
       if (uri.host != _location.host) {
-        throw const PluginException('permissionDenied', 'DLNA 设备返回了其他主机的地址。');
+        throw PluginException(
+          'permissionDenied',
+          appStrings.errDlnaForeignHost,
+        );
       }
       return (uri, type);
     }
-    throw const PluginException('unsupported', '该设备不是媒体服务器（没有内容目录服务）。');
+    throw PluginException('unsupported', appStrings.errDlnaNotMediaServer);
   }
 
   Future<({XmlDocument didl, int returned, int total})> _browse(
@@ -223,7 +227,7 @@ class DlnaPlugin implements Plugin, SourceCapability {
     checkOwnership(config.id, request.node, context);
     final node = request.node?.id;
     if (node != null && !node.startsWith('c:')) {
-      throw const PluginException('invalidInput', '请选择文件夹。');
+      throw PluginException('invalidInput', appStrings.errChooseFolder);
     }
     final page = await _browse(
       node?.substring(2) ?? '0',
@@ -234,7 +238,7 @@ class DlnaPlugin implements Plugin, SourceCapability {
     final entries = <SourceEntry>[];
     for (final element in page.didl.rootElement.childElements) {
       final id = element.getAttribute('id');
-      final title = xmlText(element, 'title') ?? '未命名';
+      final title = xmlText(element, 'title') ?? appStrings.untitled;
       if (id == null) continue;
       if (element.name.local == 'container') {
         entries.add(
@@ -261,7 +265,7 @@ class DlnaPlugin implements Plugin, SourceCapability {
     checkOwnership(config.id, request.resource, context);
     final id = request.resource.id;
     if (!id.startsWith('i:')) {
-      throw const PluginException('invalidInput', '请选择视频或音频。');
+      throw PluginException('invalidInput', appStrings.errChooseVideoOrAudio);
     }
     final page = await _browse(id.substring(2), 'BrowseMetadata');
     final item = page.didl.rootElement.childElements
@@ -269,7 +273,7 @@ class DlnaPlugin implements Plugin, SourceCapability {
         .firstOrNull;
     final media = item == null ? null : _media(item);
     if (media == null) {
-      throw const PluginException('notFound', '此项目没有可播放的地址。');
+      throw PluginException('notFound', appStrings.errNoPlayableAddress);
     }
     // No credentials are involved, so the player reads the server directly.
     return PlayableStream(media);

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../l10n/generated/app_localizations.dart';
+import '../l10n/l10n.dart';
 import '../l10n/shad_localizations_delegate.dart';
 import 'app_shell.dart';
 import '../features/design_system/component_gallery_page.dart';
@@ -62,10 +62,14 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
             AppShadLocalizationsDelegate(),
             ...AppLocalizations.localizationsDelegates,
           ],
-          builder: (context, child) => AnnotatedRegion<SystemUiOverlayStyle>(
-            value: appSystemUiStyle(Theme.of(context).brightness),
-            child: ShadAppBuilder(child: child!),
-          ),
+          builder: (context, child) {
+            // Services format messages without a BuildContext.
+            setAppStrings(AppLocalizations.of(context));
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: appSystemUiStyle(Theme.of(context).brightness),
+              child: ShadAppBuilder(child: child!),
+            );
+          },
           routes: {'/design-system': (_) => const ComponentGalleryPage()},
           home: widget.home ?? const AppShell(),
         ),

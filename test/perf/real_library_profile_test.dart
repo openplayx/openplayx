@@ -51,7 +51,6 @@ void main() {
     await t('reconcile #2', () => worker.reconcile());
     await t('library.query', () async => library.query());
     await t('continueWatching', () async => library.continueWatching());
-    await t('recentlyPlayed', () async => library.recentlyPlayed());
     await t('fileSources', () async => library.fileSources());
     await t('checkExternalChanges', () async => library.checkExternalChanges());
     await t('queue.pending', () async => worker.queue.pending());

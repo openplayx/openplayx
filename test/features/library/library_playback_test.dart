@@ -35,7 +35,7 @@ void main() {
       final service = LibraryService(sqlite3.openInMemory());
       final backend = ResumeBackend();
       const ref = ResourceRef('@local', '/demo.mp4');
-      final media = service.register(
+      service.register(
         const SourceEntry(ref, 'Demo', isFolder: false),
         localPath: '/demo.mp4',
       );
@@ -74,7 +74,9 @@ void main() {
       );
       await tester.pump();
       expect(service.checkpoint(resource)!['position'], 10000);
-      expect(service.continueWatching().single['id'], media);
+      // Progress is kept, but media outside every file source is not shown
+      // in continue watching.
+      expect(service.continueWatching(), isEmpty);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
       service.close();

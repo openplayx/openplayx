@@ -185,7 +185,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.fileSources(), hasLength(1));
 
-    // Delete keeps resources, only drops automatic membership.
+    // Delete takes the file records it found along.
     await tester.tap(find.byKey(ValueKey('file-source-menu-$id')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(ValueKey('file-source-delete-$id')));
@@ -194,7 +194,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(service.fileSources(), isEmpty);
     expect(service.query(), isEmpty);
-    expect(service.db.select('SELECT * FROM resources'), hasLength(1));
+    expect(service.db.select('SELECT * FROM resources'), isEmpty);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();

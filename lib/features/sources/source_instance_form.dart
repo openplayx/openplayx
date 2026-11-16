@@ -818,14 +818,6 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     child: AppPage(
       pageContext: const PageContextData(pageType: 'source_configuration'),
       title: Text(widget.initial == null ? l.addSource : l.editSource),
-      trailing: [
-        PageSubmitButton(
-          key: const ValueKey('source-save'),
-          label: widget.initial == null ? l.add : l.save,
-          busy: _busy && !_authorizing,
-          onPressed: _canSave ? _save : null,
-        ),
-      ],
       body: SingleChildScrollView(
         padding: AppSpacing.page(context),
         child: Center(
@@ -861,6 +853,19 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                     _kind == SourceKind.plex ||
                     _kind == SourceKind.smb)
                   _remoteSection(),
+                const SizedBox(height: AppSpacing.lg),
+                FormActions(
+                  status: _busy && !_authorizing
+                      ? FormStatus.busy(l.saving)
+                      : null,
+                  [
+                    FormAction.primary(
+                      widget.initial == null ? l.add : l.save,
+                      _canSave ? _save : null,
+                      key: const ValueKey('source-save'),
+                    ),
+                  ],
+                ),
               ],
             ),
           ),

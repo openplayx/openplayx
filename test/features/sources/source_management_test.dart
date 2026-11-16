@@ -48,15 +48,6 @@ void main() {
       expect(find.text('待验证'), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('source-menu-plex')));
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey('source-details-plex')));
-      await tester.pumpAndSettle();
-      expect(find.textContaining('配置 v2'), findsOneWidget);
-      expect(find.textContaining('尚未验证'), findsOneWidget);
-      await tester.tap(find.text('关闭'));
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      await tester.tap(find.byKey(const ValueKey('source-menu-plex')));
-      await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('source-toggle-plex')));
       await tester.pumpAndSettle();
       // Nothing is playing or loading, so no confirmation is needed.
@@ -180,6 +171,7 @@ void main() {
             .text,
         'jellyfin',
       );
+      await tester.ensureVisible(find.text('保存'));
       await tester.tap(find.text('保存'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'https://new.test:8443/jellyfin');
@@ -221,6 +213,7 @@ void main() {
       await tester.enterText(find.byKey(ValueKey('地址')), '192.168.1.20');
       await tester.enterText(find.byKey(ValueKey('用户名')), 'viewer');
       await tester.enterText(find.byKey(ValueKey('密码')), 'user-password');
+      await tester.ensureVisible(find.text('添加'));
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'http://192.168.1.20:8096');
@@ -270,11 +263,13 @@ void main() {
         find.byKey(ValueKey('服务器地址')),
         'http://192.168.1.211:13240',
       );
+      await tester.ensureVisible(find.text('添加'));
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(find.text('请填写访问令牌后连接服务器。'), findsOneWidget);
       expect(find.text('请先登录 Plex 并选择服务器。'), findsNothing);
       await tester.enterText(find.byKey(ValueKey('访问令牌')), 'test-token');
+      await tester.ensureVisible(find.text('添加'));
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.address, 'http://192.168.1.211:13240');
@@ -322,6 +317,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(opened?.host, 'app.plex.tv');
       expect(find.text('Home Plex'), findsWidgets); // row + name hint
+      await tester.ensureVisible(find.text('添加'));
       await tester.tap(find.text('添加'));
       await tester.pumpAndSettle();
       expect(manager.saved.single.name, 'Home Plex');
@@ -379,6 +375,7 @@ void main() {
     await tester.pumpAndSettle();
     // The kind's own proxy is preselected; no JSON is pasted per source.
     expect(find.text('jellyfin · 18096'), findsOneWidget);
+    await tester.ensureVisible(find.text('添加'));
     await tester.tap(find.text('添加'));
     await tester.pumpAndSettle();
     expect(manager.saved, hasLength(1));
@@ -418,6 +415,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('选择文件夹'));
     await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('添加'));
     await tester.tap(find.text('添加'));
     await tester.pumpAndSettle();
     expect(manager.saved.single.address, '/tmp/Movies');

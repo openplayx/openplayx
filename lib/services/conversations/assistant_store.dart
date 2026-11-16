@@ -6,6 +6,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../../core/models/text_model.dart';
 import '../../data/configuration/configuration_database.dart';
 import '../ai_tools/tool_registry.dart';
+import '../../l10n/l10n.dart';
 
 class AssistantConfig {
   const AssistantConfig({
@@ -68,7 +69,7 @@ class AssistantConfig {
         model.length > 200 ||
         maxTokens < 128 ||
         maxTokens > 16384) {
-      throw const FormatException('请填写有效的 HTTPS API 基址、模型和输出上限（128–16384）');
+      throw FormatException(appStrings.errAssistantConfig);
     }
   }
 }

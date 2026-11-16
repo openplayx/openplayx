@@ -7,6 +7,8 @@ import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
 import 'package:openplayx/services/library/library_service.dart';
 
+import '../support/library_test_helpers.dart';
+
 void main() {
   test('separate database connections cannot claim one item or commit an expired lease', () async {
     final root = await Directory.systemTemp.createTemp(
@@ -26,7 +28,7 @@ void main() {
           isFolder: false,
         ),
       );
-      first.addManual(media);
+      addToLibrary(first, media);
       second = LibraryService(
         sqlite3.open(path),
         recoverInterrupted: false,
@@ -69,7 +71,7 @@ void main() {
           isFolder: false,
         ),
       );
-      view.addManual(media);
+      addToLibrary(view, media);
       worker = LibraryService(
         sqlite3.open(path),
         recoverInterrupted: false,

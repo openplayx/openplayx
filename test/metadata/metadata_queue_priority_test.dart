@@ -4,6 +4,8 @@ import 'package:openplayx/data/metadata/metadata_queue.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../support/library_test_helpers.dart';
+
 void main() {
   late LibraryService library;
   late List<String> media;
@@ -23,7 +25,7 @@ void main() {
         ),
     ];
     for (final m in media) {
-      library.addManual(m);
+      addToLibrary(library, m);
     }
   });
   tearDown(() => library.close());

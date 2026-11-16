@@ -428,7 +428,29 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
         ),
     ];
 
-    final body = _details(p, theme);
+    // Intermediate output (result rows, notes, raw input/output) stays
+    // folded under the step header; only the header shows by default.
+    final details = _details(p, theme);
+    final body = results.isEmpty && details == null
+        ? null
+        : Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (results.isNotEmpty)
+                Padding(
+                  padding: const EdgeInsetsDirectional.only(
+                    start: 21,
+                    bottom: 4,
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: results,
+                  ),
+                ),
+              ?details,
+            ],
+          );
 
     final canDecide =
         pending != null &&
@@ -499,14 +521,6 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
           trailing: decide,
           body: body,
         ),
-        if (results.isNotEmpty)
-          Padding(
-            padding: const EdgeInsetsDirectional.only(start: 21, bottom: 4),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: results,
-            ),
-          ),
         // What the confirmation will act on is always visible.
         if (pending != null)
           Padding(

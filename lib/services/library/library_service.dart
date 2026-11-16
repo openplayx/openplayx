@@ -12,6 +12,7 @@ import '../../data/library/library_database.dart';
 import '../../data/library/library_repository.dart';
 import '../../data/sources/source_manager.dart';
 import '../../data/sources/source_config.dart';
+import '../../l10n/l10n.dart';
 
 /// Library business operations: identity, membership, source traversal and playback.
 /// [LibraryRepository] owns SQL and metadata storage; [LibraryDatabase] owns
@@ -123,7 +124,7 @@ class LibraryService {
   MetadataRepository get metadata => repository.metadata;
   bool get isClosing => _closeRequested;
   void beginMetadataWork(String id) {
-    if (_closeRequested) throw StateError("媒体库正在关闭");
+    if (_closeRequested) throw StateError(appStrings.errLibraryClosing);
     _running.add("metadata:$id");
   }
 
@@ -181,7 +182,7 @@ class LibraryService {
   }
 
   void renameFileSource(String id, String name) {
-    if (name.trim().isEmpty) throw ArgumentError('请输入名称');
+    if (name.trim().isEmpty) throw ArgumentError(appStrings.errNameRequired);
     repository.renameFileSource(id, name.trim());
     notifyChanged();
   }
@@ -226,7 +227,7 @@ class LibraryService {
       String? parent = info.parentId;
       while (parent != null) {
         if (!visited.add(parent)) {
-          throw const PluginException('invalidInput', '来源返回了循环季集关系');
+          throw PluginException('invalidInput', appStrings.errSeasonCycle);
         }
         parent =
             repository
@@ -281,6 +282,15 @@ class LibraryService {
   List<Row> children(String media, {int offset = 0, int limit = 40}) =>
       repository.children(media, limit, offset);
   String register(SourceEntry entry, {String? localPath}) => transaction(() {
+    final media = _register(entry, localPath: localPath);
+    final size = entry.size;
+    if (size != null && !entry.isFolder) {
+      repository.setResourceSize(entry.ref.instanceId, entry.ref.id, size);
+    }
+    return media;
+  });
+
+  String _register(SourceEntry entry, {String? localPath}) {
     final existing = repository.mediaForLocator(
       entry.ref.instanceId,
       entry.ref.id,
@@ -316,7 +326,7 @@ class LibraryService {
       repository.insertLocalIdentity(localPath, resource);
     }
     return media;
-  });
+  }
 
   /// Media whose files are all hidden dot files (macOS `._movie.mp4` sidecars,
   /// kept from scans before those were filtered) never show in the library.
@@ -330,7 +340,9 @@ class LibraryService {
     int offset = 0,
     int limit = 40,
   }) {
-    if (offset < 0 || limit < 1 || limit > 200) throw ArgumentError('无效分页');
+    if (offset < 0 || limit < 1 || limit > 200) {
+      throw ArgumentError(appStrings.errInvalidPagingShort);
+    }
     return repository.query(
       search: search,
       favorites: favorites,
@@ -344,8 +356,16 @@ class LibraryService {
   }
 
   List<Row> resources(String media) => repository.resources(media);
-  void favorite(String media, bool value) =>
-      repository.setFavorite(value ? 1 : 0, media);
+  /// Files to play [media] from: every shown version of the same movie or
+  /// episode, largest first.
+  List<Row> versions(String media) => repository.versions(media);
+
+  /// Favorites a title with all its versions.
+  void favorite(String media, bool value) => transaction(() {
+    for (final version in repository.versionGroup(media)) {
+      repository.setFavorite(value ? 1 : 0, version);
+    }
+  });
   bool isFavorite(String media) => repository.isFavorite(media);
 
   /// Other library items in the same film collection (including [media]).
@@ -399,7 +419,7 @@ class LibraryService {
     }
   });
   void rename(String media, String title) {
-    if (title.trim().isEmpty) throw ArgumentError('请输入标题');
+    if (title.trim().isEmpty) throw ArgumentError(appStrings.errTitleRequired);
     transaction(
       () => metadata.overrideField(
         media,
@@ -413,26 +433,28 @@ class LibraryService {
   /// Hide a title from the poster wall; later scans do not bring it back.
   /// Files, media records and progress are untouched.
   void hide(String media) => transaction(() {
-    repository.ignoreMedia(media);
-    repository.removeManualMembership(media);
-    repository.removeMembership(media);
+    // All versions, or the next one would stand in for the hidden title.
+    for (final version in repository.versionGroup(media)) {
+      repository.ignoreMedia(version);
+      repository.removeMembership(version);
+    }
   });
   void clearIgnored() => transaction(() => repository.clearAllIgnored());
 
   /// Browse explicitly selected scope, preserving source identities. Only a fully
   /// successful traversal marks old observations unavailable; failures retain data.
   Future<void> scan(String fileSource, SourceManager sources) async {
-    if (!_running.add(fileSource)) throw StateError('扫描已在运行');
+    if (!_running.add(fileSource)) throw StateError(appStrings.errScanRunning);
     var batch = _id();
     try {
       final b = repository.fileSource(fileSource);
-      if (b == null) throw StateError('文件源不存在');
-      if (b['enabled'] == 0) throw StateError('文件源已停用');
+      if (b == null) throw StateError(appStrings.errFileSourceMissing);
+      if (b['enabled'] == 0) throw StateError(appStrings.errFileSourceDisabled);
       await sources.load();
       final source = b['source'] as String;
       final config = sources.configs.firstWhere((c) => c.id == source);
       if (!config.enabled || config.scanMode == ScanMode.disabled) {
-        throw StateError('来源未启用扫描');
+        throw StateError(appStrings.errSourceScanDisabled);
       }
       var scanRoot = config.rootPath;
       if (config.kind == SourceKind.local) {
@@ -459,7 +481,7 @@ class LibraryService {
         final nodeId = work['node'] as String;
         final node = nodeId.isEmpty ? null : ResourceRef(source, nodeId);
         final offset = work['offset'] as int;
-        if (++requests > 10000) throw StateError('扫描范围过大，请缩小范围');
+        if (++requests > 10000) throw StateError(appStrings.errScanTooLarge);
         final page = await sources.browse(
           source,
           BrowseRequest(node: node, offset: offset),
@@ -469,10 +491,12 @@ class LibraryService {
               (c) => c.id == source && c.enabled && c.revision == revision,
             ) ||
             !repository.fileSourceExists(fileSource)) {
-          throw StateError('来源或绑定已变更，请重新扫描');
+          throw StateError(appStrings.errScanBindingChanged);
         }
         for (final entry in page.entries) {
-          if (entry.ref.instanceId != source) throw StateError('来源身份不匹配');
+          if (entry.ref.instanceId != source) {
+            throw StateError(appStrings.errSourceIdentityMismatch);
+          }
           final prefix = scanRoot;
           final normalized = entry.ref.id.replaceAll('\\', '/');
           final root = prefix
@@ -508,7 +532,9 @@ class LibraryService {
           });
         }
         final next = page.nextOffset;
-        if (next != null && next <= offset) throw StateError('来源分页游标未前进');
+        if (next != null && next <= offset) {
+          throw StateError(appStrings.errSourceCursorStuck);
+        }
         repository.advanceScanNode(
           next ?? offset,
           next == null ? 1 : 0,
@@ -523,7 +549,7 @@ class LibraryService {
       });
     } catch (error) {
       repository.markScanFailed(
-        error is PluginException ? error.message : '扫描未完成，请检查来源后重试',
+        error is PluginException ? error.message : appStrings.errScanIncomplete,
         fileSource,
       );
       rethrow;
@@ -537,12 +563,6 @@ class LibraryService {
   int scannedMediaCount(String fileSource) =>
       repository.scannedMediaCount(fileSource).first['n'] as int;
 
-  void addManual(String media) => transaction(() {
-    repository.unignoreMedia(media);
-    repository.addManualMembership(media);
-    repository.addMembership(media, DateTime.now().millisecondsSinceEpoch);
-    repository.queueMetadata(media);
-  });
   Row? resourceFor(ResourceRef ref) =>
       repository.resourceFor(ref.instanceId, ref.id).firstOrNull;
   Row? checkpoint(String resource) =>
@@ -577,8 +597,6 @@ class LibraryService {
 
   List<Row> continueWatching({int limit = 20}) =>
       repository.continueWatching(limit);
-  List<Row> recentlyPlayed({int limit = 20}) =>
-      repository.recentlyPlayed(limit);
 
   bool observedMissing(String resource) {
     final rows = repository.resourceObservations(resource);
@@ -591,6 +609,20 @@ class LibraryService {
 
   /// Removes the file source and its scan results. Titles no other file
   /// source found, and that were not added by hand, leave the poster wall.
+  /// File sources in the connection [source].
+  List<String> fileSourcesOf(String source) => [
+    for (final s in fileSources())
+      if (s['source'] == source) s['id'] as String,
+  ];
+
+  /// Removes every file source of the deleted connection [source], with
+  /// everything they brought into the library.
+  void removeFileSourcesOf(String source) {
+    for (final id in fileSourcesOf(source)) {
+      removeFileSource(id);
+    }
+  }
+
   void removeFileSource(String fileSource) {
     transaction(() {
       final affected = repository.fileSourceMedia(fileSource);

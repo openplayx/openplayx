@@ -80,7 +80,7 @@ class ExternalTools {
     final target = _aliases[alias];
     if (target == null) return null;
     final s = services.get(target.$1);
-    return s == null ? null : '${s.name} · ${target.$2}';
+    return s == null ? null : '${s.displayName} · ${target.$2}';
   }
 
   void sync() {
@@ -126,7 +126,7 @@ class ExternalTools {
     final text = def['description'] is String
         ? def['description'] as String
         : (def['title'] as String? ?? tool);
-    final description = '[外部能力：${s.name}] $text';
+    final description = '[External capability: ${s.displayName}] $text';
     final id = s.id;
     try {
       registry.register(

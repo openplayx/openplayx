@@ -3,8 +3,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../l10n/generated/app_localizations.dart';
-
 import '../../../core/plugins/source_capability.dart';
 import '../../../data/sources/source_manager.dart';
 import '../../../services/conversations/assistant_store.dart';
@@ -23,6 +21,7 @@ import 'external_service_config_page.dart';
 import 'external_service_detail_view.dart';
 import 'plugin_detail_view.dart';
 import '../../../ui/components/feedback/app_feedback.dart';
+import '../../../l10n/l10n.dart';
 
 /// Opens the dedicated editor of a non-source plugin (TMDB, ASR,
 /// model). Those forms stay the single place their configuration is edited.
@@ -35,12 +34,15 @@ typedef PluginEditorOpener = Future<void> Function(
 /// count with a read-only list; models and external capabilities are the
 /// managed areas.
 enum PluginGroup {
-  model('模型'),
-  external('外部能力'),
-  builtIn('内部能力');
+  model,
+  external,
+  builtIn;
 
-  const PluginGroup(this.label);
-  final String label;
+  String get label => switch (this) {
+    model => appStrings.plgGroupModel,
+    external => appStrings.plgGroupExternal,
+    builtIn => appStrings.plgGroupBuiltIn,
+  };
 
   static PluginGroup of(PluginDefinition d) {
     if (d.category == PluginCategory.model) return model;
@@ -159,12 +161,13 @@ class PluginManagementPageState extends State<PluginManagementPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final config = widget.assistantStore?.loadConfig();
     final modelValue = config == null
-        ? '不可用'
+        ? l.statusUnavailable
         : config.configured && config.model.isNotEmpty
         ? config.model
-        : '未配置';
+        : l.statusNotConfigured;
     Widget row(
       PluginGroup group, {
       required IconData icon,
@@ -181,7 +184,7 @@ class PluginManagementPageState extends State<PluginManagementPage> {
     );
     return AppPage(
       pageContext: const PageContextData(pageType: 'plugins'),
-      title: Text(AppLocalizations.of(context).plugins),
+      title: Text(l.plugins),
       body: SettingsListView(
         children: [
           SettingsSection(
@@ -189,7 +192,7 @@ class PluginManagementPageState extends State<PluginManagementPage> {
               row(
                 PluginGroup.model,
                 icon: AppIcons.assistant,
-                description: '配置 Agent 使用的模型',
+                description: l.plgGroupModelDescription,
                 value: modelValue,
               ),
             ],
@@ -199,14 +202,14 @@ class PluginManagementPageState extends State<PluginManagementPage> {
               row(
                 PluginGroup.external,
                 icon: AppIcons.server,
-                description: '自部署或云端服务，由你添加',
-                value: '${_setup.registry.services.length} 个',
+                description: l.plgGroupExternalDescription,
+                value: l.plgCount(_setup.registry.services.length),
               ),
               row(
                 PluginGroup.builtIn,
                 icon: AppIcons.tool,
-                description: '随 App 提供，默认全部开放',
-                value: '${_builtInCount()} 项',
+                description: l.plgGroupBuiltInDescription,
+                value: l.plgCount(_builtInCount()),
               ),
             ],
           ),
@@ -322,7 +325,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
             pageType: 'external_service_detail',
             entity: {'service_id': s.id},
           ),
-          title: Text(s.name),
+          title: Text(s.displayName),
           body: ExternalServiceDetailView(
             setup: _setup,
             serviceId: s.id,
@@ -336,10 +339,10 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   Widget _externalRow(BuildContext context, ExternalService s, bool wide) =>
       SettingsRow(
         key: ValueKey('external-service-${s.id}'),
-        title: s.name,
+        title: s.displayName,
         description: [
-          if (s.label.isNotEmpty && s.label != s.name) s.label,
-          '${s.tools.length} 个工具',
+          if (s.label.isNotEmpty && s.label != s.displayName) s.label,
+          appStrings.extToolCount(s.tools.length),
         ].join(' · '),
         accent: wide && _selected == '$_ext${s.id}',
         chevron: !wide,
@@ -347,10 +350,12 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
         control: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const StatusBadge(label: '已配置', positive: true),
+            StatusBadge(label: appStrings.statusConfigured, positive: true),
             const SizedBox(width: AppSpacing.xs),
             StatusBadge(
-              label: s.available ? '可用' : '不可用',
+              label: s.available
+                  ? appStrings.statusAvailable
+                  : appStrings.statusUnavailable,
               positive: s.available,
             ),
           ],
@@ -359,7 +364,9 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
 
   Widget _row(BuildContext context, PluginSnapshot s, bool wide) {
     final d = s.definition;
-    final instances = d.multiInstance ? '${s.instances.length} 个实例' : null;
+    final instances = d.multiInstance
+        ? appStrings.plgInstanceCount(s.instances.length)
+        : null;
     return SettingsRow(
       key: ValueKey('plugin-row-${s.id}'),
       icon: d.icon,
@@ -396,14 +403,14 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   );
 
   List<Widget> _external(BuildContext context, bool wide) => [
-    _hint(context, '填写地址和令牌，自动识别并配置服务'),
+    _hint(context, appStrings.plgExternalHint),
     SettingsSection(
       key: const ValueKey('external-services'),
       children: [
         for (final s in _setup.registry.services)
           _externalRow(context, s, wide),
         if (_setup.registry.services.isEmpty)
-          const SettingsRow(title: '还没有配置外部服务'),
+          SettingsRow(title: appStrings.plgExternalEmpty),
       ],
     ),
     SettingsSection(
@@ -411,7 +418,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
         SettingsRow(
           key: const ValueKey('external-configure'),
           icon: AppIcons.add,
-          title: '配置外部能力',
+          title: appStrings.extConfigureTitle,
           accent: true,
           onTap: () => _configureExternal(context),
         ),
@@ -423,14 +430,18 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     final visible = manager.snapshots.where(_matches).toList();
     return [
       // Counted per catalog entry: connections and tools never inflate it.
-      _hint(context, '随 App 提供 ${visible.length} 项，默认全部开放，无需逐项启用'),
+      _hint(context, appStrings.plgBuiltInHint(visible.length)),
       if (manager.snapshots.isEmpty)
         const Padding(
           padding: EdgeInsets.all(AppSpacing.xl),
           child: Center(child: CircularProgressIndicator()),
         )
       else if (visible.isEmpty)
-        SettingsSection(children: [SettingsRow(title: '暂无${_group.label}')])
+        SettingsSection(
+          children: [
+            SettingsRow(title: appStrings.plgGroupEmpty(_group.label)),
+          ],
+        )
       else
         for (final entry in _byCategory(visible).entries)
           SettingsSection(
@@ -444,8 +455,8 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   Widget _modelSettings() {
     final store = widget.assistantStore;
     if (store == null) {
-      return const SettingsSection(
-        children: [SettingsRow(title: '此构建未接入 AI 助手')],
+      return SettingsSection(
+        children: [SettingsRow(title: appStrings.plgNoAssistant)],
       );
     }
     return AssistantModelSettings(
@@ -479,7 +490,10 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     if (selected == null || PluginGroup.of(selected.definition) != _group) {
       return Center(
         key: const ValueKey('plugin-detail-empty'),
-        child: Text('选择一项查看详情', style: ShadTheme.of(context).textTheme.muted),
+        child: Text(
+          AppLocalizations.of(context).plgSelectForDetail,
+          style: ShadTheme.of(context).textTheme.muted,
+        ),
       );
     }
     return PluginDetailView(
@@ -537,11 +551,14 @@ bool instanceAvailable(PluginInstanceView i) =>
 
 /// Why a plugin is not available, in one short phrase.
 String unavailableReason(PluginSnapshot s) {
-  if (!s.platformSupported) return s.reason ?? '当前设备不支持';
-  return s.reason ?? (s.enabled ? '暂不可用' : '插件已停用');
+  if (!s.platformSupported) return s.reason ?? appStrings.plgDeviceUnsupported;
+  return s.reason ??
+      (s.enabled
+          ? appStrings.plgTemporarilyUnavailable
+          : appStrings.plgDisabled);
 }
 
-/// The two status dimensions: 已配置/未配置 and 可用/不可用. Text carries
+/// The two status dimensions: configured or not, available or not. Text carries
 /// the state, so it never relies on color alone.
 class PluginStatusBadges extends StatelessWidget {
   const PluginStatusBadges({super.key, required this.snapshot});
@@ -556,14 +573,18 @@ class PluginStatusBadges extends StatelessWidget {
         if (s.platformSupported) ...[
           StatusBadge(
             key: ValueKey('plugin-configured-${s.id}'),
-            label: s.configured ? '已配置' : '未配置',
+            label: s.configured
+                ? appStrings.statusConfigured
+                : appStrings.statusNotConfigured,
             positive: s.configured,
           ),
           const SizedBox(width: AppSpacing.xs),
         ],
         StatusBadge(
           key: ValueKey('plugin-available-${s.id}'),
-          label: s.available ? '可用' : '不可用',
+          label: s.available
+              ? appStrings.statusAvailable
+              : appStrings.statusUnavailable,
           positive: s.available,
         ),
       ],
@@ -611,16 +632,16 @@ Future<void> togglePlugin(
       final accepted = await showShadDialog<bool>(
         context: context,
         builder: (context) => ShadDialog(
-          title: Text('停用「${s.definition.name}」？'),
+          title: Text(appStrings.plgDisableConfirmTitle(s.definition.name)),
           actions: [
             ShadButton.ghost(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('取消'),
+              child: Text(appStrings.cancel),
             ),
             ShadButton(
               key: const ValueKey('plugin-disable-confirm'),
               onPressed: () => Navigator.pop(context, true),
-              child: const Text('停用'),
+              child: Text(appStrings.disable),
             ),
           ],
           child: Text(impactText(impact)),
@@ -638,10 +659,13 @@ Future<void> togglePlugin(
 }
 
 String impactText(PluginImpact impact) => [
-  '停用后立即阻止新的调用；实例配置、已生成的字幕和历史记录都会保留。',
-  if (impact.playing > 0) '${impact.playing} 个正在播放的会话会继续到播放结束后再释放连接。',
-  if (impact.running > 0) '${impact.running} 个进行中的请求会在完成后释放。',
-  if (impact.instances.isNotEmpty) '受影响的实例：${impact.instances.join('、')}。',
+  appStrings.plgImpactIntro,
+  if (impact.playing > 0) appStrings.plgImpactPlaying(impact.playing),
+  if (impact.running > 0) appStrings.plgImpactRunning(impact.running),
+  if (impact.instances.isNotEmpty)
+    appStrings.plgImpactInstances(
+      impact.instances.join(appStrings.listSeparator),
+    ),
 ].join('\n');
 
 void showPluginError(BuildContext context, String message) =>

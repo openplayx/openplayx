@@ -6,21 +6,59 @@ import '../configuration/configuration_database.dart';
 import '../metadata/metadata_repository.dart';
 import '../metadata/metadata_queue.dart';
 import 'library_database.dart';
+import 'scan_status.dart';
 
 /// Library persistence. No source connections, widgets or scan traversal live here.
 /// Multi-step business operations use [transaction] to commit atomically.
+
+/// Whether media [x] may be shown: the one rule for the poster wall, episode
+/// lists and continue watching. Media with files must have
+/// - a file that is not hidden: dot files such as macOS `._movie.mp4`
+///   sidecars are dropped by scans, but older scans kept some; and
+/// - evidence in an enabled file source: every scan records evidence, so
+///   files without it were only played by browsing a source or are left over
+///   from a deleted file source.
+/// Media without files (metadata series and seasons) pass here and are judged
+/// by their episodes in [_visibleContainer]. Needs the `enabled_sources(id)`
+/// CTE ([_enabledSourcesCte]).
+String _visibleMedia(String x) =>
+    """(NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=$x)
+        OR (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=$x AND substr(r.name,1,1)<>'.')
+          AND EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=$x AND e.file_source_id IN (SELECT id FROM enabled_sources))))""";
+
+/// Binds the JSON list of enabled file source ids.
+const _enabledSourcesCte =
+    'enabled_sources(id) AS (SELECT value FROM json_each(?))';
+
+/// The version group of media [x]: media identified as the same movie or the
+/// same episode are versions of one title, shown once; any other media is a
+/// group of its own. Follows identification, so correcting a match regroups.
+String _versionGroup(String x) =>
+    """COALESCE((SELECT json_extract(ms.association,'\$.provider')||':'||json_extract(ms.association,'\$.kind')||':'||json_extract(ms.association,'\$.id')
+      FROM metadata_state ms WHERE ms.media_id=$x AND json_extract(ms.association,'\$.kind') IN ('movie','episode')),$x)""";
+
 /// SQL condition for media `m`: false for metadata containers (series,
-/// seasons) whose descendant files are all hidden dot files, such as macOS
-/// `._episode.mkv` sidecars kept from scans before those were filtered.
-/// Without it each such series appears twice: once for the real files and
-/// once for the sidecars, which metadata grouping put in a separate container.
-const _visibleContainer =
+/// seasons) whose descendants have files but none of them passes
+/// [_visibleMedia]. Containers have no files or evidence of their own, so
+/// disabled or deleted file sources hide their series this way, and a series
+/// that metadata grouping built only from hidden sidecars does not show up
+/// as a duplicate of the real one.
+final _visibleContainer =
     """NOT (EXISTS (SELECT 1 FROM metadata_relations c1 WHERE c1.parent_id=m.id)
         AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.')
-        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN resources r ON r.media_id=c1.child_id WHERE c1.parent_id=m.id AND substr(r.name,1,1)<>'.')
-        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN metadata_relations c2 ON c2.parent_id=c1.child_id JOIN resources r ON r.media_id=c2.child_id WHERE c1.parent_id=m.id AND substr(r.name,1,1)<>'.')
+        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN resources r ON r.media_id=c1.child_id WHERE c1.parent_id=m.id AND ${_visibleMedia('c1.child_id')})
+        AND NOT EXISTS (SELECT 1 FROM metadata_relations c1 JOIN metadata_relations c2 ON c2.parent_id=c1.child_id JOIN resources r ON r.media_id=c2.child_id WHERE c1.parent_id=m.id AND ${_visibleMedia('c2.child_id')})
         AND (EXISTS (SELECT 1 FROM metadata_relations c1 JOIN resources r ON r.media_id=c1.child_id WHERE c1.parent_id=m.id)
           OR EXISTS (SELECT 1 FROM metadata_relations c1 JOIN metadata_relations c2 ON c2.parent_id=c1.child_id JOIN resources r ON r.media_id=c2.child_id WHERE c1.parent_id=m.id)))""";
+
+/// SQL condition for the media bound five times as `?`: a series or season
+/// left with no children, files, evidence or server items.
+const _emptyContainer =
+    '''NOT EXISTS (SELECT 1 FROM metadata_relations WHERE parent_id=?)
+  AND NOT EXISTS (SELECT 1 FROM resources WHERE media_id=?)
+  AND NOT EXISTS (SELECT 1 FROM media_evidence WHERE media_id=?)
+  AND NOT EXISTS (SELECT 1 FROM source_media WHERE media_id=?)
+  AND EXISTS (SELECT 1 FROM media WHERE id=?)''';
 
 class LibraryRepository {
   LibraryRepository(
@@ -62,24 +100,25 @@ class LibraryRepository {
     int limit = 40,
   }) {
     return db.select(
-      '''SELECT m.*, lm.added_at, COUNT(*) OVER() AS total FROM media m JOIN memberships lm ON lm.media_id=m.id
+      '''WITH $_enabledSourcesCte, visible AS (
+      SELECT m.*, lm.added_at, ${_versionGroup('m.id')} AS version_group
+      FROM media m JOIN memberships lm ON lm.media_id=m.id
       WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
-      AND NOT (EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id)
-        AND NOT EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=m.id AND e.file_source_id IN (SELECT value FROM json_each(?)))
-        AND NOT EXISTS (SELECT 1 FROM manual_memberships mm WHERE mm.media_id=m.id))
-      AND NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
-        AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
+      AND ${_visibleMedia('m.id')}
       AND $_visibleContainer
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id WHERE child.media_id=m.id))
       AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.kind') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.year') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.year FROM source_media sm WHERE sm.media_id=m.id LIMIT 1))=?)
-      AND (? IS NULL OR EXISTS (SELECT 1 FROM progress p JOIN resources r ON r.id=p.resource_id WHERE r.media_id=m.id AND p.completed=1)=?)
-      ORDER BY lm.added_at DESC,m.id LIMIT ? OFFSET ?''',
+      AND (? IS NULL OR EXISTS (SELECT 1 FROM progress p JOIN resources r ON r.id=p.resource_id WHERE r.media_id=m.id AND p.completed=1)=?)),
+      -- One card per version group: its first added media stands for it.
+      grouped AS (SELECT *, ROW_NUMBER() OVER(PARTITION BY version_group ORDER BY added_at,id) AS version_rank FROM visible)
+      SELECT *, COUNT(*) OVER() AS total FROM grouped WHERE version_rank=1
+      ORDER BY added_at DESC,id LIMIT ? OFFSET ?''',
       [
-        search,
         jsonEncode(enabledFileSourceIds()),
+        search,
         search,
         contentType,
         year,
@@ -118,7 +157,7 @@ class LibraryRepository {
     'root': config['root'],
     'name': config['name'],
     'enabled': config['enabled'],
-    'status': state?['status'] ?? '待扫描',
+    'status': state?['status'] ?? ScanStatus.pending,
     'error': state?['error'],
   };
 
@@ -155,9 +194,12 @@ class LibraryRepository {
     [id],
   ).isNotEmpty;
 
+  /// File sources that are enabled and whose connection is not disabled.
   List<String> enabledFileSourceIds() => [
     for (final r in configuration.select(
-      'SELECT id FROM file_sources WHERE enabled=1',
+      'SELECT id FROM file_sources f WHERE enabled=1 '
+      'AND NOT EXISTS (SELECT 1 FROM plugin_instance_configs c '
+      'WHERE c.instance_id=f.source_id AND c.enabled_desired=0)',
     ))
       r['id'] as String,
   ];
@@ -181,16 +223,119 @@ class LibraryRepository {
   void deleteFileSource(String id) =>
       configuration.execute('DELETE FROM file_sources WHERE id=?', [id]);
 
-  /// Scan results and state of [id], for removing the file source.
+  /// Everything file source [id] brought into the library, for removing it:
+  /// its scan state and evidence; the files only it found, with their
+  /// playback progress; and the media left without files, with their
+  /// metadata, along with series and seasons left without episodes. Files and
+  /// media another file source also found stay. Generated subtitles and
+  /// processing outputs, which belong to the connection, stay too.
+  /// Runs inside the caller's transaction.
   void deleteFileSourceData(String id) {
-    for (final table in [
-      'scan_queue',
-      'scan_tasks',
-      'evidence',
-      'media_evidence',
-      'file_source_state',
-    ]) {
-      db.execute('DELETE FROM $table WHERE file_source_id=?', [id]);
+    db.execute(
+      'CREATE TEMP TABLE IF NOT EXISTS removed_resources(id TEXT PRIMARY KEY)',
+    );
+    db.execute(
+      'CREATE TEMP TABLE IF NOT EXISTS removed_media(id TEXT PRIMARY KEY)',
+    );
+    db.execute('DELETE FROM removed_resources');
+    db.execute('DELETE FROM removed_media');
+    try {
+      db.execute(
+        '''INSERT INTO removed_resources SELECT resource_id FROM evidence e
+        WHERE file_source_id=? AND NOT EXISTS (SELECT 1 FROM evidence o
+          WHERE o.resource_id=e.resource_id AND o.file_source_id<>?)''',
+        [id, id],
+      );
+      // Candidates for removal; only those left without files are removed.
+      db.execute(
+        '''INSERT OR IGNORE INTO removed_media
+        SELECT media_id FROM resources WHERE id IN (SELECT id FROM removed_resources)
+        UNION SELECT media_id FROM media_evidence WHERE file_source_id=?''',
+        [id],
+      );
+      for (final table in [
+        'scan_queue',
+        'scan_tasks',
+        'evidence',
+        'media_evidence',
+        'file_source_state',
+      ]) {
+        db.execute('DELETE FROM $table WHERE file_source_id=?', [id]);
+      }
+      for (final table in [
+        'progress',
+        'local_identity',
+        'resource_locators',
+        'evidence',
+      ]) {
+        db.execute(
+          'DELETE FROM $table WHERE resource_id IN (SELECT id FROM removed_resources)',
+        );
+      }
+      db.execute(
+        'DELETE FROM resources WHERE id IN (SELECT id FROM removed_resources)',
+      );
+      _deleteMediaWithoutFiles();
+    } finally {
+      db.execute('DROP TABLE removed_resources');
+      db.execute('DROP TABLE removed_media');
+    }
+  }
+
+  /// Deletes the media in `removed_media` that have no files and no other
+  /// file source's evidence left, then their series and seasons that are left
+  /// without children, files or server items.
+  void _deleteMediaWithoutFiles() {
+    const empty = '''NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=removed_media.id)
+      AND NOT EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=removed_media.id)''';
+    db.execute('DELETE FROM removed_media WHERE NOT ($empty)');
+    // Episodes, then seasons, then series.
+    for (var level = 0; level < 3; level++) {
+      final ids = [
+        for (final r in db.select('SELECT id FROM removed_media'))
+          r['id'] as String,
+      ];
+      if (ids.isEmpty) return;
+      final parents = [
+        for (final r in db.select(
+          'SELECT DISTINCT parent_id FROM metadata_relations '
+          'WHERE child_id IN (SELECT id FROM removed_media)',
+        ))
+          r['parent_id'] as String,
+      ];
+      db.execute(
+        'DELETE FROM metadata_relations WHERE child_id IN (SELECT id FROM removed_media) '
+        'OR parent_id IN (SELECT id FROM removed_media)',
+      );
+      for (final table in const [
+        'memberships',
+        'ignored',
+        'media_evidence',
+        'source_media',
+        'metadata_containers',
+        'metadata_queue',
+        'metadata_observations',
+        'metadata_overrides',
+        'metadata_projection',
+        'metadata_jobs',
+        'metadata_history',
+        'artwork_selections',
+        'metadata_state',
+      ]) {
+        db.execute(
+          'DELETE FROM $table WHERE media_id IN (SELECT id FROM removed_media)',
+        );
+      }
+      db.execute(
+        'DELETE FROM media WHERE id IN (SELECT id FROM removed_media)',
+      );
+      db.execute('DELETE FROM removed_media');
+      for (final parent in parents) {
+        db.execute(
+          '''INSERT OR IGNORE INTO removed_media SELECT ? WHERE $_emptyContainer''',
+          [parent, ...List.filled(5, parent)],
+        );
+      }
     }
   }
 
@@ -243,22 +388,26 @@ class LibraryRepository {
     [media, timestamp, media],
   );
 
-  /// Like [query], children whose files are all hidden dot files are skipped.
+  /// Children shown by the same rules as [query].
   ResultSet children(String media, int limit, int offset) => db.select(
-    '''WITH children AS (
+    '''WITH $_enabledSourcesCte, children AS (
       SELECT s.media_id FROM source_media p JOIN source_media s ON s.source=p.source AND s.parent_key=p.source_key WHERE p.media_id=?
-      UNION SELECT child_id FROM metadata_relations WHERE parent_id=?)
-      SELECT m.*,COALESCE(json_extract(mp.fields,'\$.kind'),sm.kind) AS kind,
+      UNION SELECT child_id FROM metadata_relations WHERE parent_id=?),
+      visible AS (SELECT m.*,${_versionGroup('m.id')} AS version_group,
+      COALESCE(json_extract(mp.fields,'\$.kind'),sm.kind) AS kind,
       COALESCE(json_extract(mp.fields,'\$.season'),sm.season) AS season,
       COALESCE(json_extract(mp.fields,'\$.episode'),sm.episode) AS episode
       FROM children c JOIN media m ON m.id=c.media_id
       LEFT JOIN metadata_projection mp ON mp.media_id=m.id
       LEFT JOIN source_media sm ON sm.media_id=m.id
-      WHERE NOT (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id)
-        AND NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=m.id AND substr(r.name,1,1)<>'.'))
+      WHERE ${_visibleMedia('m.id')}
       AND $_visibleContainer
-      GROUP BY m.id ORDER BY season,episode,m.id LIMIT ? OFFSET ?''',
-    [media, media, limit, offset],
+      GROUP BY m.id),
+      -- One row per version group (an episode with several files).
+      grouped AS (SELECT *, ROW_NUMBER() OVER(PARTITION BY version_group ORDER BY id) AS version_rank FROM visible)
+      SELECT * FROM grouped WHERE version_rank=1
+      ORDER BY season,episode,id LIMIT ? OFFSET ?''',
+    [jsonEncode(enabledFileSourceIds()), media, media, limit, offset],
   );
 
   ResultSet mediaForLocator(String source, String item) => db.select(
@@ -282,13 +431,17 @@ class LibraryRepository {
     String source,
     String item,
     String name,
-  ) => db.execute('INSERT INTO resources VALUES (?,?,?,?,?)', [
-    id,
-    media,
-    source,
-    item,
-    name,
-  ]);
+  ) => db.execute(
+    'INSERT INTO resources(id,media_id,source,item,name) VALUES (?,?,?,?,?)',
+    [id, media, source, item, name],
+  );
+
+  /// Records the size the source listed for the file at [source]/[item].
+  void setResourceSize(String source, String item, int size) => db.execute(
+    'UPDATE resources SET size=? WHERE id IN '
+    '(SELECT resource_id FROM resource_locators WHERE source=? AND item=?)',
+    [size, source, item],
+  );
 
   void insertLocator(String source, String item, String resource) => db.execute(
     'INSERT INTO resource_locators VALUES (?,?,?)',
@@ -301,8 +454,32 @@ class LibraryRepository {
   /// Hidden dot files (macOS `._movie.mkv` sidecars kept from scans before
   /// they were filtered) are never offered for playback.
   ResultSet resources(String media) => db.select(
-    "SELECT r.id,r.media_id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? AND substr(r.name,1,1)<>'.' ORDER BY r.id,l.source,l.item",
+    "SELECT r.id,r.media_id,l.source,l.item,r.name,r.size FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? AND substr(r.name,1,1)<>'.' ORDER BY r.id,l.source,l.item",
     [media],
+  );
+
+  /// The media in the version group of [media] (including it).
+  List<String> versionGroup(String media) => [
+    for (final r in db.select(
+      'WITH g(k) AS (SELECT ${_versionGroup('?')}) '
+      'SELECT ? AS id UNION SELECT ms.media_id FROM metadata_state ms, g '
+      "WHERE json_extract(ms.association,'\$.kind') IN ('movie','episode') "
+      "AND json_extract(ms.association,'\$.provider')||':'||json_extract(ms.association,'\$.kind')||':'||json_extract(ms.association,'\$.id')=g.k",
+      [media, media, media],
+    ))
+      r['id'] as String,
+  ];
+
+  /// The files of every shown version of [media], largest first; files of
+  /// unknown size last.
+  ResultSet versions(String media) => db.select(
+    '''WITH $_enabledSourcesCte
+    SELECT r.id,r.media_id,l.source,l.item,r.name,r.size FROM resources r
+    JOIN resource_locators l ON l.resource_id=r.id
+    WHERE r.media_id IN (SELECT value FROM json_each(?))
+      AND substr(r.name,1,1)<>'.' AND ${_visibleMedia('r.media_id')}
+    ORDER BY r.size IS NULL,r.size DESC,r.name,r.id,l.source,l.item''',
+    [jsonEncode(enabledFileSourceIds()), jsonEncode(versionGroup(media))],
   );
 
   void setFavorite(int favorite, String media) =>
@@ -332,16 +509,13 @@ class LibraryRepository {
   void ignoreMedia(String media) =>
       db.execute('INSERT OR IGNORE INTO ignored VALUES (?)', [media]);
 
-  void removeManualMembership(String media) =>
-      db.execute('DELETE FROM manual_memberships WHERE media_id=?', [media]);
-
   void removeMembership(String media) =>
       db.execute('DELETE FROM memberships WHERE media_id=?', [media]);
 
   void clearAllIgnored() => db.execute('DELETE FROM ignored');
 
   void markScanRunning(String fileSource) =>
-      _setScanState(fileSource, '扫描中', null);
+      _setScanState(fileSource, ScanStatus.scanning, null);
 
   ResultSet scanTask(String fileSource) => db.select(
     'SELECT * FROM scan_tasks WHERE file_source_id=?',
@@ -396,27 +570,14 @@ class LibraryRepository {
       db.execute('DELETE FROM scan_tasks WHERE file_source_id=?', [fileSource]);
 
   void markScanComplete(String fileSource) =>
-      _setScanState(fileSource, '扫描完成', null);
+      _setScanState(fileSource, ScanStatus.done, null);
 
   void markScanFailed(String error, String fileSource) =>
-      _setScanState(fileSource, '扫描失败', error);
+      _setScanState(fileSource, ScanStatus.failed, error);
 
   ResultSet scannedMediaCount(String fileSource) => db.select(
     'SELECT COUNT(*) AS n FROM evidence e JOIN scan_tasks t ON t.file_source_id=e.file_source_id AND t.batch=e.seen WHERE e.file_source_id=?',
     [fileSource],
-  );
-
-  void unignoreMedia(String media) =>
-      db.execute('DELETE FROM ignored WHERE media_id=?', [media]);
-
-  void addManualMembership(String media) => db.execute(
-    'INSERT OR IGNORE INTO manual_memberships VALUES (?)',
-    [media],
-  );
-
-  void addMembership(String media, int timestamp) => db.execute(
-    'INSERT OR IGNORE INTO memberships VALUES (?,?)',
-    [media, timestamp],
   );
 
   ResultSet resourceFor(String source, String item) => db.select(
@@ -446,19 +607,13 @@ class LibraryRepository {
   );
 
   ResultSet continueWatching(int limit) => db.select(
-    """WITH ranked AS (SELECT m.*,r.id AS resource_id,p.position,p.duration,p.completed,p.updated_at,
-    ROW_NUMBER() OVER(PARTITION BY m.id ORDER BY p.updated_at DESC,r.id) AS rank
-    FROM progress p JOIN resources r ON r.id=p.resource_id JOIN media m ON m.id=r.media_id)
+    """WITH $_enabledSourcesCte, ranked AS (SELECT m.*,r.id AS resource_id,p.position,p.duration,p.completed,p.updated_at,
+    -- One entry per version group: the version played last.
+    ROW_NUMBER() OVER(PARTITION BY ${_versionGroup('m.id')} ORDER BY p.updated_at DESC,r.id) AS rank
+    FROM progress p JOIN resources r ON r.id=p.resource_id JOIN media m ON m.id=r.media_id
+    WHERE ${_visibleMedia('m.id')})
     SELECT * FROM ranked WHERE rank=1 AND position>0 AND completed=0 ORDER BY updated_at DESC,id LIMIT ?""",
-    [limit],
-  );
-
-  ResultSet recentlyPlayed(int limit) => db.select(
-    """WITH ranked AS (SELECT m.*,r.id AS resource_id,p.position,p.duration,p.completed,p.updated_at,
-    ROW_NUMBER() OVER(PARTITION BY m.id ORDER BY p.updated_at DESC,r.id) AS rank
-    FROM progress p JOIN resources r ON r.id=p.resource_id JOIN media m ON m.id=r.media_id)
-    SELECT * FROM ranked WHERE rank=1 ORDER BY updated_at DESC,id LIMIT ?""",
-    [limit],
+    [jsonEncode(enabledFileSourceIds()), limit],
   );
 
   ResultSet resourceObservations(String resource) => db.select(
@@ -476,12 +631,11 @@ class LibraryRepository {
     [fileSource],
   );
 
-  /// Drops [media] from the poster wall unless it was added by hand or
-  /// another file source still found it.
+  /// Drops [media] from the poster wall unless another file source still
+  /// found it.
   void pruneUnobservedMembership(String media) => db.execute(
     'DELETE FROM memberships WHERE media_id=? '
-    'AND NOT EXISTS (SELECT 1 FROM manual_memberships WHERE media_id=?) '
     'AND NOT EXISTS (SELECT 1 FROM media_evidence WHERE media_id=?)',
-    [media, media, media],
+    [media, media],
   );
 }

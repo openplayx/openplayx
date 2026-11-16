@@ -1,5 +1,6 @@
 import '../configuration/source_configuration_service.dart';
 import '../sources/source_config.dart';
+import '../../l10n/l10n.dart';
 
 enum SourceAuthorization {
   notRequired,
@@ -16,13 +17,13 @@ class SourceCredentialStatus {
   final SourceAuthorization authorization;
   final DateTime? expiresAt;
   String get label => switch (authorization) {
-    SourceAuthorization.notRequired => '无需账号凭据',
-    SourceAuthorization.missing => '缺少凭据',
-    SourceAuthorization.configured => '凭据已保存 · 尚未验证',
-    SourceAuthorization.expiring => '令牌将在 7 天内到期',
-    SourceAuthorization.expired => '令牌已到期',
-    SourceAuthorization.rejected => '认证失败 · 请更新凭据',
-    SourceAuthorization.verified => '连接已验证',
+    SourceAuthorization.notRequired => appStrings.credNotRequired,
+    SourceAuthorization.missing => appStrings.credMissing,
+    SourceAuthorization.configured => appStrings.credConfigured,
+    SourceAuthorization.expiring => appStrings.credExpiring,
+    SourceAuthorization.expired => appStrings.credExpired,
+    SourceAuthorization.rejected => appStrings.credRejected,
+    SourceAuthorization.verified => appStrings.credVerified,
   };
 }
 

@@ -10,6 +10,7 @@ import '../../services/library/library_service.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/components/feedback/app_feedback.dart';
+import '../../core/format/byte_size.dart' as byte_size;
 
 /// Shows how much scraped metadata is stored and clears all of it.
 class ScrapeManagementSection extends StatefulWidget {
@@ -26,17 +27,7 @@ class ScrapeManagementSection extends StatefulWidget {
   final ArtworkService? artwork;
 
   /// Human-readable size, e.g. `12.3 MB`.
-  static String formatBytes(int bytes) {
-    if (bytes < 1024) return '$bytes B';
-    const units = ['KB', 'MB', 'GB'];
-    var value = bytes / 1024;
-    var unit = 0;
-    while (value >= 1024 && unit < units.length - 1) {
-      value /= 1024;
-      unit++;
-    }
-    return '${value.toStringAsFixed(1)} ${units[unit]}';
-  }
+  static String formatBytes(int bytes) => byte_size.formatBytes(bytes);
 
   @override
   State<ScrapeManagementSection> createState() =>

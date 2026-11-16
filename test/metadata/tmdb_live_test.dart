@@ -11,7 +11,7 @@ import 'package:openplayx/app/app.dart';
 import 'package:openplayx/app/theme/app_theme_controller.dart';
 import 'package:openplayx/core/plugins/metadata_capability.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/features/library/library_page.dart';
+import 'package:openplayx/features/library/home_page.dart';
 import 'package:openplayx/features/library/metadata_page.dart';
 import 'package:openplayx/plugins/metadata_tmdb/tmdb_metadata_plugin.dart';
 import 'package:openplayx/services/artwork/artwork_service.dart';
@@ -19,6 +19,7 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:openplayx/services/metadata/metadata_service.dart';
 
 import 'metadata_page_test.dart' show OfflineSources;
+import '../support/library_test_helpers.dart';
 
 /// Explicitly opted-in live validation. Secrets are read only at runtime from
 /// .env, never dart-define, assets, reports, screenshots or source-controlled data.
@@ -108,7 +109,7 @@ void main() {
                   isFolder: false,
                 ),
               );
-              library.addManual(media);
+              addToLibrary(library, media);
               movies.add(media);
               final job = await service.search(
                 media,
@@ -151,7 +152,7 @@ void main() {
                 isFolder: false,
               ),
             );
-            library.addManual(episode);
+            addToLibrary(library, episode);
             final job = await service.search(
               episode,
               query: 'Breaking Bad',
@@ -352,13 +353,20 @@ void main() {
             key: boundary,
             child: OpenPlayXApp(
               appearance: appearance,
-              home: LibraryPage(sources: sources, service: library),
+              home: Scaffold(
+                body: HomePage(
+                  sources: sources,
+                  service: library,
+                  onPlay: (_) {},
+                  onResume: (_) {},
+                ),
+              ),
             ),
           ),
         );
         await tester.pumpAndSettle();
         await capture(
-          'library-${width.toInt()}',
+          'home-${width.toInt()}',
           boundary,
           minimumImages: width > 1000 ? 6 : 2,
         );

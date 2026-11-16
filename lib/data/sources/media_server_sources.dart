@@ -10,6 +10,7 @@ import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
+import '../../l10n/l10n.dart';
 
 /// Host-owned authenticated network boundary. URLs from a server response must
 /// stay on the configured origin and inside its base path before adding secrets.
@@ -37,7 +38,9 @@ class SourceHttp {
   bool _closed = false;
   final _connections = <_SourceHttpConnection>{};
   Future<_SourceHttpConnection> _connect() async {
-    if (_closed) throw const PluginException('cancelled', '连接已关闭。');
+    if (_closed) {
+      throw PluginException('cancelled', appStrings.errConnectionClosed);
+    }
     final remote = config.remoteAccess == null
         ? null
         : await RemoteTransport.acquire(config);
@@ -61,7 +64,7 @@ class SourceHttp {
     );
     if (_closed) {
       connection.close();
-      throw const PluginException('cancelled', '连接已关闭。');
+      throw PluginException('cancelled', appStrings.errConnectionClosed);
     }
     _connections.add(connection);
     return connection;
@@ -78,7 +81,10 @@ class SourceHttp {
           (s) =>
               Uri.decodeComponent(s) == '..' || Uri.decodeComponent(s) == '.',
         )) {
-      throw const PluginException('permissionDenied', '媒体服务返回了不安全的资源地址。');
+      throw PluginException(
+        'permissionDenied',
+        appStrings.errUnsafeResourceUrl,
+      );
     }
     final relative = Uri.parse(path);
     if (relative.hasScheme ||
@@ -88,7 +94,10 @@ class SourceHttp {
         relative.pathSegments.any(
           (s) => s == '..' || s == '.' || s.contains('\\'),
         )) {
-      throw const PluginException('permissionDenied', '媒体服务返回了不安全的资源地址。');
+      throw PluginException(
+        'permissionDenied',
+        appStrings.errUnsafeResourceUrl,
+      );
     }
     final prefix = base.path.replaceFirst(RegExp(r'/+$'), '');
     return base.replace(
@@ -128,7 +137,7 @@ class SourceHttp {
           response.statusCode == 401 || response.statusCode == 403
               ? 'authRequired'
               : 'networkUnavailable',
-          '媒体服务请求失败（HTTP ${response.statusCode}），请检查地址和凭据。',
+          appStrings.errMediaServerHttp(response.statusCode),
           retryable: true,
         );
       }
@@ -159,12 +168,15 @@ class SourceHttp {
             'image/webp',
           ].contains(response.headers.contentType?.mimeType)) {
         await response.drain<void>();
-        throw const PluginException('invalidArtwork', '服务端图片不可用');
+        throw PluginException(
+          'invalidArtwork',
+          appStrings.errServerArtworkUnavailable,
+        );
       }
       final bytes = <int>[];
       await for (final chunk in response) {
         if (bytes.length + chunk.length > maxBytes) {
-          throw const PluginException('quotaExceeded', '图片过大');
+          throw PluginException('quotaExceeded', appStrings.errImageTooLarge);
         }
         bytes.addAll(chunk);
       }
@@ -246,7 +258,7 @@ class JellyfinPlugin
         config.id,
         versions ? 'versions:${item['Id']}' : item['Id'] as String,
       ),
-      item['Name'] as String? ?? '未命名',
+      item['Name'] as String? ?? appStrings.untitled,
       media: _jellyfinInfo(item),
       isFolder: item['IsFolder'] == true || versions,
     );
@@ -363,16 +375,18 @@ class JellyfinPlugin
     );
     if (item['IsFolder'] == true ||
         !['Video', 'Audio'].contains(item['MediaType'])) {
-      throw const PluginException('invalidInput', '请选择视频或音频。');
+      throw PluginException('invalidInput', appStrings.errChooseVideoOrAudio);
     }
     final sources = (item['MediaSources'] as List? ?? [])
         .cast<Map<String, dynamic>>();
-    if (sources.isEmpty) throw const PluginException('notFound', '此媒体没有可播放版本。');
+    if (sources.isEmpty) {
+      throw PluginException('notFound', appStrings.errNoPlayableVersion);
+    }
     final selected = selection == null
         ? (sources.length == 1 ? sources.single : null)
         : sources.where((s) => s['Id'] == selection[2]).firstOrNull;
     if (selected == null) {
-      throw const PluginException('invalidInput', '请返回媒体库重新选择一个版本。');
+      throw PluginException('invalidInput', appStrings.errReselectVersion);
     }
     return http.stream(
       '${item['MediaType'] == 'Audio' ? 'Audio' : 'Videos'}/$id/stream',
@@ -396,7 +410,10 @@ class JellyfinPlugin
     if (info == null ||
         info.id != request.ref!.id ||
         info.kind != request.kind.name) {
-      throw const PluginException('invalidMetadata', '服务端对象身份不匹配');
+      throw PluginException(
+        'invalidMetadata',
+        appStrings.errServerIdentityMismatch,
+      );
     }
     return MetadataResult([metadataFromSource(info, config.id)]);
   }
@@ -445,7 +462,7 @@ class PlexPlugin
             1;
     return SourceEntry(
       ResourceRef(config.id, multiple ? 'versions:$key' : key),
-      item['title'] as String? ?? '未命名',
+      item['title'] as String? ?? appStrings.untitled,
       isFolder: folder || multiple,
       media: root ? null : _plexInfo(item),
     );
@@ -484,7 +501,10 @@ class PlexPlugin
             .map(
               (pair) => SourceEntry(
                 ResourceRef(config.id, 'part:${pair.$2['key']}'),
-                '文件 ${pair.$1 + 1} · ${pair.$2['container'] ?? '媒体'}',
+                appStrings.plexPartLabel(
+                  pair.$1 + 1,
+                  '${pair.$2['container'] ?? appStrings.plexPartMedia}',
+                ),
                 isFolder: false,
                 media: _plexInfo(metadata),
               ),
@@ -536,9 +556,11 @@ class PlexPlugin
     }
     final json = await http.json(request.resource.id);
     final parts = _parts(json);
-    if (parts.isEmpty) throw const PluginException('notFound', '此媒体没有可播放文件。');
+    if (parts.isEmpty) {
+      throw PluginException('notFound', appStrings.errNoPlayableFile);
+    }
     if (parts.length > 1) {
-      throw const PluginException('unsupported', '该媒体包含多个版本或分段，暂不支持直接播放。');
+      throw PluginException('unsupported', appStrings.errMultiPartUnsupported);
     }
     return http.stream(parts.single['key'] as String);
   }
@@ -573,7 +595,10 @@ class PlexPlugin
     if (info == null ||
         info.id != request.ref!.id ||
         info.kind != request.kind.name) {
-      throw const PluginException('invalidMetadata', '服务端对象身份不匹配');
+      throw PluginException(
+        'invalidMetadata',
+        appStrings.errServerIdentityMismatch,
+      );
     }
     return MetadataResult([metadataFromSource(info, config.id)]);
   }
@@ -610,7 +635,7 @@ SourceMediaInfo? _jellyfinInfo(Map<String, dynamic> item) {
   }
   return SourceMediaInfo(
     id: item['Id'] as String,
-    title: item['Name'] as String? ?? '未命名',
+    title: item['Name'] as String? ?? appStrings.untitled,
     kind: switch (item['Type']) {
       'Movie' => 'movie',
       'Series' => 'series',
@@ -644,7 +669,7 @@ SourceMediaInfo? _plexInfo(Map<String, dynamic> item) {
   if (id == null) return null;
   return SourceMediaInfo(
     id: id,
-    title: item['title'] as String? ?? '未命名',
+    title: item['title'] as String? ?? appStrings.untitled,
     kind: switch (item['type']) {
       'movie' => 'movie',
       'show' => 'series',
@@ -684,7 +709,10 @@ void checkMetadataRequest(
       request.action != MetadataAction.details ||
       request.ref?.provider != 'server:$instance' ||
       !RegExp(r'^[A-Za-z0-9_-]{1,128}$').hasMatch(request.ref!.id)) {
-    throw const PluginException('permissionDenied', '元数据查询不属于此服务端实例');
+    throw PluginException(
+      'permissionDenied',
+      appStrings.errMetadataNotThisServer,
+    );
   }
 }
 
@@ -699,7 +727,10 @@ List<String> checkServerArtwork(
       maxBytes > 20 * 1024 * 1024 ||
       !RegExp(r'^artwork:(poster|backdrop):[A-Za-z0-9_-]{1,128}$')
           .hasMatch(ref.id)) {
-    throw const PluginException('permissionDenied', '图片不属于此服务端实例');
+    throw PluginException(
+      'permissionDenied',
+      appStrings.errArtworkNotThisServer,
+    );
   }
   return ref.id.split(':');
 }

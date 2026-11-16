@@ -6,6 +6,8 @@ import 'package:sqlite3/sqlite3.dart';
 import '../metadata/metadata_repository.dart';
 import '../metadata/metadata_queue.dart';
 import '../sources/source_state_store.dart';
+import '../../l10n/l10n.dart';
+import 'scan_status.dart';
 
 /// `library.sqlite3`: what the App produces while it is used (scan results,
 /// metadata, playback progress, tasks, conversations). It may grow large and
@@ -55,7 +57,7 @@ abstract final class LibraryDatabase {
 
   static void initialize(Database db, {bool recoverInterrupted = true}) {
     final current = db.select('PRAGMA user_version').first.values.first as int;
-    if (current > version) throw StateError('媒体库版本较新，请升级应用');
+    if (current > version) throw StateError(appStrings.libraryDbTooNew);
     db.execute('PRAGMA busy_timeout=5000');
     if (current != 0 && current < version) _reset(db);
     db.execute('PRAGMA foreign_keys=ON');
@@ -66,7 +68,14 @@ abstract final class LibraryDatabase {
     db.execute('''CREATE TABLE IF NOT EXISTS resources (
       id TEXT PRIMARY KEY, media_id TEXT NOT NULL REFERENCES media(id),
       source TEXT NOT NULL, item TEXT NOT NULL, name TEXT NOT NULL,
-      UNIQUE(source,item))''');
+      size INTEGER, UNIQUE(source,item))''');
+    // File size in bytes, to order versions; added to files of version 5
+    // without rebuilding them. Filled in by the next scan.
+    if (!db
+        .select('PRAGMA table_info(resources)')
+        .any((c) => c['name'] == 'size')) {
+      db.execute('ALTER TABLE resources ADD COLUMN size INTEGER');
+    }
     // The poster wall: media found by file sources or added by hand.
     db.execute(
       '''CREATE TABLE IF NOT EXISTS memberships (
@@ -76,9 +85,8 @@ abstract final class LibraryDatabase {
     db.execute(
       'CREATE TABLE IF NOT EXISTS ignored (media_id TEXT PRIMARY KEY)',
     );
-    db.execute(
-      'CREATE TABLE IF NOT EXISTS manual_memberships (media_id TEXT PRIMARY KEY REFERENCES media(id))',
-    );
+    // Titles used to be addable by hand; that entry point is gone.
+    db.execute('DROP TABLE IF EXISTS manual_memberships');
     // Runtime state of each media source instance (applied configuration
     // revision, connection result), keyed by its id in
     // `plugin_instance_configs` of configuration.sqlite3; see SourceStateStore.
@@ -155,7 +163,12 @@ abstract final class LibraryDatabase {
     // A crashed or interrupted scan must never reconcile missing observations.
     if (recoverInterrupted) {
       db.execute(
-        "UPDATE file_source_state SET status='扫描中断', error='请重新扫描' WHERE status='扫描中'",
+        'UPDATE file_source_state SET status=?, error=? WHERE status=?',
+        [
+          ScanStatus.interrupted,
+          ScanStatus.legacyRescanError,
+          ScanStatus.scanning,
+        ],
       );
     }
   }

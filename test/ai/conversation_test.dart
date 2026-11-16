@@ -426,4 +426,67 @@ void main() {
     expect(fake.requests.single.tools, isEmpty);
     c.dispose();
   });
+
+  test('large tool results are shortened instead of dropping the turn from history', () async {
+    String result(String id, String marker) => jsonEncode({
+      'call_id': id,
+      'status': 'ok',
+      'data': {
+        'results': [
+          {'title': marker, 'magnet': 'magnet:?xt=urn:btih:$marker'},
+          for (var i = 0; i < 650; i++) {'title': 'filler $i "quoted"'},
+        ],
+      },
+    });
+    store.saveTurn('a-search', 'completed', [
+      const ModelMessage('user', '生化危机能搜到下载地址吗'),
+      const ModelMessage(
+        'assistant',
+        'Searching',
+        calls: [ModelToolCall('zh', 'search', '{"q":"生化危机"}')],
+      ),
+      ModelMessage('tool', result('zh', 'irrelevant'), callId: 'zh'),
+      const ModelMessage(
+        'assistant',
+        'Retrying in English',
+        calls: [ModelToolCall('en', 'search', '{"q":"Resident Evil"}')],
+      ),
+      ModelMessage('tool', result('en', 'row1-h265'), callId: 'en'),
+      const ModelMessage(
+        'assistant',
+        '| # | 版本 |\n| 2 | 1080p AMZN WEB-DL H.265 |',
+        reasoning: 'long hidden reasoning',
+      ),
+    ]);
+    store.saveTurn('b-small', 'completed', [
+      const ModelMessage('user', 'status?'),
+      const ModelMessage('assistant', 'All idle'),
+    ]);
+    final fake = FakeModel((request) async* {
+      yield const ModelTextDelta('OK');
+      yield const ModelCompleted('stop');
+    });
+    final c = coordinator(fake);
+    await c.send('下载编号 2', toolsEnabled: false);
+    final messages = fake.requests.single.messages;
+    final history = messages.skip(1).toList();
+    expect(history.map((m) => m.text), contains('生化危机能搜到下载地址吗'));
+    expect(
+      history.map((m) => m.text),
+      contains(contains('1080p AMZN WEB-DL H.265')),
+    );
+    expect(history.map((m) => m.text), contains('All idle'));
+    final tools = history.where((m) => m.role == 'tool').toList();
+    expect(tools.map((m) => m.callId), ['zh', 'en']);
+    // The latest result keeps its leading data; the older one gives way first.
+    expect(tools.last.text, contains('magnet:?xt=urn:btih:row1-h265'));
+    expect(tools.last.text, contains('truncated in history'));
+    expect(tools.first.text, contains('omitted from history'));
+    expect(history.any((m) => m.reasoning.isNotEmpty), false);
+    final size = jsonEncode(
+      history.where((m) => m.text != '下载编号 2').map((m) => m.toJson()).toList(),
+    ).length;
+    expect(size, lessThanOrEqualTo(24000));
+    c.dispose();
+  });
 }

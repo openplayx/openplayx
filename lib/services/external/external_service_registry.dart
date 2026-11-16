@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../data/configuration/configuration_database.dart';
+import '../../l10n/l10n.dart';
 
 /// One user-configured external capability: an MCP server (Streamable HTTP)
 /// added from the AI page's 外部能力 → 配置.
@@ -48,6 +49,14 @@ class ExternalService {
   final DateTime? checkedAt;
 
   String get label => serverTitle.isNotEmpty ? serverTitle : serverName;
+
+  /// Name to show. The web search preset keeps following the App language
+  /// until the user renames it (it was seeded in whatever language was
+  /// active then).
+  String get displayName => id == 'preset-tavily' && _presetNames.contains(name)
+      ? appStrings.webSearchPresetName
+      : name;
+  static const _presetNames = {'联网搜索', '聯網搜尋', 'Web search'};
 
   ExternalService copyWith({
     String? name,

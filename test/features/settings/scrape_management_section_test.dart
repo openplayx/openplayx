@@ -10,6 +10,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../app_test_host.dart';
 import '../sources/source_flow_test.dart' show MemorySources;
+import '../../support/library_test_helpers.dart';
 
 class _FakeArtwork extends ArtworkService {
   _FakeArtwork(super.sources);
@@ -61,7 +62,7 @@ void main() {
         isFolder: false,
       ),
     );
-    library.addManual(media);
+    addToLibrary(library, media);
     library.transaction(
       () => library.metadata.apply(
         media,

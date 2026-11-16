@@ -8,6 +8,7 @@ import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
 import '../configuration/configuration_database.dart';
 import 'metadata_queue.dart';
+import '../../l10n/l10n.dart';
 
 /// Shares the media library database. Projection updates and job commits are a
 /// single transaction; resources and playback progress are never rewritten.
@@ -91,7 +92,10 @@ class MetadataRepository {
       if (selected != null &&
           !compatible(entry.record, selected) &&
           confirmed(id)) {
-        throw const PluginException('identityConflict', '剧集或季的身份存在冲突');
+        throw PluginException(
+          'identityConflict',
+          appStrings.errSeriesIdentityConflict,
+        );
       }
       apply(
         id,
@@ -144,7 +148,7 @@ class MetadataRepository {
 
   void check(String media, int expected) {
     if (revision(media) != expected) {
-      throw const PluginException('conflict', '信息已更改，请重新加载后操作');
+      throw PluginException('conflict', appStrings.errInfoChangedReload);
     }
   }
 
@@ -239,7 +243,7 @@ class MetadataRepository {
       );
     }
     if (selected != null && !compatible(record, selected)) {
-      throw const PluginException('identityConflict', '作品 ID 冲突，需要人工确认');
+      throw PluginException('identityConflict', appStrings.errWorkIdConflict);
     }
     // Empty fields in refresh do not delete existing valid data.
     final prior = db.select(
@@ -405,7 +409,7 @@ class MetadataRepository {
                 (field == 'title' && (value as String).trim().isEmpty) ||
                 (field == 'year' && value is! int) ||
                 (field == 'genres' && value is! List)))) {
-      throw const PluginException('invalidInput', '字段值无效');
+      throw PluginException('invalidInput', appStrings.errInvalidFieldValue);
     }
     if (value == null) {
       db.execute(
@@ -485,7 +489,7 @@ class MetadataRepository {
   }) {
     check(media, expectedRevision);
     if (!artworkCandidates(media).any((a) => a.id == artwork.id)) {
-      throw const PluginException('invalidInput', '海报不属于当前作品');
+      throw PluginException('invalidInput', appStrings.errPosterNotThisWork);
     }
     db.execute(
       'INSERT INTO artwork_selections VALUES (?,?,?,?) ON CONFLICT(media_id,type) DO UPDATE SET descriptor=excluded.descriptor,locked=excluded.locked',
@@ -573,7 +577,6 @@ class MetadataRepository {
       for (final table in const [
         'memberships',
         'ignored',
-        'manual_memberships',
         'media_evidence',
         'metadata_queue',
         'metadata_observations',

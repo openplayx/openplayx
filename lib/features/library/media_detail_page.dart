@@ -24,6 +24,7 @@ import '../../services/subtitles/subtitle_generation_service.dart';
 import 'metadata_artwork.dart';
 import 'metadata_page.dart';
 import 'title_logo.dart';
+import '../../core/format/byte_size.dart';
 
 /// Plays one resource of a media item; supplied by the library page.
 typedef PlayResource = Future<void> Function(
@@ -78,7 +79,6 @@ abstract final class _C {
   static const glassHover = Color(0x4DFFFFFF);
   static const chip = Color(0x1FFFFFFF);
   static const chipHover = Color(0x33FFFFFF);
-  static const tile = Color(0x14FFFFFF);
   static const star = Color(0xFFFFB800);
 }
 
@@ -161,9 +161,18 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     }
   }
 
-  /// Plays a media item, asking which version when it has several.
+  /// File size (when known) and where the version plays from.
+  String _versionLabel(dynamic resource) {
+    final size = resource['size'];
+    final label = widget.resourceLabel(resource);
+    if (size is! int) return label;
+    return label.isEmpty ? formatBytes(size) : '${formatBytes(size)} · $label';
+  }
+
+  /// Plays a media item, asking which version when it has several, largest
+  /// first.
   Future<void> _playMedia(String media) async {
-    final resources = service.resources(media);
+    final resources = service.versions(media);
     if (resources.isEmpty) return;
     if (resources.length == 1) return _play(resources.first);
     final picked = await _chooseVersion(media);
@@ -179,11 +188,11 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
         child: ListView(
           shrinkWrap: true,
           children: [
-            for (final resource in service.resources(media))
+            for (final resource in service.versions(media))
               ContentRow(
                 leading: Icon(AppIcons.playMedia),
                 title: Text(resource['name'] as String),
-                subtitle: Text(widget.resourceLabel(resource)),
+                subtitle: Text(_versionLabel(resource)),
                 onTap: () => Navigator.pop(c, resource),
               ),
           ],
@@ -191,11 +200,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
       ),
     ),
   );
-
-  Future<void> _pickVersionAndPlay() async {
-    final picked = await _chooseVersion(_id);
-    if (picked != null && mounted) await _play(picked);
-  }
 
   Future<void> _openMetadata() async {
     await Navigator.of(context).push<void>(
@@ -212,13 +216,13 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
   String? get _snapshotMedia => _series ? _nextEpisode() : _id;
   bool get _debuggable {
     final media = _snapshotMedia;
-    return media != null && service.resources(media).isNotEmpty;
+    return media != null && service.versions(media).isNotEmpty;
   }
 
   Future<void> _openSnapshotDebug() async {
     final media = _snapshotMedia;
     if (media == null || _busy) return;
-    final resources = service.resources(media);
+    final resources = service.versions(media);
     if (resources.isEmpty) return;
     // Keep the chosen version; ask only when several exist. Never re-pick.
     final resource = resources.length == 1
@@ -248,7 +252,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
         (
           season,
           _episodesOf(season)
-              .where((e) => service.resources(e['id'] as String).isNotEmpty)
+              .where((e) => service.versions(e['id'] as String).isNotEmpty)
               .toList(),
         ),
     ].where((g) => g.$2.isNotEmpty).toList();
@@ -298,7 +302,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
       if (episode == null || !mounted) return;
       media = episode['id'] as String;
     }
-    final resources = service.resources(media);
+    final resources = service.versions(media);
     if (resources.isEmpty) return;
     // Show the chosen version explicitly; never switch sources silently.
     final resource = resources.length == 1
@@ -404,10 +408,10 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final episodes = [
       for (final season in seasons.isEmpty ? [null] : seasons)
         ..._episodesOf(season),
-    ].where((e) => service.resources(e['id'] as String).isNotEmpty).toList();
+    ].where((e) => service.versions(e['id'] as String).isNotEmpty).toList();
     if (episodes.isEmpty) return null;
     Map<String, dynamic>? state(dynamic e) {
-      final r = service.resources(e['id'] as String).first;
+      final r = service.versions(e['id'] as String).first;
       return service.checkpoint(r['id'] as String);
     }
 
@@ -446,7 +450,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
           'isSeries': _series,
           'playable': _series
               ? _nextEpisode() != null
-              : service.resources(_id).isNotEmpty,
+              : service.versions(_id).isNotEmpty,
         },
       ),
       child: Scaffold(
@@ -634,8 +638,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
   Widget _actionColumn(String title) {
     final playable = _series
         ? _nextEpisode() != null
-        : service.resources(_id).isNotEmpty;
-    final versions = !_series && service.resources(_id).length > 1;
+        : service.versions(_id).isNotEmpty;
     final favorite = service.isFavorite(_id);
     final watched = service.isWatched(_id);
     return Column(
@@ -685,21 +688,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                 ),
               ),
             ),
-            if (versions) ...[
-              const SizedBox(width: _M.buttonGap),
-              Expanded(
-                child: _GlassButton(
-                  height: _M.buttonHeight,
-                  tooltip: l.detailVersions,
-                  onPressed: _busy ? null : _pickVersionAndPlay,
-                  child: const Icon(
-                    LucideIcons.listVideo,
-                    size: 19,
-                    color: _C.text,
-                  ),
-                ),
-              ),
-            ],
             const SizedBox(width: _M.buttonGap),
             Expanded(
               child: _GlassButton(
@@ -888,7 +876,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
       if (!_series) ..._collectionSection(),
       ..._extrasSection(),
       ..._castSection(fields),
-      if (!_series) ..._versionSection(),
       ..._genreSection(fields),
     ];
     return [
@@ -1121,10 +1108,19 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final still =
         service.metadata.selectedArtwork(id, type: 'thumbnail') ??
         service.metadata.displayArtwork(id);
-    final resources = service.resources(id);
-    final checkpoint = resources.isEmpty
-        ? null
-        : service.checkpoint(resources.first['id'] as String);
+    final resources = service.versions(id);
+    // Progress of whichever version was played last.
+    final checkpoint = resources
+        .map((r) => service.checkpoint(r['id'] as String))
+        .nonNulls
+        .fold<Map<String, Object?>?>(
+          null,
+          (latest, c) =>
+              latest == null ||
+                  (c['updated_at'] as int) > (latest['updated_at'] as int)
+              ? c
+              : latest,
+        );
     final position = checkpoint?['position'];
     final duration = checkpoint?['duration'];
     final completed = checkpoint?['completed'] == 1;
@@ -1217,7 +1213,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     final id = episode['id'] as String;
     final number = _number(episode['episode']);
     final still = service.metadata.displayArtwork(id);
-    final playable = service.resources(id).isNotEmpty;
+    final playable = service.versions(id).isNotEmpty;
     return Builder(
       builder: (context) => ContentRow(
         leading: ClipRRect(
@@ -1490,83 +1486,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
         ],
       ),
     );
-  }
-
-  /// Movie versions, only worth listing when there are several.
-  List<Widget> _versionSection() {
-    final resources = service.resources(_id);
-    if (resources.length < 2) return const [];
-    return [
-      Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          _header(Text(l.detailVersions)),
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: _M.gutter),
-            child: Wrap(
-              spacing: AppSpacing.md,
-              runSpacing: AppSpacing.md,
-              children: [
-                for (final resource in resources)
-                  _Pressable(
-                    onPressed: _busy ? null : () => _play(resource),
-                    semanticLabel: resource['name'] as String,
-                    builder: (hover) => AnimatedContainer(
-                      duration: const Duration(milliseconds: 150),
-                      width: 280,
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 14,
-                        vertical: 11,
-                      ),
-                      decoration: BoxDecoration(
-                        color: hover ? _C.chip : _C.tile,
-                        borderRadius: BorderRadius.circular(_M.cardRadius),
-                      ),
-                      child: Row(
-                        children: [
-                          const Icon(
-                            Icons.play_circle_outline_rounded,
-                            size: 22,
-                            color: _C.secondary,
-                          ),
-                          const SizedBox(width: 10),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  resource['name'] as String,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _C.body,
-                                    fontSize: 13.5,
-                                    fontWeight: FontWeight.w500,
-                                    height: 1.35,
-                                  ),
-                                ),
-                                Text(
-                                  widget.resourceLabel(resource),
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: const TextStyle(
-                                    color: _C.muted,
-                                    fontSize: 12,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ],
-      ),
-    ];
   }
 
   List<Widget> _genreSection(Map<String, dynamic> fields) {

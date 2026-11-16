@@ -1,8 +1,11 @@
 import 'dart:convert';
 
 import 'source_capability.dart';
+import '../../l10n/l10n.dart';
 
-enum MetadataAction { search, details, children }
+/// [alternativeTitles] returns one record whose `alternativeTitles` field
+/// lists the other names a movie or series is known by.
+enum MetadataAction { search, details, children, alternativeTitles }
 
 enum MediaKind { movie, series, season, episode }
 
@@ -160,8 +163,11 @@ class MetadataRequest {
         (ref != null && ref!.kind != kind) ||
         (action == MetadataAction.children &&
             (ref == null ||
-                ![MediaKind.series, MediaKind.season].contains(kind)))) {
-      throw const PluginException('invalidInput', '无效的元数据查询参数');
+                ![MediaKind.series, MediaKind.season].contains(kind))) ||
+        (action == MetadataAction.alternativeTitles &&
+            (ref == null ||
+                ![MediaKind.movie, MediaKind.series].contains(kind)))) {
+      throw PluginException('invalidInput', appStrings.errInvalidMetadataQuery);
     }
   }
   final MetadataAction action;
@@ -203,7 +209,10 @@ class MetadataRegistry {
   Future<MetadataResult> lookup(String instance, MetadataRequest request) {
     final provider = _providers[instance];
     if (provider == null || !provider.actions.contains(request.action)) {
-      throw const PluginException('unsupported', '此元数据实例不支持该查询');
+      throw PluginException(
+        'unsupported',
+        appStrings.errMetadataQueryUnsupported,
+      );
     }
     return provider.lookup(request, CallContext.forInstance(instance));
   }
@@ -218,7 +227,9 @@ class MetadataRegistry {
 
 MetadataRecord metadataFromSource(SourceMediaInfo info, String source) {
   final kind = MediaKind.values.where((k) => k.name == info.kind).firstOrNull;
-  if (kind == null) throw const PluginException('unsupported', '不支持此媒体类型的影视信息');
+  if (kind == null) {
+    throw PluginException('unsupported', appStrings.errMediaKindUnsupported);
+  }
   return MetadataRecord(
     ref: MetadataRef('server:$source', kind, info.id),
     fields: {

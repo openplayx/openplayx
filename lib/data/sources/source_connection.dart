@@ -1,4 +1,5 @@
 import 'source_config.dart';
+import '../../l10n/l10n.dart';
 
 /// Connection form values are separate from persisted runtime policies. A pasted
 /// complete URL is accepted, but users can enter a host and use sensible defaults.
@@ -32,7 +33,9 @@ class SourceConnection {
     bool https = false,
   }) {
     final text = input.trim();
-    if (text.isEmpty) throw const FormatException('请填写服务器地址。');
+    if (text.isEmpty) {
+      throw FormatException(appStrings.errServerAddressRequired);
+    }
     final pasted = text.contains('://');
     final uri = Uri.tryParse(
       pasted
@@ -49,16 +52,16 @@ class SourceConnection {
         (uri.hasQuery && kind != SourceKind.dlna) ||
         uri.hasFragment ||
         !kind.schemes.contains(uri.scheme)) {
-      throw const FormatException('请输入有效的 IP、主机名或服务器地址。');
+      throw FormatException(appStrings.errInvalidHost);
     }
     final number = port.trim().isEmpty ? null : int.tryParse(port.trim());
     if (port.trim().isNotEmpty &&
         (number == null || number < 1 || number > 65535)) {
-      throw const FormatException('端口须为 1–65535。');
+      throw FormatException(appStrings.errPortRange);
     }
     if (kind == SourceKind.smb &&
         (number != null && number != 445 || uri.hasPort && uri.port != 445)) {
-      throw const FormatException('当前 SMB 连接使用 445 端口。');
+      throw FormatException(appStrings.errSmbPort);
     }
     final selectedPath = path.trim().isEmpty
         ? uri.path
@@ -69,7 +72,7 @@ class SourceConnection {
           (s) =>
               Uri.decodeComponent(s) == '..' || Uri.decodeComponent(s) == '.',
         )) {
-      throw const FormatException('路径不能包含 . 或 ..。');
+      throw FormatException(appStrings.errPathDots);
     }
     final int? selectedPort;
     if (!kind.isHttp) {

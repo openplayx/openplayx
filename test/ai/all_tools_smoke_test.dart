@@ -10,6 +10,8 @@ import 'package:openplayx/services/ai_tools/tool_registry.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../support/library_test_helpers.dart';
+
 class FakeSources extends SourceManager {
   @override
   List<SourceConfig> get configs => [
@@ -55,7 +57,7 @@ void main() {
         isFolder: false,
       ),
     );
-    library.db.execute('INSERT INTO memberships VALUES (?,?)', [media, 1]);
+    addToLibrary(library, media);
     final resource = library.resources(media).single['id'] as String;
     final session = library.beginSession(resource);
     library.saveProgress(

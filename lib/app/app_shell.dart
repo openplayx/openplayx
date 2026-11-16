@@ -477,7 +477,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           ? _library!.db.select('SELECT * FROM resources WHERE id=?', [
               item['resource_id'],
             ])
-          : _library!.resources(item['media_id'] as String);
+          : _library!.versions(item['media_id'] as String);
       if (resources.isEmpty || !mounted) {
         throw StateError('Resource unavailable');
       }

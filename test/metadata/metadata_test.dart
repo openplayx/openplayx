@@ -15,6 +15,8 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:openplayx/services/metadata/media_name_parser.dart';
 import 'package:openplayx/services/metadata/metadata_service.dart';
 
+import '../support/library_test_helpers.dart';
+
 class FixtureSources extends SourceManager {
   FixtureSources(this.root);
   final Directory root;
@@ -222,7 +224,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(media);
+      addToLibrary(library, media);
       service = MetadataService(library, sources);
     });
     tearDown(() async {
@@ -257,7 +259,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.addManual(episode);
+        addToLibrary(library, episode);
         await service.importSidecars(episode);
         final shows = library.query(contentType: 'series');
         expect(shows, hasLength(1));
@@ -272,6 +274,54 @@ void main() {
         expect(library.query(contentType: 'series'), hasLength(1));
       },
     );
+    test('TMDB alternative titles are read per kind and cached', () async {
+      final paths = <String>[];
+      final plugin = TmdbMetadataPlugin((path, query) async {
+        paths.add(path);
+        if (path == '/movie/911430/alternative_titles') {
+          return {
+            'id': 911430,
+            'titles': [
+              {'iso_3166_1': 'US', 'title': 'F1 The Movie', 'type': ''},
+              {'iso_3166_1': 'GB', 'title': 'F1 The Movie', 'type': ''},
+              {'iso_3166_1': 'CN', 'title': ' ', 'type': ''},
+            ],
+          };
+        }
+        return {
+          'id': 10,
+          'results': [
+            {'iso_3166_1': 'JP', 'title': 'Show JP', 'type': ''},
+          ],
+        };
+      });
+      Future<List<String>> titles(MediaKind kind, String id) async =>
+          ((await plugin.lookup(
+                    MetadataRequest(
+                      action: MetadataAction.alternativeTitles,
+                      kind: kind,
+                      ref: MetadataRef('tmdb', kind, id),
+                    ),
+                    CallContext.forInstance('tmdb'),
+                  )).records.single.fields['alternativeTitles']
+                  as List)
+              .cast<String>();
+      expect(await titles(MediaKind.movie, '911430'), ['F1 The Movie']);
+      expect(await titles(MediaKind.movie, '911430'), ['F1 The Movie']);
+      expect(await titles(MediaKind.series, '10'), ['Show JP']);
+      expect(paths, [
+        '/movie/911430/alternative_titles',
+        '/tv/10/alternative_titles',
+      ]);
+      expect(
+        () => MetadataRequest(
+          action: MetadataAction.alternativeTitles,
+          kind: MediaKind.season,
+          ref: const MetadataRef('tmdb', MediaKind.season, '1'),
+        ),
+        throwsA(isA<PluginException>()),
+      );
+    });
     test('TMDB season IDs and parent show IDs stay separate', () async {
       final paths = <String>[];
       final plugin = TmdbMetadataPlugin((path, query) async {
@@ -664,7 +714,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.addManual(episode);
+        addToLibrary(library, episode);
         await service.importSidecars(episode);
         expect(library.query(contentType: 'series'), hasLength(1));
         final before = library.metadata.scrapedStats();

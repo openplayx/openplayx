@@ -5,6 +5,7 @@ import 'package:xml/xml.dart';
 
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
+import '../../l10n/l10n.dart';
 
 typedef AttachmentReader = Future<List<int>> Function(
   ResourceRef ref, {
@@ -31,7 +32,7 @@ class NfoMetadataPlugin implements Plugin, MetadataCapability {
   ) async {
     if (request.action != MetadataAction.details ||
         request.attachment == null) {
-      throw const PluginException('invalidInput', 'NFO 详情需要附件引用');
+      throw PluginException('invalidInput', appStrings.errNfoRefRequired);
     }
     final ref = request.attachment!;
     final bytes = await read(ref, maxBytes: 1024 * 1024);
@@ -40,24 +41,24 @@ class NfoMetadataPlugin implements Plugin, MetadataCapability {
     } on PluginException {
       rethrow;
     } catch (_) {
-      throw const PluginException('invalidMetadata', 'NFO 解析失败');
+      throw PluginException('invalidMetadata', appStrings.errNfoParse);
     }
   }
 
   MetadataRecord parse(List<int> bytes, ResourceRef source) {
     if (bytes.length > 1024 * 1024) {
-      throw const PluginException('quotaExceeded', 'NFO 超过 1 MiB');
+      throw PluginException('quotaExceeded', appStrings.errNfoTooLarge);
     }
     final text = utf8.decode(bytes);
     if (RegExp(r'<!\s*(DOCTYPE|ENTITY)', caseSensitive: false).hasMatch(text)) {
-      throw const PluginException('invalidMetadata', 'NFO 不允许 DTD 或实体声明');
+      throw PluginException('invalidMetadata', appStrings.errNfoDtd);
     }
     // Bound nesting before building the XML tree.
     var depth = 0, nodes = 0;
     for (final tag in RegExp(r'<[^>]*>').allMatches(text)) {
       final t = tag[0]!;
       if (++nodes > 20000) {
-        throw const PluginException('quotaExceeded', 'NFO 节点过多');
+        throw PluginException('quotaExceeded', appStrings.errNfoTooManyNodes);
       }
       if (t.startsWith('</')) {
         depth--;
@@ -66,7 +67,9 @@ class NfoMetadataPlugin implements Plugin, MetadataCapability {
           !t.endsWith('/>')) {
         depth++;
       }
-      if (depth > 32) throw const PluginException('quotaExceeded', 'NFO 嵌套过深');
+      if (depth > 32) {
+        throw PluginException('quotaExceeded', appStrings.errNfoTooDeep);
+      }
     }
     final doc = XmlDocument.parse(text);
     final root = doc.rootElement;
@@ -75,13 +78,13 @@ class NfoMetadataPlugin implements Plugin, MetadataCapability {
       'tvshow' => MediaKind.series,
       'season' => MediaKind.season,
       'episodedetails' => MediaKind.episode,
-      _ => throw const PluginException('invalidMetadata', '不支持的 NFO 对象类型'),
+      _ => throw PluginException('invalidMetadata', appStrings.errNfoType),
     };
     String? value(String tag) {
       final result = root.getElement(tag)?.innerText.trim();
       if (result == null || result.isEmpty) return null;
       if (result.length > 32768) {
-        throw const PluginException('quotaExceeded', 'NFO 字段过长');
+        throw PluginException('quotaExceeded', appStrings.errNfoFieldTooLong);
       }
       return result;
     }

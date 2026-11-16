@@ -1,6 +1,7 @@
 import '../../core/plugins/config_schema.dart';
 import '../../core/plugins/source_capability.dart';
 import 'source_config.dart';
+import '../../l10n/l10n.dart';
 
 class SourceSchemas {
   static PluginManifest forKind(SourceKind kind) => PluginManifest(
@@ -20,50 +21,62 @@ class SourceSchemas {
     configSchema: PluginConfigSchema(
       version: 2,
       fields: switch (kind) {
-        SourceKind.local => const [
+        SourceKind.local => [
           ConfigField(
             'address',
-            '文件夹',
+            appStrings.srcFieldFolder,
             type: ConfigFieldType.directory,
             required: true,
           ),
         ],
-        SourceKind.smb => const [
-          ConfigField('address', '地址', required: true),
-          ConfigField('username', '用户名'),
-          ConfigField('secret', '密码', type: ConfigFieldType.secret),
-          ConfigField('domain', '工作组（可选）'),
+        SourceKind.smb => [
+          ConfigField('address', appStrings.address, required: true),
+          ConfigField('username', appStrings.username),
+          ConfigField(
+            'secret',
+            appStrings.password,
+            type: ConfigFieldType.secret,
+          ),
+          ConfigField('domain', appStrings.srcFieldWorkgroup),
         ],
-        SourceKind.webdav || SourceKind.ftp => const [
-          ConfigField('address', '地址', required: true),
-          ConfigField('username', '用户名'),
-          ConfigField('secret', '密码', type: ConfigFieldType.secret),
+        SourceKind.webdav || SourceKind.ftp => [
+          ConfigField('address', appStrings.address, required: true),
+          ConfigField('username', appStrings.username),
+          ConfigField(
+            'secret',
+            appStrings.password,
+            type: ConfigFieldType.secret,
+          ),
         ],
-        SourceKind.sftp => const [
-          ConfigField('address', '地址', required: true),
-          ConfigField('username', '用户名', required: true),
-          ConfigField('secret', '密码', type: ConfigFieldType.secret),
+        SourceKind.sftp => [
+          ConfigField('address', appStrings.address, required: true),
+          ConfigField('username', appStrings.username, required: true),
+          ConfigField(
+            'secret',
+            appStrings.password,
+            type: ConfigFieldType.secret,
+          ),
         ],
-        SourceKind.s3 => const [
-          ConfigField('address', '服务地址', required: true),
+        SourceKind.s3 => [
+          ConfigField('address', appStrings.serverAddress, required: true),
           ConfigField('username', 'Access Key ID'),
           ConfigField(
             'secret',
             'Secret Access Key',
             type: ConfigFieldType.secret,
           ),
-          ConfigField('domain', '区域（可选）'),
+          ConfigField('domain', appStrings.srcFieldRegion),
         ],
         // Plex uses the account authorization flow, rather than a token form.
-        SourceKind.plex => const [
-          ConfigField('address', '服务器', required: true),
+        SourceKind.plex => [
+          ConfigField('address', appStrings.server, required: true),
         ],
-        SourceKind.jellyfin || SourceKind.emby => const [
-          ConfigField('address', '地址', required: true),
-          ConfigField('username', '用户名'),
+        SourceKind.jellyfin || SourceKind.emby => [
+          ConfigField('address', appStrings.address, required: true),
+          ConfigField('username', appStrings.username),
         ],
-        SourceKind.dlna => const [
-          ConfigField('address', '设备描述地址', required: true),
+        SourceKind.dlna => [
+          ConfigField('address', appStrings.dlnaAddress, required: true),
         ],
       },
     ),
@@ -75,7 +88,7 @@ class SourceSchemas {
       if (field.required &&
           field.type != ConfigFieldType.secret &&
           '${values[field.key] ?? ''}'.trim().isEmpty) {
-        throw FormatException('请填写${field.label}。');
+        throw FormatException(appStrings.srcFieldRequired(field.label));
       }
     }
   }

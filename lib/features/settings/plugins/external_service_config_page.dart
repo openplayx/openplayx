@@ -7,6 +7,7 @@ import '../../../ui/components/forms/form_actions.dart';
 import '../../../ui/components/forms/secret_input.dart';
 import '../../../ui/components/forms/settings_text_input.dart';
 import '../../../ui/components/settings/settings_section.dart';
+import '../../../l10n/l10n.dart';
 
 /// 外部能力 → 配置: one address and token. The App connects over MCP, reads
 /// what the service is and which tools it offers, and saves it as a custom
@@ -61,23 +62,27 @@ class _ExternalServiceConfigPageState extends State<ExternalServiceConfigPage> {
     } on FormatException catch (e) {
       if (mounted) setState(() => _error = e.message);
     } catch (_) {
-      if (mounted) setState(() => _error = '操作失败，请重试');
+      if (mounted) setState(() => _error = appStrings.actionFailedRetry);
     } finally {
       if (mounted) setState(() => _busyLabel = null);
     }
   }
 
-  Future<void> _connect() => _run('正在连接并识别…', () async {
+  Future<void> _connect() => _run(appStrings.extConnecting, () async {
     final probe = await widget.setup.probe(_url.text, _token.text);
     if (mounted) setState(() => _probe = probe);
   });
 
-  Future<void> _save() => _run('正在保存…', () async {
+  Future<void> _save() => _run(appStrings.saving, () async {
     final probe = _probe;
     if (probe == null) return;
     final saved = await widget.setup.save(probe, _token.text, name: _name.text);
     if (!mounted) return;
-    showAppToast(context, '已添加「${saved.name}」', kind: FeedbackKind.success);
+    showAppToast(
+      context,
+      appStrings.extAdded(saved.displayName),
+      kind: FeedbackKind.success,
+    );
     Navigator.of(context).pop(true);
   });
 
@@ -110,42 +115,46 @@ class _ExternalServiceConfigPageState extends State<ExternalServiceConfigPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l = AppLocalizations.of(context);
     final probe = _probe;
     return AppPage(
       pageContext: const PageContextData(
         pageType: 'external_service_configuration',
       ),
-      title: const Text('配置外部能力'),
+      title: Text(l.extConfigureTitle),
       body: SettingsListView(
         children: [
           SettingsSection(
-            footer: '填写服务地址和访问令牌，App 会通过 MCP 连接，读取它是什么服务、提供哪些工具。',
+            footer: l.extConfigureFooter,
             children: [
               _field(
                 'external-url',
-                '服务地址',
+                l.extServiceAddress,
                 _url,
                 placeholder: 'https://bt.example.com',
                 keyboard: TextInputType.url,
               ),
-              _field('external-token', '访问令牌', _token),
-              _field('external-name', '名称（可选）', _name),
+              _field('external-token', l.extAccessToken, _token),
+              _field('external-name', l.extNameOptional, _name),
             ],
           ),
           if (probe != null)
             SettingsSection(
               key: const ValueKey('external-detected'),
-              title: '识别结果',
+              title: l.extDetected,
               children: [
                 SettingsRow(
                   title: probe.title.isNotEmpty ? probe.title : probe.baseUrl,
                   description: [
-                    if (probe.version.isNotEmpty) '版本 ${probe.version}',
-                    '${probe.tools.length} 个工具',
+                    if (probe.version.isNotEmpty) l.extVersion(probe.version),
+                    l.extToolCount(probe.tools.length),
                   ].join(' · '),
                 ),
                 if (probe.tools.isNotEmpty)
-                  SettingsRow(title: '工具', description: probe.tools.join('、')),
+                  SettingsRow(
+                    title: l.extTools,
+                    description: probe.tools.join(l.listSeparator),
+                  ),
               ],
             ),
           // Connecting is the commit until the service is identified; then
@@ -159,13 +168,13 @@ class _ExternalServiceConfigPageState extends State<ExternalServiceConfigPage> {
             [
               if (probe == null)
                 FormAction.primary(
-                  '连接并识别',
+                  l.extConnect,
                   _busy ? null : _connect,
                   key: const ValueKey('external-connect'),
                 )
               else
                 FormAction.primary(
-                  '保存',
+                  l.save,
                   _busy ? null : _save,
                   key: const ValueKey('external-save'),
                 ),

@@ -8,6 +8,7 @@ import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/configuration/source_credential_broker.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/l10n/l10n.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {
@@ -56,7 +57,11 @@ void main() {
       throwsA(
         isA<PluginException>()
             .having((e) => e.code, 'code', 'permissionDenied')
-            .having((e) => e.message, 'message', contains('重新选择')),
+            .having(
+              (e) => e.message,
+              'message',
+              appStrings.errReselectLocalFolder,
+            ),
       ),
     );
   });

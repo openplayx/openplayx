@@ -137,12 +137,12 @@ void main() {
         await capture('list');
         await tester.tap(find.byKey(const ValueKey('source-menu-nas')));
         await tester.pumpAndSettle();
-        expect(find.text('连接详情'), findsOneWidget);
+        expect(find.text('浏览文件'), findsOneWidget);
         expect(tester.takeException(), isNull);
         await capture('menu');
         await tester.sendKeyEvent(LogicalKeyboardKey.escape);
         await tester.pumpAndSettle();
-        expect(find.text('连接详情'), findsNothing);
+        expect(find.text('浏览文件'), findsNothing);
         await tester.pumpWidget(const SizedBox());
         await sources.dispose();
         appearance.dispose();
@@ -188,6 +188,14 @@ void main() {
         tester
             .widget<ShadButton>(
               find.byKey(const ValueKey('source-add-folder-nas')),
+            )
+            .enabled,
+        isFalse,
+      );
+      expect(
+        tester
+            .widget<ShadIconButton>(
+              find.byKey(const ValueKey('source-scan-nas')),
             )
             .enabled,
         isFalse,

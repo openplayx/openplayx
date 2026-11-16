@@ -4,6 +4,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../data/configuration/configuration_database.dart';
 import 'external_service_registry.dart';
+import '../../l10n/l10n.dart';
 
 /// Random anonymous installation id, created once and kept in
 /// `configuration.sqlite3`. It identifies nothing about the user; preset
@@ -42,13 +43,14 @@ abstract final class ExternalPresets {
   /// `mcp_tavily_<tool>` (see ExternalTools.alias).
   static const tavilyId = 'preset-tavily';
 
-  static final tavily = ExternalService(
+  // A getter so a fresh seed is named in the App's current language.
+  static ExternalService get tavily => ExternalService(
     id: tavilyId,
-    name: '联网搜索',
+    name: appStrings.webSearchPresetName,
     baseUrl: 'https://mcp-tavily.openplayx.com',
     endpoint: 'https://mcp-tavily.openplayx.com/mcp',
     serverName: 'mcp-tavily',
-    serverTitle: '联网搜索',
+    serverTitle: 'Web search',
     tools: const ['web_search'],
     toolDefs: const [
       {

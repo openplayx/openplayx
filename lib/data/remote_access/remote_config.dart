@@ -1,6 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
+import '../../l10n/l10n.dart';
+
 class RemoteRuntimePolicy {
   const RemoteRuntimePolicy({
     this.probeTimeoutMs = 2000,
@@ -27,7 +29,7 @@ void _validateLocal(
   if (localAddress == null ||
       RemoteAccessConfig.endpoint(localAddress).scheme != 'https' ||
       !RegExp(r'^[a-fA-F0-9]{64}$').hasMatch(localTlsSha256 ?? '')) {
-    throw const FormatException('局域网自动访问需要 HTTPS 端点和配对确认的证书 SHA-256。');
+    throw FormatException(appStrings.errRemoteLanNeedsHttps);
   }
 }
 
@@ -55,7 +57,7 @@ class SourceRemote {
   factory SourceRemote.fromJson(Map<String, dynamic> j) {
     const keys = {'proxy', 'mode', 'localAddress', 'localTlsSha256'};
     if (j.keys.any((k) => !keys.contains(k))) {
-      throw const FormatException('未知远程访问字段。');
+      throw FormatException(appStrings.errRemoteUnknownField);
     }
     final value = SourceRemote(
       proxy: j['proxy'] as String,
@@ -71,7 +73,7 @@ class SourceRemote {
 
   void validate() {
     if (proxy.trim().isEmpty) {
-      throw const FormatException('请选择远程访问使用的 proxy。');
+      throw FormatException(appStrings.errRemoteChooseProxy);
     }
     _validateLocal(mode, localAddress, localTlsSha256);
   }
@@ -123,14 +125,14 @@ class RemoteAccessConfig {
         (u.scheme != 'smb' && u.port < 1) ||
         u.port > 65535 ||
         u.pathSegments.any((p) => p == '.' || p == '..' || p.contains('\\'))) {
-      throw const FormatException('远程访问需要有效的 HTTP(S) 或 SMB 服务端点。');
+      throw FormatException(appStrings.errRemoteEndpoint);
     }
     return u;
   }
 
   void validate() {
     if (outbound.containsKey('uuid')) {
-      throw const FormatException('UUID 只能保存在 credential 中。');
+      throw FormatException(appStrings.errRemoteUuidPlacement);
     }
     RemotePairing.validateOutbound({
       ...outbound,
@@ -140,7 +142,7 @@ class RemoteAccessConfig {
         credential['uuid'] is! String ||
         remotePort < 1 ||
         remotePort > 65535) {
-      throw const FormatException('proxy name、remotePort 或凭据引用无效。');
+      throw FormatException(appStrings.errRemoteProxyRef);
     }
     _validateLocal(mode, localAddress, localTlsSha256);
   }
@@ -180,11 +182,11 @@ class RemotePairing {
             RegExp(r'^[a-zA-Z0-9][a-zA-Z0-9.-]*[a-zA-Z0-9]$').hasMatch(value) ||
             RegExp(r'^[a-zA-Z0-9]$').hasMatch(value));
     if (jsonEncode(out).length > 65536 || !validHost(server)) {
-      throw const FormatException('代理主机或配置长度无效。');
+      throw FormatException(appStrings.errRemoteProxyHost);
     }
     final tls = out['tls'] as Map<String, dynamic>?;
     if (!validHost(tls?['server_name'])) {
-      throw const FormatException('代理 TLS 服务名称无效。');
+      throw FormatException(appStrings.errRemoteTlsName);
     }
     const keys = {
       'type',
@@ -206,14 +208,14 @@ class RemotePairing {
         tls?['enabled'] != true ||
         tls?['insecure'] == true ||
         (tls?['server_name'] as String? ?? '').isEmpty) {
-      throw const FormatException('配对需要开启证书校验的 VLESS TLS/REALITY 出站。');
+      throw FormatException(appStrings.errRemoteNeedsVless);
     }
     // No external paths, ECH key logs or embedded client keys from an import.
     final certificate = tls?['certificate'];
     if (certificate is String && certificate.contains('PRIVATE KEY') ||
         certificate is List &&
             certificate.any((c) => c is! String || c.contains('PRIVATE KEY'))) {
-      throw const FormatException('CA 配置不能包含私钥。');
+      throw FormatException(appStrings.errRemoteCaPrivateKey);
     }
     final reality = tls?['reality'];
     if (reality != null &&
@@ -221,14 +223,14 @@ class RemotePairing {
             reality.keys.any(
               (k) => !['enabled', 'public_key', 'short_id'].contains(k),
             ))) {
-      throw const FormatException('REALITY 客户端只保存公开参数。');
+      throw FormatException(appStrings.errRemoteRealityPublic);
     }
     final transport = out['transport'];
     if (transport is Map) {
       final headers = transport['headers'];
       if (headers is Map &&
           headers.keys.any((k) => k.toString().toLowerCase() != 'host')) {
-        throw const FormatException('传输认证头不能写入公开线路配置。');
+        throw FormatException(appStrings.errRemoteAuthHeader);
       }
     }
     const tlsKeys = {
@@ -242,25 +244,25 @@ class RemotePairing {
       'max_version',
     };
     if (tls!.keys.any((k) => !tlsKeys.contains(k))) {
-      throw const FormatException('不支持的 TLS 配置字段。');
+      throw FormatException(appStrings.errRemoteTlsField);
     }
   }
 
   factory RemotePairing.parse(String text) {
-    if (text.length > 65536) throw const FormatException('配置过大。');
+    if (text.length > 65536) {
+      throw FormatException(appStrings.errRemoteConfigTooLarge);
+    }
     final Object? decoded;
     try {
       decoded = jsonDecode(text);
     } on FormatException {
-      throw const FormatException('不是有效的 JSON，请粘贴 Relay 导出的完整 App 配置。');
+      throw FormatException(appStrings.errRemoteInvalidJson);
     }
     if (decoded is! Map<String, dynamic> ||
         decoded.keys.any((k) => k != 'outbound' && k != 'proxies') ||
         decoded['outbound'] is! Map<String, dynamic> ||
         decoded['proxies'] is! List) {
-      throw const FormatException(
-        'App 配置须为 {"outbound": {...}, "proxies": [...]}。',
-      );
+      throw FormatException(appStrings.errRemoteAppConfigShape);
     }
     // The sing-box tag only names the outbound inside one config file.
     final out = Map<String, dynamic>.of(
@@ -276,9 +278,7 @@ class RemotePairing {
           item['remotePort'] is! int ||
           (item['remotePort'] as int) < 1 ||
           (item['remotePort'] as int) > 65535) {
-        throw const FormatException(
-          'proxies 每项须为 {"name": 字符串, "remotePort": 端口}。',
-        );
+        throw FormatException(appStrings.errRemoteProxyShape);
       }
       proxies.add(
         RemoteProxy(item['name'] as String, item['remotePort'] as int),
@@ -286,7 +286,7 @@ class RemotePairing {
     }
     if (proxies.isEmpty ||
         proxies.map((p) => p.name).toSet().length != proxies.length) {
-      throw const FormatException('proxies 不能为空，name 不能重复。');
+      throw FormatException(appStrings.errRemoteProxiesEmpty);
     }
     return RemotePairing._(out, proxies);
   }

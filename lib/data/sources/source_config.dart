@@ -1,7 +1,8 @@
 import '../remote_access/remote_config.dart';
+import '../../l10n/l10n.dart';
 
 enum SourceKind {
-  local('本地文件夹', files: true),
+  local('Local', files: true),
   smb('SMB', files: true, scheme: 'smb', standardPort: 445),
   webdav('WebDAV', files: true, scheme: 'http'),
   ftp('FTP', files: true, scheme: 'ftp', standardPort: 21),
@@ -13,13 +14,16 @@ enum SourceKind {
   dlna('DLNA', scheme: 'http');
 
   const SourceKind(
-    this.label, {
+    this._label, {
     this.files = false,
     this.scheme,
     this.standardPort,
     this.defaultPort,
   });
-  final String label;
+  final String _label;
+
+  /// Display name: the protocol or product name, localized for local folders.
+  String get label => this == local ? appStrings.localFolder : _label;
 
   /// Path-addressed file tree that can be scanned into the library.
   final bool files;
@@ -276,7 +280,7 @@ class SourceConfig {
       'remote',
     };
     if (j.keys.any((key) => !keys.contains(key))) {
-      throw const FormatException('配置包含未知字段，原始配置必须保留。');
+      throw FormatException(appStrings.errConfigUnknownFields);
     }
     return SourceConfig(
       id: j['id'] as String,
@@ -318,54 +322,56 @@ class SourceConfig {
       if (!kind.mediaBrowser &&
           kind != SourceKind.plex &&
           kind != SourceKind.smb) {
-        throw const FormatException('当前远程访问支持 Jellyfin、Emby、Plex 和 SMB。');
+        throw FormatException(appStrings.errRemoteKinds);
       }
       remote!.validate();
       final remoteUri = RemoteAccessConfig.endpoint(address);
       if (!kind.schemes.contains(remoteUri.scheme) ||
           (kind == SourceKind.smb &&
               remote!.mode != RemoteConnectionMode.remoteOnly)) {
-        throw const FormatException('远程服务协议不匹配；SMB 当前仅支持远程模式。');
+        throw FormatException(appStrings.errRemoteProtocolMismatch);
       }
     }
     remoteAccess?.validate();
-    if (configVersion != 2) throw const FormatException('配置版本不兼容，不能覆盖保存。');
+    if (configVersion != 2) {
+      throw FormatException(appStrings.errConfigVersionNoOverwrite);
+    }
     if (id.isEmpty || address.trim().isEmpty) {
-      throw const FormatException('请填写地址。');
+      throw FormatException(appStrings.errAddressRequired);
     }
     if (requestTimeoutSeconds < 1 ||
         requestTimeoutSeconds > 120 ||
         maxConcurrentRequests < 1 ||
         maxConcurrentRequests > 8) {
-      throw const FormatException('请求超时须为 1–120 秒，并发须为 1–8。');
+      throw FormatException(appStrings.errTimeoutConcurrency);
     }
     if (allowedPaths.isEmpty ||
         allowedPaths.length > 100 ||
         scanExclusions.length > 100) {
-      throw const FormatException('至少设置一个访问范围，范围和排除项最多各 100 条。');
+      throw FormatException(appStrings.errScopeCount);
     }
     for (final path in [...allowedPaths, ...scanExclusions]) {
       if (path.startsWith('/') ||
           path.contains('\\') ||
           path.contains(':') ||
           path.split('/').any((p) => p == '..' || p == '.')) {
-        throw const FormatException('访问范围和排除项须为根目录内的相对路径，不允许 .. 或绝对路径。');
+        throw FormatException(appStrings.errScopeRelative);
       }
     }
     if (effectiveBrowseMode != (isFileSource ? 'files' : 'library')) {
-      throw const FormatException('此插件不支持该浏览方式。');
+      throw FormatException(appStrings.errBrowseModeUnsupported);
     }
     if (includeInSearch || backgroundIndexing) {
-      throw const FormatException('此插件尚未提供搜索或后台索引能力。');
+      throw FormatException(appStrings.errNoSearchIndex);
     }
     if (!isFileSource &&
         (allowedPaths.any((p) => p.isNotEmpty) || scanExclusions.isNotEmpty)) {
-      throw const FormatException('媒体库来源暂不支持文件目录策略。');
+      throw FormatException(appStrings.errLibraryNoDirPolicy);
     }
     if (kind == SourceKind.local) {
       if (!address.startsWith('/') &&
           !RegExp(r'^[a-zA-Z]:[\\/]').hasMatch(address)) {
-        throw const FormatException('请选择本地文件夹。');
+        throw FormatException(appStrings.errChooseLocalFolder);
       }
       return;
     }
@@ -375,7 +381,7 @@ class SourceConfig {
           (s) =>
               Uri.decodeComponent(s) == '..' || Uri.decodeComponent(s) == '.',
         )) {
-      throw const FormatException('地址不能包含相对路径片段。');
+      throw FormatException(appStrings.errAddressRelativeSegments);
     }
     final uri = Uri.tryParse(address);
     if (uri == null ||
@@ -385,16 +391,16 @@ class SourceConfig {
         (uri.hasQuery && kind != SourceKind.dlna) ||
         uri.hasFragment ||
         uri.pathSegments.contains('..')) {
-      throw const FormatException('请输入有效的服务器地址，凭据请填在单独字段。');
+      throw FormatException(appStrings.errInvalidServerAddress);
     }
     if (kind == SourceKind.smb && uri.hasPort && uri.port != 445) {
-      throw const FormatException('SMB 使用标准 445 端口：smb://主机/共享名/可选目录。');
+      throw FormatException(appStrings.errSmbAddressFormat);
     }
     if (kind.mediaBrowser && userId.trim().isEmpty) {
-      throw FormatException('请填写 ${kind.label} 用户 ID。');
+      throw FormatException(appStrings.errUserIdRequired(kind.label));
     }
     if (kind == SourceKind.sftp && username.trim().isEmpty) {
-      throw const FormatException('请填写 SFTP 用户名。');
+      throw FormatException(appStrings.errSftpUsernameRequired);
     }
   }
 

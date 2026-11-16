@@ -15,7 +15,7 @@ import 'package:openplayx/ui/adaptive/app_navigation.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-import 'library/library_page_test.dart' show Sources;
+import '../support/fake_sources.dart';
 import 'player/player_page_test.dart' show FakeBackend;
 
 import 'package:openplayx/services/library/library_service.dart';

@@ -15,6 +15,7 @@ import '../../ui/tokens/app_spacing.dart';
 import 'file_source_browser_page.dart';
 import 'source_list_widgets.dart';
 import '../../ui/tokens/app_metrics.dart';
+import '../../data/library/scan_status.dart';
 
 Future<String?> _promptText(
   BuildContext context,
@@ -188,7 +189,7 @@ class FileSourceRow extends StatelessWidget {
         (binding['name'] as String?) ??
         connection?.displayName ??
         l.sourceNeedsSetup;
-    final scanning = enabled && binding['status'] == '扫描中';
+    final scanning = enabled && binding['status'] == ScanStatus.scanning;
     // Scraping follows the scan, so its progress is shown right after it.
     final scrape = enabled && !scanning
         ? service.metadataProgressFor(id)
@@ -198,7 +199,7 @@ class FileSourceRow extends StatelessWidget {
         ? ''
         : ' · ${scraping ? l.metadataProgressLabel(scrape.done, scrape.total) : l.metadataProgressDone}';
     final status = enabled
-        ? '${binding['status']}${scanning ? ' · ${l.scanFoundMedia(service.scannedMediaCount(id))}' : scrapeStatus}'
+        ? '${ScanStatus.label(binding['status'])}${scanning ? ' · ${l.scanFoundMedia(service.scannedMediaCount(id))}' : scrapeStatus}'
         : l.fileSourceDisabled;
     final root = binding['root'] as String? ?? '';
     final canBrowse = enabled && connection != null && connection!.enabled;
@@ -238,7 +239,7 @@ class FileSourceRow extends StatelessWidget {
           ),
           const SizedBox(height: AppSpacing.xs),
           Text(
-            '$status${binding['error'] == null ? '' : ' · ${binding['error']}'}',
+            '$status${binding['error'] == null ? '' : ' · ${ScanStatus.error(binding['error'])}'}',
             key: ValueKey('file-source-status-$id'),
             style: binding['error'] == null
                 ? null
@@ -288,14 +289,6 @@ class FileSourceRow extends StatelessWidget {
                 label: l.edit,
                 icon: AppIcons.edit,
                 onPressed: () => controller.rename(context, id, title),
-              ),
-              SourceRowAction(
-                key: ValueKey('file-source-rescan-$id'),
-                label: l.rescanFileSource,
-                icon: AppIcons.refresh,
-                onPressed: canScan
-                    ? () => controller.scan([id], l.scanFailedRetained)
-                    : null,
               ),
               SourceRowAction(
                 key: ValueKey('file-source-toggle-$id'),

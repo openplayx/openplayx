@@ -17,8 +17,9 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx_playback/playback.dart';
 
-import 'library/library_page_test.dart' show Sources;
+import '../support/fake_sources.dart';
 import 'player/player_page_test.dart' show FakeBackend;
+import '../support/library_test_helpers.dart';
 
 class ShellSources extends Sources {
   int releases = 0;
@@ -161,7 +162,10 @@ void main() {
     ) async {
       final service = LibraryService(sqlite3.openInMemory());
       const ref = ResourceRef('s', '/film.mp4');
-      service.register(const SourceEntry(ref, 'Film', isFolder: false));
+      addToLibrary(
+        service,
+        service.register(const SourceEntry(ref, 'Film', isFolder: false)),
+      );
       final resource = service.resourceFor(ref)!['id'] as String;
       service.saveProgress(
         resource,
@@ -244,7 +248,10 @@ void main() {
     );
     final service = LibraryService(sqlite3.openInMemory());
     const ref = ResourceRef('s', '/film.mp4');
-    service.register(const SourceEntry(ref, 'Film', isFolder: false));
+    addToLibrary(
+      service,
+      service.register(const SourceEntry(ref, 'Film', isFolder: false)),
+    );
     final resource = service.resourceFor(ref)!['id'] as String;
     service.saveProgress(
       resource,

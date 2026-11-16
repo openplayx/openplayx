@@ -68,14 +68,14 @@ class FormStatus {
   final String message;
 }
 
-/// The one action bar at the bottom of a form embedded in a page (a form
-/// that has no header of its own). App-wide rule for commit buttons:
+/// The one action bar at the bottom of a form. App-wide rule for commit
+/// buttons:
 ///
 /// - commit (save / add / import) is a solid primary button;
 /// - helper actions are outlined, destructive ones red text;
-/// - a standalone page puts its commit in the header ([PageSubmitButton]),
-///   an embedded form uses this bar, a dialog keeps cancel + save at its
-///   bottom right;
+/// - a form page (source, external service, assistant) ends with this bar
+///   below its fields; a short single-input page may use [PageSubmitButton]
+///   in its header; a dialog keeps cancel + save at its bottom right;
 /// - accent text rows in a list are for non-commit actions only (choose a
 ///   folder, search devices, re-check).
 ///

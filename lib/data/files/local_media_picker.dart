@@ -2,6 +2,8 @@ import 'package:file_selector/file_selector.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
+import '../../l10n/l10n.dart';
+
 class LocalMedia {
   const LocalMedia(this.uri, this.name);
   final Uri uri;
@@ -21,9 +23,9 @@ Future<LocalMedia?> pickLocalMedia() async {
     );
   }
   final file = await openFile(
-    acceptedTypeGroups: const [
+    acceptedTypeGroups: [
       XTypeGroup(
-        label: '视频和音频',
+        label: appStrings.pickerVideoAudio,
         extensions: [
           'mp4',
           'mkv',
@@ -40,7 +42,7 @@ Future<LocalMedia?> pickLocalMedia() async {
         mimeTypes: ['video/*', 'audio/*'],
         uniformTypeIdentifiers: ['public.movie', 'public.audio'],
       ),
-      XTypeGroup(label: '所有文件'),
+      XTypeGroup(label: appStrings.pickerAllFiles),
     ],
   );
   if (file == null) return null;

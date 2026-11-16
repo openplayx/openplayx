@@ -3,6 +3,7 @@ import 'dart:ffi';
 import 'dart:io';
 
 import '../../core/plugins/source_capability.dart';
+import '../../l10n/l10n.dart';
 
 /// Small, versioned C ABI around the pinned Go core. The library is linked into
 /// Apple apps, and bundled as an application library on Android/Linux/Windows.
@@ -44,9 +45,9 @@ class RemoteNative {
               ),
       );
     } catch (_) {
-      throw const PluginException(
+      throw PluginException(
         'remoteCoreUnavailable',
-        '此构建缺少远程连接内核，请安装包含 sing-box 的构建。',
+        appStrings.errRemoteNoCore,
       );
     }
   }
@@ -57,7 +58,10 @@ class RemoteNative {
     );
     final ptr = _alloc(bytes.length + 1);
     if (ptr == nullptr) {
-      throw const PluginException('quotaExceeded', '远程连接配置过大。');
+      throw PluginException(
+        'quotaExceeded',
+        appStrings.errRemoteNativeConfigTooLarge,
+      );
     }
     try {
       ptr.asTypedList(bytes.length + 1)
@@ -65,9 +69,9 @@ class RemoteNative {
         ..[bytes.length] = 0;
       final handle = _start(ptr);
       if (handle <= 0) {
-        throw const PluginException(
+        throw PluginException(
           'remoteConnectionFailed',
-          '远程内核启动失败，请检查线路配置。',
+          appStrings.errRemoteCoreStart,
         );
       }
       return handle;

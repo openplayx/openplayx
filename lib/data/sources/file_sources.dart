@@ -8,10 +8,14 @@ import 'source_config.dart';
 import '../remote_access/remote_transport.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
+import '../../l10n/l10n.dart';
 
 void checkOwnership(String id, ResourceRef? ref, CallContext context) {
   if (context.instanceId != id || (ref != null && ref.instanceId != id)) {
-    throw const PluginException('permissionDenied', '资源不属于此媒体源。');
+    throw PluginException(
+      'permissionDenied',
+      appStrings.errResourceNotThisSource,
+    );
   }
 }
 
@@ -42,7 +46,7 @@ class LocalFolderPlugin
     final candidate = id ?? root;
     final type = await FileSystemEntity.type(candidate);
     if (type == FileSystemEntityType.notFound) {
-      throw const PluginException('notFound', '文件或文件夹不存在。');
+      throw PluginException('notFound', appStrings.errFileNotFound);
     }
     final resolved = type == FileSystemEntityType.directory
         ? await Directory(candidate).resolveSymbolicLinks()
@@ -50,7 +54,10 @@ class LocalFolderPlugin
     final separator = Platform.pathSeparator;
     final prefix = root.endsWith(separator) ? root : '$root$separator';
     if (resolved != root && !resolved.startsWith(prefix)) {
-      throw const PluginException('permissionDenied', '文件超出已授权文件夹。');
+      throw PluginException(
+        'permissionDenied',
+        appStrings.errOutsideAuthorizedFolder,
+      );
     }
     final relative = resolved == root
         ? ''
@@ -59,7 +66,7 @@ class LocalFolderPlugin
       relative,
       directory: type == FileSystemEntityType.directory,
     )) {
-      throw const PluginException('permissionDenied', '目录不在此实例配置的访问范围内。');
+      throw PluginException('permissionDenied', appStrings.errOutsideScope);
     }
     return resolved;
   }
@@ -89,6 +96,7 @@ class LocalFolderPlugin
           ResourceRef(config.id, file.path),
           file.uri.pathSegments.where((s) => s.isNotEmpty).last,
           isFolder: file is Directory,
+          size: file is File ? (await file.stat()).size : null,
         ),
       );
     }
@@ -103,7 +111,7 @@ class LocalFolderPlugin
     checkOwnership(config.id, request.resource, context);
     final file = File(await _path(request.resource.id));
     if (await FileSystemEntity.type(file.path) != FileSystemEntityType.file) {
-      throw const PluginException('invalidInput', '请选择文件。');
+      throw PluginException('invalidInput', appStrings.errChooseFile);
     }
     return PlayableStream(file.uri);
   }
@@ -118,12 +126,15 @@ class LocalFolderPlugin
     validateAttachment(ref, maxBytes);
     final file = File(await _path(ref.id));
     if (await file.length() > maxBytes) {
-      throw const PluginException('quotaExceeded', '附件过大');
+      throw PluginException('quotaExceeded', appStrings.errAttachmentTooLarge);
     }
     final bytes = <int>[];
     await for (final chunk in file.openRead()) {
       if (bytes.length + chunk.length > maxBytes) {
-        throw const PluginException('quotaExceeded', '附件过大');
+        throw PluginException(
+          'quotaExceeded',
+          appStrings.errAttachmentTooLarge,
+        );
       }
       bytes.addAll(chunk);
     }
@@ -152,13 +163,13 @@ class SmbPlugin
     if (path.contains('\\') ||
         path.split('/').any((s) => s == '..' || s == '.') ||
         (path != _root && !path.startsWith(_root == '/' ? '/' : '$_root/'))) {
-      throw const PluginException('permissionDenied', '路径超出配置的 SMB 共享。');
+      throw PluginException('permissionDenied', appStrings.errOutsideSmbShare);
     }
     final relative = path == _root
         ? ''
         : path.substring(_root.length + (_root == '/' ? 0 : 1));
     if (!config.allows(relative, directory: directory)) {
-      throw const PluginException('permissionDenied', '目录不在此实例配置的访问范围内。');
+      throw PluginException('permissionDenied', appStrings.errOutsideScope);
     }
     return path;
   }
@@ -177,10 +188,7 @@ class SmbPlugin
       try {
         shares = await _access.run((connection) => connection.listShares());
       } catch (_) {
-        throw const PluginException(
-          'permissionDenied',
-          '无法读取共享列表，请在“高级”中填写共享文件夹路径后重试。',
-        );
+        throw PluginException('permissionDenied', appStrings.errSmbListShares);
       }
       return pageEntries(
         shares
@@ -206,7 +214,7 @@ class SmbPlugin
     final files = await _access.run((connection) async {
       final folder = await connection.file(path);
       if (!folder.isDirectory()) {
-        throw const PluginException('invalidInput', '请选择文件夹。');
+        throw PluginException('invalidInput', appStrings.errChooseFolder);
       }
       return connection.listFiles(folder);
     });
@@ -228,6 +236,7 @@ class SmbPlugin
               ResourceRef(config.id, file.path),
               file.name,
               isFolder: file.isDirectory(),
+              size: file.isDirectory() ? null : file.size,
             ),
           )
           .toList(),
@@ -245,7 +254,7 @@ class SmbPlugin
     final (connection, file) = await _access.run((connection) async {
       final file = await connection.file(path);
       if (!file.isExists || file.isDirectory()) {
-        throw const PluginException('notFound', '无法播放该 SMB 文件。');
+        throw PluginException('notFound', appStrings.errSmbPlay);
       }
       return (connection, file);
     }, quick: true);
@@ -281,15 +290,21 @@ class SmbPlugin
     return _access.run((connection) async {
       final file = await connection.file(path);
       if (!file.isExists || file.isDirectory()) {
-        throw const PluginException('notFound', '附件不存在');
+        throw PluginException('notFound', appStrings.errAttachmentNotFound);
       }
       if (file.size > maxBytes) {
-        throw const PluginException('quotaExceeded', '附件过大');
+        throw PluginException(
+          'quotaExceeded',
+          appStrings.errAttachmentTooLarge,
+        );
       }
       final bytes = <int>[];
       await for (final chunk in await connection.openRead(file)) {
         if (bytes.length + chunk.length > maxBytes) {
-          throw const PluginException('quotaExceeded', '附件过大');
+          throw PluginException(
+            'quotaExceeded',
+            appStrings.errAttachmentTooLarge,
+          );
         }
         bytes.addAll(chunk);
       }
@@ -309,11 +324,11 @@ class SmbPlugin
     checkOwnership(config.id, near, context);
     final nearPath = _path(near.id);
     if (!_fileName.hasMatch(name) || name.startsWith('.')) {
-      throw const PluginException('invalidInput', '文件名无效。');
+      throw PluginException('invalidInput', appStrings.errInvalidFileName);
     }
     final segments = nearPath.split('/').where((s) => s.isNotEmpty).toList();
     if (segments.isEmpty) {
-      throw const PluginException('invalidInput', '无法确定要写入的共享。');
+      throw PluginException('invalidInput', appStrings.errUnknownWriteShare);
     }
     // Same share as the source media; the folder is fixed by the host.
     final share = _root == '/' ? '/${segments.first}' : _root;
@@ -335,23 +350,20 @@ class SmbPlugin
         if (!folder.isExists) {
           await c.createFolder(folderPath);
         } else if (!folder.isDirectory()) {
-          throw const PluginException(
+          throw PluginException(
             'conflict',
-            '共享中已有同名文件，无法创建 OpenPlayX 文件夹。',
+            appStrings.errOpenPlayXFolderBlocked,
           );
         }
         var target = name;
         for (var n = 2; (await c.file('$folderPath/$target')).isExists; n++) {
           if (n > 99) {
-            throw const PluginException(
-              'conflict',
-              '同名文件过多，请先整理 OpenPlayX 文件夹。',
-            );
+            throw PluginException('conflict', appStrings.errTooManySameName);
           }
           target = '$stem ($n)$ext';
         }
         if ((await c.file(tmpPath)).isExists) {
-          throw const PluginException('conflict', '临时文件名冲突，请重试。');
+          throw PluginException('conflict', appStrings.errTempNameConflict);
         }
         final tmp = await c.createFile(tmpPath);
         try {
@@ -363,7 +375,10 @@ class SmbPlugin
           }
           final written = await c.file(tmpPath);
           if (written.size != length) {
-            throw const PluginException('writeFailed', '上传不完整，已丢弃临时文件。');
+            throw PluginException(
+              'writeFailed',
+              appStrings.errUploadIncomplete,
+            );
           }
           // Server-side rename without replace: never overwrites a file
           // that appeared meanwhile.
@@ -385,9 +400,9 @@ class SmbPlugin
       } catch (_) {
         // Not retried by [SmbAccess.run]: a retry after a rename that did
         // succeed would leave a duplicate copy.
-        throw const PluginException(
+        throw PluginException(
           'writeFailed',
-          '写入 SMB 失败，请确认账号对该共享有写权限。',
+          appStrings.errSmbWrite,
           retryable: true,
         );
       }
@@ -500,7 +515,9 @@ class SmbAccess {
   }
 
   Future<SmbConnect> _open() async {
-    if (_closed) throw const PluginException('cancelled', '连接已关闭。');
+    if (_closed) {
+      throw PluginException('cancelled', appStrings.errConnectionClosed);
+    }
     final path = config.remoteAccess == null
         ? null
         : await RemoteTransport.acquire(config);
@@ -521,7 +538,7 @@ class SmbAccess {
       if (_closed) {
         await connection.close();
         path?.close();
-        throw const PluginException('cancelled', '连接已关闭。');
+        throw PluginException('cancelled', appStrings.errConnectionClosed);
       }
       _path = path;
       return connection;
@@ -553,6 +570,6 @@ void validateAttachment(ResourceRef ref, int maxBytes) {
         r'\.(nfo|jpg|jpeg|png|webp)$',
         caseSensitive: false,
       ).hasMatch(ref.id)) {
-    throw const PluginException('invalidInput', '不支持的附件类型或读取上限');
+    throw PluginException('invalidInput', appStrings.errAttachmentTypeOrLimit);
   }
 }

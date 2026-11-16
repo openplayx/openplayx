@@ -14,6 +14,8 @@ import 'package:openplayx/services/conversations/conversation_coordinator.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../support/library_test_helpers.dart';
+
 class NoSources extends SourceManager {
   @override
   List<SourceConfig> get configs => const [];
@@ -52,7 +54,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.db.execute('INSERT INTO memberships VALUES (?,?)', [id, 1]);
+        addToLibrary(library, id);
       }
 
       final opened = <SourceEntry>[];

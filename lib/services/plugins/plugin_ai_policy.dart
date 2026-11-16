@@ -1,5 +1,6 @@
 import '../../core/plugins/source_capability.dart';
 import '../../data/configuration/source_configuration_service.dart';
+import '../../l10n/l10n.dart';
 
 /// Device-local plugin policy document: plugin switches only. Every
 /// capability of an enabled plugin is AI-callable; there are no AI grants.
@@ -81,7 +82,7 @@ class MemoryPolicyStore implements PluginPolicyStore {
   @override
   PluginPolicy write(PluginPolicy next) {
     if ((value?.revision ?? 0) != next.revision) {
-      throw const PluginException('conflict', '设置已被其他窗口修改，请重新加载。');
+      throw PluginException('conflict', appStrings.errSettingsChangedElsewhere);
     }
     return value = next.copyWith(revision: next.revision + 1);
   }

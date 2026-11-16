@@ -151,18 +151,21 @@ class LibraryResumeTile extends StatelessWidget {
   }
 }
 
-/// Fills the width with equal columns no narrower than [minWidth].
+/// Fills the width with equal columns no narrower than [minWidth], and at
+/// least [minColumns] of them.
 class AdaptiveTileGrid extends StatelessWidget {
   const AdaptiveTileGrid({
     super.key,
     required this.itemCount,
     required this.itemBuilder,
     this.minWidth = ShelfMetrics.gridMinWidth,
+    this.minColumns = 2,
     this.aspectRatio = 2 / 3,
   });
   final int itemCount;
   final IndexedWidgetBuilder itemBuilder;
   final double minWidth;
+  final int minColumns;
 
   /// Artwork width / height.
   final double aspectRatio;
@@ -172,7 +175,10 @@ class AdaptiveTileGrid extends StatelessWidget {
     builder: (context, constraints) {
       const gap = ShelfMetrics.gridGap;
       final width = constraints.crossAxisExtent;
-      final columns = math.max(2, ((width + gap) / (minWidth + gap)).floor());
+      final columns = math.max(
+        minColumns,
+        ((width + gap) / (minWidth + gap)).floor(),
+      );
       final tile = (width - gap * (columns - 1)) / columns;
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
@@ -253,7 +259,10 @@ class _LibraryGridPageState extends State<LibraryGridPage> {
             SliverPadding(
               padding: const EdgeInsets.fromLTRB(24, 20, 24, 32),
               sliver: AdaptiveTileGrid(
-                minWidth: widget.landscape ? 220 : ShelfMetrics.gridMinWidth,
+                minWidth: widget.landscape
+                    ? ShelfMetrics.landscapeGridMinWidth
+                    : ShelfMetrics.gridMinWidth,
+                minColumns: widget.landscape ? 2 : 3,
                 aspectRatio: widget.landscape ? 16 / 9 : 2 / 3,
                 itemCount: rows.length,
                 itemBuilder: (context, i) =>

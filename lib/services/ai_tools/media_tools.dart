@@ -38,7 +38,7 @@ class MediaTools {
   static String safeText(String text) {
     var value = text.replaceAll(
       RegExp(r'https?://\S+', caseSensitive: false),
-      '[地址已隐藏]',
+      '[address hidden]',
     );
     if (value.startsWith('/') || RegExp(r'^[A-Za-z]:[\\/]').hasMatch(value)) {
       value = value.replaceAll('\\', '/').split('/').last;
@@ -208,7 +208,7 @@ class MediaTools {
         return {
           ..._media(rows.first),
           'resources': [
-            for (final r in library.resources(a['media_id'] as String).take(20))
+            for (final r in library.versions(a['media_id'] as String).take(20))
               if (r['source'] == '@local' ||
                   _enabled(r['source'] as String, 'source.resolve'))
                 {

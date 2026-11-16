@@ -12,6 +12,7 @@ import '../artwork/artwork_service.dart';
 import '../library/library_service.dart';
 import 'media_name_parser.dart';
 import 'metadata_service.dart';
+import '../../l10n/l10n.dart';
 
 typedef MetadataCredentialReader = Future<String?> Function();
 
@@ -46,7 +47,7 @@ class MetadataQueueRunner {
   bool _stopped = false;
   String? _owner;
   String? _activeMedia;
-  static const matchRule = 'exact-title-year-v1';
+  static const matchRule = 'title-alias-year-v3';
 
   Future<int> reconcile() async {
     await sources.load();
@@ -182,9 +183,9 @@ class MetadataQueueRunner {
           if (queue.owns(media, owner)) {
             final failure = error is PluginException
                 ? error
-                : const PluginException(
+                : PluginException(
                     'metadataFailed',
-                    '后台识别失败',
+                    appStrings.errBackgroundIdentify,
                     retryable: true,
                   );
             final retryable =
@@ -254,23 +255,84 @@ class MetadataQueueRunner {
     RegExp(r'[\s._\-\[\](){}:：·,!！?？、，。]'),
     '',
   );
+
+  /// The normalized names a file title may go by in the catalog. Release
+  /// names often carry a marketing suffix the catalog title lacks ("F1 The
+  /// Movie" is TMDB's "F1"), so the name with it dropped counts too.
+  static Set<String> _wanted(MediaNameEvidence evidence) {
+    final wanted = _name(evidence.title);
+    if (wanted.isEmpty) return const {};
+    final suffix = RegExp(r'(the)?movie$').firstMatch(wanted);
+    return {
+      wanted,
+      if (suffix != null && suffix.start > 0) wanted.substring(0, suffix.start),
+    };
+  }
+
+  static bool _sameYear(MediaNameEvidence evidence, MetadataRecord c) =>
+      evidence.year == null || c.fields['year'] == evidence.year;
+
   static MetadataRecord? uniqueMatch(
     MediaNameEvidence evidence,
     List<MetadataRecord> candidates, {
     bool completePage = true,
   }) {
-    if (!completePage || _name(evidence.title).isEmpty) return null;
+    final names = _wanted(evidence);
+    if (!completePage || names.isEmpty) return null;
     final matches = candidates
         .where(
           (c) =>
               [
                 _name(c.title),
                 _name(c.fields['originalTitle'] as String? ?? ''),
-              ].contains(_name(evidence.title)) &&
-              (evidence.year == null || c.fields['year'] == evidence.year),
+              ].any(names.contains) &&
+              _sameYear(evidence, c),
         )
         .toList();
     return matches.length == 1 ? matches.single : null;
+  }
+
+  /// At most this many same-year candidates have their alternative titles
+  /// fetched; with more, uniqueness could not be shown and nothing is fetched.
+  static const aliasCandidates = 3;
+
+  /// Fallback when no catalog title equals the file title: the file title
+  /// must equal an alternative title of exactly one same-year candidate.
+  /// Needs a year from the file and a complete result page.
+  static Future<MetadataRecord?> aliasMatch(
+    MediaNameEvidence evidence,
+    List<MetadataRecord> candidates,
+    Future<List<String>> Function(MetadataRef ref) alternativeTitles, {
+    bool completePage = true,
+  }) async {
+    final names = _wanted(evidence);
+    if (!completePage || names.isEmpty || evidence.year == null) return null;
+    final sameYear = candidates.where((c) => _sameYear(evidence, c)).toList();
+    if (sameYear.isEmpty || sameYear.length > aliasCandidates) return null;
+    final matches = <MetadataRecord>[];
+    for (final c in sameYear) {
+      final titles = await alternativeTitles(c.ref);
+      if (titles.map(_name).any(names.contains)) matches.add(c);
+    }
+    return matches.length == 1 ? matches.single : null;
+  }
+
+  /// The exact-title match, else the alternative-title one, for a search job.
+  Future<MetadataRecord?> _match(
+    String job,
+    MediaNameEvidence evidence,
+    MetadataService service,
+  ) async {
+    final input = jsonDecode(library.metadata.job(job)['input'] as String);
+    final complete = input['nextPage'] == null;
+    final candidates = _candidates(job);
+    return uniqueMatch(evidence, candidates, completePage: complete) ??
+        await aliasMatch(
+          evidence,
+          candidates,
+          service.alternativeTitles,
+          completePage: complete,
+        );
   }
 
   Future<void> _process(
@@ -426,11 +488,8 @@ class MetadataQueueRunner {
       jsonEncode({...jobInput, 'automaticMatchRule': matchRule}),
       job,
     ]);
-    var match = uniqueMatch(
-      evidence,
-      _candidates(job),
-      completePage: jobInput['nextPage'] == null,
-    );
+    var match = await _match(job, evidence, service);
+    if (!_valid(media, owner)) return;
     if (match == null) {
       queue.finish(
         media,
@@ -521,12 +580,8 @@ class MetadataQueueRunner {
         kind: MediaKind.series,
       );
       if (!_valid(media, owner)) return;
-      final input = jsonDecode(library.metadata.job(job)['input'] as String);
-      final match = uniqueMatch(
-        evidence,
-        _candidates(job),
-        completePage: input['nextPage'] == null,
-      );
+      final match = await _match(job, evidence, service);
+      if (!_valid(media, owner)) return;
       if (match != null) {
         await service.attachExtraToSeries(job, match.ref);
         if (_valid(media, owner)) {

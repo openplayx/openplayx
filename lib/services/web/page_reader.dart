@@ -184,7 +184,7 @@ class _Markdown {
         }
       case 'img':
         final alt = node.attributes['alt']?.trim() ?? '';
-        if (alt.isNotEmpty) _line.write('[图片: $alt]');
+        if (alt.isNotEmpty) _line.write('[image: $alt]');
       case 'a':
         final start = _line.length;
         block(node);

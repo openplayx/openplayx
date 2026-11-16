@@ -16,6 +16,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import 'features/player/player_page_test.dart' show FakeBackend;
 import 'features/sources/source_flow_test.dart' show MemorySources;
+import 'support/library_test_helpers.dart';
 
 /// Opt-in reference renders, using bundled fonts and real page composition.
 /// flutter test test/ui_preview_test.dart --dart-define=OPENPLAYX_UI_PREVIEW_DIR=/tmp/openplayx-ui
@@ -64,7 +65,7 @@ void main() {
           final media = library.register(
             SourceEntry(ResourceRef('nas', '/$name'), name, isFolder: false),
           );
-          library.addManual(media);
+          addToLibrary(library, media);
           final resource = library.resources(media).single['id'] as String;
           library.saveProgress(
             resource,

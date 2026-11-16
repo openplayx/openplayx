@@ -17,10 +17,14 @@ import 'package:openplayx/services/metadata/metadata_service.dart';
 
 import 'metadata_page_test.dart' show OfflineSources;
 import 'metadata_test.dart' show FixtureSources;
+import '../support/library_test_helpers.dart';
 
 class TestMetadataProvider implements Plugin, MetadataCapability {
   int calls = 0;
   bool remake = false;
+  String searchTitle = 'Film';
+  Map<String, List<String>> aliases = {};
+  final aliasLookups = <String>[];
   PluginException? failure;
   Completer<MetadataResult>? pending;
   @override
@@ -31,8 +35,8 @@ class TestMetadataProvider implements Plugin, MetadataCapability {
   MetadataRecord movie(String id, {bool details = false}) => MetadataRecord(
     ref: MetadataRef('tmdb', MediaKind.movie, id),
     fields: {
-      'title': details ? '已识别影片' : 'Film',
-      'originalTitle': 'Film',
+      'title': details ? '已识别影片' : searchTitle,
+      'originalTitle': searchTitle,
       'year': 2014,
       if (details) 'overview': 'Provider synopsis',
     },
@@ -50,6 +54,15 @@ class TestMetadataProvider implements Plugin, MetadataCapability {
     if (request.action == MetadataAction.search) {
       if (pending != null) return pending!.future;
       return MetadataResult([movie('1'), if (remake) movie('2')]);
+    }
+    if (request.action == MetadataAction.alternativeTitles) {
+      aliasLookups.add(request.ref!.id);
+      return MetadataResult([
+        MetadataRecord(
+          ref: request.ref!,
+          fields: {'alternativeTitles': aliases[request.ref!.id] ?? []},
+        ),
+      ]);
     }
     return MetadataResult([movie(request.ref!.id, details: true)]);
   }
@@ -143,7 +156,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(item);
+      addToLibrary(library, item);
       final worker = MetadataQueueRunner(
         library,
         remote,
@@ -168,13 +181,13 @@ void main() {
   test('direct open never enqueues; every library membership persists pending work', () {
     final queue = MetadataQueue(library.db);
     expect(queue.item(media), isNull);
-    library.addManual(media);
+    addToLibrary(library, media);
     expect(queue.item(media)!['state'], 'queued');
-    library.addManual(media);
+    addToLibrary(library, media);
     expect(library.db.select('SELECT * FROM metadata_queue'), hasLength(1));
   });
   test('unique exact match automatically updates title, association and image cache', () async {
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -195,7 +208,7 @@ void main() {
   });
   test('multiple exact candidates await selection instead of adopting the first result', () async {
     provider.remake = true;
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -210,7 +223,7 @@ void main() {
   });
   test('manual confirmation clears a waiting badge and completes the selected artwork', () async {
     provider.remake = true;
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = runner();
     final manual = MetadataService(
       library,
@@ -238,7 +251,7 @@ void main() {
     'system stop releases work and prevents a late response from applying',
     () async {
       provider.pending = Completer<MetadataResult>();
-      library.addManual(media);
+      addToLibrary(library, media);
       final worker = runner();
       try {
         await worker.reconcile();
@@ -285,9 +298,129 @@ void main() {
       ]),
       isNull,
     );
+    final f1 = MetadataRecord(
+      ref: const MetadataRef('tmdb', MediaKind.movie, '911430'),
+      fields: const {'title': 'F1：狂飙飞车', 'originalTitle': 'F1', 'year': 2025},
+    );
+    expect(
+      MetadataQueueRunner.uniqueMatch(
+        const MediaNameParser().parse(
+          'F1 The Movie 2025 1080p WEB-DL HEVC x265 5.1 BONE.mkv',
+        ),
+        [f1],
+      )?.ref.id,
+      '911430',
+    );
+    expect(
+      MetadataQueueRunner.uniqueMatch(
+        const MediaNameParser().parse('F1 Sequel 2025.mkv'),
+        [f1],
+      ),
+      isNull,
+    );
   });
+  test('alias fallback needs one same-year candidate whose alternative title is the file title', () async {
+    final evidence = const MediaNameParser().parse('Le Film 2014.mkv');
+    MetadataRecord rec(String id, int year) => MetadataRecord(
+      ref: MetadataRef('tmdb', MediaKind.movie, id),
+      fields: {'title': 'Film', 'year': year},
+    );
+    final aliases = {
+      '1': ['Le Film', 'Das Film'],
+      '2': ['Other'],
+      '3': ['Le-Film'],
+    };
+    final fetched = <String>[];
+    Future<List<String>> titles(MetadataRef ref) async {
+      fetched.add(ref.id);
+      return aliases[ref.id] ?? [];
+    }
+
+    expect(
+      (await MetadataQueueRunner.aliasMatch(evidence, [
+        rec('1', 2014),
+        rec('2', 2014),
+        rec('9', 1990),
+      ], titles))?.ref.id,
+      '1',
+    );
+    // Only same-year candidates are looked up.
+    expect(fetched, ['1', '2']);
+    // Two candidates share the alias: ambiguous.
+    expect(
+      await MetadataQueueRunner.aliasMatch(evidence, [
+        rec('1', 2014),
+        rec('3', 2014),
+      ], titles),
+      isNull,
+    );
+    fetched.clear();
+    // Too many same-year candidates, no year in the name, or a page cut
+    // short: uniqueness cannot be shown, so nothing is fetched.
+    expect(
+      await MetadataQueueRunner.aliasMatch(evidence, [
+        for (var i = 0; i < 4; i++) rec('$i', 2014),
+      ], titles),
+      isNull,
+    );
+    expect(
+      await MetadataQueueRunner.aliasMatch(
+        const MediaNameParser().parse('Le Film.mkv'),
+        [rec('1', 2014)],
+        titles,
+      ),
+      isNull,
+    );
+    expect(
+      await MetadataQueueRunner.aliasMatch(
+        evidence,
+        [rec('1', 2014)],
+        titles,
+        completePage: false,
+      ),
+      isNull,
+    );
+    expect(fetched, isEmpty);
+  });
+  test(
+    'background matching confirms a title found through its alternative title',
+    () async {
+      provider.searchTitle = 'Der Film';
+      provider.aliases = {
+        '1': ['Film'],
+      };
+      addToLibrary(library, media);
+      final worker = runner();
+      try {
+        await worker.reconcile();
+        await worker.runBatch();
+        expect(provider.aliasLookups, ['1']);
+        expect(worker.queue.item(media)!['state'], 'completed');
+        expect(library.metadata.association(media)!.id, '1');
+        expect(library.metadata.confirmed(media), isFalse);
+      } finally {
+        await worker.dispose();
+      }
+    },
+  );
+  test(
+    'background matching still asks when no alternative title fits',
+    () async {
+      provider.searchTitle = 'Der Film';
+      addToLibrary(library, media);
+      final worker = runner();
+      try {
+        await worker.reconcile();
+        await worker.runBatch();
+        expect(provider.aliasLookups, ['1']);
+        expect(worker.queue.item(media)!['state'], 'awaitingSelection');
+      } finally {
+        await worker.dispose();
+      }
+    },
+  );
   test('no configured provider waits for configuration without retrying authentication forever', () async {
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = MetadataQueueRunner(
       library,
       sources,
@@ -319,7 +452,7 @@ void main() {
       'offline',
       retryable: true,
     );
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -339,7 +472,7 @@ void main() {
     'user editing while search runs invalidates the background result',
     () async {
       provider.pending = Completer<MetadataResult>();
-      library.addManual(media);
+      addToLibrary(library, media);
       final worker = runner();
       try {
         await worker.reconcile();
@@ -358,7 +491,7 @@ void main() {
   );
   test('removing media during a query prevents the result from being applied or retried', () async {
     provider.pending = Completer<MetadataResult>();
-    library.addManual(media);
+    addToLibrary(library, media);
     final worker = runner();
     try {
       await worker.reconcile();
@@ -391,7 +524,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(item);
+      addToLibrary(library, item);
       var credentialReads = 0;
       final worker = MetadataQueueRunner(
         library,
@@ -416,7 +549,7 @@ void main() {
     },
   );
   test('native runtime schedules persistent workers without depending on a library page', () async {
-    library.addManual(media);
+    addToLibrary(library, media);
     final scheduler = TestScheduler(true);
     final runtime = MetadataRuntime(
       library,
@@ -435,7 +568,7 @@ void main() {
     }
   });
   test('foreground host uses the same automatic pipeline when native scheduling is unavailable', () async {
-    library.addManual(media);
+    addToLibrary(library, media);
     final runtime = MetadataRuntime(
       library,
       sources,

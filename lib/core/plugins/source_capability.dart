@@ -40,11 +40,20 @@ class ResourceRef {
 }
 
 class SourceEntry {
-  const SourceEntry(this.ref, this.name, {required this.isFolder, this.media});
+  const SourceEntry(
+    this.ref,
+    this.name, {
+    required this.isFolder,
+    this.media,
+    this.size,
+  });
   final SourceMediaInfo? media;
   final ResourceRef ref;
   final String name;
   final bool isFolder;
+
+  /// File size in bytes, when the source lists it.
+  final int? size;
 }
 
 /// Provider-owned stable content identity; titles never serve as identity keys.

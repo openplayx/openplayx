@@ -9,6 +9,7 @@ import '../../core/plugins/source_capability.dart';
 import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_native.dart';
+import '../../l10n/l10n.dart';
 
 /// Each client owns a path lease. Existing playback holds it through the source
 /// runtime; expiry or a network change affects only newly created clients.
@@ -36,7 +37,10 @@ class RemotePathLease {
           uri.port != address.port ||
           uri.scheme != address.scheme ||
           proxyHost != null) {
-        throw const PluginException('permissionDenied', '请求超出已授权的服务端点。');
+        throw PluginException(
+          'permissionDenied',
+          appStrings.errRemoteOutsideEndpoint,
+        );
       }
       // HttpClient still handles TLS with uri.host: SNI and certificate checks
       // are unchanged even though this raw socket uses a local forwarding port.
@@ -67,9 +71,9 @@ class RemotePathLease {
                       sha256.convert(secure.peerCertificate!.der).toString() !=
                           localTlsSha256!.toLowerCase()))) {
             secure.destroy();
-            throw const PluginException(
+            throw PluginException(
               'serviceIdentityMismatch',
-              '服务证书与已配对身份不匹配。',
+              appStrings.errRemoteCertMismatch,
             );
           }
           return secure;
@@ -135,7 +139,10 @@ class RemotePathLease {
                 target != logicalHost ||
                 port != logicalPort ||
                 loopbackPort == null) {
-              throw const PluginException('permissionDenied', '连接超出已配对服务。');
+              throw PluginException(
+                'permissionDenied',
+                appStrings.errRemoteOutsidePaired,
+              );
             }
             final task = _connectRaw('127.0.0.1', loopbackPort!);
             return task.socket.timeout(
@@ -214,9 +221,9 @@ class RemotePathSelector {
     if (c.mode == RemoteConnectionMode.remoteOnly) return false;
     final available = await localAvailable(sourceId, c, policy: policy);
     if (!available && c.mode == RemoteConnectionMode.localOnly) {
-      throw const PluginException(
+      throw PluginException(
         'localIdentityUnavailable',
-        '局域网服务不可达或身份验证失败。',
+        appStrings.errRemoteLanUnreachable,
       );
     }
     return available;
@@ -281,17 +288,17 @@ class RemoteTransport {
           .invokeMethod<bool>('usingCellular')
           .timeout(const Duration(seconds: 3));
       if (cellular != false) {
-        throw const PluginException(
+        throw PluginException(
           'cellularDenied',
-          '当前设置禁止蜂窝网络远程访问，或无法确认当前网络。',
+          appStrings.errRemoteCellularBlocked,
         );
       }
     } on PluginException {
       rethrow;
     } catch (_) {
-      throw const PluginException(
+      throw PluginException(
         'networkPolicyUnavailable',
-        '无法确认蜂窝网络状态，已阻止远程连接。',
+        appStrings.errRemoteCellularUnknown,
       );
     }
   }

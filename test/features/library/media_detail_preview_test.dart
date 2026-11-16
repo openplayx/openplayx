@@ -17,7 +17,8 @@ import 'package:openplayx/services/artwork/artwork_service.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-import 'library_page_test.dart' show Sources;
+import '../../support/fake_sources.dart';
+import '../../support/library_test_helpers.dart';
 
 /// Synthetic artwork by type, so previews never depend on real posters.
 class PreviewArtwork extends ArtworkService {
@@ -332,7 +333,7 @@ void main() {
       final id = library.register(
         SourceEntry(ResourceRef('s', '/$file'), file, isFolder: false),
       );
-      library.addManual(id);
+      addToLibrary(library, id);
       library.transaction(
         () => library.metadata.apply(
           id,

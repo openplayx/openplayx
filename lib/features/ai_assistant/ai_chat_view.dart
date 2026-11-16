@@ -57,6 +57,7 @@ class _AiChatViewState extends State<AiChatView> {
   final _messageKeys = <String, GlobalKey>{};
   String get _surface => widget.onExpand == null ? 'home' : 'panel';
   String? _restoredConversation;
+  AiChatAnchor? _entryAnchor;
   bool _restoring = false;
   bool _anchorSaveScheduled = false;
   void _saveAnchor() {
@@ -81,7 +82,8 @@ class _AiChatViewState extends State<AiChatView> {
   void _restoreAnchor() {
     if (_restoredConversation == widget.coordinator.conversationId) return;
     _restoredConversation = widget.coordinator.conversationId;
-    final anchor = _controller.anchorFor(_surface);
+    final anchor = _controller.takeHandoff(_surface);
+    _entryAnchor = anchor;
     _atBottom = anchor?.atBottom ?? true;
     _restoring = anchor != null && !anchor.atBottom && anchor.messageId != null;
     if (!_restoring) return;
@@ -102,6 +104,32 @@ class _AiChatViewState extends State<AiChatView> {
     super.initState();
     _adapter.version.addListener(_onUpdate);
     _scroll.addListener(_scrolled);
+    _followedTurn = widget.coordinator.currentTurn;
+    widget.coordinator.addListener(_onCoordinator);
+  }
+
+  // Sending a message always shows it, even if the user had scrolled up to
+  // read earlier replies; following then continues as the answer streams.
+  Object? _followedTurn;
+  void _onCoordinator() {
+    final turn = widget.coordinator.currentTurn;
+    if (turn == null || identical(turn, _followedTurn)) return;
+    _followedTurn = turn;
+    _restoring = false;
+    if (!_atBottom) setState(() => _atBottom = true);
+    _pinToEnd(frames: 3);
+  }
+
+  void _pinToEnd({int frames = 1}) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted || !_scroll.hasClients) return;
+      final position = _scroll.position;
+      if (position.maxScrollExtent - position.pixels > 0.5) {
+        position.jumpTo(position.maxScrollExtent);
+      }
+      // Lazily built messages refine the extent over the next frames.
+      if (frames > 1) _pinToEnd(frames: frames - 1);
+    });
   }
 
   void _scrolled() {
@@ -138,6 +166,7 @@ class _AiChatViewState extends State<AiChatView> {
 
   @override
   void dispose() {
+    widget.coordinator.removeListener(_onCoordinator);
     _adapter.version.removeListener(_onUpdate);
     _adapter.dispose();
     _scroll.dispose();
@@ -442,8 +471,7 @@ class _AiChatViewState extends State<AiChatView> {
                         removeAnimationDuration: Duration.zero,
                         shouldScrollToEndWhenSendingMessage: false,
                         scrollToBottomAppearanceThreshold: 80,
-                        initialScrollToEndMode:
-                            _controller.anchorFor(_surface)?.atBottom == false
+                        initialScrollToEndMode: _entryAnchor?.atBottom == false
                             ? flyer_ui.InitialScrollToEndMode.none
                             : flyer_ui.InitialScrollToEndMode.jump,
                         onEndReached: c.hasEarlier

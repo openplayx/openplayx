@@ -292,12 +292,6 @@ abstract class AppLocalizations {
   /// **'Unfinished videos will appear here after you start watching.'**
   String get continueEmpty;
 
-  /// No description provided for @recentlyPlayed.
-  ///
-  /// In en, this message translates to:
-  /// **'Recently played'**
-  String get recentlyPlayed;
-
   /// No description provided for @recentEmpty.
   ///
   /// In en, this message translates to:
@@ -1195,14 +1189,8 @@ abstract class AppLocalizations {
   /// No description provided for @removeBindingDescription.
   ///
   /// In en, this message translates to:
-  /// **'This binding links {count} items. Remove automatic memberships only when no source evidence remains. Manual memberships, shared media and files are kept.'**
+  /// **'This file source links {count} items. Removing it also deletes the file records, playback progress and metadata found only by it; items another file source also found are kept. The original files on your storage are not touched.'**
   String removeBindingDescription(int count);
-
-  /// No description provided for @sourceVersion.
-  ///
-  /// In en, this message translates to:
-  /// **'{kind} · Plugin {plugin} · Config v{config} · r{revision}'**
-  String sourceVersion(String kind, String plugin, int config, int revision);
 
   /// No description provided for @disableSourceDescription.
   ///
@@ -1213,8 +1201,8 @@ abstract class AppLocalizations {
   /// No description provided for @deleteSourceDescription.
   ///
   /// In en, this message translates to:
-  /// **'Remove this source configuration and credential reference. Files and favorites are kept. {playing} playing items and {running} requests can finish before connections are released.'**
-  String deleteSourceDescription(int playing, int running);
+  /// **'Removes this connection\'s configuration and credentials, and its {fileSources} file sources with everything they found (file records, playback progress, metadata). The original files on your storage are not touched. {playing} playing items and {running} requests can finish before connections are released.'**
+  String deleteSourceDescription(int fileSources, int playing, int running);
 
   /// No description provided for @deleteNamedSource.
   ///
@@ -3465,12 +3453,6 @@ abstract class AppLocalizations {
   /// **'Browse files'**
   String get browseSourceFiles;
 
-  /// No description provided for @sourceConnectionDetails.
-  ///
-  /// In en, this message translates to:
-  /// **'Connection details'**
-  String get sourceConnectionDetails;
-
   /// No description provided for @sourceAwaitingVerification.
   ///
   /// In en, this message translates to:
@@ -4094,6 +4076,3294 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Bookmarks'**
   String get plBookmarksShort;
+
+  /// No description provided for @listSeparator.
+  ///
+  /// In en, this message translates to:
+  /// **', '**
+  String get listSeparator;
+
+  /// No description provided for @remoteAccess.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote access'**
+  String get remoteAccess;
+
+  /// No description provided for @remoteHomeAndRoutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Home and connection routes'**
+  String get remoteHomeAndRoutes;
+
+  /// No description provided for @remoteImportTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import remote configuration'**
+  String get remoteImportTitle;
+
+  /// No description provided for @remoteImportFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Paste the App configuration exported by Relay. It takes effect right after import.'**
+  String get remoteImportFooter;
+
+  /// No description provided for @remoteImportPlaceholder.
+  ///
+  /// In en, this message translates to:
+  /// **'App configuration JSON'**
+  String get remoteImportPlaceholder;
+
+  /// No description provided for @remoteImport.
+  ///
+  /// In en, this message translates to:
+  /// **'Import'**
+  String get remoteImport;
+
+  /// No description provided for @remoteImporting.
+  ///
+  /// In en, this message translates to:
+  /// **'Importing…'**
+  String get remoteImporting;
+
+  /// No description provided for @remoteImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Imported and applied.'**
+  String get remoteImported;
+
+  /// No description provided for @remoteClearConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear remote configuration?'**
+  String get remoteClearConfirmTitle;
+
+  /// No description provided for @remoteClearConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the remote configuration and credentials from this device. Import again to restore remote access.'**
+  String get remoteClearConfirmMessage;
+
+  /// No description provided for @remoteClear.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get remoteClear;
+
+  /// No description provided for @remoteClearing.
+  ///
+  /// In en, this message translates to:
+  /// **'Clearing…'**
+  String get remoteClearing;
+
+  /// No description provided for @remoteCleared.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote configuration cleared.'**
+  String get remoteCleared;
+
+  /// No description provided for @remoteNotImported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not imported yet'**
+  String get remoteNotImported;
+
+  /// No description provided for @remoteNotImportedHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Import” to add a remote configuration.'**
+  String get remoteNotImportedHint;
+
+  /// No description provided for @remoteServerName.
+  ///
+  /// In en, this message translates to:
+  /// **'Server name'**
+  String get remoteServerName;
+
+  /// No description provided for @remoteCredentials.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials'**
+  String get remoteCredentials;
+
+  /// No description provided for @remoteCredentialsSecure.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved in system secure storage'**
+  String get remoteCredentialsSecure;
+
+  /// No description provided for @remoteProxyUnused.
+  ///
+  /// In en, this message translates to:
+  /// **'Not used by any source'**
+  String get remoteProxyUnused;
+
+  /// No description provided for @remoteProxyUsedBy.
+  ///
+  /// In en, this message translates to:
+  /// **'Sources: {sources}'**
+  String remoteProxyUsedBy(String sources);
+
+  /// No description provided for @remoteProxyPort.
+  ///
+  /// In en, this message translates to:
+  /// **'Port {port}'**
+  String remoteProxyPort(int port);
+
+  /// No description provided for @remoteRelayServer.
+  ///
+  /// In en, this message translates to:
+  /// **'Relay server'**
+  String get remoteRelayServer;
+
+  /// No description provided for @remoteRelayFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'The whole App shares this connection. Credentials are kept in system secure storage.'**
+  String get remoteRelayFooter;
+
+  /// No description provided for @remoteAvailableServices.
+  ///
+  /// In en, this message translates to:
+  /// **'Available services'**
+  String get remoteAvailableServices;
+
+  /// No description provided for @remoteAvailableServicesFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Registered on Relay by Home. Pick one for a source under “Edit source → Home remote access”.'**
+  String get remoteAvailableServicesFooter;
+
+  /// No description provided for @remoteNeedsAttention.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get remoteNeedsAttention;
+
+  /// No description provided for @remoteSourceProxyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Its proxy “{proxy}” is not in the current configuration, so remote connection is unavailable.'**
+  String remoteSourceProxyMissing(String proxy);
+
+  /// No description provided for @statusConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Configured'**
+  String get statusConfigured;
+
+  /// No description provided for @statusNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Not configured'**
+  String get statusNotConfigured;
+
+  /// No description provided for @statusAvailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Available'**
+  String get statusAvailable;
+
+  /// No description provided for @statusUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unavailable'**
+  String get statusUnavailable;
+
+  /// No description provided for @plgGroupModel.
+  ///
+  /// In en, this message translates to:
+  /// **'Models'**
+  String get plgGroupModel;
+
+  /// No description provided for @plgGroupExternal.
+  ///
+  /// In en, this message translates to:
+  /// **'External capabilities'**
+  String get plgGroupExternal;
+
+  /// No description provided for @plgGroupBuiltIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Built-in capabilities'**
+  String get plgGroupBuiltIn;
+
+  /// No description provided for @plgGroupModelDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure the model the agent uses'**
+  String get plgGroupModelDescription;
+
+  /// No description provided for @plgGroupExternalDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Self-hosted or cloud services you add'**
+  String get plgGroupExternalDescription;
+
+  /// No description provided for @plgGroupBuiltInDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Ships with the App, all open by default'**
+  String get plgGroupBuiltInDescription;
+
+  /// No description provided for @plgCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count}'**
+  String plgCount(int count);
+
+  /// No description provided for @extToolCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 tool} other{{count} tools}}'**
+  String extToolCount(int count);
+
+  /// No description provided for @plgInstanceCount.
+  ///
+  /// In en, this message translates to:
+  /// **'{count, plural, =1{1 instance} other{{count} instances}}'**
+  String plgInstanceCount(int count);
+
+  /// No description provided for @plgExternalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter an address and token to detect and set up a service automatically'**
+  String get plgExternalHint;
+
+  /// No description provided for @plgExternalEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No external services yet'**
+  String get plgExternalEmpty;
+
+  /// No description provided for @extConfigureTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set up external capability'**
+  String get extConfigureTitle;
+
+  /// No description provided for @plgBuiltInHint.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} capabilities ship with the App, all open by default — nothing to enable one by one'**
+  String plgBuiltInHint(int count);
+
+  /// No description provided for @plgGroupEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No {group} yet'**
+  String plgGroupEmpty(String group);
+
+  /// No description provided for @plgNoAssistant.
+  ///
+  /// In en, this message translates to:
+  /// **'This build does not include the AI assistant'**
+  String get plgNoAssistant;
+
+  /// No description provided for @plgSelectForDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Select an item to see details'**
+  String get plgSelectForDetail;
+
+  /// No description provided for @plgDeviceUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Not supported on this device'**
+  String get plgDeviceUnsupported;
+
+  /// No description provided for @plgTemporarilyUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporarily unavailable'**
+  String get plgTemporarilyUnavailable;
+
+  /// No description provided for @plgDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugin disabled'**
+  String get plgDisabled;
+
+  /// No description provided for @plgDisableConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Disable “{name}”?'**
+  String plgDisableConfirmTitle(String name);
+
+  /// No description provided for @plgImpactIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'New calls are blocked right away. Instance settings, generated subtitles and history are kept.'**
+  String get plgImpactIntro;
+
+  /// No description provided for @plgImpactPlaying.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} playing sessions continue until playback ends, then release their connections.'**
+  String plgImpactPlaying(int count);
+
+  /// No description provided for @plgImpactRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} running requests are released when they finish.'**
+  String plgImpactRunning(int count);
+
+  /// No description provided for @plgImpactInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'Affected instances: {instances}.'**
+  String plgImpactInstances(String instances);
+
+  /// No description provided for @actionFailedRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Something went wrong. Please try again.'**
+  String get actionFailedRetry;
+
+  /// No description provided for @plgUnavailableReason.
+  ///
+  /// In en, this message translates to:
+  /// **'Why it\'s unavailable'**
+  String get plgUnavailableReason;
+
+  /// No description provided for @plgSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Plugin switch'**
+  String get plgSwitch;
+
+  /// No description provided for @plgSwitchOn.
+  ///
+  /// In en, this message translates to:
+  /// **'Accepting new calls'**
+  String get plgSwitchOn;
+
+  /// No description provided for @plgSwitchOff.
+  ///
+  /// In en, this message translates to:
+  /// **'New calls are blocked; instance settings are kept'**
+  String get plgSwitchOff;
+
+  /// No description provided for @plgLocation.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs where'**
+  String get plgLocation;
+
+  /// No description provided for @plgLocationDevice.
+  ///
+  /// In en, this message translates to:
+  /// **'Runs on this device'**
+  String get plgLocationDevice;
+
+  /// No description provided for @plgLocationNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'The App connects from this device to the storage you configured'**
+  String get plgLocationNetwork;
+
+  /// No description provided for @plgLocationSelfHosted.
+  ///
+  /// In en, this message translates to:
+  /// **'The App runs the adapter on this device; the work happens on the server you configured'**
+  String get plgLocationSelfHosted;
+
+  /// No description provided for @plgLocationCloudApi.
+  ///
+  /// In en, this message translates to:
+  /// **'The App calls a cloud API from this device'**
+  String get plgLocationCloudApi;
+
+  /// No description provided for @plgDependencies.
+  ///
+  /// In en, this message translates to:
+  /// **'Dependencies'**
+  String get plgDependencies;
+
+  /// No description provided for @plgDependency.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} ({status})'**
+  String plgDependency(String name, String status);
+
+  /// No description provided for @plgCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Capabilities'**
+  String get plgCapabilities;
+
+  /// No description provided for @plgCapabilitiesFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Only methods this plugin actually implements are listed.'**
+  String get plgCapabilitiesFooter;
+
+  /// No description provided for @plgInstancesTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Instances ({count})'**
+  String plgInstancesTitle(int count);
+
+  /// No description provided for @plgInstanceBusy.
+  ///
+  /// In en, this message translates to:
+  /// **'In use: {playing} playing · {running} requests'**
+  String plgInstanceBusy(int playing, int running);
+
+  /// No description provided for @plgNoInstances.
+  ///
+  /// In en, this message translates to:
+  /// **'No instances'**
+  String get plgNoInstances;
+
+  /// No description provided for @plgOpenSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Open settings'**
+  String get plgOpenSettings;
+
+  /// No description provided for @plgRuntime.
+  ///
+  /// In en, this message translates to:
+  /// **'Status and diagnostics'**
+  String get plgRuntime;
+
+  /// No description provided for @plgRevisions.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved revision {saved} · In effect {applied}'**
+  String plgRevisions(String saved, String applied);
+
+  /// No description provided for @plgNotApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'not yet'**
+  String get plgNotApplied;
+
+  /// No description provided for @plgPendingApply.
+  ///
+  /// In en, this message translates to:
+  /// **'New settings pending; the old revision still serves calls in progress'**
+  String get plgPendingApply;
+
+  /// No description provided for @plgActivity.
+  ///
+  /// In en, this message translates to:
+  /// **'Active playback {playing} · Running requests {running}'**
+  String plgActivity(int playing, int running);
+
+  /// No description provided for @plgLastError.
+  ///
+  /// In en, this message translates to:
+  /// **'Last error: {code}'**
+  String plgLastError(String code);
+
+  /// No description provided for @plgRefreshStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Refresh status'**
+  String get plgRefreshStatus;
+
+  /// No description provided for @plgCopyDiagnostics.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy redacted diagnostics'**
+  String get plgCopyDiagnostics;
+
+  /// No description provided for @plgCopyDiagnosticsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No addresses, accounts, paths or keys'**
+  String get plgCopyDiagnosticsHint;
+
+  /// No description provided for @plgDiagnosticsCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Diagnostics copied'**
+  String get plgDiagnosticsCopied;
+
+  /// No description provided for @extConnectionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection OK'**
+  String get extConnectionOk;
+
+  /// No description provided for @extRemoveConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove “{name}”?'**
+  String extRemoveConfirmTitle(String name);
+
+  /// No description provided for @extRemoveConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Only the address and token are removed from the App. Data on the server is not affected.'**
+  String get extRemoveConfirmMessage;
+
+  /// No description provided for @extNeedsRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs re-detection'**
+  String get extNeedsRecheck;
+
+  /// No description provided for @extToolAiUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Not available to AI: {problem}'**
+  String extToolAiUnavailable(String problem);
+
+  /// No description provided for @extToolNeedsConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Asks for your confirmation first'**
+  String get extToolNeedsConfirm;
+
+  /// No description provided for @extAiServiceUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The service is unavailable, so AI can\'t call it right now'**
+  String get extAiServiceUnavailable;
+
+  /// No description provided for @extAiNeedsRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Tap “Re-detect” to fetch the tool definitions'**
+  String get extAiNeedsRecheck;
+
+  /// No description provided for @extAiSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'AI can call {usable} of {total} tools directly; actions that change state ask for your confirmation first'**
+  String extAiSummary(int usable, int total);
+
+  /// No description provided for @extRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'This external capability was removed'**
+  String get extRemoved;
+
+  /// No description provided for @extVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Version {version}'**
+  String extVersion(String version);
+
+  /// No description provided for @extAiCalls.
+  ///
+  /// In en, this message translates to:
+  /// **'AI calls'**
+  String get extAiCalls;
+
+  /// No description provided for @extToolsTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools ({count})'**
+  String extToolsTitle(int count);
+
+  /// No description provided for @extNoTools.
+  ///
+  /// In en, this message translates to:
+  /// **'No tools'**
+  String get extNoTools;
+
+  /// No description provided for @extRecheck.
+  ///
+  /// In en, this message translates to:
+  /// **'Re-detect'**
+  String get extRecheck;
+
+  /// No description provided for @extConnecting.
+  ///
+  /// In en, this message translates to:
+  /// **'Connecting and detecting…'**
+  String get extConnecting;
+
+  /// No description provided for @extAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'Added “{name}”'**
+  String extAdded(String name);
+
+  /// No description provided for @extConfigureFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the service address and access token. The App connects over MCP to find out what the service is and which tools it offers.'**
+  String get extConfigureFooter;
+
+  /// No description provided for @extServiceAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Service address'**
+  String get extServiceAddress;
+
+  /// No description provided for @extAccessToken.
+  ///
+  /// In en, this message translates to:
+  /// **'Access token'**
+  String get extAccessToken;
+
+  /// No description provided for @extNameOptional.
+  ///
+  /// In en, this message translates to:
+  /// **'Name (optional)'**
+  String get extNameOptional;
+
+  /// No description provided for @extDetected.
+  ///
+  /// In en, this message translates to:
+  /// **'Detected'**
+  String get extDetected;
+
+  /// No description provided for @extTools.
+  ///
+  /// In en, this message translates to:
+  /// **'Tools'**
+  String get extTools;
+
+  /// No description provided for @extConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect and detect'**
+  String get extConnect;
+
+  /// No description provided for @scanStatusPending.
+  ///
+  /// In en, this message translates to:
+  /// **'Not scanned'**
+  String get scanStatusPending;
+
+  /// No description provided for @scanStatusScanning.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning'**
+  String get scanStatusScanning;
+
+  /// No description provided for @scanStatusDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan complete'**
+  String get scanStatusDone;
+
+  /// No description provided for @scanStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan failed'**
+  String get scanStatusFailed;
+
+  /// No description provided for @scanStatusInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan interrupted'**
+  String get scanStatusInterrupted;
+
+  /// No description provided for @scanRescanHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Please scan again'**
+  String get scanRescanHint;
+
+  /// No description provided for @libraryDbTooNew.
+  ///
+  /// In en, this message translates to:
+  /// **'The library was created by a newer version. Please update the App.'**
+  String get libraryDbTooNew;
+
+  /// No description provided for @errConfigUnknownFields.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration contains unknown fields; the original must be kept.'**
+  String get errConfigUnknownFields;
+
+  /// No description provided for @errRemoteKinds.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote access currently supports Jellyfin, Emby, Plex and SMB.'**
+  String get errRemoteKinds;
+
+  /// No description provided for @errRemoteProtocolMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote service protocol does not match; SMB currently supports remote-only mode.'**
+  String get errRemoteProtocolMismatch;
+
+  /// No description provided for @errConfigVersionNoOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Incompatible configuration version; it cannot be overwritten.'**
+  String get errConfigVersionNoOverwrite;
+
+  /// No description provided for @errAddressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter an address.'**
+  String get errAddressRequired;
+
+  /// No description provided for @errTimeoutConcurrency.
+  ///
+  /// In en, this message translates to:
+  /// **'Request timeout must be 1–120 seconds and concurrency 1–8.'**
+  String get errTimeoutConcurrency;
+
+  /// No description provided for @errScopeCount.
+  ///
+  /// In en, this message translates to:
+  /// **'Set at least one access scope; at most 100 scopes and 100 exclusions.'**
+  String get errScopeCount;
+
+  /// No description provided for @errScopeRelative.
+  ///
+  /// In en, this message translates to:
+  /// **'Scopes and exclusions must be relative paths inside the root; .. and absolute paths are not allowed.'**
+  String get errScopeRelative;
+
+  /// No description provided for @errBrowseModeUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This plugin does not support that browsing mode.'**
+  String get errBrowseModeUnsupported;
+
+  /// No description provided for @errNoSearchIndex.
+  ///
+  /// In en, this message translates to:
+  /// **'This plugin does not provide search or background indexing yet.'**
+  String get errNoSearchIndex;
+
+  /// No description provided for @errLibraryNoDirPolicy.
+  ///
+  /// In en, this message translates to:
+  /// **'Library sources do not support folder policies yet.'**
+  String get errLibraryNoDirPolicy;
+
+  /// No description provided for @errChooseLocalFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a local folder.'**
+  String get errChooseLocalFolder;
+
+  /// No description provided for @errAddressRelativeSegments.
+  ///
+  /// In en, this message translates to:
+  /// **'The address cannot contain relative path segments.'**
+  String get errAddressRelativeSegments;
+
+  /// No description provided for @errInvalidServerAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid server address; put credentials in their own fields.'**
+  String get errInvalidServerAddress;
+
+  /// No description provided for @errSmbAddressFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'SMB uses the standard port 445: smb://host/share/optional-folder.'**
+  String get errSmbAddressFormat;
+
+  /// No description provided for @errUserIdRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the {kind} user ID.'**
+  String errUserIdRequired(String kind);
+
+  /// No description provided for @errSftpUsernameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the SFTP username.'**
+  String get errSftpUsernameRequired;
+
+  /// No description provided for @errServerAddressRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the server address.'**
+  String get errServerAddressRequired;
+
+  /// No description provided for @errInvalidHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid IP, host name or server address.'**
+  String get errInvalidHost;
+
+  /// No description provided for @errPortRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Port must be 1–65535.'**
+  String get errPortRange;
+
+  /// No description provided for @errSmbPort.
+  ///
+  /// In en, this message translates to:
+  /// **'SMB connections use port 445.'**
+  String get errSmbPort;
+
+  /// No description provided for @errPathDots.
+  ///
+  /// In en, this message translates to:
+  /// **'The path cannot contain “.” or “..”.'**
+  String get errPathDots;
+
+  /// No description provided for @errSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign-in failed. Check the account and password, or authorize again.'**
+  String get errSignInFailed;
+
+  /// No description provided for @errAddressRedirected.
+  ///
+  /// In en, this message translates to:
+  /// **'The address redirects. Enter the server\'s actual entry point.'**
+  String get errAddressRedirected;
+
+  /// No description provided for @errCannotConnectService.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot connect to the service. Check the address and network.'**
+  String get errCannotConnectService;
+
+  /// No description provided for @errConnectTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timed out. Please try again.'**
+  String get errConnectTimeout;
+
+  /// No description provided for @errKindUsernameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the {kind} username.'**
+  String errKindUsernameRequired(String kind);
+
+  /// No description provided for @errNoValidSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'The server did not return a valid sign-in result.'**
+  String get errNoValidSignIn;
+
+  /// No description provided for @errPlexSessionExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Your sign-in expired. Please sign in to Plex again.'**
+  String get errPlexSessionExpired;
+
+  /// No description provided for @errPlexServerUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot connect to this Plex server. Make sure it is online.'**
+  String get errPlexServerUnreachable;
+
+  /// No description provided for @errDlnaHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'DLNA device request failed (HTTP {status}).'**
+  String errDlnaHttp(int status);
+
+  /// No description provided for @errDlnaForeignHost.
+  ///
+  /// In en, this message translates to:
+  /// **'The DLNA device returned an address on another host.'**
+  String get errDlnaForeignHost;
+
+  /// No description provided for @errDlnaNotMediaServer.
+  ///
+  /// In en, this message translates to:
+  /// **'This device is not a media server (no content directory service).'**
+  String get errDlnaNotMediaServer;
+
+  /// No description provided for @errChooseFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a folder.'**
+  String get errChooseFolder;
+
+  /// No description provided for @untitled.
+  ///
+  /// In en, this message translates to:
+  /// **'Untitled'**
+  String get untitled;
+
+  /// No description provided for @errChooseVideoOrAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a video or audio item.'**
+  String get errChooseVideoOrAudio;
+
+  /// No description provided for @errNoPlayableAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'This item has no playable address.'**
+  String get errNoPlayableAddress;
+
+  /// No description provided for @plexPartMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Media'**
+  String get plexPartMedia;
+
+  /// No description provided for @errPathOutsideRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'The path is outside the configured root.'**
+  String get errPathOutsideRoot;
+
+  /// No description provided for @errOutsideScope.
+  ///
+  /// In en, this message translates to:
+  /// **'This folder is outside the access scope configured for this instance.'**
+  String get errOutsideScope;
+
+  /// No description provided for @errAttachmentTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment too large'**
+  String get errAttachmentTooLarge;
+
+  /// No description provided for @errServiceAccessDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'{service} denied access (HTTP {status}). Check the username and password.'**
+  String errServiceAccessDenied(String service, int status);
+
+  /// No description provided for @errFileNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The file or folder does not exist.'**
+  String get errFileNotFound;
+
+  /// No description provided for @errServiceRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{service} request failed (HTTP {status}).'**
+  String errServiceRequestFailed(String service, int status);
+
+  /// No description provided for @errFtpRefused.
+  ///
+  /// In en, this message translates to:
+  /// **'The FTP server refused the connection.'**
+  String get errFtpRefused;
+
+  /// No description provided for @errFtpLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'FTP sign-in failed. Check the username and password.'**
+  String get errFtpLogin;
+
+  /// No description provided for @errFtpNoBinary.
+  ///
+  /// In en, this message translates to:
+  /// **'The FTP server does not support binary transfers.'**
+  String get errFtpNoBinary;
+
+  /// No description provided for @errPathChars.
+  ///
+  /// In en, this message translates to:
+  /// **'The path contains unsupported characters.'**
+  String get errPathChars;
+
+  /// No description provided for @errFtpNoPassive.
+  ///
+  /// In en, this message translates to:
+  /// **'The FTP server does not support passive mode.'**
+  String get errFtpNoPassive;
+
+  /// No description provided for @errFolderNotFoundOrDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'The folder does not exist or you lack access.'**
+  String get errFolderNotFoundOrDenied;
+
+  /// No description provided for @errFtpList.
+  ///
+  /// In en, this message translates to:
+  /// **'FTP could not list the folder.'**
+  String get errFtpList;
+
+  /// No description provided for @errFtpNoResume.
+  ///
+  /// In en, this message translates to:
+  /// **'The FTP server does not support resuming, so seeking is unavailable.'**
+  String get errFtpNoResume;
+
+  /// No description provided for @errFtpRead.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read this FTP file.'**
+  String get errFtpRead;
+
+  /// No description provided for @errFtpNoSize.
+  ///
+  /// In en, this message translates to:
+  /// **'The FTP server did not report the file size, so it cannot play.'**
+  String get errFtpNoSize;
+
+  /// No description provided for @errSftpLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'SFTP sign-in failed. Check the username and password.'**
+  String get errSftpLogin;
+
+  /// No description provided for @errSftpDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'SFTP is not enabled on the server.'**
+  String get errSftpDisabled;
+
+  /// No description provided for @errPathDenied.
+  ///
+  /// In en, this message translates to:
+  /// **'No permission to access this path.'**
+  String get errPathDenied;
+
+  /// No description provided for @errSftpRequest.
+  ///
+  /// In en, this message translates to:
+  /// **'SFTP request failed.'**
+  String get errSftpRequest;
+
+  /// No description provided for @errSftpConnect.
+  ///
+  /// In en, this message translates to:
+  /// **'SFTP connection failed.'**
+  String get errSftpConnect;
+
+  /// No description provided for @errSftpPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot play this SFTP file.'**
+  String get errSftpPlay;
+
+  /// No description provided for @errChooseFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Please choose a file.'**
+  String get errChooseFile;
+
+  /// No description provided for @errConnectionClosed.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection is closed.'**
+  String get errConnectionClosed;
+
+  /// No description provided for @errUnsafeResourceUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'The media service returned an unsafe resource address.'**
+  String get errUnsafeResourceUrl;
+
+  /// No description provided for @errMediaServerHttp.
+  ///
+  /// In en, this message translates to:
+  /// **'Media service request failed (HTTP {status}). Check the address and credentials.'**
+  String errMediaServerHttp(int status);
+
+  /// No description provided for @errServerArtworkUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Server artwork is unavailable'**
+  String get errServerArtworkUnavailable;
+
+  /// No description provided for @errImageTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'Image too large'**
+  String get errImageTooLarge;
+
+  /// No description provided for @errNoPlayableVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'This media has no playable version.'**
+  String get errNoPlayableVersion;
+
+  /// No description provided for @errReselectVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'Go back to the library and choose a version again.'**
+  String get errReselectVersion;
+
+  /// No description provided for @errServerIdentityMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Server item identity does not match'**
+  String get errServerIdentityMismatch;
+
+  /// No description provided for @plexPartLabel.
+  ///
+  /// In en, this message translates to:
+  /// **'File {index} · {container}'**
+  String plexPartLabel(int index, String container);
+
+  /// No description provided for @errNoPlayableFile.
+  ///
+  /// In en, this message translates to:
+  /// **'This media has no playable file.'**
+  String get errNoPlayableFile;
+
+  /// No description provided for @errMultiPartUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This media has multiple versions or parts, which cannot be played directly yet.'**
+  String get errMultiPartUnsupported;
+
+  /// No description provided for @errMetadataNotThisServer.
+  ///
+  /// In en, this message translates to:
+  /// **'The metadata query does not belong to this server instance'**
+  String get errMetadataNotThisServer;
+
+  /// No description provided for @errArtworkNotThisServer.
+  ///
+  /// In en, this message translates to:
+  /// **'The artwork does not belong to this server instance'**
+  String get errArtworkNotThisServer;
+
+  /// No description provided for @srcFieldFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Folder'**
+  String get srcFieldFolder;
+
+  /// No description provided for @srcFieldWorkgroup.
+  ///
+  /// In en, this message translates to:
+  /// **'Workgroup (optional)'**
+  String get srcFieldWorkgroup;
+
+  /// No description provided for @srcFieldRegion.
+  ///
+  /// In en, this message translates to:
+  /// **'Region (optional)'**
+  String get srcFieldRegion;
+
+  /// No description provided for @srcFieldRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter {field}.'**
+  String srcFieldRequired(String field);
+
+  /// No description provided for @errResourceNotThisSource.
+  ///
+  /// In en, this message translates to:
+  /// **'The resource does not belong to this media source.'**
+  String get errResourceNotThisSource;
+
+  /// No description provided for @errOutsideAuthorizedFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'The file is outside the authorized folder.'**
+  String get errOutsideAuthorizedFolder;
+
+  /// No description provided for @errOutsideSmbShare.
+  ///
+  /// In en, this message translates to:
+  /// **'The path is outside the configured SMB share.'**
+  String get errOutsideSmbShare;
+
+  /// No description provided for @errSmbListShares.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot read the share list. Enter the shared folder path under “Advanced” and try again.'**
+  String get errSmbListShares;
+
+  /// No description provided for @errSmbPlay.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot play this SMB file.'**
+  String get errSmbPlay;
+
+  /// No description provided for @errAttachmentNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'Attachment not found'**
+  String get errAttachmentNotFound;
+
+  /// No description provided for @errInvalidFileName.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid file name.'**
+  String get errInvalidFileName;
+
+  /// No description provided for @errUnknownWriteShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot determine which share to write to.'**
+  String get errUnknownWriteShare;
+
+  /// No description provided for @errOpenPlayXFolderBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'A file with the same name exists in the share, so the OpenPlayX folder cannot be created.'**
+  String get errOpenPlayXFolderBlocked;
+
+  /// No description provided for @errTooManySameName.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many files with the same name. Tidy up the OpenPlayX folder first.'**
+  String get errTooManySameName;
+
+  /// No description provided for @errTempNameConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Temporary file name conflict. Please try again.'**
+  String get errTempNameConflict;
+
+  /// No description provided for @errUploadIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The upload was incomplete; the temporary file was discarded.'**
+  String get errUploadIncomplete;
+
+  /// No description provided for @errSmbWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing to SMB failed. Make sure the account can write to this share.'**
+  String get errSmbWrite;
+
+  /// No description provided for @errAttachmentTypeOrLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported attachment type or read limit'**
+  String get errAttachmentTypeOrLimit;
+
+  /// No description provided for @errSourceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The media source does not exist or its configuration is incompatible.'**
+  String get errSourceMissing;
+
+  /// No description provided for @errSourceKindChange.
+  ///
+  /// In en, this message translates to:
+  /// **'The source type cannot be changed while editing.'**
+  String get errSourceKindChange;
+
+  /// No description provided for @errTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the access token.'**
+  String get errTokenRequired;
+
+  /// No description provided for @srcStatusDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get srcStatusDisabled;
+
+  /// No description provided for @srcStatusReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready'**
+  String get srcStatusReady;
+
+  /// No description provided for @srcStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection failed'**
+  String get srcStatusFailed;
+
+  /// No description provided for @srcStatusInitialized.
+  ///
+  /// In en, this message translates to:
+  /// **'Initialized · Awaiting connection check'**
+  String get srcStatusInitialized;
+
+  /// No description provided for @srcStatusSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved · Applies on next access'**
+  String get srcStatusSaved;
+
+  /// No description provided for @errArtworkCacheLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported image cache limit.'**
+  String get errArtworkCacheLimit;
+
+  /// No description provided for @errExtensions.
+  ///
+  /// In en, this message translates to:
+  /// **'File extensions may contain only letters and digits, up to 100.'**
+  String get errExtensions;
+
+  /// No description provided for @errSourceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The media source is disabled; its configuration is kept.'**
+  String get errSourceDisabled;
+
+  /// No description provided for @errPluginDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'This plugin is disabled; instance settings are kept.'**
+  String get errPluginDisabled;
+
+  /// No description provided for @errTokenExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'The token has expired. Please update the credentials.'**
+  String get errTokenExpired;
+
+  /// No description provided for @errReselectLocalFolder.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the local folder again to restore access.'**
+  String get errReselectLocalFolder;
+
+  /// No description provided for @errCredentialsUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials are unavailable. Sign in again or update them.'**
+  String get errCredentialsUnavailable;
+
+  /// No description provided for @errInstanceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance settings changed. Please try again.'**
+  String get errInstanceChanged;
+
+  /// No description provided for @errRequestTimedOut.
+  ///
+  /// In en, this message translates to:
+  /// **'The request timed out.'**
+  String get errRequestTimedOut;
+
+  /// No description provided for @errSourceUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot reach the media source. Check the address, permissions and credentials.'**
+  String get errSourceUnreachable;
+
+  /// No description provided for @errInvalidPaging.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid paging parameters.'**
+  String get errInvalidPaging;
+
+  /// No description provided for @errInvalidSearchPaging.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid search or paging'**
+  String get errInvalidSearchPaging;
+
+  /// No description provided for @errSearchUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This source does not support search'**
+  String get errSearchUnsupported;
+
+  /// No description provided for @errMetadataUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This source does not support metadata lookup'**
+  String get errMetadataUnsupported;
+
+  /// No description provided for @errAttachmentsUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This source does not support reading attachments'**
+  String get errAttachmentsUnsupported;
+
+  /// No description provided for @errWriteUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This source does not support writing.'**
+  String get errWriteUnsupported;
+
+  /// No description provided for @errWriteTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Writing timed out. Temporary files starting with .openplayx- may remain on the server.'**
+  String get errWriteTimeout;
+
+  /// No description provided for @errSourceProxyMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'This source uses the remote access proxy “{proxy}”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.'**
+  String errSourceProxyMissing(String proxy);
+
+  /// No description provided for @errReloadBeforeTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload the configuration before testing.'**
+  String get errReloadBeforeTest;
+
+  /// No description provided for @errTestTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test timed out.'**
+  String get errTestTimeout;
+
+  /// No description provided for @errTestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection test failed. Check the address, permissions and credentials.'**
+  String get errTestFailed;
+
+  /// No description provided for @errManualScanDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual file scanning is not enabled for this instance.'**
+  String get errManualScanDisabled;
+
+  /// No description provided for @errScanLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'The scan limit must be 1–5000.'**
+  String get errScanLimit;
+
+  /// No description provided for @errScanPageLimit.
+  ///
+  /// In en, this message translates to:
+  /// **'The scan reached the limit of 1000 folder pages. Narrow the access scope.'**
+  String get errScanPageLimit;
+
+  /// No description provided for @errScanConfigChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance settings changed during the scan. Please scan again.'**
+  String get errScanConfigChanged;
+
+  /// No description provided for @errTooManyQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'Too many queued requests for this instance. Try again later.'**
+  String get errTooManyQueued;
+
+  /// No description provided for @credNotRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'No account credentials needed'**
+  String get credNotRequired;
+
+  /// No description provided for @credMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials missing'**
+  String get credMissing;
+
+  /// No description provided for @credConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Credentials saved · Not yet verified'**
+  String get credConfigured;
+
+  /// No description provided for @credExpiring.
+  ///
+  /// In en, this message translates to:
+  /// **'Token expires within 7 days'**
+  String get credExpiring;
+
+  /// No description provided for @credExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Token expired'**
+  String get credExpired;
+
+  /// No description provided for @credRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'Authentication failed · Update credentials'**
+  String get credRejected;
+
+  /// No description provided for @credVerified.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection verified'**
+  String get credVerified;
+
+  /// No description provided for @errConfigDbTooNew.
+  ///
+  /// In en, this message translates to:
+  /// **'The local configuration database is from a newer version. Please update the App.'**
+  String get errConfigDbTooNew;
+
+  /// No description provided for @errConfigVersionKept.
+  ///
+  /// In en, this message translates to:
+  /// **'Incompatible configuration version; the original data is kept.'**
+  String get errConfigVersionKept;
+
+  /// No description provided for @errInstanceMetaMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance configuration does not match its metadata.'**
+  String get errInstanceMetaMismatch;
+
+  /// No description provided for @errInstanceQuarantined.
+  ///
+  /// In en, this message translates to:
+  /// **'The instance configuration is incompatible or damaged; it was isolated and the original data kept.'**
+  String get errInstanceQuarantined;
+
+  /// No description provided for @errInstanceNoOverwrite.
+  ///
+  /// In en, this message translates to:
+  /// **'An instance configuration with an incompatible version cannot be overwritten.'**
+  String get errInstanceNoOverwrite;
+
+  /// No description provided for @errConfigChangedElsewhereEdit.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration was changed in another window. Reload before editing.'**
+  String get errConfigChangedElsewhereEdit;
+
+  /// No description provided for @errConfigChangedDelete.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration was updated. Reload before deleting.'**
+  String get errConfigChangedDelete;
+
+  /// No description provided for @errDefaultInstanceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The default instance setting was updated. Please reload.'**
+  String get errDefaultInstanceChanged;
+
+  /// No description provided for @errSettingsChangedElsewhere.
+  ///
+  /// In en, this message translates to:
+  /// **'Settings were changed in another window. Please reload.'**
+  String get errSettingsChangedElsewhere;
+
+  /// No description provided for @pickerVideoAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Video and audio'**
+  String get pickerVideoAudio;
+
+  /// No description provided for @pickerAllFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'All files'**
+  String get pickerAllFiles;
+
+  /// No description provided for @errSeriesIdentityConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'The series or season identity conflicts'**
+  String get errSeriesIdentityConflict;
+
+  /// No description provided for @errInfoChangedReload.
+  ///
+  /// In en, this message translates to:
+  /// **'The information changed. Reload and try again'**
+  String get errInfoChangedReload;
+
+  /// No description provided for @errWorkIdConflict.
+  ///
+  /// In en, this message translates to:
+  /// **'Work ID conflict; manual confirmation needed'**
+  String get errWorkIdConflict;
+
+  /// No description provided for @errInvalidFieldValue.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid field value'**
+  String get errInvalidFieldValue;
+
+  /// No description provided for @errPosterNotThisWork.
+  ///
+  /// In en, this message translates to:
+  /// **'The poster does not belong to this work'**
+  String get errPosterNotThisWork;
+
+  /// No description provided for @errRemoteConfigVersion.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote access configuration has an incompatible version or unknown fields.'**
+  String get errRemoteConfigVersion;
+
+  /// No description provided for @errRemoteOutboundCredential.
+  ///
+  /// In en, this message translates to:
+  /// **'The outbound and its credential must both be present.'**
+  String get errRemoteOutboundCredential;
+
+  /// No description provided for @errRemoteUuidPlacement.
+  ///
+  /// In en, this message translates to:
+  /// **'The UUID may only be stored in the credential.'**
+  String get errRemoteUuidPlacement;
+
+  /// No description provided for @errRemoteCredentialInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid remote credential.'**
+  String get errRemoteCredentialInvalid;
+
+  /// No description provided for @errRemoteProxiesInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxy names must be non-empty and unique, and remotePort must be a valid port.'**
+  String get errRemoteProxiesInvalid;
+
+  /// No description provided for @errRemotePolicyUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote connection policy is not supported.'**
+  String get errRemotePolicyUnsupported;
+
+  /// No description provided for @errRemoteLanNeedsHttps.
+  ///
+  /// In en, this message translates to:
+  /// **'Automatic LAN access needs an HTTPS endpoint and a paired certificate SHA-256.'**
+  String get errRemoteLanNeedsHttps;
+
+  /// No description provided for @errRemoteUnknownField.
+  ///
+  /// In en, this message translates to:
+  /// **'Unknown remote access field.'**
+  String get errRemoteUnknownField;
+
+  /// No description provided for @errRemoteChooseProxy.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose the proxy to use for remote access.'**
+  String get errRemoteChooseProxy;
+
+  /// No description provided for @errRemoteEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote access needs a valid HTTP(S) or SMB service endpoint.'**
+  String get errRemoteEndpoint;
+
+  /// No description provided for @errRemoteProxyRef.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid proxy name, remotePort or credential reference.'**
+  String get errRemoteProxyRef;
+
+  /// No description provided for @errRemoteProxyHost.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid proxy host or configuration length.'**
+  String get errRemoteProxyHost;
+
+  /// No description provided for @errRemoteTlsName.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid proxy TLS server name.'**
+  String get errRemoteTlsName;
+
+  /// No description provided for @errRemoteNeedsVless.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing needs a VLESS TLS/REALITY outbound with certificate verification on.'**
+  String get errRemoteNeedsVless;
+
+  /// No description provided for @errRemoteCaPrivateKey.
+  ///
+  /// In en, this message translates to:
+  /// **'The CA configuration cannot contain a private key.'**
+  String get errRemoteCaPrivateKey;
+
+  /// No description provided for @errRemoteRealityPublic.
+  ///
+  /// In en, this message translates to:
+  /// **'The REALITY client stores only public parameters.'**
+  String get errRemoteRealityPublic;
+
+  /// No description provided for @errRemoteAuthHeader.
+  ///
+  /// In en, this message translates to:
+  /// **'Transport auth headers cannot be written into the public route configuration.'**
+  String get errRemoteAuthHeader;
+
+  /// No description provided for @errRemoteTlsField.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported TLS configuration field.'**
+  String get errRemoteTlsField;
+
+  /// No description provided for @errRemoteConfigTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The configuration is too large.'**
+  String get errRemoteConfigTooLarge;
+
+  /// No description provided for @errRemoteInvalidJson.
+  ///
+  /// In en, this message translates to:
+  /// **'Not valid JSON. Paste the complete App configuration exported by Relay.'**
+  String get errRemoteInvalidJson;
+
+  /// No description provided for @errRemoteAppConfigShape.
+  ///
+  /// In en, this message translates to:
+  /// **'The App configuration must be a JSON object with only “outbound” (object) and “proxies” (array).'**
+  String get errRemoteAppConfigShape;
+
+  /// No description provided for @errRemoteProxyShape.
+  ///
+  /// In en, this message translates to:
+  /// **'Each proxy must have only “name” (string) and “remotePort” (port).'**
+  String get errRemoteProxyShape;
+
+  /// No description provided for @errRemoteProxiesEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'Proxies cannot be empty and names must be unique.'**
+  String get errRemoteProxiesEmpty;
+
+  /// No description provided for @errRemoteOutsideEndpoint.
+  ///
+  /// In en, this message translates to:
+  /// **'The request is outside the authorized service endpoint.'**
+  String get errRemoteOutsideEndpoint;
+
+  /// No description provided for @errRemoteCertMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'The service certificate does not match the paired identity.'**
+  String get errRemoteCertMismatch;
+
+  /// No description provided for @errRemoteOutsidePaired.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection is outside the paired service.'**
+  String get errRemoteOutsidePaired;
+
+  /// No description provided for @errRemoteLanUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'The LAN service is unreachable or failed identity verification.'**
+  String get errRemoteLanUnreachable;
+
+  /// No description provided for @errRemoteCellularBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote access over cellular is disabled, or the current network cannot be determined.'**
+  String get errRemoteCellularBlocked;
+
+  /// No description provided for @errRemoteCellularUnknown.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot determine the cellular state, so the remote connection was blocked.'**
+  String get errRemoteCellularUnknown;
+
+  /// No description provided for @errRemoteNoCore.
+  ///
+  /// In en, this message translates to:
+  /// **'This build lacks the remote connection core. Install a build that includes sing-box.'**
+  String get errRemoteNoCore;
+
+  /// No description provided for @errRemoteNativeConfigTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote connection configuration is too large.'**
+  String get errRemoteNativeConfigTooLarge;
+
+  /// No description provided for @errRemoteCoreStart.
+  ///
+  /// In en, this message translates to:
+  /// **'The remote core failed to start. Check the route configuration.'**
+  String get errRemoteCoreStart;
+
+  /// No description provided for @rtDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Disabled'**
+  String get rtDisabled;
+
+  /// No description provided for @rtUnchecked.
+  ///
+  /// In en, this message translates to:
+  /// **'Not checked'**
+  String get rtUnchecked;
+
+  /// No description provided for @rtStarting.
+  ///
+  /// In en, this message translates to:
+  /// **'Starting'**
+  String get rtStarting;
+
+  /// No description provided for @rtBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs attention'**
+  String get rtBlocked;
+
+  /// No description provided for @rtError.
+  ///
+  /// In en, this message translates to:
+  /// **'Error'**
+  String get rtError;
+
+  /// No description provided for @rtDraining.
+  ///
+  /// In en, this message translates to:
+  /// **'Finishing up'**
+  String get rtDraining;
+
+  /// No description provided for @healthLastOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Last connection succeeded'**
+  String get healthLastOk;
+
+  /// No description provided for @healthLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'This device'**
+  String get healthLocal;
+
+  /// No description provided for @plgDraining.
+  ///
+  /// In en, this message translates to:
+  /// **'New calls blocked; waiting for playback or tasks to finish'**
+  String get plgDraining;
+
+  /// No description provided for @plgDependencyBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'The dependency “{name}” is disabled or unavailable'**
+  String plgDependencyBlocked(String name);
+
+  /// No description provided for @plgNoInstanceAdded.
+  ///
+  /// In en, this message translates to:
+  /// **'No instance added yet'**
+  String get plgNoInstanceAdded;
+
+  /// No description provided for @plgAllInstancesDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'All instances are disabled'**
+  String get plgAllInstancesDisabled;
+
+  /// No description provided for @plgInstanceFailing.
+  ///
+  /// In en, this message translates to:
+  /// **'An instance failed to connect'**
+  String get plgInstanceFailing;
+
+  /// No description provided for @plgSomeInstancesBlocked.
+  ///
+  /// In en, this message translates to:
+  /// **'Some instances need attention'**
+  String get plgSomeInstancesBlocked;
+
+  /// No description provided for @plgNfoInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'Adjacent file rules'**
+  String get plgNfoInstance;
+
+  /// No description provided for @plgNoTmdb.
+  ///
+  /// In en, this message translates to:
+  /// **'This build does not include TMDB settings'**
+  String get plgNoTmdb;
+
+  /// No description provided for @plgTmdbInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB settings'**
+  String get plgTmdbInstance;
+
+  /// No description provided for @plgTmdbNoToken.
+  ///
+  /// In en, this message translates to:
+  /// **'No access token configured'**
+  String get plgTmdbNoToken;
+
+  /// No description provided for @plgNoFfmpeg.
+  ///
+  /// In en, this message translates to:
+  /// **'This platform or build does not include FFmpeg media processing'**
+  String get plgNoFfmpeg;
+
+  /// No description provided for @plgFfmpegInstance.
+  ///
+  /// In en, this message translates to:
+  /// **'On-device processing'**
+  String get plgFfmpegInstance;
+
+  /// No description provided for @plgModelNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'No model or key configured'**
+  String get plgModelNotConfigured;
+
+  /// No description provided for @plgNoSources.
+  ///
+  /// In en, this message translates to:
+  /// **'This build does not include media sources'**
+  String get plgNoSources;
+
+  /// No description provided for @plgNoAsr.
+  ///
+  /// In en, this message translates to:
+  /// **'This build does not include speech recognition'**
+  String get plgNoAsr;
+
+  /// No description provided for @plgModelDetail.
+  ///
+  /// In en, this message translates to:
+  /// **'Model {model}'**
+  String plgModelDetail(String model);
+
+  /// No description provided for @plgLocalAsrUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'The local recognition engine is unavailable'**
+  String get plgLocalAsrUnavailable;
+
+  /// No description provided for @errTmdbTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure a TMDB read access token'**
+  String get errTmdbTokenRequired;
+
+  /// No description provided for @errQueryCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'The query was cancelled'**
+  String get errQueryCancelled;
+
+  /// No description provided for @errTmdbResponseTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The TMDB response is too large'**
+  String get errTmdbResponseTooLarge;
+
+  /// No description provided for @errTmdbAuth.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB authentication failed. Update the token'**
+  String get errTmdbAuth;
+
+  /// No description provided for @errTmdbNotFound.
+  ///
+  /// In en, this message translates to:
+  /// **'The TMDB item does not exist'**
+  String get errTmdbNotFound;
+
+  /// No description provided for @errTmdbRateLimited.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB is rate limiting requests. Try again later'**
+  String get errTmdbRateLimited;
+
+  /// No description provided for @errTmdbUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB is temporarily unavailable'**
+  String get errTmdbUnavailable;
+
+  /// No description provided for @errTmdbRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'The TMDB request failed'**
+  String get errTmdbRequestFailed;
+
+  /// No description provided for @errTmdbInvalidResponse.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB response format'**
+  String get errTmdbInvalidResponse;
+
+  /// No description provided for @errTmdbUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot connect to TMDB. Check the network'**
+  String get errTmdbUnreachable;
+
+  /// No description provided for @errTmdbNoAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'TMDB does not read source attachments'**
+  String get errTmdbNoAttachments;
+
+  /// No description provided for @errTmdbInvalidIds.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB ID or season/episode number'**
+  String get errTmdbInvalidIds;
+
+  /// No description provided for @errIdentifySeriesFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Identify the series first, then choose the season and episode'**
+  String get errIdentifySeriesFirst;
+
+  /// No description provided for @errTmdbRefRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Details need a TMDB reference'**
+  String get errTmdbRefRequired;
+
+  /// No description provided for @errTmdbInvalidIdentity.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid TMDB item identity or title'**
+  String get errTmdbInvalidIdentity;
+
+  /// No description provided for @errNfoRefRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'NFO details need an attachment reference'**
+  String get errNfoRefRequired;
+
+  /// No description provided for @errNfoParse.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not parse the NFO'**
+  String get errNfoParse;
+
+  /// No description provided for @errNfoTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The NFO is larger than 1 MiB'**
+  String get errNfoTooLarge;
+
+  /// No description provided for @errNfoDtd.
+  ///
+  /// In en, this message translates to:
+  /// **'DTD and entity declarations are not allowed in NFO'**
+  String get errNfoDtd;
+
+  /// No description provided for @errNfoTooManyNodes.
+  ///
+  /// In en, this message translates to:
+  /// **'The NFO has too many nodes'**
+  String get errNfoTooManyNodes;
+
+  /// No description provided for @errNfoTooDeep.
+  ///
+  /// In en, this message translates to:
+  /// **'The NFO is nested too deeply'**
+  String get errNfoTooDeep;
+
+  /// No description provided for @errNfoType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported NFO item type'**
+  String get errNfoType;
+
+  /// No description provided for @errNfoFieldTooLong.
+  ///
+  /// In en, this message translates to:
+  /// **'An NFO field is too long'**
+  String get errNfoFieldTooLong;
+
+  /// No description provided for @errInvalidMetadataQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid metadata query parameters'**
+  String get errInvalidMetadataQuery;
+
+  /// No description provided for @errMetadataQueryUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'This metadata instance does not support that query'**
+  String get errMetadataQueryUnsupported;
+
+  /// No description provided for @errMediaKindUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata for this media type is not supported'**
+  String get errMediaKindUnsupported;
+
+  /// No description provided for @errBackgroundIdentify.
+  ///
+  /// In en, this message translates to:
+  /// **'Background identification failed'**
+  String get errBackgroundIdentify;
+
+  /// No description provided for @errQueryStale.
+  ///
+  /// In en, this message translates to:
+  /// **'The query expired or was cancelled'**
+  String get errQueryStale;
+
+  /// No description provided for @errTmdbConfigChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The TMDB settings changed'**
+  String get errTmdbConfigChanged;
+
+  /// No description provided for @errRequeryCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Search for candidates again'**
+  String get errRequeryCandidates;
+
+  /// No description provided for @errChooseEpisodeFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a specific season and episode first'**
+  String get errChooseEpisodeFirst;
+
+  /// No description provided for @errCandidateNotThisQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'The candidate does not belong to this query'**
+  String get errCandidateNotThisQuery;
+
+  /// No description provided for @errDetailIdentityMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Detail identity does not match'**
+  String get errDetailIdentityMismatch;
+
+  /// No description provided for @errReloadCandidates.
+  ///
+  /// In en, this message translates to:
+  /// **'Reload the candidates'**
+  String get errReloadCandidates;
+
+  /// No description provided for @errInvalidLocalCandidate.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid local candidate'**
+  String get errInvalidLocalCandidate;
+
+  /// No description provided for @errChooseSeriesFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose a series first'**
+  String get errChooseSeriesFirst;
+
+  /// No description provided for @errConfirmMatchFirst.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm the match first'**
+  String get errConfirmMatchFirst;
+
+  /// No description provided for @errCatalogTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The catalog is too large. Narrow the metadata scope'**
+  String get errCatalogTooLarge;
+
+  /// No description provided for @errCursorStuck.
+  ///
+  /// In en, this message translates to:
+  /// **'The paging cursor did not advance'**
+  String get errCursorStuck;
+
+  /// No description provided for @errEpisodeSeasonMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The episode\'s season does not exist'**
+  String get errEpisodeSeasonMissing;
+
+  /// No description provided for @errSourceConfigChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The source configuration changed'**
+  String get errSourceConfigChanged;
+
+  /// No description provided for @errInvalidYear.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid year'**
+  String get errInvalidYear;
+
+  /// No description provided for @catSourceBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse folders'**
+  String get catSourceBrowse;
+
+  /// No description provided for @catSourceBrowseDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'List this source\'s folders and files'**
+  String get catSourceBrowseDesc;
+
+  /// No description provided for @catSourceResolve.
+  ///
+  /// In en, this message translates to:
+  /// **'Play'**
+  String get catSourceResolve;
+
+  /// No description provided for @catSourceResolveDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Hand the selected item to the player, strictly bound to its instance'**
+  String get catSourceResolveDesc;
+
+  /// No description provided for @catSourceAttachments.
+  ///
+  /// In en, this message translates to:
+  /// **'Read attachments'**
+  String get catSourceAttachments;
+
+  /// No description provided for @catSourceAttachmentsDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Read small files such as NFO and external subtitles (size-limited)'**
+  String get catSourceAttachmentsDesc;
+
+  /// No description provided for @catSearchMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Search media'**
+  String get catSearchMedia;
+
+  /// No description provided for @catSearchMediaDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Search movies and shows on the server'**
+  String get catSearchMediaDesc;
+
+  /// No description provided for @catMetadataLookup.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata'**
+  String get catMetadataLookup;
+
+  /// No description provided for @catMetadataLookupDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Read metadata organized by the media server'**
+  String get catMetadataLookupDesc;
+
+  /// No description provided for @catSourceWrite.
+  ///
+  /// In en, this message translates to:
+  /// **'Write new files'**
+  String get catSourceWrite;
+
+  /// No description provided for @catSourceWriteDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Write clips the App makes to the OpenPlayX folder of the same share; never overwrites or deletes, and asks every time'**
+  String get catSourceWriteDesc;
+
+  /// No description provided for @catSummaryLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Folders on this device or mounted'**
+  String get catSummaryLocal;
+
+  /// No description provided for @catSummarySmb.
+  ///
+  /// In en, this message translates to:
+  /// **'Windows shares and NAS SMB shares'**
+  String get catSummarySmb;
+
+  /// No description provided for @catSummaryWebdav.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV cloud drives or NAS folders'**
+  String get catSummaryWebdav;
+
+  /// No description provided for @catSummaryFtp.
+  ///
+  /// In en, this message translates to:
+  /// **'FTP server folders'**
+  String get catSummaryFtp;
+
+  /// No description provided for @catSummarySftp.
+  ///
+  /// In en, this message translates to:
+  /// **'Server folders over SSH'**
+  String get catSummarySftp;
+
+  /// No description provided for @catSummaryS3.
+  ///
+  /// In en, this message translates to:
+  /// **'S3-compatible object storage buckets'**
+  String get catSummaryS3;
+
+  /// No description provided for @catSummaryPlex.
+  ///
+  /// In en, this message translates to:
+  /// **'Plex media server'**
+  String get catSummaryPlex;
+
+  /// No description provided for @catSummaryJellyfin.
+  ///
+  /// In en, this message translates to:
+  /// **'Jellyfin media server'**
+  String get catSummaryJellyfin;
+
+  /// No description provided for @catSummaryEmby.
+  ///
+  /// In en, this message translates to:
+  /// **'Emby media server'**
+  String get catSummaryEmby;
+
+  /// No description provided for @catSummaryDlna.
+  ///
+  /// In en, this message translates to:
+  /// **'DLNA media servers on the local network'**
+  String get catSummaryDlna;
+
+  /// No description provided for @catDataLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads only the folders you authorize.'**
+  String get catDataLocal;
+
+  /// No description provided for @catDataRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'The App connects from this device to the server you configured; file and folder names appear in AI chats (only when AI use is allowed).'**
+  String get catDataRemote;
+
+  /// No description provided for @catNfoName.
+  ///
+  /// In en, this message translates to:
+  /// **'NFO metadata'**
+  String get catNfoName;
+
+  /// No description provided for @catNfoSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Reads .nfo files next to your media'**
+  String get catNfoSummary;
+
+  /// No description provided for @catNfoToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Controlled by “Scraped metadata”; background scraping runs on its own and cannot be disabled separately yet.'**
+  String get catNfoToggle;
+
+  /// No description provided for @catNfoCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Local metadata'**
+  String get catNfoCap;
+
+  /// No description provided for @catNfoCapDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Match movie info by adjacent-file rules'**
+  String get catNfoCapDesc;
+
+  /// No description provided for @catTmdbSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Look up movies and shows from The Movie Database'**
+  String get catTmdbSummary;
+
+  /// No description provided for @catTmdbToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear the access token to stop using it; background scraping runs on its own and cannot be disabled separately yet.'**
+  String get catTmdbToggle;
+
+  /// No description provided for @catTmdbData.
+  ///
+  /// In en, this message translates to:
+  /// **'Lookups send the parsed title and year to TMDB, never file contents.'**
+  String get catTmdbData;
+
+  /// No description provided for @catTmdbCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Look up metadata'**
+  String get catTmdbCap;
+
+  /// No description provided for @catTmdbCapDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Search and match movies and shows; the host does the writing'**
+  String get catTmdbCapDesc;
+
+  /// No description provided for @catFfmpegName.
+  ///
+  /// In en, this message translates to:
+  /// **'FFmpeg media processing'**
+  String get catFfmpegName;
+
+  /// No description provided for @catFfmpegSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshots, probing, transcoding and audio extraction'**
+  String get catFfmpegSummary;
+
+  /// No description provided for @catFfmpegData.
+  ///
+  /// In en, this message translates to:
+  /// **'Processes media on this device; output is kept in the app folder.'**
+  String get catFfmpegData;
+
+  /// No description provided for @catProbe.
+  ///
+  /// In en, this message translates to:
+  /// **'Probe'**
+  String get catProbe;
+
+  /// No description provided for @catProbeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Read duration, codecs and tracks'**
+  String get catProbeDesc;
+
+  /// No description provided for @catTranscode.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcode'**
+  String get catTranscode;
+
+  /// No description provided for @catTranscodeDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcode to a new file with a preset'**
+  String get catTranscodeDesc;
+
+  /// No description provided for @catExtractAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract audio'**
+  String get catExtractAudio;
+
+  /// No description provided for @catExtractAudioDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Export an audio track for recognition or saving'**
+  String get catExtractAudioDesc;
+
+  /// No description provided for @catSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot'**
+  String get catSnapshot;
+
+  /// No description provided for @catSnapshotDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Capture the frame at a given time'**
+  String get catSnapshotDesc;
+
+  /// No description provided for @catAsrName.
+  ///
+  /// In en, this message translates to:
+  /// **'Speech recognition'**
+  String get catAsrName;
+
+  /// No description provided for @catAsrSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate original-language subtitles and transcripts for videos'**
+  String get catAsrSummary;
+
+  /// No description provided for @catAsrCapDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate original-language subtitles/transcripts; no translation'**
+  String get catAsrCapDesc;
+
+  /// No description provided for @catLlmName.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat model'**
+  String get catLlmName;
+
+  /// No description provided for @catLlmSummary.
+  ///
+  /// In en, this message translates to:
+  /// **'Provides the large language model for the AI assistant'**
+  String get catLlmSummary;
+
+  /// No description provided for @catLlmToggle.
+  ///
+  /// In en, this message translates to:
+  /// **'Configure or clear the model under “AI and models”; it never creates reasoning tools that call itself.'**
+  String get catLlmToggle;
+
+  /// No description provided for @catLlmData.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat content, page summaries and tool results are sent to the configured model service, which may cost money.'**
+  String get catLlmData;
+
+  /// No description provided for @catLlmCap.
+  ///
+  /// In en, this message translates to:
+  /// **'Chat reasoning'**
+  String get catLlmCap;
+
+  /// No description provided for @catLlmCapDesc.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate replies and tool calls for the AI assistant'**
+  String get catLlmCapDesc;
+
+  /// No description provided for @catCategorySource.
+  ///
+  /// In en, this message translates to:
+  /// **'Media sources'**
+  String get catCategorySource;
+
+  /// No description provided for @catCategoryMetadata.
+  ///
+  /// In en, this message translates to:
+  /// **'Metadata'**
+  String get catCategoryMetadata;
+
+  /// No description provided for @catCategoryMediaProcessing.
+  ///
+  /// In en, this message translates to:
+  /// **'Media processing'**
+  String get catCategoryMediaProcessing;
+
+  /// No description provided for @catCategorySpeech.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle recognition'**
+  String get catCategorySpeech;
+
+  /// No description provided for @catLocationNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'Network storage'**
+  String get catLocationNetwork;
+
+  /// No description provided for @catLocationSelfHosted.
+  ///
+  /// In en, this message translates to:
+  /// **'Self-hosted service'**
+  String get catLocationSelfHosted;
+
+  /// No description provided for @catLocationCloudApi.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud API'**
+  String get catLocationCloudApi;
+
+  /// No description provided for @webSearchPresetName.
+  ///
+  /// In en, this message translates to:
+  /// **'Web search'**
+  String get webSearchPresetName;
+
+  /// No description provided for @errAssistantConfig.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid HTTPS API base URL, model and output limit (128–16384)'**
+  String get errAssistantConfig;
+
+  /// No description provided for @errExtRootAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the service root address, e.g. https://bt.example.com'**
+  String get errExtRootAddress;
+
+  /// No description provided for @errExtHttpsRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Public addresses must use HTTPS; HTTP is only allowed for LAN or local addresses'**
+  String get errExtHttpsRequired;
+
+  /// No description provided for @errExtTokenRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter the access token'**
+  String get errExtTokenRequired;
+
+  /// No description provided for @errExtTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection timed out'**
+  String get errExtTimeout;
+
+  /// No description provided for @errExtUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Cannot connect to this address'**
+  String get errExtUnreachable;
+
+  /// No description provided for @errExtTls.
+  ///
+  /// In en, this message translates to:
+  /// **'TLS certificate verification failed'**
+  String get errExtTls;
+
+  /// No description provided for @errExtTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The service returned too much data'**
+  String get errExtTooLarge;
+
+  /// No description provided for @errExtRejected.
+  ///
+  /// In en, this message translates to:
+  /// **'The service rejected the request: {reason}'**
+  String errExtRejected(String reason);
+
+  /// No description provided for @errExtError.
+  ///
+  /// In en, this message translates to:
+  /// **'The service returned an error ({code})'**
+  String errExtError(String code);
+
+  /// No description provided for @errExtTokenInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid access token'**
+  String get errExtTokenInvalid;
+
+  /// No description provided for @errExtNoMcp.
+  ///
+  /// In en, this message translates to:
+  /// **'This address does not offer an MCP endpoint'**
+  String get errExtNoMcp;
+
+  /// No description provided for @errArtworkCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Image loading was cancelled'**
+  String get errArtworkCancelled;
+
+  /// No description provided for @errArtworkQuota.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough image cache space'**
+  String get errArtworkQuota;
+
+  /// No description provided for @errArtworkUnauthorized.
+  ///
+  /// In en, this message translates to:
+  /// **'The image address is not authorized'**
+  String get errArtworkUnauthorized;
+
+  /// No description provided for @errArtworkTypeSize.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid image type or size'**
+  String get errArtworkTypeSize;
+
+  /// No description provided for @errArtworkEmptyOrLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The image is empty or too large'**
+  String get errArtworkEmptyOrLarge;
+
+  /// No description provided for @errArtworkContentType.
+  ///
+  /// In en, this message translates to:
+  /// **'Unsupported image content type'**
+  String get errArtworkContentType;
+
+  /// No description provided for @errArtworkDecodeSize.
+  ///
+  /// In en, this message translates to:
+  /// **'The decoded image is too large'**
+  String get errArtworkDecodeSize;
+
+  /// No description provided for @errArtworkWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait for the image to finish loading'**
+  String get errArtworkWait;
+
+  /// No description provided for @errLibraryClosing.
+  ///
+  /// In en, this message translates to:
+  /// **'The library is closing'**
+  String get errLibraryClosing;
+
+  /// No description provided for @errNameRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a name'**
+  String get errNameRequired;
+
+  /// No description provided for @errSeasonCycle.
+  ///
+  /// In en, this message translates to:
+  /// **'The source returned a circular season/episode relation'**
+  String get errSeasonCycle;
+
+  /// No description provided for @errInvalidPagingShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid paging'**
+  String get errInvalidPagingShort;
+
+  /// No description provided for @errTitleRequired.
+  ///
+  /// In en, this message translates to:
+  /// **'Please enter a title'**
+  String get errTitleRequired;
+
+  /// No description provided for @errScanRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'A scan is already running'**
+  String get errScanRunning;
+
+  /// No description provided for @errFileSourceMissing.
+  ///
+  /// In en, this message translates to:
+  /// **'The file source does not exist'**
+  String get errFileSourceMissing;
+
+  /// No description provided for @errFileSourceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'The file source is disabled'**
+  String get errFileSourceDisabled;
+
+  /// No description provided for @errSourceScanDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Scanning is not enabled for this source'**
+  String get errSourceScanDisabled;
+
+  /// No description provided for @errScanTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The scan scope is too large. Narrow it down'**
+  String get errScanTooLarge;
+
+  /// No description provided for @errScanBindingChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The source or binding changed. Please scan again'**
+  String get errScanBindingChanged;
+
+  /// No description provided for @errSourceIdentityMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Source identity does not match'**
+  String get errSourceIdentityMismatch;
+
+  /// No description provided for @errSourceCursorStuck.
+  ///
+  /// In en, this message translates to:
+  /// **'The source paging cursor did not advance'**
+  String get errSourceCursorStuck;
+
+  /// No description provided for @errScanIncomplete.
+  ///
+  /// In en, this message translates to:
+  /// **'The scan did not finish. Check the source and try again'**
+  String get errScanIncomplete;
+
+  /// No description provided for @aiToolContextGet.
+  ///
+  /// In en, this message translates to:
+  /// **'Read current page'**
+  String get aiToolContextGet;
+
+  /// No description provided for @aiToolSourceList.
+  ///
+  /// In en, this message translates to:
+  /// **'List media sources'**
+  String get aiToolSourceList;
+
+  /// No description provided for @aiToolSourceBrowse.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse folder'**
+  String get aiToolSourceBrowse;
+
+  /// No description provided for @aiToolLibraryQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Query library'**
+  String get aiToolLibraryQuery;
+
+  /// No description provided for @aiToolMediaGet.
+  ///
+  /// In en, this message translates to:
+  /// **'View media details'**
+  String get aiToolMediaGet;
+
+  /// No description provided for @aiToolSearchMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'Search media'**
+  String get aiToolSearchMedia;
+
+  /// No description provided for @aiToolProgressQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'View watch progress'**
+  String get aiToolProgressQuery;
+
+  /// No description provided for @aiToolMediaSetFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Set favorite'**
+  String get aiToolMediaSetFavorite;
+
+  /// No description provided for @aiToolPlaybackGet.
+  ///
+  /// In en, this message translates to:
+  /// **'Read playback state'**
+  String get aiToolPlaybackGet;
+
+  /// No description provided for @aiToolPlaybackOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Open playback'**
+  String get aiToolPlaybackOpen;
+
+  /// No description provided for @aiToolPlaybackPause.
+  ///
+  /// In en, this message translates to:
+  /// **'Pause'**
+  String get aiToolPlaybackPause;
+
+  /// No description provided for @aiToolPlaybackResume.
+  ///
+  /// In en, this message translates to:
+  /// **'Resume playback'**
+  String get aiToolPlaybackResume;
+
+  /// No description provided for @aiToolPlaybackStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop playback'**
+  String get aiToolPlaybackStop;
+
+  /// No description provided for @aiToolPlaybackSeek.
+  ///
+  /// In en, this message translates to:
+  /// **'Seek'**
+  String get aiToolPlaybackSeek;
+
+  /// No description provided for @aiToolPlaybackSetSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Set speed'**
+  String get aiToolPlaybackSetSpeed;
+
+  /// No description provided for @aiToolPlaybackSetVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Set volume'**
+  String get aiToolPlaybackSetVolume;
+
+  /// No description provided for @aiToolPlaybackSetSubtitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Set subtitles'**
+  String get aiToolPlaybackSetSubtitle;
+
+  /// No description provided for @aiToolMediaProcessingCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Query media processing capabilities'**
+  String get aiToolMediaProcessingCapabilities;
+
+  /// No description provided for @aiToolMediaProbe.
+  ///
+  /// In en, this message translates to:
+  /// **'Analyze media'**
+  String get aiToolMediaProbe;
+
+  /// No description provided for @aiToolMediaTranscode.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcode / clip'**
+  String get aiToolMediaTranscode;
+
+  /// No description provided for @aiToolMediaExtractAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Extract audio'**
+  String get aiToolMediaExtractAudio;
+
+  /// No description provided for @aiToolMediaSnapshot.
+  ///
+  /// In en, this message translates to:
+  /// **'Snapshot'**
+  String get aiToolMediaSnapshot;
+
+  /// No description provided for @aiToolMediaSaveToSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Save back to source'**
+  String get aiToolMediaSaveToSource;
+
+  /// No description provided for @aiToolTaskGet.
+  ///
+  /// In en, this message translates to:
+  /// **'Query processing task'**
+  String get aiToolTaskGet;
+
+  /// No description provided for @aiToolTaskList.
+  ///
+  /// In en, this message translates to:
+  /// **'List processing tasks'**
+  String get aiToolTaskList;
+
+  /// No description provided for @aiToolTaskCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel processing task'**
+  String get aiToolTaskCancel;
+
+  /// No description provided for @aiToolTaskRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Retry processing task'**
+  String get aiToolTaskRetry;
+
+  /// No description provided for @aiToolSpeechRecognitionStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'Query speech recognition status'**
+  String get aiToolSpeechRecognitionStatus;
+
+  /// No description provided for @aiToolSubtitleGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Recognize subtitles'**
+  String get aiToolSubtitleGenerate;
+
+  /// No description provided for @aiToolTranscriptGenerate.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate transcript'**
+  String get aiToolTranscriptGenerate;
+
+  /// No description provided for @aiToolSubtitleTaskGet.
+  ///
+  /// In en, this message translates to:
+  /// **'Query subtitle task'**
+  String get aiToolSubtitleTaskGet;
+
+  /// No description provided for @aiToolSubtitleTaskCancel.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancel subtitle task'**
+  String get aiToolSubtitleTaskCancel;
+
+  /// No description provided for @aiToolSubtitleSave.
+  ///
+  /// In en, this message translates to:
+  /// **'Save subtitles'**
+  String get aiToolSubtitleSave;
+
+  /// No description provided for @aiToolPluginStatus.
+  ///
+  /// In en, this message translates to:
+  /// **'View plugin status'**
+  String get aiToolPluginStatus;
+
+  /// No description provided for @aiToolMcpTavilyWebSearch.
+  ///
+  /// In en, this message translates to:
+  /// **'Web search'**
+  String get aiToolMcpTavilyWebSearch;
+
+  /// No description provided for @aiToolWebFetch.
+  ///
+  /// In en, this message translates to:
+  /// **'Read web page'**
+  String get aiToolWebFetch;
+
+  /// No description provided for @aiArgQuery.
+  ///
+  /// In en, this message translates to:
+  /// **'Query'**
+  String get aiArgQuery;
+
+  /// No description provided for @aiArgUrl.
+  ///
+  /// In en, this message translates to:
+  /// **'URL'**
+  String get aiArgUrl;
+
+  /// No description provided for @aiArgRange.
+  ///
+  /// In en, this message translates to:
+  /// **'Range'**
+  String get aiArgRange;
+
+  /// No description provided for @aiArgEnd.
+  ///
+  /// In en, this message translates to:
+  /// **'end'**
+  String get aiArgEnd;
+
+  /// No description provided for @aiArgWholeMedia.
+  ///
+  /// In en, this message translates to:
+  /// **'whole media'**
+  String get aiArgWholeMedia;
+
+  /// No description provided for @aiArgTime.
+  ///
+  /// In en, this message translates to:
+  /// **'Time'**
+  String get aiArgTime;
+
+  /// No description provided for @aiArgPosition.
+  ///
+  /// In en, this message translates to:
+  /// **'Position'**
+  String get aiArgPosition;
+
+  /// No description provided for @aiArgPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'Preset'**
+  String get aiArgPreset;
+
+  /// No description provided for @aiArgLanguage.
+  ///
+  /// In en, this message translates to:
+  /// **'Language'**
+  String get aiArgLanguage;
+
+  /// No description provided for @aiArgFormat.
+  ///
+  /// In en, this message translates to:
+  /// **'Format'**
+  String get aiArgFormat;
+
+  /// No description provided for @aiArgSpeed.
+  ///
+  /// In en, this message translates to:
+  /// **'Speed'**
+  String get aiArgSpeed;
+
+  /// No description provided for @aiArgVolume.
+  ///
+  /// In en, this message translates to:
+  /// **'Volume'**
+  String get aiArgVolume;
+
+  /// No description provided for @aiArgSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get aiArgSwitch;
+
+  /// No description provided for @aiArgOff.
+  ///
+  /// In en, this message translates to:
+  /// **'off'**
+  String get aiArgOff;
+
+  /// No description provided for @aiArgFavorite.
+  ///
+  /// In en, this message translates to:
+  /// **'Favorite'**
+  String get aiArgFavorite;
+
+  /// No description provided for @aiArgFavoriteOn.
+  ///
+  /// In en, this message translates to:
+  /// **'favorite'**
+  String get aiArgFavoriteOn;
+
+  /// No description provided for @aiArgFavoriteOff.
+  ///
+  /// In en, this message translates to:
+  /// **'unfavorite'**
+  String get aiArgFavoriteOff;
+
+  /// No description provided for @aiArgWait.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait'**
+  String get aiArgWait;
+
+  /// No description provided for @aiToolInput.
+  ///
+  /// In en, this message translates to:
+  /// **'INPUT'**
+  String get aiToolInput;
+
+  /// No description provided for @aiToolOutput.
+  ///
+  /// In en, this message translates to:
+  /// **'OUTPUT'**
+  String get aiToolOutput;
+
+  /// No description provided for @aiActivityThinking.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking'**
+  String get aiActivityThinking;
+
+  /// No description provided for @aiActivityAnswering.
+  ///
+  /// In en, this message translates to:
+  /// **'Replying'**
+  String get aiActivityAnswering;
+
+  /// No description provided for @aiActivityRunningDefault.
+  ///
+  /// In en, this message translates to:
+  /// **'Running'**
+  String get aiActivityRunningDefault;
+
+  /// No description provided for @aiReasoningStreaming.
+  ///
+  /// In en, this message translates to:
+  /// **'Thinking...'**
+  String get aiReasoningStreaming;
+
+  /// No description provided for @aiReasoningDone.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought'**
+  String get aiReasoningDone;
+
+  /// No description provided for @aiReasoningUnderSecond.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought for less than a second'**
+  String get aiReasoningUnderSecond;
+
+  /// No description provided for @aiStillRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Wait timed out; the task is still running in the background'**
+  String get aiStillRunning;
+
+  /// No description provided for @aiStatusQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'queued'**
+  String get aiStatusQueued;
+
+  /// No description provided for @aiStatusPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'preparing'**
+  String get aiStatusPreparing;
+
+  /// No description provided for @aiStatusRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'running'**
+  String get aiStatusRunning;
+
+  /// No description provided for @aiStatusCancelling.
+  ///
+  /// In en, this message translates to:
+  /// **'cancelling'**
+  String get aiStatusCancelling;
+
+  /// No description provided for @aiStatusSucceeded.
+  ///
+  /// In en, this message translates to:
+  /// **'succeeded'**
+  String get aiStatusSucceeded;
+
+  /// No description provided for @aiStatusFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'failed'**
+  String get aiStatusFailed;
+
+  /// No description provided for @aiStatusCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'cancelled'**
+  String get aiStatusCancelled;
+
+  /// No description provided for @aiStatusInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'interrupted'**
+  String get aiStatusInterrupted;
+
+  /// No description provided for @aiStageExtracting.
+  ///
+  /// In en, this message translates to:
+  /// **'extracting'**
+  String get aiStageExtracting;
+
+  /// No description provided for @aiStageUploading.
+  ///
+  /// In en, this message translates to:
+  /// **'uploading'**
+  String get aiStageUploading;
+
+  /// No description provided for @aiStageQueued.
+  ///
+  /// In en, this message translates to:
+  /// **'queued'**
+  String get aiStageQueued;
+
+  /// No description provided for @aiStageTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'transcribing'**
+  String get aiStageTranscribing;
+
+  /// No description provided for @aiStageFormatting.
+  ///
+  /// In en, this message translates to:
+  /// **'formatting'**
+  String get aiStageFormatting;
+
+  /// No description provided for @aiArgWaitValue.
+  ///
+  /// In en, this message translates to:
+  /// **'wait ≤{seconds}s'**
+  String aiArgWaitValue(String seconds);
+
+  /// No description provided for @aiStepPreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing {name}...'**
+  String aiStepPreparing(String name);
+
+  /// No description provided for @aiStepRunning.
+  ///
+  /// In en, this message translates to:
+  /// **'Executing {name}...'**
+  String aiStepRunning(String name);
+
+  /// No description provided for @aiStepWaiting.
+  ///
+  /// In en, this message translates to:
+  /// **'Allow {name}?'**
+  String aiStepWaiting(String name);
+
+  /// No description provided for @aiStepFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'{name} failed'**
+  String aiStepFailed(String name);
+
+  /// No description provided for @aiStepCancelled.
+  ///
+  /// In en, this message translates to:
+  /// **'Cancelled {name}'**
+  String aiStepCancelled(String name);
+
+  /// No description provided for @aiShowAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Show all ({count} characters)'**
+  String aiShowAll(int count);
+
+  /// No description provided for @aiActivityPreparingTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing: {name}'**
+  String aiActivityPreparingTool(String name);
+
+  /// No description provided for @aiActivityTool.
+  ///
+  /// In en, this message translates to:
+  /// **'Running: {name}'**
+  String aiActivityTool(String name);
+
+  /// No description provided for @aiActivityConfirm.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for you: {name}'**
+  String aiActivityConfirm(String name);
+
+  /// No description provided for @aiStepNumber.
+  ///
+  /// In en, this message translates to:
+  /// **'step {step}'**
+  String aiStepNumber(int step);
+
+  /// No description provided for @aiReasoningSeconds.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought for {seconds} seconds'**
+  String aiReasoningSeconds(int seconds);
+
+  /// No description provided for @aiReasoningMinutes.
+  ///
+  /// In en, this message translates to:
+  /// **'Thought for {minutes, plural, =1{a minute} other{{minutes} minutes}}'**
+  String aiReasoningMinutes(int minutes);
 }
 
 class _AppLocalizationsDelegate

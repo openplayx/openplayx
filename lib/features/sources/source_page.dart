@@ -6,6 +6,7 @@ import '../../l10n/generated/app_localizations.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../ui/tokens/app_metrics.dart';
 import '../../ui/tokens/app_spacing.dart';
 
 import '../../ui/adaptive/app_page.dart';
@@ -158,7 +159,11 @@ class _SourcePageState extends State<SourcePage> {
 
   String _deletionMessage(String id) {
     final impact = widget.manager.impact(id);
-    return l.deleteSourceDescription(impact.playing, impact.running);
+    return l.deleteSourceDescription(
+      _files?.service.fileSourcesOf(id).length ?? 0,
+      impact.playing,
+      impact.running,
+    );
   }
 
   Future<void> _toggle(SourceConfig source, bool enabled) async {
@@ -188,6 +193,8 @@ class _SourcePageState extends State<SourcePage> {
     setState(() => _busy = true);
     try {
       await widget.manager.setEnabled(source.id, enabled);
+      // The library hides the file sources of disabled connections.
+      _files?.service.notifyChanged();
       await _load();
     } catch (error) {
       if (mounted) {
@@ -233,6 +240,8 @@ class _SourcePageState extends State<SourcePage> {
     setState(() => _busy = true);
     try {
       await widget.manager.remove(source.id);
+      // Its file sources and what they brought in go with the connection.
+      _files?.service.removeFileSourcesOf(source.id);
       await _load();
     } catch (_) {
       if (mounted) {
@@ -297,48 +306,6 @@ class _SourcePageState extends State<SourcePage> {
     _load();
   }
 
-  Future<void> _showDetails(SourceConfig source) => showShadDialog<void>(
-    context: context,
-    builder: (context) => ShadDialog(
-      title: Text(source.titleName),
-      actions: [
-        ShadButton.outline(
-          onPressed: () => Navigator.pop(context),
-          child: Text(l.close),
-        ),
-      ],
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.start,
-        spacing: AppSpacing.md,
-        children: [
-          Text(
-            l.sourceVersion(
-              source.kind == SourceKind.local
-                  ? l.localSource
-                  : source.kind.label,
-              source.pluginVersion,
-              source.configVersion,
-              source.revision,
-            ),
-          ),
-          Text(
-            SourcePresentation.application(
-              l,
-              widget.manager.applicationStatus(source.id),
-            ),
-          ),
-          Text(
-            SourcePresentation.credential(
-              l,
-              widget.manager.credentialStatus(source.id).authorization,
-            ),
-          ),
-        ],
-      ),
-    ),
-  );
-
   /// A lightweight expandable group, with independent parent/child actions.
   Widget _connectionGroup(SourceConfig source) {
     final theme = ShadTheme.of(context);
@@ -350,6 +317,17 @@ class _SourcePageState extends State<SourcePage> {
               .where((binding) => binding['source'] == source.id)
               .toList();
     final expanded = _expandedConnections[source.id] ?? source.enabled;
+    // Rescan of the connection: every enabled folder under it.
+    final scannable = [
+      for (final b in bindings)
+        if (b['enabled'] == 1) b['id'] as String,
+    ];
+    final canScan =
+        files != null &&
+        !_busy &&
+        source.enabled &&
+        !files.scanning &&
+        scannable.isNotEmpty;
     final status = SourcePresentation.summary(
       l,
       widget.manager.applicationStatus(source.id),
@@ -396,52 +374,66 @@ class _SourcePageState extends State<SourcePage> {
             onTap: () => setState(() {
               _expandedConnections[source.id] = !expanded;
             }),
-            actions: SourceActionsMenu(
-              key: ValueKey('source-menu-${source.id}'),
-              label: source.titleName,
-              enabled: !_busy,
-              actions: [
+            actions: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
                 if (files != null)
-                  SourceRowAction(
-                    key: ValueKey('source-add-file-${source.id}'),
-                    label: l.addFileSourceShort,
-                    icon: AppIcons.addFolder,
-                    onPressed: source.enabled && !files.scanning
-                        ? () => files.add(context, source.id)
-                        : null,
+                  Tooltip(
+                    message: l.rescan,
+                    child: ShadIconButton.ghost(
+                      key: ValueKey('source-scan-${source.id}'),
+                      width: AppMetrics.touchTarget,
+                      height: AppMetrics.touchTarget,
+                      padding: const EdgeInsets.all(AppSpacing.md),
+                      icon: const Icon(AppIcons.refresh, size: 18),
+                      enabled: canScan,
+                      onPressed: canScan
+                          ? () => files.scan(scannable, l.scanFailedRetained)
+                          : null,
+                    ),
                   ),
-                SourceRowAction(
-                  key: ValueKey('source-browse-${source.id}'),
-                  label: l.browseSourceFiles,
-                  icon: AppIcons.openFolder,
-                  onPressed: source.enabled
-                      ? () => _browseConnection(source)
-                      : null,
-                ),
-                SourceRowAction(
-                  key: ValueKey('source-edit-${source.id}'),
-                  label: l.edit,
-                  icon: AppIcons.edit,
-                  onPressed: () => _edit(source),
-                ),
-                SourceRowAction(
-                  key: ValueKey('source-details-${source.id}'),
-                  label: l.sourceConnectionDetails,
-                  icon: AppIcons.info,
-                  onPressed: () => _showDetails(source),
-                ),
-                SourceRowAction(
-                  key: ValueKey('source-toggle-${source.id}'),
-                  label: source.enabled ? l.disable : l.fileSourceEnable,
-                  icon: source.enabled ? AppIcons.pause : AppIcons.play,
-                  onPressed: () => _toggle(source, !source.enabled),
-                ),
-                SourceRowAction(
-                  key: ValueKey('source-delete-${source.id}'),
-                  label: l.delete,
-                  icon: AppIcons.delete,
-                  destructive: true,
-                  onPressed: () => _delete(source),
+                SourceActionsMenu(
+                  key: ValueKey('source-menu-${source.id}'),
+                  label: source.titleName,
+                  enabled: !_busy,
+                  actions: [
+                    if (files != null)
+                      SourceRowAction(
+                        key: ValueKey('source-add-file-${source.id}'),
+                        label: l.addFileSourceShort,
+                        icon: AppIcons.addFolder,
+                        onPressed: source.enabled && !files.scanning
+                            ? () => files.add(context, source.id)
+                            : null,
+                      ),
+                    SourceRowAction(
+                      key: ValueKey('source-browse-${source.id}'),
+                      label: l.browseSourceFiles,
+                      icon: AppIcons.openFolder,
+                      onPressed: source.enabled
+                          ? () => _browseConnection(source)
+                          : null,
+                    ),
+                    SourceRowAction(
+                      key: ValueKey('source-edit-${source.id}'),
+                      label: l.edit,
+                      icon: AppIcons.edit,
+                      onPressed: () => _edit(source),
+                    ),
+                    SourceRowAction(
+                      key: ValueKey('source-toggle-${source.id}'),
+                      label: source.enabled ? l.disable : l.fileSourceEnable,
+                      icon: source.enabled ? AppIcons.pause : AppIcons.play,
+                      onPressed: () => _toggle(source, !source.enabled),
+                    ),
+                    SourceRowAction(
+                      key: ValueKey('source-delete-${source.id}'),
+                      label: l.delete,
+                      icon: AppIcons.delete,
+                      destructive: true,
+                      onPressed: () => _delete(source),
+                    ),
+                  ],
                 ),
               ],
             ),

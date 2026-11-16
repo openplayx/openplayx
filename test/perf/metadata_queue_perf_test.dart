@@ -11,6 +11,7 @@ import 'package:sqlite3/sqlite3.dart';
 import '../metadata/metadata_background_test.dart'
     show TestArtwork, TestMetadataProvider;
 import '../metadata/metadata_page_test.dart' show OfflineSources;
+import '../support/library_test_helpers.dart';
 
 /// Synthetic large-library benchmark for work that runs on the UI isolate.
 /// Budgets are deliberately loose (CI noise); they catch O(N^2) regressions
@@ -53,7 +54,7 @@ void main() {
             isFolder: false,
           ),
         );
-        library.addManual(media);
+        addToLibrary(library, media);
       }
     }
     sources = OfflineSources();
@@ -123,7 +124,7 @@ void main() {
         .toSet();
     expect(
       indexes,
-      // memberships / manual_memberships are keyed by media_id already.
+      // memberships are keyed by media_id already.
       containsAll(['resources_media', 'media_evidence_media']),
     );
   });
@@ -142,15 +143,14 @@ void main() {
   test('UI-thread queries stay fast', () {
     final query = ms(() => library.query(offset: 0));
     final cont = ms(() => library.continueWatching());
-    final recent = ms(() => library.recentlyPlayed());
     final sourcesList = ms(() => library.fileSources());
     final watch = ms(() => library.checkExternalChanges());
     // ignore: avoid_print
     print(
-      'query=$query continue=$cont recent=$recent '
+      'query=$query continue=$cont '
       'fileSources=$sourcesList checkExternal=$watch ms',
     );
-    for (final t in [query, cont, recent, sourcesList, watch]) {
+    for (final t in [query, cont, sourcesList, watch]) {
       expect(t, lessThan(150));
     }
   });

@@ -12,6 +12,7 @@ import 'package:openplayx/features/ai_assistant/adapters/flyer_chat_adapter.dart
 import 'package:openplayx/features/ai_assistant/widgets/ai_text_message.dart';
 import 'package:openplayx/l10n/generated/app_localizations.dart';
 import 'package:openplayx/services/ai_tools/tool_registry.dart';
+import 'package:openplayx/ui/icons/app_icons.dart';
 import 'package:openplayx/services/conversations/assistant_store.dart';
 import 'package:openplayx/services/conversations/conversation_coordinator.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -269,6 +270,40 @@ void main() {
       await tester.pump();
     },
   );
+  testWidgets('reopening the chat from another page shows the latest message', (
+    tester,
+  ) async {
+    for (var i = 0; i < 20; i++) {
+      store.saveTurn('history-$i', 'completed', [
+        ModelMessage(
+          'assistant',
+          'History message $i\n\nDetails about this result.',
+          id: 'message-$i',
+        ),
+      ]);
+    }
+    final c = coordinator(FakeModel((_) => const Stream.empty()));
+    final ui = AiChatController(c);
+    await tester.pumpWidget(host(view(c, controller: ui)));
+    await tester.pumpAndSettle();
+    final list = find.byType(CustomScrollView);
+    await tester.drag(list, const Offset(0, 650));
+    await tester.pumpAndSettle();
+    expect(ui.anchorFor('home')!.atBottom, false);
+    // Leave and come back: a fresh view opens at the end.
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpWidget(host(view(c, controller: ui)));
+    await tester.pumpAndSettle();
+    final position = tester
+        .state<ScrollableState>(
+          find.descendant(of: list, matching: find.byType(Scrollable)).first,
+        )
+        .position;
+    expect(position.extentAfter, lessThan(1));
+    await tester.pumpWidget(const SizedBox());
+    ui.dispose();
+    c.dispose();
+  });
   test('reused model call IDs keep distinct host cards and confirmation identities', () async {
     var round = 0;
     registry.register(
@@ -382,8 +417,13 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      expect(find.text('A real film'), findsOneWidget);
+      // Intermediate tool output is folded under the step header by default.
+      expect(find.text('A real film'), findsNothing);
       expect(find.textContaining('"media_id"'), findsNothing);
+      expect(find.text('Ready'), findsOneWidget);
+      await tester.tap(find.byIcon(AppIcons.expand).first);
+      await tester.pumpAndSettle();
+      expect(find.text('A real film'), findsOneWidget);
       expect(
         find.textContaining('Some sources are unavailable'),
         findsOneWidget,

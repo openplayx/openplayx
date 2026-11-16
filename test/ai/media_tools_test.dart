@@ -10,6 +10,8 @@ import 'package:openplayx/services/ai_tools/tool_registry.dart';
 import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
+import '../support/library_test_helpers.dart';
+
 class SearchSources extends SourceManager {
   final enabled = <String>{'1', '2', '3', '4', '5'};
   int active = 0;
@@ -101,7 +103,7 @@ void main() {
         isFolder: false,
       ),
     );
-    library.db.execute('INSERT INTO memberships VALUES (?,?)', [id, 1]);
+    addToLibrary(library, id);
     final catalog = MediaTools(
       library: library,
       sources: SearchSources(),

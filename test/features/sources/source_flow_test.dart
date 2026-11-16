@@ -11,6 +11,7 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../player/player_page_test.dart' show FakeBackend;
+import '../../support/library_test_helpers.dart';
 
 class MemorySources extends SourceManager {
   final saved = <SourceConfig>[];
@@ -147,6 +148,18 @@ void main() {
             address: 'smb://localhost/media',
           ),
         );
+      final media = library.register(
+        const SourceEntry(
+          ResourceRef('nas', '/media/film.mp4'),
+          'Film.mp4',
+          isFolder: false,
+        ),
+      );
+      addToLibrary(
+        library,
+        media,
+        fileSource: library.addFileSource('nas', name: 'Movies'),
+      );
       await tester.pumpWidget(
         TestApp(
           home: AppShell(
@@ -163,6 +176,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('source-delete-nas')));
       await tester.pumpAndSettle();
+      expect(find.textContaining('删除它下面的 1 个文件源'), findsOneWidget);
       await tester.tap(find.text('取消'));
       await tester.pumpAndSettle();
       expect(sources.saved, hasLength(1));
@@ -173,6 +187,9 @@ void main() {
       await tester.tap(find.text('删除'));
       await tester.pumpAndSettle();
       expect(sources.saved, isEmpty);
+      // The connection's file sources and their media go with it.
+      expect(library.fileSources(), isEmpty);
+      expect(library.db.select('SELECT * FROM media'), isEmpty);
       await tester.pumpWidget(const SizedBox());
       await tester.pumpAndSettle();
     },

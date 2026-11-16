@@ -4,6 +4,7 @@ import 'dart:io';
 
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
+import '../../l10n/l10n.dart';
 
 typedef TmdbRequest = Future<Map<String, dynamic>> Function(
   String path,
@@ -22,10 +23,12 @@ class TmdbTransport {
     Map<String, String> query,
   ) async {
     if (_token.trim().isEmpty) {
-      throw const PluginException('authRequired', '请配置 TMDB 读取访问令牌');
+      throw PluginException('authRequired', appStrings.errTmdbTokenRequired);
     }
     for (var attempt = 0; attempt < 3; attempt++) {
-      if (_closed) throw const PluginException('cancelled', '查询已取消');
+      if (_closed) {
+        throw PluginException('cancelled', appStrings.errQueryCancelled);
+      }
       HttpClientRequest? activeRequest;
       try {
         final response =
@@ -41,7 +44,10 @@ class TmdbTransport {
               final bytes = <int>[];
               await for (final chunk in response) {
                 if (bytes.length + chunk.length > 4 * 1024 * 1024) {
-                  throw const PluginException('quotaExceeded', 'TMDB 响应过大');
+                  throw PluginException(
+                    'quotaExceeded',
+                    appStrings.errTmdbResponseTooLarge,
+                  );
                 }
                 bytes.addAll(chunk);
               }
@@ -59,10 +65,10 @@ class TmdbTransport {
             );
         final (status, retryAfter, bytes) = response;
         if (status == 401 || status == 403) {
-          throw const PluginException('authRequired', 'TMDB 认证失败，请更新令牌');
+          throw PluginException('authRequired', appStrings.errTmdbAuth);
         }
         if (status == 404) {
-          throw const PluginException('notFound', 'TMDB 对象不存在');
+          throw PluginException('notFound', appStrings.errTmdbNotFound);
         }
         if (status == 429 || status >= 500) {
           final delay = int.tryParse(retryAfter ?? '') ?? (1 << attempt);
@@ -73,24 +79,34 @@ class TmdbTransport {
           }
           throw PluginException(
             status == 429 ? 'rateLimited' : 'networkUnavailable',
-            status == 429 ? 'TMDB 请求受限，请稍后重试' : 'TMDB 暂时不可用',
+            status == 429
+                ? appStrings.errTmdbRateLimited
+                : appStrings.errTmdbUnavailable,
             retryable: true,
           );
         }
         if (status != 200) {
-          throw const PluginException('providerError', 'TMDB 请求失败');
+          throw PluginException(
+            'providerError',
+            appStrings.errTmdbRequestFailed,
+          );
         }
         return jsonDecode(utf8.decode(bytes)) as Map<String, dynamic>;
       } on PluginException {
         rethrow;
       } on FormatException {
-        throw const PluginException('invalidMetadata', 'TMDB 响应格式无效');
+        throw PluginException(
+          'invalidMetadata',
+          appStrings.errTmdbInvalidResponse,
+        );
       } catch (_) {
-        if (_closed) throw const PluginException('cancelled', '查询已取消');
+        if (_closed) {
+          throw PluginException('cancelled', appStrings.errQueryCancelled);
+        }
         if (attempt == 2) {
-          throw const PluginException(
+          throw PluginException(
             'networkUnavailable',
-            '无法连接 TMDB，请检查网络',
+            appStrings.errTmdbUnreachable,
             retryable: true,
           );
         }
@@ -112,6 +128,7 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
   final void Function()? onDispose;
   Map<String, dynamic>? _images;
   final _searchCache = <String, ({DateTime until, MetadataResult result})>{};
+  final _aliasCache = <String, List<String>>{};
   Future<void> _loadImageConfig() async {
     if (_images != null) return;
     try {
@@ -137,7 +154,7 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
     CallContext context,
   ) async {
     if (request.attachment != null) {
-      throw const PluginException('invalidInput', 'TMDB 不读取来源附件');
+      throw PluginException('invalidInput', appStrings.errTmdbNoAttachments);
     }
     final kind = request.kind;
     final ref = request.ref;
@@ -151,14 +168,17 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
                     !RegExp(r'^\d{1,12}$').hasMatch(ref.seriesId!))) ||
             (kind == MediaKind.episode &&
                 (ref.episode == null || ref.episode! < 0)))) {
-      throw const PluginException('invalidInput', 'TMDB ID 或季集编号无效');
+      throw PluginException('invalidInput', appStrings.errTmdbInvalidIds);
     }
     final isMovie = kind == MediaKind.movie;
     final base = isMovie ? 'movie' : 'tv';
     final query = <String, String>{'language': request.language};
     if (request.action == MetadataAction.search) {
       if (![MediaKind.movie, MediaKind.series].contains(kind)) {
-        throw const PluginException('invalidInput', '请先识别剧集，再选择季集');
+        throw PluginException(
+          'invalidInput',
+          appStrings.errIdentifySeriesFirst,
+        );
       }
       query.addAll({
         'query': request.query!,
@@ -196,7 +216,29 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
       return result;
     }
     if (ref == null) {
-      throw const PluginException('invalidInput', '详情需要 TMDB 引用');
+      throw PluginException('invalidInput', appStrings.errTmdbRefRequired);
+    }
+    if (request.action == MetadataAction.alternativeTitles) {
+      final path = '/$base/${ref.id}/alternative_titles';
+      var titles = _aliasCache[path];
+      if (titles == null) {
+        final j = await get(path, const {});
+        // Movies list them under `titles`, series under `results`.
+        titles = {
+          for (final t in (j[isMovie ? 'titles' : 'results'] as List? ?? []))
+            if (t is Map &&
+                t['title'] is String &&
+                (t['title'] as String).trim().isNotEmpty)
+              (t['title'] as String).trim(),
+        }.toList();
+        if (_aliasCache.length >= 200) {
+          _aliasCache.remove(_aliasCache.keys.first);
+        }
+        _aliasCache[path] = titles;
+      }
+      return MetadataResult([
+        MetadataRecord(ref: ref, fields: {'alternativeTitles': titles}),
+      ]);
     }
     var path = '/$base/${ref.seriesId ?? ref.id}';
     if ([MediaKind.season, MediaKind.episode].contains(kind)) {
@@ -286,7 +328,10 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
         (j['title'] ?? j['name']) is! String ||
         (j['title'] ?? j['name']).toString().isEmpty ||
         (ref != null && '${j['id']}' != ref.id)) {
-      throw const PluginException('invalidMetadata', 'TMDB 对象身份或标题无效');
+      throw PluginException(
+        'invalidMetadata',
+        appStrings.errTmdbInvalidIdentity,
+      );
     }
     ref ??= MetadataRef('tmdb', kind, '${j['id']}');
     final date =

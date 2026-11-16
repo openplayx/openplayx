@@ -121,7 +121,6 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
       recentlyAdded: posters(null),
       movies: posters('movie'),
       series: posters('series'),
-      recentlyPlayed: service.recentlyPlayed(limit: 200),
     );
     for (final rows in [
       shelves.recentlyAdded,
@@ -252,11 +251,6 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
       _posterShelf(l.recentlyAdded, null, _shelves.recentlyAdded),
       _posterShelf(l.movie, 'movie', _shelves.movies),
       _posterShelf(l.tvShows, 'series', _shelves.series),
-      _resumeShelf(
-        l.recentlyPlayed,
-        _shelves.recentlyPlayed,
-        (limit) => service.recentlyPlayed(limit: limit),
-      ),
     ];
     final empty = shelves.every((s) => s is SizedBox);
     if (empty) {
@@ -286,11 +280,9 @@ class _HomeShelves {
     required this.recentlyAdded,
     required this.movies,
     required this.series,
-    required this.recentlyPlayed,
   });
   final List<dynamic> continueWatching;
   final List<dynamic> recentlyAdded;
   final List<dynamic> movies;
   final List<dynamic> series;
-  final List<dynamic> recentlyPlayed;
 }

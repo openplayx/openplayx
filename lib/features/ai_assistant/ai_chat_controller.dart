@@ -31,10 +31,20 @@ class AiChatController extends ChangeNotifier {
     _anchors['$_conversationId:latest'] = anchor;
   }
 
+  // Only an explicit handoff (expanding the panel into the full view) carries
+  // a reading position into a new view; any other entry opens at the latest
+  // message.
+  final _handoffs = <String, AiChatAnchor>{};
   void handoffAnchor(String from, String to) {
     final anchor = anchorFor(from);
-    if (anchor != null) _anchors['$_conversationId:$to'] = anchor;
+    if (anchor == null) return;
+    _anchors['$_conversationId:$to'] = anchor;
+    _handoffs['$_conversationId:$to'] = anchor;
   }
+
+  /// The position handed to [surface], consumed by the view that restores it.
+  AiChatAnchor? takeHandoff(String surface) =>
+      _handoffs.remove('$_conversationId:$surface');
 
   bool _disposed = false;
   void _saveDraft() => coordinator.store.saveDraft(draft.text);

@@ -11,8 +11,10 @@ abstract final class ShelfMetrics {
   static const posterWidth = 120.0;
   static const landscapeWidth = 220.0;
   static const gap = 20.0;
-  static const gridGap = 16.0;
-  static const gridMinWidth = 132.0;
+  // "All" page grids: three posters a row on phones.
+  static const gridGap = 12.0;
+  static const gridMinWidth = 88.0;
+  static const landscapeGridMinWidth = 147.0;
   static const captionGap = 8.0;
 
   /// Height of the title + subtitle block under a tile, scaled with text.

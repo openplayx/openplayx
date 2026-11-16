@@ -7,6 +7,7 @@ import '../../data/sources/source_manager.dart';
 import '../../plugins/metadata_nfo/nfo_metadata_plugin.dart';
 import '../library/library_service.dart';
 import 'media_name_parser.dart';
+import '../../l10n/l10n.dart';
 
 /// Metadata operations shared by manual editing and the library background queue.
 /// The queue owns automatic matching policy; interactive searches keep candidates.
@@ -208,7 +209,9 @@ class MetadataService {
       repository.job(id)['revision'] ==
           repository.revision(repository.job(id)['media_id'] as String);
   void _check(String id) {
-    if (!_current(id)) throw const PluginException('cancelled', '查询已过期或已取消');
+    if (!_current(id)) {
+      throw PluginException('cancelled', appStrings.errQueryStale);
+    }
   }
 
   void cancel(String id) {
@@ -245,7 +248,7 @@ class MetadataService {
     int page = 1,
   }) async {
     if (_providerRevision != repository.setting('tmdbRevision')) {
-      throw const PluginException('cancelled', 'TMDB 配置已改变');
+      throw PluginException('cancelled', appStrings.errTmdbConfigChanged);
     }
     final id = repository.createJob(media, {
       ..._snapshot(media),
@@ -293,6 +296,26 @@ class MetadataService {
     return id;
   }
 
+  /// Other names TMDB knows [ref] by; empty when it has none on record.
+  Future<List<String>> alternativeTitles(MetadataRef ref) async {
+    try {
+      final result = await registry.lookup(
+        'tmdb',
+        MetadataRequest(
+          action: MetadataAction.alternativeTitles,
+          kind: ref.kind,
+          ref: ref,
+          language: language,
+        ),
+      );
+      final titles = result.records.firstOrNull?.fields['alternativeTitles'];
+      return titles is List ? titles.whereType<String>().toList() : const [];
+    } on PluginException catch (e) {
+      if (e.code == 'notFound' || e.code == 'unsupported') return const [];
+      rethrow;
+    }
+  }
+
   Future<void> confirm(
     String id,
     MetadataRef selected, {
@@ -300,18 +323,21 @@ class MetadataService {
   }) async {
     final job = repository.job(id);
     if (job['stage'] != 'awaitingSelection') {
-      throw const PluginException('conflict', '请重新查询候选');
+      throw PluginException('conflict', appStrings.errRequeryCandidates);
     }
     final requiredKind = evidence(job['media_id'] as String).kind;
     if ([MediaKind.episode, MediaKind.season].contains(requiredKind) &&
         selected.kind != requiredKind) {
-      throw const PluginException('invalidInput', '请先选择具体季集');
+      throw PluginException('invalidInput', appStrings.errChooseEpisodeFirst);
     }
     final candidates = (jsonDecode(job['candidates'] as String) as List)
         .map((e) => MetadataRecord.fromJson(e))
         .toList();
     if (!candidates.any((c) => c.ref.key == selected.key)) {
-      throw const PluginException('invalidInput', '候选不属于此查询');
+      throw PluginException(
+        'invalidInput',
+        appStrings.errCandidateNotThisQuery,
+      );
     }
     await _run(id, () async {
       repository.stage(id, 'fetching');
@@ -327,7 +353,10 @@ class MetadataService {
       await _validate(id);
       if (result.records.length != 1 ||
           result.records.single.ref.key != selected.key) {
-        throw const PluginException('invalidMetadata', '详情身份不匹配');
+        throw PluginException(
+          'invalidMetadata',
+          appStrings.errDetailIdentityMismatch,
+        );
       }
       final media = job['media_id'] as String;
       final ancestors = await _onlineAncestors(media, selected);
@@ -357,7 +386,7 @@ class MetadataService {
   Future<void> chooseLocal(String id, int index) async {
     final job = repository.job(id);
     if (job['stage'] != 'awaitingSelection') {
-      throw const PluginException('conflict', '请重新加载候选');
+      throw PluginException('conflict', appStrings.errReloadCandidates);
     }
     final records = (jsonDecode(job['candidates'] as String) as List)
         .map((e) => MetadataRecord.fromJson(e))
@@ -365,7 +394,10 @@ class MetadataService {
     if (index < 0 ||
         index >= records.length ||
         !records[index].ref.provider.startsWith('nfo:')) {
-      throw const PluginException('invalidInput', '无效的本地候选');
+      throw PluginException(
+        'invalidInput',
+        appStrings.errInvalidLocalCandidate,
+      );
     }
     await _run(id, () async {
       final media = job['media_id'] as String;
@@ -395,7 +427,7 @@ class MetadataService {
     );
     if (job['stage'] != 'awaitingSelection' ||
         !candidates.any((c) => c.ref.key == selected.key)) {
-      throw const PluginException('invalidInput', '请先选择剧集');
+      throw PluginException('invalidInput', appStrings.errChooseSeriesFirst);
     }
     await _run(id, () async {
       repository.stage(id, 'fetching');
@@ -419,7 +451,9 @@ class MetadataService {
 
   Future<void> refresh(String media) async {
     final ref = repository.association(media);
-    if (ref == null) throw const PluginException('invalidInput', '请先确认匹配');
+    if (ref == null) {
+      throw PluginException('invalidInput', appStrings.errConfirmMatchFirst);
+    }
     final server = ref.provider.startsWith('server:');
     if (!server &&
         (ref.provider != 'tmdb' ||
@@ -451,7 +485,10 @@ class MetadataService {
       await _validate(id);
       if (result.records.length != 1 ||
           result.records.single.ref.key != ref.key) {
-        throw const PluginException('invalidMetadata', '详情身份不匹配');
+        throw PluginException(
+          'invalidMetadata',
+          appStrings.errDetailIdentityMismatch,
+        );
       }
       library.transaction(() {
         _check(id);
@@ -479,10 +516,10 @@ class MetadataService {
       );
       entries.addAll(page.entries);
       if (entries.length > 10000) {
-        throw const PluginException('quotaExceeded', '目录过大，请缩小元数据范围');
+        throw PluginException('quotaExceeded', appStrings.errCatalogTooLarge);
       }
       if (page.nextOffset != null && page.nextOffset! <= offset) {
-        throw const PluginException('invalidMetadata', '分页游标未前进');
+        throw PluginException('invalidMetadata', appStrings.errCursorStuck);
       }
       offset = page.nextOffset;
     } while (offset != null);
@@ -665,7 +702,10 @@ class MetadataService {
           .firstOrNull
           ?.ref;
       if (seasonRef == null) {
-        throw const PluginException('invalidMetadata', '单集所属季不存在');
+        throw PluginException(
+          'invalidMetadata',
+          appStrings.errEpisodeSeasonMissing,
+        );
       }
       final season = (await registry.lookup(
         'tmdb',
@@ -758,7 +798,7 @@ class MetadataService {
         if (!sources.configs.any(
           (c) => c.id == source && c.enabled && c.revision == config.revision,
         )) {
-          throw const PluginException('cancelled', '来源配置已改变');
+          throw PluginException('cancelled', appStrings.errSourceConfigChanged);
         }
         _check(id);
         if (records.isEmpty) {
@@ -847,7 +887,7 @@ class MetadataService {
         if (!sources.configs.any(
           (c) => c.id == source && c.enabled && c.revision == config.revision,
         )) {
-          throw const PluginException('cancelled', '来源配置已改变');
+          throw PluginException('cancelled', appStrings.errSourceConfigChanged);
         }
         _check(id);
         library.transaction(() {

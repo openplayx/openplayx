@@ -80,15 +80,15 @@ class SettingsPage extends StatelessWidget {
         if (sources != null)
           _Category(
             icon: AppIcons.connection,
-            title: '远程访问',
+            title: l.remoteAccess,
             onOpen: openRemote,
             sections: [
               SettingsSection(
                 key: const ValueKey('remote'),
-                title: '远程访问',
+                title: l.remoteAccess,
                 children: [
                   SettingsRow(
-                    title: '家庭与连接线路',
+                    title: l.remoteHomeAndRoutes,
                     chevron: true,
                     onTap: openRemote,
                   ),

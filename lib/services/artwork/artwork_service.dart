@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/plugins/metadata_capability.dart';
 import '../../core/plugins/source_capability.dart';
 import '../../data/sources/source_manager.dart';
+import '../../l10n/l10n.dart';
 
 /// Host-controlled, bounded artwork fetching. Cache removal never changes
 /// logical artwork selections. No credentials or arbitrary NFO URLs are used.
@@ -224,7 +225,9 @@ class ArtworkService {
       total += stat.size;
       entries.add((file, stat.size, stat.modified));
     }
-    if (_closed) throw const PluginException('cancelled', '图片加载已取消');
+    if (_closed) {
+      throw PluginException('cancelled', appStrings.errArtworkCancelled);
+    }
     final retained = (retainedArtwork?.call() ?? []).map(cacheKey).toSet();
     entries.sort((a, b) => a.$3.compareTo(b.$3));
     for (final entry in entries) {
@@ -234,7 +237,7 @@ class ArtworkService {
       total -= entry.$2;
     }
     if (total + incoming > cacheQuotaBytes) {
-      throw const PluginException('quotaExceeded', '图片缓存额度不足');
+      throw PluginException('quotaExceeded', appStrings.errArtworkQuota);
     }
   }
 
@@ -243,7 +246,9 @@ class ArtworkService {
     final operation = (() async {
       await previous;
       await _makeRoom(file.parent, length);
-      if (_closed) throw const PluginException('cancelled', '图片加载已取消');
+      if (_closed) {
+        throw PluginException('cancelled', appStrings.errArtworkCancelled);
+      }
       return temporary.rename(file.path);
     })();
     _writeTail = operation.then<void>(
@@ -254,7 +259,9 @@ class ArtworkService {
   }
 
   Future<File> _load(String key, ArtworkDescriptor artwork) async {
-    if (_closed) throw const PluginException('cancelled', '图片加载已取消');
+    if (_closed) {
+      throw PluginException('cancelled', appStrings.errArtworkCancelled);
+    }
     final dir = await _root();
     await dir.create(recursive: true);
     final file = File('${dir.path}/$key');
@@ -264,7 +271,9 @@ class ArtworkService {
       _waiters.add(waiter);
       await waiter.future;
     }
-    if (_closed) throw const PluginException('cancelled', '图片加载已取消');
+    if (_closed) {
+      throw PluginException('cancelled', appStrings.errArtworkCancelled);
+    }
     _active++;
     File? temporary;
     try {
@@ -283,7 +292,10 @@ class ArtworkService {
             uri.hasQuery ||
             uri.hasFragment ||
             (uri.hasPort && uri.port != 443)) {
-          throw const PluginException('permissionDenied', '图片地址未经授权');
+          throw PluginException(
+            'permissionDenied',
+            appStrings.errArtworkUnauthorized,
+          );
         }
         bytes = await (() async {
           final request = await _client.getUrl(uri);
@@ -296,12 +308,18 @@ class ArtworkService {
                 'image/webp',
               ].contains(response.headers.contentType?.mimeType) ||
               response.contentLength > maxBytes) {
-            throw const PluginException('invalidArtwork', '图片类型或大小无效');
+            throw PluginException(
+              'invalidArtwork',
+              appStrings.errArtworkTypeSize,
+            );
           }
           final data = <int>[];
           await for (final chunk in response) {
             if (data.length + chunk.length > maxBytes) {
-              throw const PluginException('quotaExceeded', '图片过大');
+              throw PluginException(
+                'quotaExceeded',
+                appStrings.errImageTooLarge,
+              );
             }
             data.addAll(chunk);
           }
@@ -309,7 +327,10 @@ class ArtworkService {
         })().timeout(const Duration(seconds: 20));
       }
       if (bytes.isEmpty || bytes.length > maxBytes) {
-        throw const PluginException('invalidArtwork', '图片为空或过大');
+        throw PluginException(
+          'invalidArtwork',
+          appStrings.errArtworkEmptyOrLarge,
+        );
       }
       final png =
           bytes.length >= 8 &&
@@ -324,7 +345,10 @@ class ArtworkService {
           ascii.decode(bytes.take(4).toList(), allowInvalid: true) == 'RIFF' &&
           ascii.decode(bytes.sublist(8, 12), allowInvalid: true) == 'WEBP';
       if (!png && !jpeg && !webp) {
-        throw const PluginException('invalidArtwork', '不支持的图片内容类型');
+        throw PluginException(
+          'invalidArtwork',
+          appStrings.errArtworkContentType,
+        );
       }
       final buffer = await ui.ImmutableBuffer.fromUint8List(
         Uint8List.fromList(bytes),
@@ -335,7 +359,10 @@ class ArtworkService {
           if (descriptor.width > 12000 ||
               descriptor.height > 12000 ||
               descriptor.width * descriptor.height > 40000000) {
-            throw const PluginException('quotaExceeded', '图片解码尺寸过大');
+            throw PluginException(
+              'quotaExceeded',
+              appStrings.errArtworkDecodeSize,
+            );
           }
         } finally {
           descriptor.dispose();
@@ -343,7 +370,9 @@ class ArtworkService {
       } finally {
         buffer.dispose();
       }
-      if (_closed) throw const PluginException('cancelled', '图片加载已取消');
+      if (_closed) {
+        throw PluginException('cancelled', appStrings.errArtworkCancelled);
+      }
       temporary = File(
         '${file.path}.${DateTime.now().microsecondsSinceEpoch}-${Random.secure().nextInt(1 << 32)}.tmp',
       );
@@ -372,7 +401,7 @@ class ArtworkService {
   Future<void> clear() async {
     // Caller disables clearing while loads are active. The DB retains choices.
     if (_pending.isNotEmpty) {
-      throw const PluginException('conflict', '请等待图片加载完成');
+      throw PluginException('conflict', appStrings.errArtworkWait);
     }
     final dir = await _root();
     if (await dir.exists()) await dir.delete(recursive: true);

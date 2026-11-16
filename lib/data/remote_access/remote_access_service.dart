@@ -6,6 +6,7 @@ import '../configuration/configuration_database.dart';
 import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_transport.dart';
+import '../../l10n/l10n.dart';
 
 /// The App's network layer, in sing-box / frp terms: one Relay entry point
 /// (a sing-box [outbound] without `uuid`, plus the App user's [credential]
@@ -70,7 +71,7 @@ class RemoteNetwork {
     };
     if (j['schemaVersion'] != schemaVersion ||
         j.keys.any((k) => !keys.contains(k))) {
-      throw const FormatException('远程访问配置版本不兼容或包含未知字段。');
+      throw FormatException(appStrings.errRemoteConfigVersion);
     }
     final p = j['policy'] as Map<String, dynamic>;
     final network = RemoteNetwork(
@@ -98,18 +99,18 @@ class RemoteNetwork {
 
   void validate() {
     if ((outbound == null) != (credential == null)) {
-      throw const FormatException('outbound 与凭据必须同时存在。');
+      throw FormatException(appStrings.errRemoteOutboundCredential);
     }
     if (outbound != null) {
       if (outbound!.containsKey('uuid')) {
-        throw const FormatException('UUID 只能保存在 credential 中。');
+        throw FormatException(appStrings.errRemoteUuidPlacement);
       }
       RemotePairing.validateOutbound({
         ...outbound!,
         'uuid': '11111111-1111-4111-8111-111111111111',
       });
       if (credential!['uuid'] is! String) {
-        throw const FormatException('远程凭据无效。');
+        throw FormatException(appStrings.errRemoteCredentialInvalid);
       }
     }
     if (proxies.map((p) => p.name).toSet().length != proxies.length ||
@@ -117,7 +118,7 @@ class RemoteNetwork {
           (p) =>
               p.name.trim().isEmpty || p.remotePort < 1 || p.remotePort > 65535,
         )) {
-      throw const FormatException('proxies 的 name 不能为空或重复，remotePort 须为有效端口。');
+      throw FormatException(appStrings.errRemoteProxiesInvalid);
     }
     if (probeTimeoutMs < 200 ||
         probeTimeoutMs > 10000 ||
@@ -127,7 +128,7 @@ class RemoteNetwork {
         reconnectAttempts > 5 ||
         reconnectDelayMs < 100 ||
         reconnectDelayMs > 10000) {
-      throw const FormatException('远程连接策略超出支持范围。');
+      throw FormatException(appStrings.errRemotePolicyUnsupported);
     }
   }
 

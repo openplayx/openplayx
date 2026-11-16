@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'external_service_registry.dart';
 import 'mcp_client.dart';
+import '../../l10n/l10n.dart';
 
 /// What an address turned out to be after the MCP handshake.
 class ExternalServiceProbe {
@@ -95,12 +96,10 @@ class ExternalServiceSetup {
         uri.hasQuery ||
         uri.hasFragment ||
         (uri.path.isNotEmpty && uri.path != '/')) {
-      throw const ExternalServiceException(
-        '请输入服务根地址，例如 https://bt.example.com',
-      );
+      throw ExternalServiceException(appStrings.errExtRootAddress);
     }
     if (uri.scheme == 'http' && !isLanHost(uri.host)) {
-      throw const ExternalServiceException('公网地址必须使用 HTTPS；HTTP 仅允许局域网或本机地址');
+      throw ExternalServiceException(appStrings.errExtHttpsRequired);
     }
     return uri.replace(path: '');
   }
@@ -109,7 +108,7 @@ class ExternalServiceSetup {
     final base = normalize(rawUrl);
     final secret = token.trim();
     if (secret.isEmpty) {
-      throw const ExternalServiceException('请填写访问令牌');
+      throw ExternalServiceException(appStrings.errExtTokenRequired);
     }
     var rejected = false;
     for (final path in _paths) {
@@ -153,25 +152,27 @@ class ExternalServiceSetup {
           case 'http_404' || 'http_405' || 'invalid_response':
             break;
           case 'timeout':
-            throw const ExternalServiceException('连接超时');
+            throw ExternalServiceException(appStrings.errExtTimeout);
           case 'unreachable':
-            throw const ExternalServiceException('无法连接到这个地址');
+            throw ExternalServiceException(appStrings.errExtUnreachable);
           case 'tls_failed':
-            throw const ExternalServiceException('TLS 证书校验失败');
+            throw ExternalServiceException(appStrings.errExtTls);
           case 'response_too_large':
-            throw const ExternalServiceException('服务返回的数据过大');
+            throw ExternalServiceException(appStrings.errExtTooLarge);
           default:
             throw ExternalServiceException(
               e.code.startsWith('rpc_')
-                  ? '服务拒绝了请求：${e.message ?? e.code}'
-                  : '服务返回错误（${e.code}）',
+                  ? appStrings.errExtRejected(e.message ?? e.code)
+                  : appStrings.errExtError(e.code),
             );
         }
       } finally {
         client.close();
       }
     }
-    throw ExternalServiceException(rejected ? '访问令牌无效' : '这个地址没有提供 MCP 入口');
+    throw ExternalServiceException(
+      rejected ? appStrings.errExtTokenInvalid : appStrings.errExtNoMcp,
+    );
   }
 
   /// Saves a probed service. The same address again updates it instead of

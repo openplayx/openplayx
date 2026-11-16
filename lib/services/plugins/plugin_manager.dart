@@ -13,32 +13,44 @@ import '../subtitles/asr_backend_config.dart';
 import 'capability_registry.dart';
 import 'plugin_ai_policy.dart';
 import 'plugin_catalog.dart';
+import '../../l10n/l10n.dart';
 
 /// Actual (not desired) state. `blocked` names missing configuration,
 /// permission or dependency; connection health is tracked separately.
 enum PluginRuntimeState {
-  disabled('已停用'),
-  validating('未检测'),
-  starting('启动中'),
-  ready('可用'),
-  blocked('需处理'),
-  error('出错'),
-  draining('收尾中');
+  disabled,
+  validating,
+  starting,
+  ready,
+  blocked,
+  error,
+  draining;
 
-  const PluginRuntimeState(this.label);
-  final String label;
+  String get label => switch (this) {
+    disabled => appStrings.rtDisabled,
+    validating => appStrings.rtUnchecked,
+    starting => appStrings.rtStarting,
+    ready => appStrings.statusAvailable,
+    blocked => appStrings.rtBlocked,
+    error => appStrings.rtError,
+    draining => appStrings.rtDraining,
+  };
   bool get needsAttention => this == blocked || this == error;
 }
 
 /// Connection health, kept apart from the switches: offline is not disabled.
 enum InstanceHealth {
-  unchecked('未检测'),
-  lastOk('上次连接成功'),
-  failing('连接失败'),
-  local('本机');
+  unchecked,
+  lastOk,
+  failing,
+  local;
 
-  const InstanceHealth(this.label);
-  final String label;
+  String get label => switch (this) {
+    unchecked => appStrings.rtUnchecked,
+    lastOk => appStrings.healthLastOk,
+    failing => appStrings.srcStatusFailed,
+    local => appStrings.healthLocal,
+  };
 }
 
 class PluginInstanceView {
@@ -296,26 +308,26 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       reason = platform;
     } else if (!enabled) {
       state = busy ? PluginRuntimeState.draining : PluginRuntimeState.disabled;
-      reason = busy ? '已阻止新调用，正在等待播放或任务结束' : null;
+      reason = busy ? appStrings.plgDraining : null;
     } else if (blockedDependency != null) {
       state = PluginRuntimeState.blocked;
-      reason = '依赖的「$blockedDependency」已停用或不可用';
+      reason = appStrings.plgDependencyBlocked(blockedDependency);
     } else if (instances.isEmpty && d.multiInstance) {
       state = PluginRuntimeState.blocked;
-      reason = '尚未添加实例';
+      reason = appStrings.plgNoInstanceAdded;
     } else if (active.isEmpty) {
       state = PluginRuntimeState.disabled;
-      reason = '所有实例均已停用';
+      reason = appStrings.plgAllInstancesDisabled;
     } else if (active.any((i) => i.state == PluginRuntimeState.error)) {
       state = PluginRuntimeState.error;
-      reason = '有实例连接失败';
+      reason = appStrings.plgInstanceFailing;
     } else if (active.every((i) => i.state == PluginRuntimeState.blocked)) {
       state = PluginRuntimeState.blocked;
       reason = active.first.detail;
     } else if (active.any((i) => i.state == PluginRuntimeState.ready)) {
       state = PluginRuntimeState.ready;
       if (active.any((i) => i.state == PluginRuntimeState.blocked)) {
-        reason = '部分实例需处理';
+        reason = appStrings.plgSomeInstancesBlocked;
       }
     } else if (active.any((i) => i.state == PluginRuntimeState.starting)) {
       state = PluginRuntimeState.starting;
@@ -355,22 +367,24 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     if (kind != null) return _sourceInstances(d, kind);
     switch (d.id) {
       case 'metadata.nfo':
-        return [_builtin(d, '邻近文件规则', PluginRuntimeState.ready)];
+        return [
+          _builtin(d, appStrings.plgNfoInstance, PluginRuntimeState.ready),
+        ];
       case 'metadata.tmdb':
         final configured = await tmdbConfigured?.call();
         if (configured == null) {
-          _unsupported[d.id] = '此构建未接入 TMDB 设置';
+          _unsupported[d.id] = appStrings.plgNoTmdb;
           return const [];
         }
         _unsupported.remove(d.id);
         return [
           _builtin(
             d,
-            'TMDB 配置',
+            appStrings.plgTmdbInstance,
             configured
                 ? PluginRuntimeState.validating
                 : PluginRuntimeState.blocked,
-            detail: configured ? null : '未配置访问令牌',
+            detail: configured ? null : appStrings.plgTmdbNoToken,
             configured: configured,
             health: InstanceHealth.unchecked,
           ),
@@ -378,17 +392,19 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
       case 'media.ffmpeg':
         final service = media?.call();
         if (service == null || !service.nativeAvailable) {
-          _unsupported[d.id] = '当前平台或构建未包含 FFmpeg 媒体处理';
+          _unsupported[d.id] = appStrings.plgNoFfmpeg;
           return const [];
         }
         _unsupported.remove(d.id);
-        return [_builtin(d, '设备内处理', PluginRuntimeState.ready)];
+        return [
+          _builtin(d, appStrings.plgFfmpegInstance, PluginRuntimeState.ready),
+        ];
       case 'asr.whisper':
         return _asrInstances(d);
       case 'model.llm':
         final config = model?.call();
         if (config == null) {
-          _unsupported[d.id] = '此构建未接入 AI 助手';
+          _unsupported[d.id] = appStrings.plgNoAssistant;
           return const [];
         }
         _unsupported.remove(d.id);
@@ -400,7 +416,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
             configured
                 ? PluginRuntimeState.validating
                 : PluginRuntimeState.blocked,
-            detail: configured ? null : '未配置模型或密钥',
+            detail: configured ? null : appStrings.plgModelNotConfigured,
             configured: configured,
             health: InstanceHealth.unchecked,
           ),
@@ -433,7 +449,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   ) {
     final manager = sources;
     if (manager == null) {
-      _unsupported[d.id] = '此构建未接入媒体来源';
+      _unsupported[d.id] = appStrings.plgNoSources;
       return const [];
     }
     _unsupported.remove(d.id);
@@ -499,7 +515,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   Future<List<PluginInstanceView>> _asrInstances(PluginDefinition d) async {
     final registry = asr?.call();
     if (registry == null) {
-      _unsupported[d.id] = '此构建未接入语音识别';
+      _unsupported[d.id] = appStrings.plgNoAsr;
       return const [];
     }
     _unsupported.remove(d.id);
@@ -515,13 +531,15 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
           state = status.available
               ? PluginRuntimeState.ready
               : PluginRuntimeState.blocked;
-          detail = status.available ? '模型 ${c.modelId}' : status.reason;
+          detail = status.available
+              ? appStrings.plgModelDetail(c.modelId)
+              : status.reason;
         } catch (_) {
           state = PluginRuntimeState.blocked;
-          detail = '本地识别引擎不可用';
+          detail = appStrings.plgLocalAsrUnavailable;
         }
       } else {
-        detail = '模型 ${c.modelId}';
+        detail = appStrings.plgModelDetail(c.modelId);
       }
       result.add(
         PluginInstanceView(
@@ -684,10 +702,10 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
               'reason':
                   s.reason ??
                   (!s.platformSupported
-                      ? '当前设备不支持'
+                      ? appStrings.plgDeviceUnsupported
                       : !s.enabled
-                      ? '插件已停用'
-                      : '暂不可用'),
+                      ? appStrings.plgDisabled
+                      : appStrings.plgTemporarilyUnavailable),
             'capabilities': [
               for (final c in s.aiCapabilities)
                 CapabilityRegistry.label(catalog, c),
@@ -702,7 +720,7 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
           },
     ],
     'external_capabilities': externalSummary?.call() ?? const [],
-    'note': 'Read-only. Built-in capabilities are listed under plugins; services the user added under AI → 外部能力 are listed under external_capabilities, and their tools are offered directly (names start with mcp_). Credentials and servers can only be changed by the user on the AI page.',
+    'note': 'Read-only. Built-in capabilities are listed under plugins; services the user added under AI → External capabilities are listed under external_capabilities, and their tools are offered directly (names start with mcp_). Credentials and servers can only be changed by the user on the AI page.',
   };
 
   @override

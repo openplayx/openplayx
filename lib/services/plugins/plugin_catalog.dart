@@ -3,28 +3,38 @@ import 'package:flutter/widgets.dart';
 import '../../data/sources/source_config.dart';
 import '../../data/sources/source_schema.dart';
 import '../../ui/icons/app_icons.dart';
+import '../../l10n/l10n.dart';
 
 /// Display grouping only; a plugin may implement several interfaces.
 enum PluginCategory {
-  source('媒体来源'),
-  metadata('元数据'),
-  mediaProcessing('媒体处理'),
-  speech('字幕识别'),
-  model('模型');
+  source,
+  metadata,
+  mediaProcessing,
+  speech,
+  model;
 
-  const PluginCategory(this.label);
-  final String label;
+  String get label => switch (this) {
+    source => appStrings.catCategorySource,
+    metadata => appStrings.catCategoryMetadata,
+    mediaProcessing => appStrings.catCategoryMediaProcessing,
+    speech => appStrings.catCategorySpeech,
+    model => appStrings.plgGroupModel,
+  };
 }
 
 /// Where the work actually runs. The App adapter always runs on this device.
 enum ExecutionLocation {
-  device('本机'),
-  network('网络存储'),
-  selfHosted('自建服务'),
-  cloudApi('云 API');
+  device,
+  network,
+  selfHosted,
+  cloudApi;
 
-  const ExecutionLocation(this.label);
-  final String label;
+  String get label => switch (this) {
+    device => appStrings.healthLocal,
+    network => appStrings.catLocationNetwork,
+    selfHosted => appStrings.catLocationSelfHosted,
+    cloudApi => appStrings.catLocationCloudApi,
+  };
 }
 
 /// One typed capability a plugin really implements.
@@ -37,8 +47,8 @@ enum ExecutionLocation {
 class PluginCapabilityInfo {
   const PluginCapabilityInfo(
     this.id,
-    this.label,
-    this.description, {
+    this._label,
+    this._description, {
     this.tools = const [],
     this.routedTools = const [],
     this.taskTools = const [],
@@ -46,8 +56,13 @@ class PluginCapabilityInfo {
     this.writes = false,
   });
   final String id;
-  final String label;
-  final String description;
+  final String _label;
+  final String _description;
+
+  /// Display texts; the definitions hold catalog text keys (see
+  /// [catalogText]) so the language follows the App at read time.
+  String get label => catalogText(_label);
+  String get description => catalogText(_description);
   final List<String> tools;
   final List<String> routedTools;
   final List<String> taskTools;
@@ -67,8 +82,8 @@ class PluginCapabilityInfo {
 class PluginDefinition {
   const PluginDefinition({
     required this.id,
-    required this.name,
-    required this.summary,
+    required this._name,
+    required this._summary,
     required this.category,
     required this.location,
     required this.icon,
@@ -76,15 +91,24 @@ class PluginDefinition {
     this.version = '1.0.0',
     this.multiInstance = true,
     this.toggleable = true,
-    this.toggleNote,
+    this._toggleNote,
     this.dependsOn = const [],
-    this.dataNote,
+    this._dataNote,
     this.sourceKind,
     this.deprecated = false,
   });
   final String id;
-  final String name;
-  final String summary;
+  final String _name;
+  final String _summary;
+  final String? _toggleNote;
+  final String? _dataNote;
+
+  /// Display texts, resolved from catalog text keys (see [catalogText]).
+  String get name => catalogText(_name);
+  String get summary => catalogText(_summary);
+  String? get toggleNote =>
+      _toggleNote == null ? null : catalogText(_toggleNote);
+  String? get dataNote => _dataNote == null ? null : catalogText(_dataNote);
   final PluginCategory category;
   final ExecutionLocation location;
   final IconData icon;
@@ -97,14 +121,10 @@ class PluginDefinition {
   /// Whether a plugin-wide switch is enforced on every business path. Plugins
   /// without enforcement show [toggleNote] instead of a switch that would lie.
   final bool toggleable;
-  final String? toggleNote;
 
   /// Other plugins this one needs. Expressed as dependencies, never
   /// auto-enabled.
   final List<String> dependsOn;
-
-  /// What leaves the device / what the plugin can read.
-  final String? dataNote;
 
   /// Set for source-family plugins backed by SourceManager.
   final SourceKind? sourceKind;
@@ -148,59 +168,59 @@ const hostToolNames = {
 const _sourceCapabilities = {
   'source.browse': PluginCapabilityInfo(
     'source.browse',
-    '浏览目录',
-    '列出该来源的文件夹与文件',
+    'catSourceBrowse',
+    'catSourceBrowseDesc',
     routedTools: ['source_list', 'source_browse'],
   ),
   'source.resolve': PluginCapabilityInfo(
     'source.resolve',
-    '播放',
-    '把选中的资源交给播放器；严格绑定资源所属实例',
+    'catSourceResolve',
+    'catSourceResolveDesc',
     routedTools: ['playback_open'],
   ),
   'source.attachments': PluginCapabilityInfo(
     'source.attachments',
-    '读取附件',
-    '读取 NFO、外挂字幕等小文件（有大小上限）',
+    'catSourceAttachments',
+    'catSourceAttachmentsDesc',
   ),
   'search.media': PluginCapabilityInfo(
     'search.media',
-    '搜索媒体',
-    '在服务端搜索影片与剧集',
+    'catSearchMedia',
+    'catSearchMediaDesc',
     routedTools: ['search_media'],
   ),
   'metadata.lookup': PluginCapabilityInfo(
     'metadata.lookup',
-    '影视信息',
-    '读取媒体服务器整理好的影视信息',
+    'catMetadataLookup',
+    'catMetadataLookupDesc',
   ),
   'source.write': PluginCapabilityInfo(
     'source.write',
-    '写入新文件',
-    '把 App 生成的片段写到同一共享的 OpenPlayX 文件夹；不覆盖、不删除，每次需确认',
+    'catSourceWrite',
+    'catSourceWriteDesc',
     routedTools: ['media_save_to_source'],
     writes: true,
   ),
 };
 
 String _sourceSummary(SourceKind kind) => switch (kind) {
-  SourceKind.local => '本机或已挂载的文件夹',
-  SourceKind.smb => 'Windows 共享、NAS 的 SMB 共享目录',
-  SourceKind.webdav => 'WebDAV 网盘或 NAS 目录',
-  SourceKind.ftp => 'FTP 服务器目录',
-  SourceKind.sftp => '通过 SSH 访问的服务器目录',
-  SourceKind.s3 => 'S3 兼容对象存储桶',
-  SourceKind.plex => 'Plex 媒体服务器',
-  SourceKind.jellyfin => 'Jellyfin 媒体服务器',
-  SourceKind.emby => 'Emby 媒体服务器',
-  SourceKind.dlna => '局域网 DLNA 媒体服务器',
+  SourceKind.local => 'catSummaryLocal',
+  SourceKind.smb => 'catSummarySmb',
+  SourceKind.webdav => 'catSummaryWebdav',
+  SourceKind.ftp => 'catSummaryFtp',
+  SourceKind.sftp => 'catSummarySftp',
+  SourceKind.s3 => 'catSummaryS3',
+  SourceKind.plex => 'catSummaryPlex',
+  SourceKind.jellyfin => 'catSummaryJellyfin',
+  SourceKind.emby => 'catSummaryEmby',
+  SourceKind.dlna => 'catSummaryDlna',
 };
 
 PluginDefinition _source(SourceKind kind) {
   final manifest = SourceSchemas.forKind(kind);
   return PluginDefinition(
     id: manifest.id,
-    name: kind.label,
+    name: 'source:${kind.name}',
     summary: _sourceSummary(kind),
     category: PluginCategory.source,
     location: switch (kind) {
@@ -219,11 +239,9 @@ PluginDefinition _source(SourceKind kind) {
     capabilities: [
       for (final id in manifest.capabilities)
         _sourceCapabilities[id] ??
-            PluginCapabilityInfo(id, id, '未登记的能力', tools: const []),
+            PluginCapabilityInfo(id, id, _unregistered, tools: const []),
     ],
-    dataNote: kind == SourceKind.local
-        ? '只读取你授权的文件夹。'
-        : 'App 在本机连接你配置的服务器；文件名和目录名会出现在 AI 对话中（仅当允许 AI 使用时）。',
+    dataNote: kind == SourceKind.local ? 'catDataLocal' : 'catDataRemote',
   );
 }
 
@@ -246,69 +264,65 @@ class PluginCatalog {
     for (final kind in SourceKind.values) _source(kind),
     const PluginDefinition(
       id: 'metadata.nfo',
-      name: 'NFO 元数据',
-      summary: '读取媒体旁边的 .nfo 文件',
+      name: 'catNfoName',
+      summary: 'catNfoSummary',
       category: PluginCategory.metadata,
       location: ExecutionLocation.device,
       icon: AppIcons.info,
       multiInstance: false,
       toggleable: false,
-      toggleNote: '由“刮削管理”控制是否刮削；后台刮削独立运行，暂不支持单独停用。',
+      toggleNote: 'catNfoToggle',
       capabilities: [
-        PluginCapabilityInfo('metadata.local', '本地元数据', '按邻近文件规则匹配影片信息'),
+        PluginCapabilityInfo('metadata.local', 'catNfoCap', 'catNfoCapDesc'),
       ],
     ),
     const PluginDefinition(
       id: 'metadata.tmdb',
       name: 'TMDB',
-      summary: '从 The Movie Database 查询影片与剧集信息',
+      summary: 'catTmdbSummary',
       category: PluginCategory.metadata,
       location: ExecutionLocation.cloudApi,
       icon: AppIcons.movie,
       multiInstance: false,
       toggleable: false,
-      toggleNote: '清除访问令牌即停止使用；后台刮削独立运行，暂不支持单独停用。',
-      dataNote: '查询时向 TMDB 发送解析出的片名与年份，不发送文件内容。',
+      toggleNote: 'catTmdbToggle',
+      dataNote: 'catTmdbData',
       capabilities: [
-        PluginCapabilityInfo(
-          'metadata.lookup',
-          '查询元数据',
-          '搜索、匹配影片与剧集信息；写入由宿主完成',
-        ),
+        PluginCapabilityInfo('metadata.lookup', 'catTmdbCap', 'catTmdbCapDesc'),
       ],
     ),
     const PluginDefinition(
       id: 'media.ffmpeg',
-      name: 'FFmpeg 媒体处理',
-      summary: '截图、探测、转码与音频提取',
+      name: 'catFfmpegName',
+      summary: 'catFfmpegSummary',
       category: PluginCategory.mediaProcessing,
       location: ExecutionLocation.device,
       icon: AppIcons.openFile,
       multiInstance: false,
-      dataNote: '在本机处理媒体，产物保存在应用目录。',
+      dataNote: 'catFfmpegData',
       capabilities: [
         PluginCapabilityInfo(
           'media.probe',
-          '探测',
-          '读取时长、编码与音轨',
+          'catProbe',
+          'catProbeDesc',
           tools: ['media_processing_capabilities', 'media_probe'],
         ),
         PluginCapabilityInfo(
           'media.transcode',
-          '转码',
-          '按预设转码为新文件',
+          'catTranscode',
+          'catTranscodeDesc',
           tools: ['media_transcode'],
         ),
         PluginCapabilityInfo(
           'media.extract_audio',
-          '提取音频',
-          '导出音轨用于识别或保存',
+          'catExtractAudio',
+          'catExtractAudioDesc',
           tools: ['media_extract_audio'],
         ),
         PluginCapabilityInfo(
           'media.snapshot',
-          '截图',
-          '截取指定时间的画面',
+          'catSnapshot',
+          'catSnapshotDesc',
           tools: ['media_snapshot'],
         ),
       ],
@@ -317,8 +331,8 @@ class PluginCatalog {
       // One speech capability over every backend (on-device Whisper or the
       // user's recognition service); which one runs is a host detail.
       id: 'asr.whisper',
-      name: '语音识别',
-      summary: '为视频生成原语言字幕与转录',
+      name: 'catAsrName',
+      summary: 'catAsrSummary',
       category: PluginCategory.speech,
       location: ExecutionLocation.device,
       icon: AppIcons.captions,
@@ -326,8 +340,8 @@ class PluginCatalog {
       capabilities: [
         PluginCapabilityInfo(
           'speech.transcribe',
-          '语音识别',
-          '生成原语言字幕/转录；不包含翻译',
+          'catAsrName',
+          'catAsrCapDesc',
           tools: _speechTools,
           taskTools: _speechTaskTools,
           writes: true,
@@ -336,17 +350,17 @@ class PluginCatalog {
     ),
     const PluginDefinition(
       id: 'model.llm',
-      name: '对话模型',
-      summary: '为 AI 助手提供大语言模型',
+      name: 'catLlmName',
+      summary: 'catLlmSummary',
       category: PluginCategory.model,
       location: ExecutionLocation.cloudApi,
       icon: AppIcons.assistant,
       multiInstance: false,
       toggleable: false,
-      toggleNote: '在“AI 与模型”中配置或清除模型；不会生成可递归调用自身的推理工具。',
-      dataNote: '对话内容、页面摘要与工具结果会发送给所配置的模型服务，可能产生费用。',
+      toggleNote: 'catLlmToggle',
+      dataNote: 'catLlmData',
       capabilities: [
-        PluginCapabilityInfo('model.chat', '对话推理', '为 AI 助手生成回复与工具调用'),
+        PluginCapabilityInfo('model.chat', 'catLlmCap', 'catLlmCapDesc'),
       ],
     ),
   ]);
@@ -396,7 +410,7 @@ class PluginCatalog {
         if (!caps.add(c.id)) {
           throw StateError('Duplicate capability ${c.id} in ${d.id}');
         }
-        if (c.description == '未登记的能力') {
+        if (c._description == _unregistered) {
           throw StateError('Unregistered capability ${c.id} in ${d.id}');
         }
         for (final t in [...c.tools, ...c.taskTools]) {
@@ -430,3 +444,67 @@ class PluginCatalog {
     }
   }
 }
+
+const _unregistered = 'unregistered';
+
+/// Resolves a catalog text key to the App's current language. Unknown keys
+/// (ids used as their own label, test definitions) are returned unchanged.
+String catalogText(String key) => switch (key) {
+  'catSourceBrowse' => appStrings.catSourceBrowse,
+  'catSourceBrowseDesc' => appStrings.catSourceBrowseDesc,
+  'catSourceResolve' => appStrings.catSourceResolve,
+  'catSourceResolveDesc' => appStrings.catSourceResolveDesc,
+  'catSourceAttachments' => appStrings.catSourceAttachments,
+  'catSourceAttachmentsDesc' => appStrings.catSourceAttachmentsDesc,
+  'catSearchMedia' => appStrings.catSearchMedia,
+  'catSearchMediaDesc' => appStrings.catSearchMediaDesc,
+  'catMetadataLookup' => appStrings.catMetadataLookup,
+  'catMetadataLookupDesc' => appStrings.catMetadataLookupDesc,
+  'catSourceWrite' => appStrings.catSourceWrite,
+  'catSourceWriteDesc' => appStrings.catSourceWriteDesc,
+  'catSummaryLocal' => appStrings.catSummaryLocal,
+  'catSummarySmb' => appStrings.catSummarySmb,
+  'catSummaryWebdav' => appStrings.catSummaryWebdav,
+  'catSummaryFtp' => appStrings.catSummaryFtp,
+  'catSummarySftp' => appStrings.catSummarySftp,
+  'catSummaryS3' => appStrings.catSummaryS3,
+  'catSummaryPlex' => appStrings.catSummaryPlex,
+  'catSummaryJellyfin' => appStrings.catSummaryJellyfin,
+  'catSummaryEmby' => appStrings.catSummaryEmby,
+  'catSummaryDlna' => appStrings.catSummaryDlna,
+  'catDataLocal' => appStrings.catDataLocal,
+  'catDataRemote' => appStrings.catDataRemote,
+  'catNfoName' => appStrings.catNfoName,
+  'catNfoSummary' => appStrings.catNfoSummary,
+  'catNfoToggle' => appStrings.catNfoToggle,
+  'catNfoCap' => appStrings.catNfoCap,
+  'catNfoCapDesc' => appStrings.catNfoCapDesc,
+  'catTmdbSummary' => appStrings.catTmdbSummary,
+  'catTmdbToggle' => appStrings.catTmdbToggle,
+  'catTmdbData' => appStrings.catTmdbData,
+  'catTmdbCap' => appStrings.catTmdbCap,
+  'catTmdbCapDesc' => appStrings.catTmdbCapDesc,
+  'catFfmpegName' => appStrings.catFfmpegName,
+  'catFfmpegSummary' => appStrings.catFfmpegSummary,
+  'catFfmpegData' => appStrings.catFfmpegData,
+  'catProbe' => appStrings.catProbe,
+  'catProbeDesc' => appStrings.catProbeDesc,
+  'catTranscode' => appStrings.catTranscode,
+  'catTranscodeDesc' => appStrings.catTranscodeDesc,
+  'catExtractAudio' => appStrings.catExtractAudio,
+  'catExtractAudioDesc' => appStrings.catExtractAudioDesc,
+  'catSnapshot' => appStrings.catSnapshot,
+  'catSnapshotDesc' => appStrings.catSnapshotDesc,
+  'catAsrName' => appStrings.catAsrName,
+  'catAsrSummary' => appStrings.catAsrSummary,
+  'catAsrCapDesc' => appStrings.catAsrCapDesc,
+  'catLlmName' => appStrings.catLlmName,
+  'catLlmSummary' => appStrings.catLlmSummary,
+  'catLlmToggle' => appStrings.catLlmToggle,
+  'catLlmData' => appStrings.catLlmData,
+  'catLlmCap' => appStrings.catLlmCap,
+  'catLlmCapDesc' => appStrings.catLlmCapDesc,
+  _ when key.startsWith('source:') =>
+    SourceKind.values.byName(key.substring(7)).label,
+  _ => key,
+};

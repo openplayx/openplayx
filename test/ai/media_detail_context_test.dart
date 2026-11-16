@@ -9,7 +9,7 @@ import 'package:openplayx/ui/adaptive/assistant_action.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../app_test_host.dart';
-import '../features/library/library_page_test.dart' show Sources;
+import '../support/fake_sources.dart';
 
 void main() {
   testWidgets('detail button exports its media and refreshes business state', (

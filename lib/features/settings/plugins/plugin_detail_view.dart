@@ -12,6 +12,7 @@ import '../../../services/plugins/plugin_manager.dart';
 import '../../../ui/components/settings/settings_section.dart';
 import 'plugin_management_page.dart';
 import '../../../ui/components/feedback/app_feedback.dart';
+import '../../../l10n/l10n.dart';
 
 /// One plugin: overview & capabilities, instances and runtime diagnostics.
 /// Every capability of an enabled plugin is AI-callable, so there is no
@@ -65,7 +66,7 @@ class _PluginDetailViewState extends State<PluginDetailView> {
       manager.reloadPolicy();
       if (mounted) showPluginError(context, e.message);
     } catch (_) {
-      if (mounted) showPluginError(context, '操作失败，请重试。');
+      if (mounted) showPluginError(context, appStrings.actionFailedRetry);
     } finally {
       await manager.refresh();
       if (mounted) setState(() => _busy = false);
@@ -85,7 +86,7 @@ class _PluginDetailViewState extends State<PluginDetailView> {
     final d = s.definition;
     return SettingsSection(
       key: const ValueKey('plugin-overview'),
-      title: '概览',
+      title: appStrings.detailOverview,
       children: [
         SettingsRow(
           icon: d.icon,
@@ -94,11 +95,14 @@ class _PluginDetailViewState extends State<PluginDetailView> {
           control: PluginStatusBadges(snapshot: s),
         ),
         if (!s.available)
-          SettingsRow(title: '不可用原因', description: unavailableReason(s)),
+          SettingsRow(
+            title: appStrings.plgUnavailableReason,
+            description: unavailableReason(s),
+          ),
         SettingsRow(
-          title: '插件开关',
+          title: appStrings.plgSwitch,
           description: d.toggleable
-              ? (s.enabled ? '允许承接新的业务调用' : '已阻止新的调用；实例配置保留')
+              ? (s.enabled ? appStrings.plgSwitchOn : appStrings.plgSwitchOff)
               : d.toggleNote,
           control: d.toggleable && s.platformSupported
               ? ShadSwitch(
@@ -109,21 +113,26 @@ class _PluginDetailViewState extends State<PluginDetailView> {
               : null,
         ),
         SettingsRow(
-          title: '执行位置',
+          title: appStrings.plgLocation,
           description: switch (d.location) {
-            ExecutionLocation.device => '在本机运行',
-            ExecutionLocation.network => 'App 在本机连接你配置的存储服务',
-            ExecutionLocation.selfHosted => 'App 在本机运行适配器，实际工作在你配置的服务器上进行',
-            ExecutionLocation.cloudApi => 'App 在本机调用云端 API',
+            ExecutionLocation.device => appStrings.plgLocationDevice,
+            ExecutionLocation.network => appStrings.plgLocationNetwork,
+            ExecutionLocation.selfHosted => appStrings.plgLocationSelfHosted,
+            ExecutionLocation.cloudApi => appStrings.plgLocationCloudApi,
           },
         ),
         if (d.dependsOn.isNotEmpty)
           SettingsRow(
-            title: '依赖',
+            title: appStrings.plgDependencies,
             description: [
               for (final dep in d.dependsOn)
-                '${manager.catalog[dep]!.name}（${manager.pluginEnabled(dep) ? '可用' : '不可用'}）',
-            ].join('、'),
+                appStrings.plgDependency(
+                  manager.catalog[dep]!.name,
+                  manager.pluginEnabled(dep)
+                      ? appStrings.statusAvailable
+                      : appStrings.statusUnavailable,
+                ),
+            ].join(appStrings.listSeparator),
           ),
       ],
     );
@@ -133,8 +142,8 @@ class _PluginDetailViewState extends State<PluginDetailView> {
     final developer = AppAppearance.of(context).developerMode;
     return SettingsSection(
       key: const ValueKey('plugin-capabilities'),
-      title: '能力',
-      footer: '只列出此插件真实实现的方法；未实现的能力不会显示。',
+      title: appStrings.plgCapabilities,
+      footer: appStrings.plgCapabilitiesFooter,
       children: [
         for (final c in s.definition.capabilities)
           SettingsRow(
@@ -153,8 +162,8 @@ class _PluginDetailViewState extends State<PluginDetailView> {
   }
 
   /// Read-only: how many instances there are and their status. Instances
-  /// are created where their service is configured (来源, the 外部能力
-  /// 配置 button, the dedicated settings), never added here.
+  /// are created where their service is configured (Sources, the external
+  /// capability setup button, the dedicated settings), never added here.
   Widget _instancesSection(PluginSnapshot s) {
     final d = s.definition;
     final editable =
@@ -164,28 +173,32 @@ class _PluginDetailViewState extends State<PluginDetailView> {
         s.platformSupported;
     return SettingsSection(
       key: const ValueKey('plugin-instances'),
-      title: '实例（${s.instances.length} 个）',
+      title: appStrings.plgInstancesTitle(s.instances.length),
       children: [
         for (final i in s.instances)
           SettingsRow(
             key: ValueKey('plugin-instance-${i.id}'),
             title: i.name,
             description: [
-              i.configured ? '已配置' : '未配置',
-              instanceAvailable(i) ? '可用' : '不可用',
+              i.configured
+                  ? appStrings.statusConfigured
+                  : appStrings.statusNotConfigured,
+              instanceAvailable(i)
+                  ? appStrings.statusAvailable
+                  : appStrings.statusUnavailable,
               ?i.detail,
-              if (i.busy) '使用中：播放 ${i.playing} · 请求 ${i.running}',
+              if (i.busy) appStrings.plgInstanceBusy(i.playing, i.running),
             ].join(' · '),
           ),
         if (s.instances.isEmpty)
           SettingsRow(
-            title: '暂无实例',
+            title: appStrings.plgNoInstances,
             description: s.platformSupported ? null : s.reason,
           ),
         if (editable)
           SettingsRow(
             key: const ValueKey('plugin-open-editor'),
-            title: '打开设置',
+            title: appStrings.plgOpenSettings,
             chevron: true,
             onTap: _busy ? null : () => _openEditor(s),
           ),
@@ -197,7 +210,7 @@ class _PluginDetailViewState extends State<PluginDetailView> {
     final developer = AppAppearance.of(context).developerMode;
     return SettingsSection(
       key: const ValueKey('plugin-runtime'),
-      title: '运行状态与诊断',
+      title: appStrings.plgRuntime,
       children: [
         for (final i in s.instances)
           if (i.savedRevision != null || i.busy || i.errorCode != null)
@@ -205,21 +218,26 @@ class _PluginDetailViewState extends State<PluginDetailView> {
               title: i.name,
               description: [
                 if (i.savedRevision != null)
-                  '已保存修订 ${i.savedRevision} · 实际生效 ${i.appliedRevision ?? '尚未生效'}',
-                if (i.pendingApply) '新配置待生效，旧修订仍在服务进行中的调用',
-                '活动播放 ${i.playing} · 进行中请求 ${i.running}',
-                if (i.errorCode != null) '最近错误：${i.errorCode}',
+                  appStrings.plgRevisions(
+                    '${i.savedRevision}',
+                    i.appliedRevision == null
+                        ? appStrings.plgNotApplied
+                        : '${i.appliedRevision}',
+                  ),
+                if (i.pendingApply) appStrings.plgPendingApply,
+                appStrings.plgActivity(i.playing, i.running),
+                if (i.errorCode != null) appStrings.plgLastError(i.errorCode!),
               ].join(' · '),
             ),
         SettingsRow(
-          title: '刷新状态',
+          title: appStrings.plgRefreshStatus,
           accent: true,
           onTap: _busy ? null : () => _run(() async {}),
         ),
         SettingsRow(
           key: const ValueKey('plugin-copy-diagnostics'),
-          title: '复制脱敏诊断信息',
-          description: developer ? '不含地址、账号、路径或密钥' : null,
+          title: appStrings.plgCopyDiagnostics,
+          description: developer ? appStrings.plgCopyDiagnosticsHint : null,
           onTap: () async {
             await Clipboard.setData(
               ClipboardData(
@@ -228,7 +246,11 @@ class _PluginDetailViewState extends State<PluginDetailView> {
               ),
             );
             if (mounted) {
-              showAppToast(context, '已复制诊断信息', kind: FeedbackKind.success);
+              showAppToast(
+                context,
+                appStrings.plgDiagnosticsCopied,
+                kind: FeedbackKind.success,
+              );
             }
           },
         ),

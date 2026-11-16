@@ -11,6 +11,7 @@ import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
+import '../../l10n/l10n.dart';
 
 /// Keeps resource paths of a remote file source inside its configured root
 /// and access scope. Paths are decoded and absolute ("/share/Movies/a.mkv").
@@ -25,10 +26,10 @@ class RemotePaths {
         path.contains('\\') ||
         path.split('/').any((s) => s == '..' || s == '.') ||
         (path != root && !path.startsWith(root == '/' ? '/' : '$root/'))) {
-      throw const PluginException('permissionDenied', '路径超出配置的根目录。');
+      throw PluginException('permissionDenied', appStrings.errPathOutsideRoot);
     }
     if (!config.allows(relative(path), directory: directory)) {
-      throw const PluginException('permissionDenied', '目录不在此实例配置的访问范围内。');
+      throw PluginException('permissionDenied', appStrings.errOutsideScope);
     }
     return path;
   }
@@ -65,7 +66,7 @@ Future<List<int>> readCapped(Stream<List<int>> stream, int maxBytes) async {
   final bytes = <int>[];
   await for (final chunk in stream) {
     if (bytes.length + chunk.length > maxBytes) {
-      throw const PluginException('quotaExceeded', '附件过大');
+      throw PluginException('quotaExceeded', appStrings.errAttachmentTooLarge);
     }
     bytes.addAll(chunk);
   }
@@ -120,6 +121,7 @@ abstract class RemoteFilePlugin
               ResourceRef(config.id, f.path),
               f.name,
               isFolder: f.folder,
+              size: f.folder ? null : f.size,
             ),
           )
           .toList(),
@@ -158,10 +160,10 @@ PluginException _httpFailure(int status, String service) => PluginException(
       ? 'notFound'
       : 'networkUnavailable',
   status == 401 || status == 403
-      ? '$service 拒绝访问（HTTP $status），请检查用户名和密码。'
+      ? appStrings.errServiceAccessDenied(service, status)
       : status == 404
-      ? '文件或文件夹不存在。'
-      : '$service 请求失败（HTTP $status）。',
+      ? appStrings.errFileNotFound
+      : appStrings.errServiceRequestFailed(service, status),
   retryable: status >= 500,
 );
 
@@ -366,7 +368,7 @@ class FtpConnection {
     try {
       final greeting = await connection._read();
       if (greeting.code != 220) {
-        throw const PluginException('networkUnavailable', 'FTP 服务器拒绝连接。');
+        throw PluginException('networkUnavailable', appStrings.errFtpRefused);
       }
       final anonymous = config.username.isEmpty;
       var reply = await connection.command(
@@ -378,11 +380,11 @@ class FtpConnection {
         );
       }
       if (reply.code != 230 && reply.code != 202) {
-        throw const PluginException('authRequired', 'FTP 登录失败，请检查用户名和密码。');
+        throw PluginException('authRequired', appStrings.errFtpLogin);
       }
       await connection.command('OPTS UTF8 ON');
       if ((await connection.command('TYPE I')).code != 200) {
-        throw const PluginException('unsupported', 'FTP 服务器不支持二进制传输。');
+        throw PluginException('unsupported', appStrings.errFtpNoBinary);
       }
     } catch (_) {
       connection.close();
@@ -415,7 +417,7 @@ class FtpConnection {
 
   Future<FtpReply> command(String command) {
     if (command.contains('\r') || command.contains('\n')) {
-      throw const PluginException('invalidInput', '路径包含不支持的字符。');
+      throw PluginException('invalidInput', appStrings.errPathChars);
     }
     _socket.write('$command\r\n');
     return _read();
@@ -435,7 +437,7 @@ class FtpConnection {
       final numbers = RegExp(r'(\d+),(\d+),(\d+),(\d+),(\d+),(\d+)')
           .firstMatch(reply.text);
       if (reply.code != 227 || numbers == null) {
-        throw const PluginException('unsupported', 'FTP 服务器不支持被动模式。');
+        throw PluginException('unsupported', appStrings.errFtpNoPassive);
       }
       port = int.parse(numbers[5]!) * 256 + int.parse(numbers[6]!);
     }
@@ -456,7 +458,9 @@ class FtpConnection {
       data.destroy();
       throw PluginException(
         reply.code == 550 ? 'notFound' : 'networkUnavailable',
-        reply.code == 550 ? '文件夹不存在或无权访问。' : 'FTP 无法列出文件夹。',
+        reply.code == 550
+            ? appStrings.errFolderNotFoundOrDenied
+            : appStrings.errFtpList,
       );
     }
     final text = await data
@@ -477,11 +481,11 @@ class FtpConnection {
     final data = await _passive();
     try {
       if (offset > 0 && (await command('REST $offset')).code != 350) {
-        throw const PluginException('unsupported', 'FTP 服务器不支持断点续传，无法拖动进度。');
+        throw PluginException('unsupported', appStrings.errFtpNoResume);
       }
       final reply = await command('RETR $path');
       if (reply.code != 150 && reply.code != 125) {
-        throw const PluginException('notFound', '无法读取该 FTP 文件。');
+        throw PluginException('notFound', appStrings.errFtpRead);
       }
       yield* data;
     } finally {
@@ -599,7 +603,7 @@ class FtpPlugin extends RemoteFilePlugin {
   Future<PlayableStream> open(String path, String name) async {
     final length = await _withControl((c) => c.size(path));
     if (length == null) {
-      throw const PluginException('unsupported', 'FTP 服务器未返回文件大小，无法播放。');
+      throw PluginException('unsupported', appStrings.errFtpNoSize);
     }
     return StreamGateway.ranged(
       length: length,
@@ -619,7 +623,7 @@ class FtpPlugin extends RemoteFilePlugin {
   Future<List<int>> read(String path, int maxBytes) async {
     final length = await _withControl((c) => c.size(path));
     if (length != null && length > maxBytes) {
-      throw const PluginException('quotaExceeded', '附件过大');
+      throw PluginException('quotaExceeded', appStrings.errAttachmentTooLarge);
     }
     final connection = await FtpConnection.connect(config, _password);
     try {
@@ -675,13 +679,13 @@ class SftpPlugin extends RemoteFilePlugin {
       await client.authenticated.timeout(timeout);
     } catch (_) {
       client.close();
-      throw const PluginException('authRequired', 'SFTP 登录失败，请检查用户名和密码。');
+      throw PluginException('authRequired', appStrings.errSftpLogin);
     }
     try {
       return (client, await client.sftp());
     } catch (_) {
       client.close();
-      throw const PluginException('unsupported', '服务器未启用 SFTP。');
+      throw PluginException('unsupported', appStrings.errSftpDisabled);
     }
   }
 
@@ -693,14 +697,14 @@ class SftpPlugin extends RemoteFilePlugin {
               ? 'permissionDenied'
               : 'networkUnavailable',
           error.code == SftpStatusCode.noSuchFile
-              ? '文件或文件夹不存在。'
+              ? appStrings.errFileNotFound
               : error.code == SftpStatusCode.permissionDenied
-              ? '没有权限访问该路径。'
-              : 'SFTP 请求失败。',
+              ? appStrings.errPathDenied
+              : appStrings.errSftpRequest,
         )
       : error is PluginException
       ? error
-      : const PluginException('networkUnavailable', 'SFTP 连接失败。');
+      : PluginException('networkUnavailable', appStrings.errSftpConnect);
 
   @override
   Future<List<RemoteFile>> list(String path) async {
@@ -737,7 +741,7 @@ class SftpPlugin extends RemoteFilePlugin {
       throw _failure(error);
     }
     if (!attr.isFile || attr.size == null) {
-      throw const PluginException('notFound', '无法播放该 SFTP 文件。');
+      throw PluginException('notFound', appStrings.errSftpPlay);
     }
     return StreamGateway.ranged(
       length: attr.size!,
@@ -759,7 +763,10 @@ class SftpPlugin extends RemoteFilePlugin {
     try {
       final attr = await sftp.stat(path);
       if ((attr.size ?? 0) > maxBytes) {
-        throw const PluginException('quotaExceeded', '附件过大');
+        throw PluginException(
+          'quotaExceeded',
+          appStrings.errAttachmentTooLarge,
+        );
       }
       final file = await sftp.open(path);
       try {
@@ -1029,7 +1036,7 @@ class S3Plugin extends RemoteFilePlugin {
   @override
   Future<PlayableStream> open(String path, String name) async {
     if (path.split('/').where((s) => s.isNotEmpty).length < 2) {
-      throw const PluginException('invalidInput', '请选择文件。');
+      throw PluginException('invalidInput', appStrings.errChooseFile);
     }
     final url = _signer?.presign(_base, path, DateTime.now()) ?? _url(path);
     return StreamGateway.http(

@@ -109,9 +109,6 @@ class AppLocalizationsEn extends AppLocalizations {
       'Unfinished videos will appear here after you start watching.';
 
   @override
-  String get recentlyPlayed => 'Recently played';
-
-  @override
   String get recentEmpty =>
       'No playback history yet. Choose a video from your library or sources.';
 
@@ -592,12 +589,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String removeBindingDescription(int count) {
-    return 'This binding links $count items. Remove automatic memberships only when no source evidence remains. Manual memberships, shared media and files are kept.';
-  }
-
-  @override
-  String sourceVersion(String kind, String plugin, int config, int revision) {
-    return '$kind · Plugin $plugin · Config v$config · r$revision';
+    return 'This file source links $count items. Removing it also deletes the file records, playback progress and metadata found only by it; items another file source also found are kept. The original files on your storage are not touched.';
   }
 
   @override
@@ -606,8 +598,8 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
-  String deleteSourceDescription(int playing, int running) {
-    return 'Remove this source configuration and credential reference. Files and favorites are kept. $playing playing items and $running requests can finish before connections are released.';
+  String deleteSourceDescription(int fileSources, int playing, int running) {
+    return 'Removes this connection\'s configuration and credentials, and its $fileSources file sources with everything they found (file records, playback progress, metadata). The original files on your storage are not touched. $playing playing items and $running requests can finish before connections are released.';
   }
 
   @override
@@ -1873,9 +1865,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get browseSourceFiles => 'Browse files';
 
   @override
-  String get sourceConnectionDetails => 'Connection details';
-
-  @override
   String get sourceAwaitingVerification => 'Awaiting verification';
 
   @override
@@ -2210,4 +2199,1924 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plBookmarksShort => 'Bookmarks';
+
+  @override
+  String get listSeparator => ', ';
+
+  @override
+  String get remoteAccess => 'Remote access';
+
+  @override
+  String get remoteHomeAndRoutes => 'Home and connection routes';
+
+  @override
+  String get remoteImportTitle => 'Import remote configuration';
+
+  @override
+  String get remoteImportFooter =>
+      'Paste the App configuration exported by Relay. It takes effect right after import.';
+
+  @override
+  String get remoteImportPlaceholder => 'App configuration JSON';
+
+  @override
+  String get remoteImport => 'Import';
+
+  @override
+  String get remoteImporting => 'Importing…';
+
+  @override
+  String get remoteImported => 'Imported and applied.';
+
+  @override
+  String get remoteClearConfirmTitle => 'Clear remote configuration?';
+
+  @override
+  String get remoteClearConfirmMessage =>
+      'Removes the remote configuration and credentials from this device. Import again to restore remote access.';
+
+  @override
+  String get remoteClear => 'Clear';
+
+  @override
+  String get remoteClearing => 'Clearing…';
+
+  @override
+  String get remoteCleared => 'Remote configuration cleared.';
+
+  @override
+  String get remoteNotImported => 'Not imported yet';
+
+  @override
+  String get remoteNotImportedHint =>
+      'Tap “Import” to add a remote configuration.';
+
+  @override
+  String get remoteServerName => 'Server name';
+
+  @override
+  String get remoteCredentials => 'Credentials';
+
+  @override
+  String get remoteCredentialsSecure => 'Saved in system secure storage';
+
+  @override
+  String get remoteProxyUnused => 'Not used by any source';
+
+  @override
+  String remoteProxyUsedBy(String sources) {
+    return 'Sources: $sources';
+  }
+
+  @override
+  String remoteProxyPort(int port) {
+    return 'Port $port';
+  }
+
+  @override
+  String get remoteRelayServer => 'Relay server';
+
+  @override
+  String get remoteRelayFooter =>
+      'The whole App shares this connection. Credentials are kept in system secure storage.';
+
+  @override
+  String get remoteAvailableServices => 'Available services';
+
+  @override
+  String get remoteAvailableServicesFooter =>
+      'Registered on Relay by Home. Pick one for a source under “Edit source → Home remote access”.';
+
+  @override
+  String get remoteNeedsAttention => 'Needs attention';
+
+  @override
+  String remoteSourceProxyMissing(String proxy) {
+    return 'Its proxy “$proxy” is not in the current configuration, so remote connection is unavailable.';
+  }
+
+  @override
+  String get statusConfigured => 'Configured';
+
+  @override
+  String get statusNotConfigured => 'Not configured';
+
+  @override
+  String get statusAvailable => 'Available';
+
+  @override
+  String get statusUnavailable => 'Unavailable';
+
+  @override
+  String get plgGroupModel => 'Models';
+
+  @override
+  String get plgGroupExternal => 'External capabilities';
+
+  @override
+  String get plgGroupBuiltIn => 'Built-in capabilities';
+
+  @override
+  String get plgGroupModelDescription => 'Configure the model the agent uses';
+
+  @override
+  String get plgGroupExternalDescription =>
+      'Self-hosted or cloud services you add';
+
+  @override
+  String get plgGroupBuiltInDescription =>
+      'Ships with the App, all open by default';
+
+  @override
+  String plgCount(int count) {
+    return '$count';
+  }
+
+  @override
+  String extToolCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count tools',
+      one: '1 tool',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String plgInstanceCount(int count) {
+    String _temp0 = intl.Intl.pluralLogic(
+      count,
+      locale: localeName,
+      other: '$count instances',
+      one: '1 instance',
+    );
+    return '$_temp0';
+  }
+
+  @override
+  String get plgExternalHint =>
+      'Enter an address and token to detect and set up a service automatically';
+
+  @override
+  String get plgExternalEmpty => 'No external services yet';
+
+  @override
+  String get extConfigureTitle => 'Set up external capability';
+
+  @override
+  String plgBuiltInHint(int count) {
+    return '$count capabilities ship with the App, all open by default — nothing to enable one by one';
+  }
+
+  @override
+  String plgGroupEmpty(String group) {
+    return 'No $group yet';
+  }
+
+  @override
+  String get plgNoAssistant => 'This build does not include the AI assistant';
+
+  @override
+  String get plgSelectForDetail => 'Select an item to see details';
+
+  @override
+  String get plgDeviceUnsupported => 'Not supported on this device';
+
+  @override
+  String get plgTemporarilyUnavailable => 'Temporarily unavailable';
+
+  @override
+  String get plgDisabled => 'Plugin disabled';
+
+  @override
+  String plgDisableConfirmTitle(String name) {
+    return 'Disable “$name”?';
+  }
+
+  @override
+  String get plgImpactIntro =>
+      'New calls are blocked right away. Instance settings, generated subtitles and history are kept.';
+
+  @override
+  String plgImpactPlaying(int count) {
+    return '$count playing sessions continue until playback ends, then release their connections.';
+  }
+
+  @override
+  String plgImpactRunning(int count) {
+    return '$count running requests are released when they finish.';
+  }
+
+  @override
+  String plgImpactInstances(String instances) {
+    return 'Affected instances: $instances.';
+  }
+
+  @override
+  String get actionFailedRetry => 'Something went wrong. Please try again.';
+
+  @override
+  String get plgUnavailableReason => 'Why it\'s unavailable';
+
+  @override
+  String get plgSwitch => 'Plugin switch';
+
+  @override
+  String get plgSwitchOn => 'Accepting new calls';
+
+  @override
+  String get plgSwitchOff =>
+      'New calls are blocked; instance settings are kept';
+
+  @override
+  String get plgLocation => 'Runs where';
+
+  @override
+  String get plgLocationDevice => 'Runs on this device';
+
+  @override
+  String get plgLocationNetwork =>
+      'The App connects from this device to the storage you configured';
+
+  @override
+  String get plgLocationSelfHosted =>
+      'The App runs the adapter on this device; the work happens on the server you configured';
+
+  @override
+  String get plgLocationCloudApi =>
+      'The App calls a cloud API from this device';
+
+  @override
+  String get plgDependencies => 'Dependencies';
+
+  @override
+  String plgDependency(String name, String status) {
+    return '$name ($status)';
+  }
+
+  @override
+  String get plgCapabilities => 'Capabilities';
+
+  @override
+  String get plgCapabilitiesFooter =>
+      'Only methods this plugin actually implements are listed.';
+
+  @override
+  String plgInstancesTitle(int count) {
+    return 'Instances ($count)';
+  }
+
+  @override
+  String plgInstanceBusy(int playing, int running) {
+    return 'In use: $playing playing · $running requests';
+  }
+
+  @override
+  String get plgNoInstances => 'No instances';
+
+  @override
+  String get plgOpenSettings => 'Open settings';
+
+  @override
+  String get plgRuntime => 'Status and diagnostics';
+
+  @override
+  String plgRevisions(String saved, String applied) {
+    return 'Saved revision $saved · In effect $applied';
+  }
+
+  @override
+  String get plgNotApplied => 'not yet';
+
+  @override
+  String get plgPendingApply =>
+      'New settings pending; the old revision still serves calls in progress';
+
+  @override
+  String plgActivity(int playing, int running) {
+    return 'Active playback $playing · Running requests $running';
+  }
+
+  @override
+  String plgLastError(String code) {
+    return 'Last error: $code';
+  }
+
+  @override
+  String get plgRefreshStatus => 'Refresh status';
+
+  @override
+  String get plgCopyDiagnostics => 'Copy redacted diagnostics';
+
+  @override
+  String get plgCopyDiagnosticsHint => 'No addresses, accounts, paths or keys';
+
+  @override
+  String get plgDiagnosticsCopied => 'Diagnostics copied';
+
+  @override
+  String get extConnectionOk => 'Connection OK';
+
+  @override
+  String extRemoveConfirmTitle(String name) {
+    return 'Remove “$name”?';
+  }
+
+  @override
+  String get extRemoveConfirmMessage =>
+      'Only the address and token are removed from the App. Data on the server is not affected.';
+
+  @override
+  String get extNeedsRecheck => 'Needs re-detection';
+
+  @override
+  String extToolAiUnavailable(String problem) {
+    return 'Not available to AI: $problem';
+  }
+
+  @override
+  String get extToolNeedsConfirm => 'Asks for your confirmation first';
+
+  @override
+  String get extAiServiceUnavailable =>
+      'The service is unavailable, so AI can\'t call it right now';
+
+  @override
+  String get extAiNeedsRecheck =>
+      'Tap “Re-detect” to fetch the tool definitions';
+
+  @override
+  String extAiSummary(int usable, int total) {
+    return 'AI can call $usable of $total tools directly; actions that change state ask for your confirmation first';
+  }
+
+  @override
+  String get extRemoved => 'This external capability was removed';
+
+  @override
+  String extVersion(String version) {
+    return 'Version $version';
+  }
+
+  @override
+  String get extAiCalls => 'AI calls';
+
+  @override
+  String extToolsTitle(int count) {
+    return 'Tools ($count)';
+  }
+
+  @override
+  String get extNoTools => 'No tools';
+
+  @override
+  String get extRecheck => 'Re-detect';
+
+  @override
+  String get extConnecting => 'Connecting and detecting…';
+
+  @override
+  String extAdded(String name) {
+    return 'Added “$name”';
+  }
+
+  @override
+  String get extConfigureFooter =>
+      'Enter the service address and access token. The App connects over MCP to find out what the service is and which tools it offers.';
+
+  @override
+  String get extServiceAddress => 'Service address';
+
+  @override
+  String get extAccessToken => 'Access token';
+
+  @override
+  String get extNameOptional => 'Name (optional)';
+
+  @override
+  String get extDetected => 'Detected';
+
+  @override
+  String get extTools => 'Tools';
+
+  @override
+  String get extConnect => 'Connect and detect';
+
+  @override
+  String get scanStatusPending => 'Not scanned';
+
+  @override
+  String get scanStatusScanning => 'Scanning';
+
+  @override
+  String get scanStatusDone => 'Scan complete';
+
+  @override
+  String get scanStatusFailed => 'Scan failed';
+
+  @override
+  String get scanStatusInterrupted => 'Scan interrupted';
+
+  @override
+  String get scanRescanHint => 'Please scan again';
+
+  @override
+  String get libraryDbTooNew =>
+      'The library was created by a newer version. Please update the App.';
+
+  @override
+  String get errConfigUnknownFields =>
+      'The configuration contains unknown fields; the original must be kept.';
+
+  @override
+  String get errRemoteKinds =>
+      'Remote access currently supports Jellyfin, Emby, Plex and SMB.';
+
+  @override
+  String get errRemoteProtocolMismatch =>
+      'The remote service protocol does not match; SMB currently supports remote-only mode.';
+
+  @override
+  String get errConfigVersionNoOverwrite =>
+      'Incompatible configuration version; it cannot be overwritten.';
+
+  @override
+  String get errAddressRequired => 'Please enter an address.';
+
+  @override
+  String get errTimeoutConcurrency =>
+      'Request timeout must be 1–120 seconds and concurrency 1–8.';
+
+  @override
+  String get errScopeCount =>
+      'Set at least one access scope; at most 100 scopes and 100 exclusions.';
+
+  @override
+  String get errScopeRelative =>
+      'Scopes and exclusions must be relative paths inside the root; .. and absolute paths are not allowed.';
+
+  @override
+  String get errBrowseModeUnsupported =>
+      'This plugin does not support that browsing mode.';
+
+  @override
+  String get errNoSearchIndex =>
+      'This plugin does not provide search or background indexing yet.';
+
+  @override
+  String get errLibraryNoDirPolicy =>
+      'Library sources do not support folder policies yet.';
+
+  @override
+  String get errChooseLocalFolder => 'Please choose a local folder.';
+
+  @override
+  String get errAddressRelativeSegments =>
+      'The address cannot contain relative path segments.';
+
+  @override
+  String get errInvalidServerAddress =>
+      'Enter a valid server address; put credentials in their own fields.';
+
+  @override
+  String get errSmbAddressFormat =>
+      'SMB uses the standard port 445: smb://host/share/optional-folder.';
+
+  @override
+  String errUserIdRequired(String kind) {
+    return 'Please enter the $kind user ID.';
+  }
+
+  @override
+  String get errSftpUsernameRequired => 'Please enter the SFTP username.';
+
+  @override
+  String get errServerAddressRequired => 'Please enter the server address.';
+
+  @override
+  String get errInvalidHost => 'Enter a valid IP, host name or server address.';
+
+  @override
+  String get errPortRange => 'Port must be 1–65535.';
+
+  @override
+  String get errSmbPort => 'SMB connections use port 445.';
+
+  @override
+  String get errPathDots => 'The path cannot contain “.” or “..”.';
+
+  @override
+  String get errSignInFailed =>
+      'Sign-in failed. Check the account and password, or authorize again.';
+
+  @override
+  String get errAddressRedirected =>
+      'The address redirects. Enter the server\'s actual entry point.';
+
+  @override
+  String get errCannotConnectService =>
+      'Cannot connect to the service. Check the address and network.';
+
+  @override
+  String get errConnectTimeout => 'Connection timed out. Please try again.';
+
+  @override
+  String errKindUsernameRequired(String kind) {
+    return 'Please enter the $kind username.';
+  }
+
+  @override
+  String get errNoValidSignIn =>
+      'The server did not return a valid sign-in result.';
+
+  @override
+  String get errPlexSessionExpired =>
+      'Your sign-in expired. Please sign in to Plex again.';
+
+  @override
+  String get errPlexServerUnreachable =>
+      'Cannot connect to this Plex server. Make sure it is online.';
+
+  @override
+  String errDlnaHttp(int status) {
+    return 'DLNA device request failed (HTTP $status).';
+  }
+
+  @override
+  String get errDlnaForeignHost =>
+      'The DLNA device returned an address on another host.';
+
+  @override
+  String get errDlnaNotMediaServer =>
+      'This device is not a media server (no content directory service).';
+
+  @override
+  String get errChooseFolder => 'Please choose a folder.';
+
+  @override
+  String get untitled => 'Untitled';
+
+  @override
+  String get errChooseVideoOrAudio => 'Please choose a video or audio item.';
+
+  @override
+  String get errNoPlayableAddress => 'This item has no playable address.';
+
+  @override
+  String get plexPartMedia => 'Media';
+
+  @override
+  String get errPathOutsideRoot => 'The path is outside the configured root.';
+
+  @override
+  String get errOutsideScope =>
+      'This folder is outside the access scope configured for this instance.';
+
+  @override
+  String get errAttachmentTooLarge => 'Attachment too large';
+
+  @override
+  String errServiceAccessDenied(String service, int status) {
+    return '$service denied access (HTTP $status). Check the username and password.';
+  }
+
+  @override
+  String get errFileNotFound => 'The file or folder does not exist.';
+
+  @override
+  String errServiceRequestFailed(String service, int status) {
+    return '$service request failed (HTTP $status).';
+  }
+
+  @override
+  String get errFtpRefused => 'The FTP server refused the connection.';
+
+  @override
+  String get errFtpLogin =>
+      'FTP sign-in failed. Check the username and password.';
+
+  @override
+  String get errFtpNoBinary =>
+      'The FTP server does not support binary transfers.';
+
+  @override
+  String get errPathChars => 'The path contains unsupported characters.';
+
+  @override
+  String get errFtpNoPassive => 'The FTP server does not support passive mode.';
+
+  @override
+  String get errFolderNotFoundOrDenied =>
+      'The folder does not exist or you lack access.';
+
+  @override
+  String get errFtpList => 'FTP could not list the folder.';
+
+  @override
+  String get errFtpNoResume =>
+      'The FTP server does not support resuming, so seeking is unavailable.';
+
+  @override
+  String get errFtpRead => 'Cannot read this FTP file.';
+
+  @override
+  String get errFtpNoSize =>
+      'The FTP server did not report the file size, so it cannot play.';
+
+  @override
+  String get errSftpLogin =>
+      'SFTP sign-in failed. Check the username and password.';
+
+  @override
+  String get errSftpDisabled => 'SFTP is not enabled on the server.';
+
+  @override
+  String get errPathDenied => 'No permission to access this path.';
+
+  @override
+  String get errSftpRequest => 'SFTP request failed.';
+
+  @override
+  String get errSftpConnect => 'SFTP connection failed.';
+
+  @override
+  String get errSftpPlay => 'Cannot play this SFTP file.';
+
+  @override
+  String get errChooseFile => 'Please choose a file.';
+
+  @override
+  String get errConnectionClosed => 'The connection is closed.';
+
+  @override
+  String get errUnsafeResourceUrl =>
+      'The media service returned an unsafe resource address.';
+
+  @override
+  String errMediaServerHttp(int status) {
+    return 'Media service request failed (HTTP $status). Check the address and credentials.';
+  }
+
+  @override
+  String get errServerArtworkUnavailable => 'Server artwork is unavailable';
+
+  @override
+  String get errImageTooLarge => 'Image too large';
+
+  @override
+  String get errNoPlayableVersion => 'This media has no playable version.';
+
+  @override
+  String get errReselectVersion =>
+      'Go back to the library and choose a version again.';
+
+  @override
+  String get errServerIdentityMismatch => 'Server item identity does not match';
+
+  @override
+  String plexPartLabel(int index, String container) {
+    return 'File $index · $container';
+  }
+
+  @override
+  String get errNoPlayableFile => 'This media has no playable file.';
+
+  @override
+  String get errMultiPartUnsupported =>
+      'This media has multiple versions or parts, which cannot be played directly yet.';
+
+  @override
+  String get errMetadataNotThisServer =>
+      'The metadata query does not belong to this server instance';
+
+  @override
+  String get errArtworkNotThisServer =>
+      'The artwork does not belong to this server instance';
+
+  @override
+  String get srcFieldFolder => 'Folder';
+
+  @override
+  String get srcFieldWorkgroup => 'Workgroup (optional)';
+
+  @override
+  String get srcFieldRegion => 'Region (optional)';
+
+  @override
+  String srcFieldRequired(String field) {
+    return 'Please enter $field.';
+  }
+
+  @override
+  String get errResourceNotThisSource =>
+      'The resource does not belong to this media source.';
+
+  @override
+  String get errOutsideAuthorizedFolder =>
+      'The file is outside the authorized folder.';
+
+  @override
+  String get errOutsideSmbShare =>
+      'The path is outside the configured SMB share.';
+
+  @override
+  String get errSmbListShares =>
+      'Cannot read the share list. Enter the shared folder path under “Advanced” and try again.';
+
+  @override
+  String get errSmbPlay => 'Cannot play this SMB file.';
+
+  @override
+  String get errAttachmentNotFound => 'Attachment not found';
+
+  @override
+  String get errInvalidFileName => 'Invalid file name.';
+
+  @override
+  String get errUnknownWriteShare =>
+      'Cannot determine which share to write to.';
+
+  @override
+  String get errOpenPlayXFolderBlocked =>
+      'A file with the same name exists in the share, so the OpenPlayX folder cannot be created.';
+
+  @override
+  String get errTooManySameName =>
+      'Too many files with the same name. Tidy up the OpenPlayX folder first.';
+
+  @override
+  String get errTempNameConflict =>
+      'Temporary file name conflict. Please try again.';
+
+  @override
+  String get errUploadIncomplete =>
+      'The upload was incomplete; the temporary file was discarded.';
+
+  @override
+  String get errSmbWrite =>
+      'Writing to SMB failed. Make sure the account can write to this share.';
+
+  @override
+  String get errAttachmentTypeOrLimit =>
+      'Unsupported attachment type or read limit';
+
+  @override
+  String get errSourceMissing =>
+      'The media source does not exist or its configuration is incompatible.';
+
+  @override
+  String get errSourceKindChange =>
+      'The source type cannot be changed while editing.';
+
+  @override
+  String get errTokenRequired => 'Please enter the access token.';
+
+  @override
+  String get srcStatusDisabled => 'Disabled';
+
+  @override
+  String get srcStatusReady => 'Ready';
+
+  @override
+  String get srcStatusFailed => 'Connection failed';
+
+  @override
+  String get srcStatusInitialized => 'Initialized · Awaiting connection check';
+
+  @override
+  String get srcStatusSaved => 'Saved · Applies on next access';
+
+  @override
+  String get errArtworkCacheLimit => 'Unsupported image cache limit.';
+
+  @override
+  String get errExtensions =>
+      'File extensions may contain only letters and digits, up to 100.';
+
+  @override
+  String get errSourceDisabled =>
+      'The media source is disabled; its configuration is kept.';
+
+  @override
+  String get errPluginDisabled =>
+      'This plugin is disabled; instance settings are kept.';
+
+  @override
+  String get errTokenExpired =>
+      'The token has expired. Please update the credentials.';
+
+  @override
+  String get errReselectLocalFolder =>
+      'Choose the local folder again to restore access.';
+
+  @override
+  String get errCredentialsUnavailable =>
+      'Credentials are unavailable. Sign in again or update them.';
+
+  @override
+  String get errInstanceChanged =>
+      'The instance settings changed. Please try again.';
+
+  @override
+  String get errRequestTimedOut => 'The request timed out.';
+
+  @override
+  String get errSourceUnreachable =>
+      'Cannot reach the media source. Check the address, permissions and credentials.';
+
+  @override
+  String get errInvalidPaging => 'Invalid paging parameters.';
+
+  @override
+  String get errInvalidSearchPaging => 'Invalid search or paging';
+
+  @override
+  String get errSearchUnsupported => 'This source does not support search';
+
+  @override
+  String get errMetadataUnsupported =>
+      'This source does not support metadata lookup';
+
+  @override
+  String get errAttachmentsUnsupported =>
+      'This source does not support reading attachments';
+
+  @override
+  String get errWriteUnsupported => 'This source does not support writing.';
+
+  @override
+  String get errWriteTimeout =>
+      'Writing timed out. Temporary files starting with .openplayx- may remain on the server.';
+
+  @override
+  String errSourceProxyMissing(String proxy) {
+    return 'This source uses the remote access proxy “$proxy”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.';
+  }
+
+  @override
+  String get errReloadBeforeTest => 'Reload the configuration before testing.';
+
+  @override
+  String get errTestTimeout => 'Connection test timed out.';
+
+  @override
+  String get errTestFailed =>
+      'Connection test failed. Check the address, permissions and credentials.';
+
+  @override
+  String get errManualScanDisabled =>
+      'Manual file scanning is not enabled for this instance.';
+
+  @override
+  String get errScanLimit => 'The scan limit must be 1–5000.';
+
+  @override
+  String get errScanPageLimit =>
+      'The scan reached the limit of 1000 folder pages. Narrow the access scope.';
+
+  @override
+  String get errScanConfigChanged =>
+      'The instance settings changed during the scan. Please scan again.';
+
+  @override
+  String get errTooManyQueued =>
+      'Too many queued requests for this instance. Try again later.';
+
+  @override
+  String get credNotRequired => 'No account credentials needed';
+
+  @override
+  String get credMissing => 'Credentials missing';
+
+  @override
+  String get credConfigured => 'Credentials saved · Not yet verified';
+
+  @override
+  String get credExpiring => 'Token expires within 7 days';
+
+  @override
+  String get credExpired => 'Token expired';
+
+  @override
+  String get credRejected => 'Authentication failed · Update credentials';
+
+  @override
+  String get credVerified => 'Connection verified';
+
+  @override
+  String get errConfigDbTooNew =>
+      'The local configuration database is from a newer version. Please update the App.';
+
+  @override
+  String get errConfigVersionKept =>
+      'Incompatible configuration version; the original data is kept.';
+
+  @override
+  String get errInstanceMetaMismatch =>
+      'The instance configuration does not match its metadata.';
+
+  @override
+  String get errInstanceQuarantined =>
+      'The instance configuration is incompatible or damaged; it was isolated and the original data kept.';
+
+  @override
+  String get errInstanceNoOverwrite =>
+      'An instance configuration with an incompatible version cannot be overwritten.';
+
+  @override
+  String get errConfigChangedElsewhereEdit =>
+      'The configuration was changed in another window. Reload before editing.';
+
+  @override
+  String get errConfigChangedDelete =>
+      'The configuration was updated. Reload before deleting.';
+
+  @override
+  String get errDefaultInstanceChanged =>
+      'The default instance setting was updated. Please reload.';
+
+  @override
+  String get errSettingsChangedElsewhere =>
+      'Settings were changed in another window. Please reload.';
+
+  @override
+  String get pickerVideoAudio => 'Video and audio';
+
+  @override
+  String get pickerAllFiles => 'All files';
+
+  @override
+  String get errSeriesIdentityConflict =>
+      'The series or season identity conflicts';
+
+  @override
+  String get errInfoChangedReload =>
+      'The information changed. Reload and try again';
+
+  @override
+  String get errWorkIdConflict =>
+      'Work ID conflict; manual confirmation needed';
+
+  @override
+  String get errInvalidFieldValue => 'Invalid field value';
+
+  @override
+  String get errPosterNotThisWork => 'The poster does not belong to this work';
+
+  @override
+  String get errRemoteConfigVersion =>
+      'The remote access configuration has an incompatible version or unknown fields.';
+
+  @override
+  String get errRemoteOutboundCredential =>
+      'The outbound and its credential must both be present.';
+
+  @override
+  String get errRemoteUuidPlacement =>
+      'The UUID may only be stored in the credential.';
+
+  @override
+  String get errRemoteCredentialInvalid => 'Invalid remote credential.';
+
+  @override
+  String get errRemoteProxiesInvalid =>
+      'Proxy names must be non-empty and unique, and remotePort must be a valid port.';
+
+  @override
+  String get errRemotePolicyUnsupported =>
+      'The remote connection policy is not supported.';
+
+  @override
+  String get errRemoteLanNeedsHttps =>
+      'Automatic LAN access needs an HTTPS endpoint and a paired certificate SHA-256.';
+
+  @override
+  String get errRemoteUnknownField => 'Unknown remote access field.';
+
+  @override
+  String get errRemoteChooseProxy =>
+      'Choose the proxy to use for remote access.';
+
+  @override
+  String get errRemoteEndpoint =>
+      'Remote access needs a valid HTTP(S) or SMB service endpoint.';
+
+  @override
+  String get errRemoteProxyRef =>
+      'Invalid proxy name, remotePort or credential reference.';
+
+  @override
+  String get errRemoteProxyHost =>
+      'Invalid proxy host or configuration length.';
+
+  @override
+  String get errRemoteTlsName => 'Invalid proxy TLS server name.';
+
+  @override
+  String get errRemoteNeedsVless =>
+      'Pairing needs a VLESS TLS/REALITY outbound with certificate verification on.';
+
+  @override
+  String get errRemoteCaPrivateKey =>
+      'The CA configuration cannot contain a private key.';
+
+  @override
+  String get errRemoteRealityPublic =>
+      'The REALITY client stores only public parameters.';
+
+  @override
+  String get errRemoteAuthHeader =>
+      'Transport auth headers cannot be written into the public route configuration.';
+
+  @override
+  String get errRemoteTlsField => 'Unsupported TLS configuration field.';
+
+  @override
+  String get errRemoteConfigTooLarge => 'The configuration is too large.';
+
+  @override
+  String get errRemoteInvalidJson =>
+      'Not valid JSON. Paste the complete App configuration exported by Relay.';
+
+  @override
+  String get errRemoteAppConfigShape =>
+      'The App configuration must be a JSON object with only “outbound” (object) and “proxies” (array).';
+
+  @override
+  String get errRemoteProxyShape =>
+      'Each proxy must have only “name” (string) and “remotePort” (port).';
+
+  @override
+  String get errRemoteProxiesEmpty =>
+      'Proxies cannot be empty and names must be unique.';
+
+  @override
+  String get errRemoteOutsideEndpoint =>
+      'The request is outside the authorized service endpoint.';
+
+  @override
+  String get errRemoteCertMismatch =>
+      'The service certificate does not match the paired identity.';
+
+  @override
+  String get errRemoteOutsidePaired =>
+      'The connection is outside the paired service.';
+
+  @override
+  String get errRemoteLanUnreachable =>
+      'The LAN service is unreachable or failed identity verification.';
+
+  @override
+  String get errRemoteCellularBlocked =>
+      'Remote access over cellular is disabled, or the current network cannot be determined.';
+
+  @override
+  String get errRemoteCellularUnknown =>
+      'Cannot determine the cellular state, so the remote connection was blocked.';
+
+  @override
+  String get errRemoteNoCore =>
+      'This build lacks the remote connection core. Install a build that includes sing-box.';
+
+  @override
+  String get errRemoteNativeConfigTooLarge =>
+      'The remote connection configuration is too large.';
+
+  @override
+  String get errRemoteCoreStart =>
+      'The remote core failed to start. Check the route configuration.';
+
+  @override
+  String get rtDisabled => 'Disabled';
+
+  @override
+  String get rtUnchecked => 'Not checked';
+
+  @override
+  String get rtStarting => 'Starting';
+
+  @override
+  String get rtBlocked => 'Needs attention';
+
+  @override
+  String get rtError => 'Error';
+
+  @override
+  String get rtDraining => 'Finishing up';
+
+  @override
+  String get healthLastOk => 'Last connection succeeded';
+
+  @override
+  String get healthLocal => 'This device';
+
+  @override
+  String get plgDraining =>
+      'New calls blocked; waiting for playback or tasks to finish';
+
+  @override
+  String plgDependencyBlocked(String name) {
+    return 'The dependency “$name” is disabled or unavailable';
+  }
+
+  @override
+  String get plgNoInstanceAdded => 'No instance added yet';
+
+  @override
+  String get plgAllInstancesDisabled => 'All instances are disabled';
+
+  @override
+  String get plgInstanceFailing => 'An instance failed to connect';
+
+  @override
+  String get plgSomeInstancesBlocked => 'Some instances need attention';
+
+  @override
+  String get plgNfoInstance => 'Adjacent file rules';
+
+  @override
+  String get plgNoTmdb => 'This build does not include TMDB settings';
+
+  @override
+  String get plgTmdbInstance => 'TMDB settings';
+
+  @override
+  String get plgTmdbNoToken => 'No access token configured';
+
+  @override
+  String get plgNoFfmpeg =>
+      'This platform or build does not include FFmpeg media processing';
+
+  @override
+  String get plgFfmpegInstance => 'On-device processing';
+
+  @override
+  String get plgModelNotConfigured => 'No model or key configured';
+
+  @override
+  String get plgNoSources => 'This build does not include media sources';
+
+  @override
+  String get plgNoAsr => 'This build does not include speech recognition';
+
+  @override
+  String plgModelDetail(String model) {
+    return 'Model $model';
+  }
+
+  @override
+  String get plgLocalAsrUnavailable =>
+      'The local recognition engine is unavailable';
+
+  @override
+  String get errTmdbTokenRequired => 'Configure a TMDB read access token';
+
+  @override
+  String get errQueryCancelled => 'The query was cancelled';
+
+  @override
+  String get errTmdbResponseTooLarge => 'The TMDB response is too large';
+
+  @override
+  String get errTmdbAuth => 'TMDB authentication failed. Update the token';
+
+  @override
+  String get errTmdbNotFound => 'The TMDB item does not exist';
+
+  @override
+  String get errTmdbRateLimited =>
+      'TMDB is rate limiting requests. Try again later';
+
+  @override
+  String get errTmdbUnavailable => 'TMDB is temporarily unavailable';
+
+  @override
+  String get errTmdbRequestFailed => 'The TMDB request failed';
+
+  @override
+  String get errTmdbInvalidResponse => 'Invalid TMDB response format';
+
+  @override
+  String get errTmdbUnreachable => 'Cannot connect to TMDB. Check the network';
+
+  @override
+  String get errTmdbNoAttachments => 'TMDB does not read source attachments';
+
+  @override
+  String get errTmdbInvalidIds => 'Invalid TMDB ID or season/episode number';
+
+  @override
+  String get errIdentifySeriesFirst =>
+      'Identify the series first, then choose the season and episode';
+
+  @override
+  String get errTmdbRefRequired => 'Details need a TMDB reference';
+
+  @override
+  String get errTmdbInvalidIdentity => 'Invalid TMDB item identity or title';
+
+  @override
+  String get errNfoRefRequired => 'NFO details need an attachment reference';
+
+  @override
+  String get errNfoParse => 'Could not parse the NFO';
+
+  @override
+  String get errNfoTooLarge => 'The NFO is larger than 1 MiB';
+
+  @override
+  String get errNfoDtd => 'DTD and entity declarations are not allowed in NFO';
+
+  @override
+  String get errNfoTooManyNodes => 'The NFO has too many nodes';
+
+  @override
+  String get errNfoTooDeep => 'The NFO is nested too deeply';
+
+  @override
+  String get errNfoType => 'Unsupported NFO item type';
+
+  @override
+  String get errNfoFieldTooLong => 'An NFO field is too long';
+
+  @override
+  String get errInvalidMetadataQuery => 'Invalid metadata query parameters';
+
+  @override
+  String get errMetadataQueryUnsupported =>
+      'This metadata instance does not support that query';
+
+  @override
+  String get errMediaKindUnsupported =>
+      'Metadata for this media type is not supported';
+
+  @override
+  String get errBackgroundIdentify => 'Background identification failed';
+
+  @override
+  String get errQueryStale => 'The query expired or was cancelled';
+
+  @override
+  String get errTmdbConfigChanged => 'The TMDB settings changed';
+
+  @override
+  String get errRequeryCandidates => 'Search for candidates again';
+
+  @override
+  String get errChooseEpisodeFirst =>
+      'Choose a specific season and episode first';
+
+  @override
+  String get errCandidateNotThisQuery =>
+      'The candidate does not belong to this query';
+
+  @override
+  String get errDetailIdentityMismatch => 'Detail identity does not match';
+
+  @override
+  String get errReloadCandidates => 'Reload the candidates';
+
+  @override
+  String get errInvalidLocalCandidate => 'Invalid local candidate';
+
+  @override
+  String get errChooseSeriesFirst => 'Choose a series first';
+
+  @override
+  String get errConfirmMatchFirst => 'Confirm the match first';
+
+  @override
+  String get errCatalogTooLarge =>
+      'The catalog is too large. Narrow the metadata scope';
+
+  @override
+  String get errCursorStuck => 'The paging cursor did not advance';
+
+  @override
+  String get errEpisodeSeasonMissing => 'The episode\'s season does not exist';
+
+  @override
+  String get errSourceConfigChanged => 'The source configuration changed';
+
+  @override
+  String get errInvalidYear => 'Invalid year';
+
+  @override
+  String get catSourceBrowse => 'Browse folders';
+
+  @override
+  String get catSourceBrowseDesc => 'List this source\'s folders and files';
+
+  @override
+  String get catSourceResolve => 'Play';
+
+  @override
+  String get catSourceResolveDesc =>
+      'Hand the selected item to the player, strictly bound to its instance';
+
+  @override
+  String get catSourceAttachments => 'Read attachments';
+
+  @override
+  String get catSourceAttachmentsDesc =>
+      'Read small files such as NFO and external subtitles (size-limited)';
+
+  @override
+  String get catSearchMedia => 'Search media';
+
+  @override
+  String get catSearchMediaDesc => 'Search movies and shows on the server';
+
+  @override
+  String get catMetadataLookup => 'Metadata';
+
+  @override
+  String get catMetadataLookupDesc =>
+      'Read metadata organized by the media server';
+
+  @override
+  String get catSourceWrite => 'Write new files';
+
+  @override
+  String get catSourceWriteDesc =>
+      'Write clips the App makes to the OpenPlayX folder of the same share; never overwrites or deletes, and asks every time';
+
+  @override
+  String get catSummaryLocal => 'Folders on this device or mounted';
+
+  @override
+  String get catSummarySmb => 'Windows shares and NAS SMB shares';
+
+  @override
+  String get catSummaryWebdav => 'WebDAV cloud drives or NAS folders';
+
+  @override
+  String get catSummaryFtp => 'FTP server folders';
+
+  @override
+  String get catSummarySftp => 'Server folders over SSH';
+
+  @override
+  String get catSummaryS3 => 'S3-compatible object storage buckets';
+
+  @override
+  String get catSummaryPlex => 'Plex media server';
+
+  @override
+  String get catSummaryJellyfin => 'Jellyfin media server';
+
+  @override
+  String get catSummaryEmby => 'Emby media server';
+
+  @override
+  String get catSummaryDlna => 'DLNA media servers on the local network';
+
+  @override
+  String get catDataLocal => 'Reads only the folders you authorize.';
+
+  @override
+  String get catDataRemote =>
+      'The App connects from this device to the server you configured; file and folder names appear in AI chats (only when AI use is allowed).';
+
+  @override
+  String get catNfoName => 'NFO metadata';
+
+  @override
+  String get catNfoSummary => 'Reads .nfo files next to your media';
+
+  @override
+  String get catNfoToggle =>
+      'Controlled by “Scraped metadata”; background scraping runs on its own and cannot be disabled separately yet.';
+
+  @override
+  String get catNfoCap => 'Local metadata';
+
+  @override
+  String get catNfoCapDesc => 'Match movie info by adjacent-file rules';
+
+  @override
+  String get catTmdbSummary =>
+      'Look up movies and shows from The Movie Database';
+
+  @override
+  String get catTmdbToggle =>
+      'Clear the access token to stop using it; background scraping runs on its own and cannot be disabled separately yet.';
+
+  @override
+  String get catTmdbData =>
+      'Lookups send the parsed title and year to TMDB, never file contents.';
+
+  @override
+  String get catTmdbCap => 'Look up metadata';
+
+  @override
+  String get catTmdbCapDesc =>
+      'Search and match movies and shows; the host does the writing';
+
+  @override
+  String get catFfmpegName => 'FFmpeg media processing';
+
+  @override
+  String get catFfmpegSummary =>
+      'Snapshots, probing, transcoding and audio extraction';
+
+  @override
+  String get catFfmpegData =>
+      'Processes media on this device; output is kept in the app folder.';
+
+  @override
+  String get catProbe => 'Probe';
+
+  @override
+  String get catProbeDesc => 'Read duration, codecs and tracks';
+
+  @override
+  String get catTranscode => 'Transcode';
+
+  @override
+  String get catTranscodeDesc => 'Transcode to a new file with a preset';
+
+  @override
+  String get catExtractAudio => 'Extract audio';
+
+  @override
+  String get catExtractAudioDesc =>
+      'Export an audio track for recognition or saving';
+
+  @override
+  String get catSnapshot => 'Snapshot';
+
+  @override
+  String get catSnapshotDesc => 'Capture the frame at a given time';
+
+  @override
+  String get catAsrName => 'Speech recognition';
+
+  @override
+  String get catAsrSummary =>
+      'Generate original-language subtitles and transcripts for videos';
+
+  @override
+  String get catAsrCapDesc =>
+      'Generate original-language subtitles/transcripts; no translation';
+
+  @override
+  String get catLlmName => 'Chat model';
+
+  @override
+  String get catLlmSummary =>
+      'Provides the large language model for the AI assistant';
+
+  @override
+  String get catLlmToggle =>
+      'Configure or clear the model under “AI and models”; it never creates reasoning tools that call itself.';
+
+  @override
+  String get catLlmData =>
+      'Chat content, page summaries and tool results are sent to the configured model service, which may cost money.';
+
+  @override
+  String get catLlmCap => 'Chat reasoning';
+
+  @override
+  String get catLlmCapDesc =>
+      'Generate replies and tool calls for the AI assistant';
+
+  @override
+  String get catCategorySource => 'Media sources';
+
+  @override
+  String get catCategoryMetadata => 'Metadata';
+
+  @override
+  String get catCategoryMediaProcessing => 'Media processing';
+
+  @override
+  String get catCategorySpeech => 'Subtitle recognition';
+
+  @override
+  String get catLocationNetwork => 'Network storage';
+
+  @override
+  String get catLocationSelfHosted => 'Self-hosted service';
+
+  @override
+  String get catLocationCloudApi => 'Cloud API';
+
+  @override
+  String get webSearchPresetName => 'Web search';
+
+  @override
+  String get errAssistantConfig =>
+      'Enter a valid HTTPS API base URL, model and output limit (128–16384)';
+
+  @override
+  String get errExtRootAddress =>
+      'Enter the service root address, e.g. https://bt.example.com';
+
+  @override
+  String get errExtHttpsRequired =>
+      'Public addresses must use HTTPS; HTTP is only allowed for LAN or local addresses';
+
+  @override
+  String get errExtTokenRequired => 'Please enter the access token';
+
+  @override
+  String get errExtTimeout => 'Connection timed out';
+
+  @override
+  String get errExtUnreachable => 'Cannot connect to this address';
+
+  @override
+  String get errExtTls => 'TLS certificate verification failed';
+
+  @override
+  String get errExtTooLarge => 'The service returned too much data';
+
+  @override
+  String errExtRejected(String reason) {
+    return 'The service rejected the request: $reason';
+  }
+
+  @override
+  String errExtError(String code) {
+    return 'The service returned an error ($code)';
+  }
+
+  @override
+  String get errExtTokenInvalid => 'Invalid access token';
+
+  @override
+  String get errExtNoMcp => 'This address does not offer an MCP endpoint';
+
+  @override
+  String get errArtworkCancelled => 'Image loading was cancelled';
+
+  @override
+  String get errArtworkQuota => 'Not enough image cache space';
+
+  @override
+  String get errArtworkUnauthorized => 'The image address is not authorized';
+
+  @override
+  String get errArtworkTypeSize => 'Invalid image type or size';
+
+  @override
+  String get errArtworkEmptyOrLarge => 'The image is empty or too large';
+
+  @override
+  String get errArtworkContentType => 'Unsupported image content type';
+
+  @override
+  String get errArtworkDecodeSize => 'The decoded image is too large';
+
+  @override
+  String get errArtworkWait => 'Wait for the image to finish loading';
+
+  @override
+  String get errLibraryClosing => 'The library is closing';
+
+  @override
+  String get errNameRequired => 'Please enter a name';
+
+  @override
+  String get errSeasonCycle =>
+      'The source returned a circular season/episode relation';
+
+  @override
+  String get errInvalidPagingShort => 'Invalid paging';
+
+  @override
+  String get errTitleRequired => 'Please enter a title';
+
+  @override
+  String get errScanRunning => 'A scan is already running';
+
+  @override
+  String get errFileSourceMissing => 'The file source does not exist';
+
+  @override
+  String get errFileSourceDisabled => 'The file source is disabled';
+
+  @override
+  String get errSourceScanDisabled => 'Scanning is not enabled for this source';
+
+  @override
+  String get errScanTooLarge => 'The scan scope is too large. Narrow it down';
+
+  @override
+  String get errScanBindingChanged =>
+      'The source or binding changed. Please scan again';
+
+  @override
+  String get errSourceIdentityMismatch => 'Source identity does not match';
+
+  @override
+  String get errSourceCursorStuck => 'The source paging cursor did not advance';
+
+  @override
+  String get errScanIncomplete =>
+      'The scan did not finish. Check the source and try again';
+
+  @override
+  String get aiToolContextGet => 'Read current page';
+
+  @override
+  String get aiToolSourceList => 'List media sources';
+
+  @override
+  String get aiToolSourceBrowse => 'Browse folder';
+
+  @override
+  String get aiToolLibraryQuery => 'Query library';
+
+  @override
+  String get aiToolMediaGet => 'View media details';
+
+  @override
+  String get aiToolSearchMedia => 'Search media';
+
+  @override
+  String get aiToolProgressQuery => 'View watch progress';
+
+  @override
+  String get aiToolMediaSetFavorite => 'Set favorite';
+
+  @override
+  String get aiToolPlaybackGet => 'Read playback state';
+
+  @override
+  String get aiToolPlaybackOpen => 'Open playback';
+
+  @override
+  String get aiToolPlaybackPause => 'Pause';
+
+  @override
+  String get aiToolPlaybackResume => 'Resume playback';
+
+  @override
+  String get aiToolPlaybackStop => 'Stop playback';
+
+  @override
+  String get aiToolPlaybackSeek => 'Seek';
+
+  @override
+  String get aiToolPlaybackSetSpeed => 'Set speed';
+
+  @override
+  String get aiToolPlaybackSetVolume => 'Set volume';
+
+  @override
+  String get aiToolPlaybackSetSubtitle => 'Set subtitles';
+
+  @override
+  String get aiToolMediaProcessingCapabilities =>
+      'Query media processing capabilities';
+
+  @override
+  String get aiToolMediaProbe => 'Analyze media';
+
+  @override
+  String get aiToolMediaTranscode => 'Transcode / clip';
+
+  @override
+  String get aiToolMediaExtractAudio => 'Extract audio';
+
+  @override
+  String get aiToolMediaSnapshot => 'Snapshot';
+
+  @override
+  String get aiToolMediaSaveToSource => 'Save back to source';
+
+  @override
+  String get aiToolTaskGet => 'Query processing task';
+
+  @override
+  String get aiToolTaskList => 'List processing tasks';
+
+  @override
+  String get aiToolTaskCancel => 'Cancel processing task';
+
+  @override
+  String get aiToolTaskRetry => 'Retry processing task';
+
+  @override
+  String get aiToolSpeechRecognitionStatus => 'Query speech recognition status';
+
+  @override
+  String get aiToolSubtitleGenerate => 'Recognize subtitles';
+
+  @override
+  String get aiToolTranscriptGenerate => 'Generate transcript';
+
+  @override
+  String get aiToolSubtitleTaskGet => 'Query subtitle task';
+
+  @override
+  String get aiToolSubtitleTaskCancel => 'Cancel subtitle task';
+
+  @override
+  String get aiToolSubtitleSave => 'Save subtitles';
+
+  @override
+  String get aiToolPluginStatus => 'View plugin status';
+
+  @override
+  String get aiToolMcpTavilyWebSearch => 'Web search';
+
+  @override
+  String get aiToolWebFetch => 'Read web page';
+
+  @override
+  String get aiArgQuery => 'Query';
+
+  @override
+  String get aiArgUrl => 'URL';
+
+  @override
+  String get aiArgRange => 'Range';
+
+  @override
+  String get aiArgEnd => 'end';
+
+  @override
+  String get aiArgWholeMedia => 'whole media';
+
+  @override
+  String get aiArgTime => 'Time';
+
+  @override
+  String get aiArgPosition => 'Position';
+
+  @override
+  String get aiArgPreset => 'Preset';
+
+  @override
+  String get aiArgLanguage => 'Language';
+
+  @override
+  String get aiArgFormat => 'Format';
+
+  @override
+  String get aiArgSpeed => 'Speed';
+
+  @override
+  String get aiArgVolume => 'Volume';
+
+  @override
+  String get aiArgSwitch => 'Switch';
+
+  @override
+  String get aiArgOff => 'off';
+
+  @override
+  String get aiArgFavorite => 'Favorite';
+
+  @override
+  String get aiArgFavoriteOn => 'favorite';
+
+  @override
+  String get aiArgFavoriteOff => 'unfavorite';
+
+  @override
+  String get aiArgWait => 'Wait';
+
+  @override
+  String get aiToolInput => 'INPUT';
+
+  @override
+  String get aiToolOutput => 'OUTPUT';
+
+  @override
+  String get aiActivityThinking => 'Thinking';
+
+  @override
+  String get aiActivityAnswering => 'Replying';
+
+  @override
+  String get aiActivityRunningDefault => 'Running';
+
+  @override
+  String get aiReasoningStreaming => 'Thinking...';
+
+  @override
+  String get aiReasoningDone => 'Thought';
+
+  @override
+  String get aiReasoningUnderSecond => 'Thought for less than a second';
+
+  @override
+  String get aiStillRunning =>
+      'Wait timed out; the task is still running in the background';
+
+  @override
+  String get aiStatusQueued => 'queued';
+
+  @override
+  String get aiStatusPreparing => 'preparing';
+
+  @override
+  String get aiStatusRunning => 'running';
+
+  @override
+  String get aiStatusCancelling => 'cancelling';
+
+  @override
+  String get aiStatusSucceeded => 'succeeded';
+
+  @override
+  String get aiStatusFailed => 'failed';
+
+  @override
+  String get aiStatusCancelled => 'cancelled';
+
+  @override
+  String get aiStatusInterrupted => 'interrupted';
+
+  @override
+  String get aiStageExtracting => 'extracting';
+
+  @override
+  String get aiStageUploading => 'uploading';
+
+  @override
+  String get aiStageQueued => 'queued';
+
+  @override
+  String get aiStageTranscribing => 'transcribing';
+
+  @override
+  String get aiStageFormatting => 'formatting';
+
+  @override
+  String aiArgWaitValue(String seconds) {
+    return 'wait ≤${seconds}s';
+  }
+
+  @override
+  String aiStepPreparing(String name) {
+    return 'Preparing $name...';
+  }
+
+  @override
+  String aiStepRunning(String name) {
+    return 'Executing $name...';
+  }
+
+  @override
+  String aiStepWaiting(String name) {
+    return 'Allow $name?';
+  }
+
+  @override
+  String aiStepFailed(String name) {
+    return '$name failed';
+  }
+
+  @override
+  String aiStepCancelled(String name) {
+    return 'Cancelled $name';
+  }
+
+  @override
+  String aiShowAll(int count) {
+    return 'Show all ($count characters)';
+  }
+
+  @override
+  String aiActivityPreparingTool(String name) {
+    return 'Preparing: $name';
+  }
+
+  @override
+  String aiActivityTool(String name) {
+    return 'Running: $name';
+  }
+
+  @override
+  String aiActivityConfirm(String name) {
+    return 'Waiting for you: $name';
+  }
+
+  @override
+  String aiStepNumber(int step) {
+    return 'step $step';
+  }
+
+  @override
+  String aiReasoningSeconds(int seconds) {
+    return 'Thought for $seconds seconds';
+  }
+
+  @override
+  String aiReasoningMinutes(int minutes) {
+    String _temp0 = intl.Intl.pluralLogic(
+      minutes,
+      locale: localeName,
+      other: '$minutes minutes',
+      one: 'a minute',
+    );
+    return 'Thought for $_temp0';
+  }
 }

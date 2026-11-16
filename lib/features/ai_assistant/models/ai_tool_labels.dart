@@ -1,56 +1,58 @@
 import 'package:flutter/widgets.dart';
 
+import '../../../l10n/generated/app_localizations.dart';
 import 'ai_chat_part.dart';
 
 /// Human labels for tool cards and the activity row. Built on the host from
 /// tool names and validated arguments, never from model text.
 abstract final class AiToolLabels {
-  static bool _zh(BuildContext context) =>
-      Localizations.localeOf(context).languageCode == 'zh';
-
-  static const _zhNames = {
-    'context_get': '读取当前页面',
-    'source_list': '列出媒体来源',
-    'source_browse': '浏览文件夹',
-    'library_query': '查询媒体库',
-    'media_get': '查看媒体详情',
-    'search_media': '搜索媒体',
-    'progress_query': '查看观看进度',
-    'media_set_favorite': '设置收藏',
-    'playback_get': '读取播放状态',
-    'playback_open': '打开播放',
-    'playback_pause': '暂停',
-    'playback_resume': '继续播放',
-    'playback_stop': '停止播放',
-    'playback_seek': '跳转',
-    'playback_set_speed': '设置倍速',
-    'playback_set_volume': '设置音量',
-    'playback_set_subtitle': '设置字幕',
-    'media_processing_capabilities': '查询媒体处理能力',
-    'media_probe': '分析媒体',
-    'media_transcode': '转码 / 截取片段',
-    'media_extract_audio': '提取音频',
-    'media_snapshot': '截图',
-    'media_save_to_source': '存回媒体来源',
-    'task_get': '查询处理任务',
-    'task_list': '列出处理任务',
-    'task_cancel': '取消处理任务',
-    'task_retry': '重试处理任务',
-    'speech_recognition_status': '查询语音识别状态',
-    'subtitle_generate': '识别字幕',
-    'transcript_generate': '生成转录',
-    'subtitle_task_get': '查询字幕任务',
-    'subtitle_task_cancel': '取消字幕任务',
-    'subtitle_save': '保存字幕',
-    'plugin_status': '查看插件状态',
-    'mcp_tavily_web_search': '联网搜索',
-    'web_fetch': '读取网页',
-  };
-
-  /// English falls back to a readable form of the tool name.
+  /// Unknown tools (external MCP tools) fall back to a readable form of the
+  /// tool name.
   static String tool(BuildContext context, String? name) {
     if (name == null) return '';
-    if (_zh(context)) return _zhNames[name] ?? name;
+    final l = AppLocalizations.of(context);
+    return switch (name) {
+      'context_get' => l.aiToolContextGet,
+      'source_list' => l.aiToolSourceList,
+      'source_browse' => l.aiToolSourceBrowse,
+      'library_query' => l.aiToolLibraryQuery,
+      'media_get' => l.aiToolMediaGet,
+      'search_media' => l.aiToolSearchMedia,
+      'progress_query' => l.aiToolProgressQuery,
+      'media_set_favorite' => l.aiToolMediaSetFavorite,
+      'playback_get' => l.aiToolPlaybackGet,
+      'playback_open' => l.aiToolPlaybackOpen,
+      'playback_pause' => l.aiToolPlaybackPause,
+      'playback_resume' => l.aiToolPlaybackResume,
+      'playback_stop' => l.aiToolPlaybackStop,
+      'playback_seek' => l.aiToolPlaybackSeek,
+      'playback_set_speed' => l.aiToolPlaybackSetSpeed,
+      'playback_set_volume' => l.aiToolPlaybackSetVolume,
+      'playback_set_subtitle' => l.aiToolPlaybackSetSubtitle,
+      'media_processing_capabilities' => l.aiToolMediaProcessingCapabilities,
+      'media_probe' => l.aiToolMediaProbe,
+      'media_transcode' => l.aiToolMediaTranscode,
+      'media_extract_audio' => l.aiToolMediaExtractAudio,
+      'media_snapshot' => l.aiToolMediaSnapshot,
+      'media_save_to_source' => l.aiToolMediaSaveToSource,
+      'task_get' => l.aiToolTaskGet,
+      'task_list' => l.aiToolTaskList,
+      'task_cancel' => l.aiToolTaskCancel,
+      'task_retry' => l.aiToolTaskRetry,
+      'speech_recognition_status' => l.aiToolSpeechRecognitionStatus,
+      'subtitle_generate' => l.aiToolSubtitleGenerate,
+      'transcript_generate' => l.aiToolTranscriptGenerate,
+      'subtitle_task_get' => l.aiToolSubtitleTaskGet,
+      'subtitle_task_cancel' => l.aiToolSubtitleTaskCancel,
+      'subtitle_save' => l.aiToolSubtitleSave,
+      'plugin_status' => l.aiToolPluginStatus,
+      'mcp_tavily_web_search' => l.aiToolMcpTavilyWebSearch,
+      'web_fetch' => l.aiToolWebFetch,
+      _ => _readable(name),
+    };
+  }
+
+  static String _readable(String name) {
     final words = name.split('_');
     return '${words.first[0].toUpperCase()}${words.first.substring(1)} ${words.skip(1).join(' ')}'
         .trim();
@@ -74,80 +76,73 @@ abstract final class AiToolLabels {
     BuildContext context,
     Map<String, dynamic> a,
   ) {
-    final zh = _zh(context);
+    final l = AppLocalizations.of(context);
     String cut(Object v) {
       final t = '$v';
       return t.length > 40 ? '${t.substring(0, 40)}…' : t;
     }
 
-    ({String label, String value}) row(String zhLabel, String en, String v) =>
-        (label: zh ? zhLabel : en, value: v);
+    ({String label, String value}) row(String label, String v) =>
+        (label: label, value: v);
     return [
-      if (a['query'] case final String q) row('关键词', 'Query', '“${cut(q)}”'),
-      if (a['url'] case final String u) row('网址', 'URL', cut(u)),
+      if (a['query'] case final String q) row(l.aiArgQuery, '“${cut(q)}”'),
+      if (a['url'] case final String u) row(l.aiArgUrl, cut(u)),
       if (a['start_ms'] is num || a['end_ms'] is num)
         row(
-          '范围',
-          'Range',
-          '${_clock(a['start_ms'] as num? ?? 0)}–${a['end_ms'] is num ? _clock(a['end_ms'] as num) : (zh ? '结尾' : 'end')}',
+          l.aiArgRange,
+          '${_clock(a['start_ms'] as num? ?? 0)}–${a['end_ms'] is num ? _clock(a['end_ms'] as num) : l.aiArgEnd}',
         ),
-      if (a['whole_media'] == true)
-        row('范围', 'Range', zh ? '整部' : 'whole media'),
-      if (a['time_ms'] case final num t) row('时间', 'Time', _clock(t)),
-      if (a['position_ms'] case final num t) row('位置', 'Position', _clock(t)),
-      if (a['preset_id'] case final String p) row('预设', 'Preset', p),
-      if (a['language'] case final String l) row('语言', 'Language', l),
-      if (a['format'] case final String f) row('格式', 'Format', f),
-      if (a['speed'] case final num s) row('倍速', 'Speed', '${s}x'),
-      if (a['volume'] case final num v) row('音量', 'Volume', '$v%'),
-      if (a['off'] == true) row('开关', 'Switch', zh ? '关闭' : 'off'),
+      if (a['whole_media'] == true) row(l.aiArgRange, l.aiArgWholeMedia),
+      if (a['time_ms'] case final num t) row(l.aiArgTime, _clock(t)),
+      if (a['position_ms'] case final num t) row(l.aiArgPosition, _clock(t)),
+      if (a['preset_id'] case final String p) row(l.aiArgPreset, p),
+      if (a['language'] case final String lang) row(l.aiArgLanguage, lang),
+      if (a['format'] case final String f) row(l.aiArgFormat, f),
+      if (a['speed'] case final num s) row(l.aiArgSpeed, '${s}x'),
+      if (a['volume'] case final num v) row(l.aiArgVolume, '$v%'),
+      if (a['off'] == true) row(l.aiArgSwitch, l.aiArgOff),
       if (a['favorite'] case final bool f)
-        row(
-          '收藏',
-          'Favorite',
-          f ? (zh ? '收藏' : 'favorite') : (zh ? '取消收藏' : 'unfavorite'),
-        ),
+        row(l.aiArgFavorite, f ? l.aiArgFavoriteOn : l.aiArgFavoriteOff),
       if (a['wait_seconds'] case final num w when w > 0)
-        row('等待', 'Wait', zh ? '最多等 ${w}s' : 'wait ≤${w}s'),
+        row(l.aiArgWait, l.aiArgWaitValue('$w')),
     ];
   }
 
   /// One-line header of a tool step, by phase.
   static String toolStep(BuildContext context, AiToolPhase phase, String name) {
-    final zh = _zh(context);
+    final l = AppLocalizations.of(context);
     return switch (phase) {
-      AiToolPhase.preparing => zh ? '准备调用 $name…' : 'Preparing $name...',
-      AiToolPhase.running => zh ? '正在执行 $name…' : 'Executing $name...',
-      AiToolPhase.waiting => zh ? '允许执行 $name？' : 'Allow $name?',
+      AiToolPhase.preparing => l.aiStepPreparing(name),
+      AiToolPhase.running => l.aiStepRunning(name),
+      AiToolPhase.waiting => l.aiStepWaiting(name),
       AiToolPhase.success => name,
-      AiToolPhase.failed => zh ? '$name 失败' : '$name failed',
-      AiToolPhase.cancelled => zh ? '已取消 $name' : 'Cancelled $name',
+      AiToolPhase.failed => l.aiStepFailed(name),
+      AiToolPhase.cancelled => l.aiStepCancelled(name),
     };
   }
 
   static String toolInput(BuildContext context) =>
-      _zh(context) ? '输入' : 'INPUT';
-  static String showAll(BuildContext context, int characters) => _zh(context)
-      ? '显示全部（$characters 个字符）'
-      : 'Show all ($characters characters)';
+      AppLocalizations.of(context).aiToolInput;
+  static String showAll(BuildContext context, int characters) =>
+      AppLocalizations.of(context).aiShowAll(characters);
   static String toolOutput(BuildContext context) =>
-      _zh(context) ? '输出' : 'OUTPUT';
+      AppLocalizations.of(context).aiToolOutput;
 
   static String activity(BuildContext context, String activity, String? tool) {
-    final zh = _zh(context);
+    final l = AppLocalizations.of(context);
     final name = AiToolLabels.tool(context, tool);
     return switch (activity) {
-      'thinking' when tool != null => zh ? '准备调用：$name' : 'Preparing: $name',
-      'thinking' => zh ? '正在思考' : 'Thinking',
-      'answering' => zh ? '正在回复' : 'Replying',
-      'tool' => zh ? '正在执行：$name' : 'Running: $name',
-      'confirm' => zh ? '等待你确认：$name' : 'Waiting for you: $name',
-      _ => zh ? '运行中' : 'Running',
+      'thinking' when tool != null => l.aiActivityPreparingTool(name),
+      'thinking' => l.aiActivityThinking,
+      'answering' => l.aiActivityAnswering,
+      'tool' => l.aiActivityTool(name),
+      'confirm' => l.aiActivityConfirm(name),
+      _ => l.aiActivityRunningDefault,
     };
   }
 
   static String step(BuildContext context, int step) =>
-      _zh(context) ? '第 $step 步' : 'step $step';
+      AppLocalizations.of(context).aiStepNumber(step);
 
   /// "Thinking…" while streaming, then how long it took when that is known
   /// (reasoning reloaded from history has no timing).
@@ -156,44 +151,42 @@ abstract final class AiToolLabels {
     required bool streaming,
     Duration? duration,
   }) {
-    final zh = _zh(context);
-    if (streaming) return zh ? '思考中…' : 'Thinking...';
-    if (duration == null) return zh ? '已思考' : 'Thought';
+    final l = AppLocalizations.of(context);
+    if (streaming) return l.aiReasoningStreaming;
+    if (duration == null) return l.aiReasoningDone;
     final s = duration.inSeconds;
-    if (s < 1) return zh ? '思考了不到 1 秒' : 'Thought for less than a second';
-    if (s < 60) return zh ? '思考了 $s 秒' : 'Thought for $s seconds';
-    final m = (s / 60).round();
-    return zh
-        ? '思考了 $m 分钟'
-        : 'Thought for ${m == 1 ? 'a minute' : '$m minutes'}';
+    if (s < 1) return l.aiReasoningUnderSecond;
+    if (s < 60) return l.aiReasoningSeconds(s);
+    return l.aiReasoningMinutes((s / 60).round());
   }
 
   /// Live task progress from `ToolExecution.report`.
   static String progress(BuildContext context, Map<String, dynamic> p) {
-    final zh = _zh(context);
-    const zhStatus = {
-      'queued': '排队中',
-      'preparing': '准备中',
-      'running': '处理中',
-      'cancelling': '取消中',
-      'succeeded': '已完成',
-      'failed': '失败',
-      'cancelled': '已取消',
-      'interrupted': '已中断',
+    final l = AppLocalizations.of(context);
+    String statusLabel(String status) => switch (status) {
+      'queued' => l.aiStatusQueued,
+      'preparing' => l.aiStatusPreparing,
+      'running' => l.aiStatusRunning,
+      'cancelling' => l.aiStatusCancelling,
+      'succeeded' => l.aiStatusSucceeded,
+      'failed' => l.aiStatusFailed,
+      'cancelled' => l.aiStatusCancelled,
+      'interrupted' => l.aiStatusInterrupted,
+      _ => status,
     };
-    const zhStage = {
-      'extracting': '提取音频',
-      'uploading': '上传',
-      'queued': '排队',
-      'transcribing': '识别',
-      'formatting': '整理字幕',
+    String stageLabel(String stage) => switch (stage) {
+      'extracting' => l.aiStageExtracting,
+      'uploading' => l.aiStageUploading,
+      'queued' => l.aiStageQueued,
+      'transcribing' => l.aiStageTranscribing,
+      'formatting' => l.aiStageFormatting,
+      _ => stage,
     };
     final status = p['status'] as String?;
     final stage = p['stage'] as String?;
     return [
-      if (status != null) zh ? zhStatus[status] ?? status : status,
-      if (stage != null && stage != status)
-        zh ? zhStage[stage] ?? stage : stage,
+      if (status != null) statusLabel(status),
+      if (stage != null && stage != status) stageLabel(stage),
       if (p['progress'] case final num v) '${(v * 100).round()}%',
       if (p['processed_ms'] case final num done when p['total_ms'] is num)
         '${_clock(done)} / ${_clock(p['total_ms'] as num)}',
@@ -208,7 +201,6 @@ abstract final class AiToolLabels {
     return text;
   }
 
-  static String stillRunning(BuildContext context) => _zh(context)
-      ? '等待超时，任务仍在后台运行（未失败、未停止）'
-      : 'Wait timed out; the task is still running in the background';
+  static String stillRunning(BuildContext context) =>
+      AppLocalizations.of(context).aiStillRunning;
 }

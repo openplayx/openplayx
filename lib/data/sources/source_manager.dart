@@ -23,6 +23,7 @@ import '../remote_access/remote_native.dart';
 import 'dart:convert';
 
 import 'source_schema.dart';
+import '../../l10n/l10n.dart';
 
 /// Builds the provider for one configuration snapshot and its secret.
 SourceCapability createSourceProvider(SourceConfig config, String secret) =>
@@ -172,7 +173,7 @@ class SourceManager {
 
   SourceConfig _config(String id) =>
       configs.where((c) => c.id == id).firstOrNull ??
-      (throw const PluginException('notFound', '媒体源不存在或配置不兼容。'));
+      (throw PluginException('notFound', appStrings.errSourceMissing));
 
   /// The saved password or token of a configured source, for the edit form
   /// to show masked. Null when none is saved or the source is unknown.
@@ -186,7 +187,7 @@ class SourceManager {
     await load();
     final previous = _configs.where((c) => c.id == config.id).firstOrNull;
     if (previous != null && previous.kind != config.kind) {
-      throw const PluginException('invalidInput', '编辑时不能更改源类型。');
+      throw PluginException('invalidInput', appStrings.errSourceKindChange);
     }
     final remote = await remoteSettings;
     var saved = config.copyWith(
@@ -215,7 +216,7 @@ class SourceManager {
           newSecret ??
           (previous == null ? null : await _credentials.readForHost(previous));
       if (effective?.isNotEmpty != true) {
-        throw const PluginException('authRequired', '请填写访问令牌。');
+        throw PluginException('authRequired', appStrings.errTokenRequired);
       }
     }
     saved = _configuration!.save(
@@ -306,11 +307,11 @@ class SourceManager {
   }
 
   String applicationLabel(String id) => switch (applicationStatus(id)) {
-    SourceApplicationStatus.disabled => '已禁用',
-    SourceApplicationStatus.ready => '已就绪',
-    SourceApplicationStatus.failed => '连接失败',
-    SourceApplicationStatus.initialized => '已初始化 · 待连接验证',
-    SourceApplicationStatus.saved => '已保存 · 下次访问生效',
+    SourceApplicationStatus.disabled => appStrings.srcStatusDisabled,
+    SourceApplicationStatus.ready => appStrings.srcStatusReady,
+    SourceApplicationStatus.failed => appStrings.srcStatusFailed,
+    SourceApplicationStatus.initialized => appStrings.srcStatusInitialized,
+    SourceApplicationStatus.saved => appStrings.srcStatusSaved,
   };
 
   /// Global suffix filter shared by preview scans and library scans.
@@ -333,7 +334,7 @@ class SourceManager {
   Future<void> setArtworkCacheQuotaMb(int value) async {
     await load();
     if (!artworkCacheQuotaChoicesMb.contains(value)) {
-      throw const PluginException('invalidInput', '不支持的图片缓存上限。');
+      throw PluginException('invalidInput', appStrings.errArtworkCacheLimit);
     }
     _configuration!.saveArtworkCacheQuotaMb(value);
   }
@@ -342,7 +343,7 @@ class SourceManager {
     await load();
     if (extensions.length > 100 ||
         extensions.any((e) => !RegExp(r'^[a-z0-9]{1,16}$').hasMatch(e))) {
-      throw const PluginException('invalidInput', '文件后缀只能包含字母和数字，最多 100 个。');
+      throw PluginException('invalidInput', appStrings.errExtensions);
     }
     _configuration!.saveScanExtensions(extensions);
   }
@@ -351,14 +352,14 @@ class SourceManager {
     await load();
     final config = _config(id);
     if (!config.enabled) {
-      throw const PluginException('disabled', '媒体源已禁用，配置仍保留。');
+      throw PluginException('disabled', appStrings.errSourceDisabled);
     }
     if (!PluginGate.enabled(config.pluginId)) {
-      throw const PluginException('disabled', '此插件已停用，实例配置仍保留。');
+      throw PluginException('disabled', appStrings.errPluginDisabled);
     }
     if (config.credentialExpiresAt != null &&
         !config.credentialExpiresAt!.isAfter(DateTime.now())) {
-      throw const PluginException('authRequired', '令牌已到期，请更新凭据。');
+      throw PluginException('authRequired', appStrings.errTokenExpired);
     }
     final existing = _runtimes[id];
     if (existing != null) return existing;
@@ -390,10 +391,16 @@ class SourceManager {
         );
       } on PlatformException catch (error) {
         if (error.code != 'permissionDenied') rethrow;
-        throw const PluginException('permissionDenied', '请重新选择本地文件夹以恢复授权。');
+        throw PluginException(
+          'permissionDenied',
+          appStrings.errReselectLocalFolder,
+        );
       }
       if (path == null) {
-        throw const PluginException('permissionDenied', '请重新选择本地文件夹以恢复授权。');
+        throw PluginException(
+          'permissionDenied',
+          appStrings.errReselectLocalFolder,
+        );
       }
       _hasBookmarks = true;
       pluginConfig = pluginConfig.copyWith(address: path);
@@ -403,7 +410,10 @@ class SourceManager {
     final secret = storedSecret ?? '';
     if ((config.hasSecret && storedSecret == null) ||
         (config.kind.requiresSecret && secret.isEmpty)) {
-      throw const PluginException('authRequired', '凭据不可用，请重新登录或更新凭据。');
+      throw PluginException(
+        'authRequired',
+        appStrings.errCredentialsUnavailable,
+      );
     }
     final provider = createSourceProvider(pluginConfig, secret);
     if (_disposed ||
@@ -412,7 +422,7 @@ class SourceManager {
               c.id == config.id && c.revision == config.revision && c.enabled,
         )) {
       await (provider as Plugin).dispose();
-      throw const PluginException('cancelled', '实例配置已改变，请重试。');
+      throw PluginException('cancelled', appStrings.errInstanceChanged);
     }
     final runtime = _SourceRuntime(config, provider);
     _runtimes[config.id] = runtime;
@@ -432,7 +442,9 @@ class SourceManager {
       final pending = (() async {
         final runtime = await _runtime(id);
         final value = await runtime.run(() {
-          if (expired) throw const PluginException('cancelled', '请求已超时。');
+          if (expired) {
+            throw PluginException('cancelled', appStrings.errRequestTimedOut);
+          }
           return action(runtime);
         });
         if (expired) await releaseLate?.call(value);
@@ -454,10 +466,14 @@ class SourceManager {
       final failure = error is PluginException
           ? error
           : error is TimeoutException
-          ? const PluginException('timeout', '连接超时，请重试。', retryable: true)
-          : const PluginException(
+          ? PluginException(
+              'timeout',
+              appStrings.errConnectTimeout,
+              retryable: true,
+            )
+          : PluginException(
               'networkUnavailable',
-              '无法访问媒体源，请检查地址、权限和凭据。',
+              appStrings.errSourceUnreachable,
               retryable: true,
             );
       if (!_disposed &&
@@ -478,7 +494,7 @@ class SourceManager {
   Future<BrowseResult> browse(String id, BrowseRequest request) =>
       _call(id, (runtime) async {
         if (request.offset < 0 || request.limit < 1 || request.limit > 200) {
-          throw const PluginException('invalidInput', '无效的分页参数。');
+          throw PluginException('invalidInput', appStrings.errInvalidPaging);
         }
         return runtime.provider.browse(request, CallContext.forInstance(id));
       });
@@ -493,11 +509,11 @@ class SourceManager {
         offset < 0 ||
         limit < 1 ||
         limit > 40) {
-      throw const PluginException('invalidInput', '无效搜索或分页');
+      throw PluginException('invalidInput', appStrings.errInvalidSearchPaging);
     }
     final provider = runtime.provider;
     if (provider is! SearchCapability) {
-      throw const PluginException('unsupported', '此来源不支持搜索');
+      throw PluginException('unsupported', appStrings.errSearchUnsupported);
     }
     return (provider as SearchCapability).search(
       query,
@@ -544,7 +560,10 @@ class SourceManager {
       _call(id, (runtime) async {
         final provider = runtime.provider;
         if (provider is! MetadataCapability) {
-          throw const PluginException('unsupported', '此来源不支持影视信息查询');
+          throw PluginException(
+            'unsupported',
+            appStrings.errMetadataUnsupported,
+          );
         }
         return (provider as MetadataCapability).lookup(
           request,
@@ -558,7 +577,10 @@ class SourceManager {
   }) => _call(ref.instanceId, (runtime) async {
     final provider = runtime.provider;
     if (provider is! SourceAttachmentCapability) {
-      throw const PluginException('unsupported', '此来源不支持附件读取');
+      throw PluginException(
+        'unsupported',
+        appStrings.errAttachmentsUnsupported,
+      );
     }
     return (provider as SourceAttachmentCapability).readAttachment(
       ref,
@@ -580,7 +602,7 @@ class SourceManager {
     final runtime = await _runtime(near.instanceId);
     final provider = runtime.provider;
     if (provider is! SourceWriteCapability) {
-      throw const PluginException('unsupported', '此来源不支持写入。');
+      throw PluginException('unsupported', appStrings.errWriteUnsupported);
     }
     final bytes = await source.length();
     // 30 s plus 1 MB/s worst case; a LAN SMB write is far faster.
@@ -596,10 +618,8 @@ class SourceManager {
         )
         .timeout(
           limit,
-          onTimeout: () => throw const PluginException(
-            'timeout',
-            '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。',
-          ),
+          onTimeout: () =>
+              throw PluginException('timeout', appStrings.errWriteTimeout),
         );
     if (!_disposed &&
         _configs.any(
@@ -621,7 +641,7 @@ class SourceManager {
     if (config.remote != null && route == null) {
       throw PluginException(
         'remoteUnavailable',
-        '此来源使用远程访问 proxy「${config.remote!.proxy}」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。',
+        appStrings.errSourceProxyMissing(config.remote!.proxy),
       );
     }
     return config.copyWith(
@@ -675,7 +695,7 @@ class SourceManager {
     SourceSchemas.validate(draft);
     final existing = configs.where((c) => c.id == draft.id).firstOrNull;
     if (existing != null && draft.revision != existing.revision) {
-      throw const PluginException('conflict', '请重新加载配置后测试。');
+      throw PluginException('conflict', appStrings.errReloadBeforeTest);
     }
     var config = withRemoteRoute(
       SourceConfig.fromJson({...draft.toJson(), 'bookmark': null}),
@@ -686,7 +706,7 @@ class SourceManager {
         ? ''
         : await _credentials.readForHost(existing) ?? '';
     if (config.kind.requiresSecret && value.isEmpty) {
-      throw const PluginException('authRequired', '请填写访问令牌。');
+      throw PluginException('authRequired', appStrings.errTokenRequired);
     }
     final provider = createSourceProvider(config, value);
     final operation = provider.browse(
@@ -700,21 +720,21 @@ class SourceManager {
     try {
       await completed.timeout(Duration(seconds: draft.requestTimeoutSeconds));
     } on TimeoutException {
-      throw const PluginException('timeout', '连接测试超时。');
+      throw PluginException('timeout', appStrings.errTestTimeout);
     } on PluginException {
       rethrow;
     } catch (_) {
-      throw const PluginException('networkUnavailable', '连接测试失败，请检查地址、权限和凭据。');
+      throw PluginException('networkUnavailable', appStrings.errTestFailed);
     }
   }
 
   Stream<SourceEntry> scan(String id, {int limit = 500}) async* {
     final config = _config(id);
     if (!config.isFileSource || config.scanMode == ScanMode.disabled) {
-      throw const PluginException('unsupported', '此实例未启用手动文件扫描。');
+      throw PluginException('unsupported', appStrings.errManualScanDisabled);
     }
     if (limit < 1 || limit > 5000) {
-      throw const PluginException('invalidInput', '扫描上限须为 1–5000。');
+      throw PluginException('invalidInput', appStrings.errScanLimit);
     }
     final runtime = await _runtime(id);
     final fileRoot = config.kind == SourceKind.local
@@ -731,17 +751,14 @@ class SourceManager {
       int? offset = 0;
       do {
         if (++requests > 1000) {
-          throw const PluginException(
-            'quotaExceeded',
-            '扫描达到 1000 次目录分页上限，请缩小访问范围。',
-          );
+          throw PluginException('quotaExceeded', appStrings.errScanPageLimit);
         }
         final page = await browse(
           id,
           BrowseRequest(node: node, offset: offset!),
         );
         if (_config(id).revision != config.revision) {
-          throw const PluginException('cancelled', '扫描期间实例配置已改变，请重新扫描。');
+          throw PluginException('cancelled', appStrings.errScanConfigChanged);
         }
         for (final entry in page.entries) {
           final relative = config.kind == SourceKind.local
@@ -794,13 +811,15 @@ class _SourceRuntime {
   Future<T> run<T>(Future<T> Function() action) async {
     while (active >= config.maxConcurrentRequests && !retired) {
       if (_waiting.length >= 64) {
-        throw const PluginException('quotaExceeded', '此实例排队请求过多，请稍后重试。');
+        throw PluginException('quotaExceeded', appStrings.errTooManyQueued);
       }
       final waiter = Completer<void>();
       _waiting.add(waiter);
       await waiter.future;
     }
-    if (retired) throw const PluginException('cancelled', '实例配置已改变，请重试。');
+    if (retired) {
+      throw PluginException('cancelled', appStrings.errInstanceChanged);
+    }
     active++;
     try {
       return await action();

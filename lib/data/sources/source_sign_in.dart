@@ -5,6 +5,7 @@ import 'dart:io';
 import '../../core/plugins/source_capability.dart';
 import 'source_config.dart';
 import '../remote_access/remote_transport.dart';
+import '../../l10n/l10n.dart';
 
 class JellyfinSession {
   const JellyfinSession(this.userId, this.token);
@@ -85,10 +86,10 @@ class SourceSignIn {
               ? 'notFound'
               : 'networkUnavailable',
           response.statusCode == 401 || response.statusCode == 403
-              ? '登录失败，请检查账号和密码或重新授权。'
+              ? appStrings.errSignInFailed
               : response.isRedirect
-              ? '地址发生跳转，请填写服务器的实际入口。'
-              : '无法连接服务，请检查地址和网络。',
+              ? appStrings.errAddressRedirected
+              : appStrings.errCannotConnectService,
         );
       }
       final content = await utf8.decoder
@@ -99,9 +100,12 @@ class SourceSignIn {
     } on PluginException {
       rethrow;
     } on TimeoutException {
-      throw const PluginException('timeout', '连接超时，请重试。');
+      throw PluginException('timeout', appStrings.errConnectTimeout);
     } catch (_) {
-      throw const PluginException('networkUnavailable', '无法连接服务，请检查地址和网络。');
+      throw PluginException(
+        'networkUnavailable',
+        appStrings.errCannotConnectService,
+      );
     }
   }
 
@@ -131,7 +135,10 @@ class SourceSignIn {
     Uri? address,
   }) async {
     if (config.username.trim().isEmpty) {
-      throw PluginException('invalidInput', '请填写 ${config.kind.label} 用户名。');
+      throw PluginException(
+        'invalidInput',
+        appStrings.errKindUsernameRequired(config.kind.label),
+      );
     }
     final base = Uri.parse(
       '${(address?.toString() ?? config.address).replaceFirst(RegExp(r'/+$'), '')}/',
@@ -151,7 +158,7 @@ class SourceSignIn {
     final id = (data['User'] as Map?)?['Id'];
     final token = data['AccessToken'];
     if (id is! String || id.isEmpty || token is! String || token.isEmpty) {
-      throw const PluginException('authRequired', '服务器未返回有效的登录结果。');
+      throw PluginException('authRequired', appStrings.errNoValidSignIn);
     }
     return JellyfinSession(id, token);
   }
@@ -182,7 +189,7 @@ class SourceSignIn {
 
   Future<String?> pollPlex(String instanceId, PlexPin pin) async {
     if (!pin.expiresAt.isAfter(DateTime.now())) {
-      throw const PluginException('authRequired', '登录已过期，请重新登录 Plex。');
+      throw PluginException('authRequired', appStrings.errPlexSessionExpired);
     }
     final data = await _json(
       _plexApi.resolve('pins/${pin.id}'),
@@ -275,9 +282,9 @@ class SourceSignIn {
         /* Try the next connection for this explicitly chosen server. */
       }
     }
-    throw const PluginException(
+    throw PluginException(
       'networkUnavailable',
-      '无法连接这台 Plex 服务器，请确认服务器在线。',
+      appStrings.errPlexServerUnreachable,
     );
   }
 
