@@ -12,6 +12,8 @@ import 'package:openplayx/services/library/library_service.dart';
 import 'package:openplayx/services/metadata/metadata_background.dart';
 import 'package:workmanager/workmanager.dart';
 
+import '../test/support/library_test_helpers.dart';
+
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets(
@@ -62,7 +64,7 @@ void main() {
           isFolder: false,
         ),
       );
-      library.addManual(media);
+      addToLibrary(library, media);
       expect(library.query().single['title'], 'raw.mkv');
       await work.initialize(metadataCallbackDispatcher);
       await work.registerOneOffTask(id, metadataCollectTask);
