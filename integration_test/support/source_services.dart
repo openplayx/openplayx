@@ -1,7 +1,7 @@
 import 'package:openplayx/data/sources/source_config.dart';
 
 // Connections to the disposable services in tool/source_services/compose.yaml,
-// shared by probe.dart and integration_test/sources_test.dart.
+// shared by tool/source_services/probe_test.dart and integration_test/sources_test.dart.
 
 /// Connection to the compose.yaml service for [kind] on [host].
 SourceConfig sourceServiceConfig(

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/plugins/source_capability.dart';
 import 'package:openplayx/data/sources/dlna_source.dart';
 import 'package:openplayx/data/sources/file_sources.dart';
@@ -12,8 +13,20 @@ import '../../integration_test/support/source_services.dart';
 
 /// Protocol check against the services in compose.yaml, without Flutter UI:
 /// walks each source to the fixture and compares full and ranged bytes.
-/// Pass kind names to probe only those (e.g. `dart run ... webdav ftp`).
-Future<void> main(List<String> args) async {
+/// Runs under `flutter test` because the source plugins import
+/// package:flutter/services.dart (remote access network policy).
+/// Pass `--dart-define=PROBE_KINDS=webdav,ftp` to probe only those kinds.
+void main() {
+  test(
+    'source services probe',
+    _probe,
+    timeout: const Timeout(Duration(minutes: 10)),
+  );
+}
+
+Future<void> _probe() async {
+  const only = String.fromEnvironment('PROBE_KINDS');
+  final args = only.isEmpty ? const <String>[] : only.split(',');
   final defines = jsonDecode(
     await File('tool/source_services/defines.local.json').readAsString(),
   );
@@ -109,10 +122,6 @@ Future<void> main(List<String> args) async {
       await (source as Plugin).dispose();
     }
   }
-  stdout.writeln(
-    failures.isEmpty
-        ? 'All sources passed.'
-        : 'Failed:\n${failures.join('\n')}',
-  );
-  exit(failures.isEmpty ? 0 : 1);
+  if (failures.isNotEmpty) fail('Failed:\n${failures.join('\n')}');
+  stdout.writeln('All sources passed.');
 }

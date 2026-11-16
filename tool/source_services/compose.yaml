@@ -32,7 +32,9 @@ services:
       - "${BIND:-127.0.0.1}:13240:32400"
     environment:
       ADVERTISE_IP: http://${HOST_IP:-127.0.0.1}:13240/
-      ALLOWED_NETWORKS: 0.0.0.0/0
+      # Plex ignores 0.0.0.0/0 and then requires sign-in from the LAN; list
+      # the private ranges instead (Docker bridge 172.16/12 included).
+      ALLOWED_NETWORKS: 192.168.0.0/16,10.0.0.0/8,172.16.0.0/12,127.0.0.0/8
       PLEX_UID: "1000"
       PLEX_GID: "1000"
     volumes:
