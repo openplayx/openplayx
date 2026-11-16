@@ -68,10 +68,11 @@ abstract final class DebugSeed {
         }
       }
       if (text == null) return;
+      await _log('importing ${text.length} chars', reset: true);
       final db = await ConfigurationDatabase.open();
       try {
         final report = await apply(db, text);
-        debugPrint('[debug-seed] $report');
+        await _log('$report');
       } finally {
         db.close();
       }
@@ -79,8 +80,27 @@ abstract final class DebugSeed {
       await file?.rename(
         '${file.parent.path}${Platform.pathSeparator}debug-seed.applied.json',
       );
-    } catch (error) {
-      debugPrint('[debug-seed] not imported: $error');
+    } catch (error, stack) {
+      await _log('not imported: $error\n$stack');
+    }
+  }
+
+  /// Name of the last import's log in the App support directory. It is the
+  /// only readable trace on an iOS device, where `debugPrint` output does not
+  /// reach the Mac (`xcrun devicectl device copy from …`).
+  static const logName = 'debug-seed.log';
+
+  static Future<void> _log(String line, {bool reset = false}) async {
+    debugPrint('[debug-seed] $line');
+    try {
+      final dir = await getApplicationSupportDirectory();
+      await File('${dir.path}${Platform.pathSeparator}$logName').writeAsString(
+        '${DateTime.now().toIso8601String()} $line\n',
+        mode: reset ? FileMode.write : FileMode.append,
+        flush: true,
+      );
+    } catch (_) {
+      // The log is a convenience; never let it stop startup.
     }
   }
 

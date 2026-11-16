@@ -52,7 +52,7 @@ iOS 真机没有可写入的位置，用 `make run-seeded` 或 `make ios-install
 
 - 安装包里带着 seed 的全部凭据，只装在自己的设备上，不要分发。
 - 每次构建前会删除 `build/ios`。在 release 和 profile 之间复用它，会让 `Flutter.framework` 在签名后被改动，设备拒绝安装（`integrity could not be verified`）。
-- 导入日志经 `debugPrint` 进系统日志，`devicectl ... --console` 看不到。要确认是否导入，用 `xcrun devicectl device copy from --domain-type appDataContainer --domain-identifier com.openplayx.app --source "Library/Application Support/configuration.sqlite3" ...` 取回配置库，查 `settings` 表里 `debug_seed` / `appliedSha256` 是否等于 `build/debug-seed.json` 的 sha256。
+- `debugPrint` 的导入日志在真机上传不到 Mac（`devicectl ... --console` 看不到），所以每次导入的结果另写一份到 App 支持目录下的 `debug-seed.log`（非 release 构建）。取回查看：`xcrun devicectl device copy from --device <UDID> --domain-type appDataContainer --domain-identifier com.openplayx.app --source "Library/Application Support/debug-seed.log" --destination debug-seed.log`。每次启动覆盖重写；seed 内容没变时记为 `unchanged since last import, skipped`。
 
 ## 导入规则
 
