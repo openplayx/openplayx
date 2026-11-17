@@ -6,10 +6,10 @@ import '../l10n/l10n.dart';
 import '../l10n/shad_localizations_delegate.dart';
 import 'app_shell.dart';
 import '../features/design_system/component_gallery_page.dart';
-import 'theme/app_theme.dart';
-import 'theme/app_theme_controller.dart';
-import 'theme/material_theme_adapter.dart';
-import 'theme/system_ui.dart';
+import '../ui/theme/app_theme.dart';
+import '../features/settings/app_theme_controller.dart';
+import '../ui/theme/material_theme_adapter.dart';
+import '../ui/theme/system_ui.dart';
 
 class OpenPlayXApp extends StatefulWidget {
   const OpenPlayXApp({super.key, this.appearance, this.home});

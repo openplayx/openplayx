@@ -7,10 +7,10 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/features/ai_assistant/ai_chat_view.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/conversations/conversation_coordinator.dart';
+import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/conversation/conversation_coordinator.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'chat_frontend_test.dart' show host;
@@ -100,7 +100,6 @@ void main() {
                 toolsEnabled: () => true,
                 onSettings: () {},
                 onOpenMedia: (_) async {},
-                onFavorite: (_) async => true,
               ),
               mode: mode,
             ),

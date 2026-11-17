@@ -4,7 +4,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
-import 'package:openplayx/features/player/player_page.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
 import 'package:openplayx_playback/playback.dart';
 
 class FakeBackend extends PlayerBackend {
@@ -336,12 +336,20 @@ void main() {
       tester.widget<ColoredBox>(find.byKey(const Key('video-dimming'))).color.a,
       greaterThan(0),
     );
-    await tester.tap(find.byTooltip('音轨与字幕'));
+    // Audio tracks and subtitles open separately on phones.
+    await tester.tap(find.byTooltip('音轨'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const Key('panel-tracks')), findsOneWidget);
+    expect(find.byKey(const Key('panel-audio')), findsOneWidget);
+    expect(find.text('简体中文'), findsNothing);
     await tester.tap(find.text('English').first);
     await tester.pumpAndSettle();
     expect(backend.audioSelections, [7]);
+    await tester.tap(find.byKey(const Key('panel-barrier')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('字幕'));
+    await tester.pumpAndSettle();
+    expect(find.byKey(const Key('panel-subtitles')), findsOneWidget);
+    expect(find.text('中文'), findsNothing); // no audio tracks here
     await tester.tap(find.text('简体中文'));
     await tester.pumpAndSettle();
     expect(backend.subtitleSelections, [2]);

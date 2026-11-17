@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/features/library/metadata_page.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/metadata/metadata_service.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/features/library/view/metadata_page.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/metadata/metadata_service.dart';
 
 import '../app_test_host.dart';
 

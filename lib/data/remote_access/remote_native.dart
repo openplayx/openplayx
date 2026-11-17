@@ -2,7 +2,7 @@ import 'dart:convert';
 import 'dart:ffi';
 import 'dart:io';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import '../../l10n/l10n.dart';
 
 /// Small, versioned C ABI around the pinned Go core. The library is linked into

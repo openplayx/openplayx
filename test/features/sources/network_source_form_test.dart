@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/sources/dlna_source.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/features/sources/source_instance_form.dart';
+import 'package:openplayx/features/sources/view/source_instance_form.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import 'source_flow_test.dart' show MemorySources;

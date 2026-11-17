@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:smb_connect/smb_connect.dart';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import 'source_config.dart';
 import '../remote_access/remote_transport.dart';
 import 'source_schema.dart';

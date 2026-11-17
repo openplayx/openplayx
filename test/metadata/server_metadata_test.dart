@@ -1,6 +1,6 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/metadata_capability.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/metadata_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/media_server_sources.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 

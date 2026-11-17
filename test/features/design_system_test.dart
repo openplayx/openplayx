@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/features/library/home_page.dart';
+import 'package:openplayx/features/library/view/home_page.dart';
 import 'package:openplayx/app/app.dart';
 import 'package:openplayx/l10n/shad_localizations_delegate.dart';
 import 'package:openplayx/app/app_shell.dart';
-import 'package:openplayx/app/theme/app_theme_controller.dart';
+import 'package:openplayx/features/settings/app_theme_controller.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
 import 'package:openplayx/features/design_system/component_gallery_page.dart';
-import 'package:openplayx/features/player/player_page.dart';
-import 'package:openplayx/features/sources/source_instance_form.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/features/sources/view/source_instance_form.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/ui/adaptive/app_navigation.dart';
+import 'package:openplayx/app/app_navigation.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../support/fake_sources.dart';
 import 'player/player_page_test.dart' show FakeBackend;
 
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 
 import 'sources/source_flow_test.dart' show MemorySources;
 

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/file_sources.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:smb_connect/smb_connect.dart';

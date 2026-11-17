@@ -2,10 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/app/app_shell.dart';
-import 'package:openplayx/features/ai_assistant/assistant_page.dart';
-import 'package:openplayx/features/ai_assistant/assistant_settings_page.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/features/assistant/view/assistant_page.dart';
+import 'package:openplayx/features/assistant/view/assistant_settings_page.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import 'package:openplayx/ui/components/settings/settings_section.dart';
@@ -51,7 +51,10 @@ void main() {
       await tester.tap(find.byTooltip('AI 助手'));
       await tester.pumpAndSettle();
       final second = tester.widget<AssistantView>(find.byType(AssistantView));
-      expect(second.coordinator.context()['pageContext']['pageType'], 'sources');
+      expect(
+        second.coordinator.context()['pageContext']['pageType'],
+        'sources',
+      );
       expect(identical(second.coordinator, first.coordinator), true);
       expect(identical(second.controller, first.controller), true);
       expect(find.text('保留这个草稿'), findsOneWidget);

@@ -1,10 +1,10 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/metadata_capability.dart';
+import 'package:openplayx/core/capabilities/metadata_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/metadata/metadata_queue_runner.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/metadata/metadata_queue_runner.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../metadata/metadata_background_test.dart'

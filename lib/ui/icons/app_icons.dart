@@ -29,7 +29,6 @@ abstract final class AppIcons {
   static const delete = LucideIcons.trash2;
   static const rename = LucideIcons.pencil;
   static const edit = LucideIcons.pencil;
-  static const favorite = LucideIcons.heart;
   static const history = LucideIcons.history;
   static const unlink = LucideIcons.unlink;
   static const movie = LucideIcons.clapperboard;
@@ -80,7 +79,6 @@ abstract final class AppIcons {
   static const repeat = LucideIcons.repeat;
   static const repeatOne = LucideIcons.repeat1;
   static const aspect = LucideIcons.ratio;
-  static const bookmark = LucideIcons.bookmark;
   static const sleep = LucideIcons.moon;
   static const snapshot = LucideIcons.camera;
   static const effects = LucideIcons.slidersHorizontal;

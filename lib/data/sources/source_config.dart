@@ -163,7 +163,9 @@ class SourceConfig {
 
   String get effectiveBrowseMode =>
       browseMode ?? (isFileSource ? 'files' : 'library');
-  String get pluginId => 'source.${kind.name}';
+
+  /// Capability provider of this source kind (its switch id).
+  String get providerId => 'source.${kind.name}';
 
   SourceConfig copyWith({
     String? name,

@@ -23,7 +23,7 @@
 - 单个工具参数最多 16384 字符、结果最多 24000 字符；常规查询每页最多 20 项。搜索一次最多查询 12 个已选择来源。
 - Gateway 使用同一输入定义生成 Schema 和本地校验，拒绝未知工具、额外字段、错误类型、负数与过期引用。模型不提供身份、确认凭证、认证 Header、路径或 SQL。
 - 来源浏览结果使用宿主内存中的不透明引用；媒体详情只返回数据库资源 ID。原始路径、来源地址、认证播放 URL 只供宿主与播放器使用。重启后的临时浏览引用失效，需重新查询。
-- API Key 轮换到系统安全存储；SQLite 只保存凭据引用。云端发送须由设置 UI 授权。收藏变更等待 UI 确认；模型自报 `confirmed` 会被拒绝。
+- API Key 轮换到系统安全存储；SQLite 只保存凭据引用。云端发送须由设置 UI 授权。有副作用的工具等待 UI 确认；模型自报 `confirmed` 会被拒绝。
 - 播放打开复用 `AppShell._play` 与 `PlayerPage.playSelection`；暂停、继续、定位、音量、倍速和停止使用同一个播放后端与进度记录。每次控制检查实际 session_id；打开资源返回提交状态及真实快照，不伪造播放已成功的事件。
 - 副作用操作在 SQLite `assistant_operations` 先记 pending，后记脱敏结果。操作标识由宿主回合、执行意图版本、工具名与规范化参数摘要生成，连续重复提交跨供应商 call ID 去重；中间发生其他写入会产生新意图，因此暂停/继续/再次暂停不会被误去重。未知结果不自动重放；重启中断回合仅恢复展示。记录不与供应商 call ID 绑定为唯一身份。
 - 取消与工具超时使异步执行标记失效；晚到解析结果不能再开始播放或发起后续搜索批次。已经完成的业务变更不撤销。
@@ -31,7 +31,7 @@
 
 ## 已注册业务工具
 
-`context_get`、`source_list`、`source_browse`、`library_list`、`library_query`、`media_get`、`search_media`、`progress_query`、`media_set_favorite`。
+`context_get`、`source_list`、`source_browse`、`library_list`、`library_query`、`media_get`、`search_media`、`progress_query`。
 
 播放器后端可用时增加 `playback_get`、`playback_open`、`playback_pause`、`playback_resume`、`playback_stop`、`playback_seek`、`playback_set_speed`、`playback_set_volume`。工具总量不超过 20。
 

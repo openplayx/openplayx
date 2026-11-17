@@ -8,11 +8,11 @@ import 'package:flutter/rendering.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app.dart';
-import 'package:openplayx/app/theme/app_theme_controller.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/features/settings/app_theme_controller.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/features/sources/source_page.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/features/sources/view/source_page.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -172,14 +172,21 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
+      expect(find.byKey(ValueKey('file-source-scan-$first')), findsNothing);
+      await tester.tap(find.byKey(ValueKey('file-source-menu-$first')));
+      await tester.pumpAndSettle();
       await tester.tap(find.byKey(ValueKey('file-source-scan-$first')));
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 600));
       expect(sources.requests, 1);
+      // The whole folder menu (including its rescan item) is locked while scanning.
       expect(
         tester
             .widget<ShadIconButton>(
-              find.byKey(ValueKey('file-source-scan-$second')),
+              find.descendant(
+                of: find.byKey(ValueKey('file-source-menu-$second')),
+                matching: find.byType(ShadIconButton),
+              ),
             )
             .enabled,
         isFalse,
@@ -192,24 +199,31 @@ void main() {
             .enabled,
         isFalse,
       );
+      await tester.tap(find.byKey(const ValueKey('source-menu-nas')));
+      await tester.pump();
       expect(
         tester
-            .widget<ShadIconButton>(
+            .widget<MenuItemButton>(
               find.byKey(const ValueKey('source-scan-nas')),
             )
-            .enabled,
-        isFalse,
+            .onPressed,
+        isNull,
       );
+      await tester.tapAt(Offset.zero);
       sources.finish.complete();
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(ValueKey('file-source-menu-$second')));
       await tester.pumpAndSettle();
       expect(
         tester
-            .widget<ShadIconButton>(
+            .widget<MenuItemButton>(
               find.byKey(ValueKey('file-source-scan-$second')),
             )
-            .enabled,
-        isTrue,
+            .onPressed,
+        isNotNull,
       );
+      await tester.tapAt(Offset.zero);
+      await tester.pumpAndSettle();
       expect(tester.takeException(), isNull);
       await tester.pumpWidget(const SizedBox());
       await sources.dispose();

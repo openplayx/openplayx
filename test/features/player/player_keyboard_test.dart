@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
-import 'package:openplayx/features/player/player_page.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import 'player_page_test.dart' show FakeBackend;
@@ -134,9 +134,11 @@ void main() {
     await press(LogicalKeyboardKey.keyB);
     await tester.pumpAndSettle();
     expect(backend.audioSelections, [3]);
+    // Nothing chosen yet (the player's default is unknown): next is the
+    // first subtitle.
     await press(LogicalKeyboardKey.keyV);
     await tester.pumpAndSettle();
-    expect(backend.subtitleSelections, [5]);
+    expect(backend.subtitleSelections, [2]);
     await press(
       LogicalKeyboardKey.keyV,
       modifier: LogicalKeyboardKey.shiftLeft,

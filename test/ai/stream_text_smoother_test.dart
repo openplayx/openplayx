@@ -1,5 +1,5 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/features/ai_assistant/adapters/stream_text_smoother.dart';
+import 'package:openplayx/features/assistant/adapters/stream_text_smoother.dart';
 
 void main() {
   testWidgets('reveals a burst over several frames, then settles', (

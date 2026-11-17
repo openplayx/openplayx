@@ -3,9 +3,9 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/conversations/conversation_coordinator.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/conversation/conversation_coordinator.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 class FakeModel implements TextModelCapability {

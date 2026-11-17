@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../app/diagnostics/diagnostics_service.dart';
+import '../../data/diagnostics/diagnostics_service.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/components/settings/settings_section.dart';
 

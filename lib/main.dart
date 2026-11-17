@@ -1,13 +1,13 @@
-import 'app/diagnostics/diagnostics_bootstrap.dart';
-import 'app/diagnostics/diagnostics_service.dart';
+import 'data/diagnostics/diagnostics_bootstrap.dart';
+import 'data/diagnostics/diagnostics_service.dart';
 
 import 'package:flutter/widgets.dart';
 
 import 'app/app.dart';
 import 'app/debug_seed/debug_seed.dart';
 import 'app/player_window.dart';
-import 'app/theme/app_theme_controller.dart';
-import 'app/theme/system_ui.dart';
+import 'features/settings/app_theme_controller.dart';
+import 'ui/theme/system_ui.dart';
 export 'app/app.dart' show OpenPlayXApp;
 
 Future<void> main(List<String> args) async {

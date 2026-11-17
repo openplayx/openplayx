@@ -4,8 +4,8 @@ import 'package:crypto/crypto.dart';
 
 import 'package:sqlite3/sqlite3.dart';
 
-import '../../core/plugins/metadata_capability.dart';
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/metadata_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import '../configuration/configuration_database.dart';
 import 'metadata_queue.dart';
 import '../../l10n/l10n.dart';

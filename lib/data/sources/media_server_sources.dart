@@ -4,8 +4,8 @@ import 'dart:io';
 
 import '../remote_access/remote_transport.dart';
 
-import '../../core/plugins/source_capability.dart';
-import '../../core/plugins/metadata_capability.dart';
+import '../../core/capabilities/source_capability.dart';
+import '../../core/capabilities/metadata_capability.dart';
 import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';

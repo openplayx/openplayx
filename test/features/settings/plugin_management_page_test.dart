@@ -3,19 +3,16 @@ import '../../app_test_host.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
-import 'package:openplayx/core/plugins/plugin_gate.dart';
-import 'package:openplayx/features/settings/plugins/plugin_management_page.dart';
-import 'package:openplayx/services/plugins/plugin_ai_policy.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/external/external_service_registry.dart';
-import 'package:openplayx/services/plugins/plugin_manager.dart';
+import 'package:openplayx/features/assistant/view/plugins/plugin_management_page.dart';
+import 'package:openplayx/features/settings/capability_switches_section.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
+import 'package:openplayx/assistant/plugins/plugin_manager.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../services/plugins/plugin_manager_test.dart' show FakeSources;
 
 void main() {
-  tearDown(() => PluginGate.current = null);
-
   Future<PluginManager> pump(
     WidgetTester tester, {
     Size size = const Size(400, 900),
@@ -26,10 +23,9 @@ void main() {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
-    final manager = PluginManager(
-      sources: sources ?? FakeSources(),
-      store: MemoryPolicyStore(),
-    )..install();
+    final fake = sources ?? FakeSources();
+    // The plugins follow the capability switches of the sources.
+    final manager = PluginManager(sources: fake, switches: fake.switches);
     addTearDown(manager.dispose);
     await tester.runAsync(manager.refresh);
     await tester.pumpWidget(
@@ -187,22 +183,69 @@ void main() {
     expect(find.text('添加实例'), findsNothing);
   });
 
-  testWidgets('disabling during playback asks for confirmation first', (
+  testWidgets('the capability switch lives in Settings: the plugin shows '
+      'it and opens it; switching off during playback asks first', (
     tester,
   ) async {
     final manager = await pump(tester, sources: FakeSources()..playing = 1);
     await openGroup(tester, 'builtIn');
     await tester.tap(find.byKey(const ValueKey('plugin-row-source.smb')));
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey('plugin-detail-switch')));
+    expect(find.byType(ShadSwitch), findsNothing); // no toggle on the plugin
+    final row = find.byKey(const ValueKey('plugin-capability-switch'));
+    expect(
+      find.descendant(of: row, matching: find.textContaining('已开启')),
+      findsOneWidget,
+    );
+
+    await tester.tap(row);
+    await tester.pumpAndSettle();
+    expect(find.byType(CapabilitySwitchesPage), findsOneWidget);
+    await tester.tap(
+      find.byKey(const ValueKey('capability-switch-source.smb')),
+    );
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.textContaining('1 个正在播放的会话'), findsOneWidget);
-    expect(manager.policy.pluginEnabled('source.smb'), isTrue);
-    await tester.tap(find.byKey(const ValueKey('plugin-disable-confirm')));
+    expect(manager.switches.isOn('source.smb'), isTrue);
+    await tester.tap(find.byKey(const ValueKey('capability-disable-confirm')));
+    await tester.pumpAndSettle();
+    expect(manager.switches.isOn('source.smb'), isFalse);
+
+    Navigator.of(tester.element(find.byType(CapabilitySwitchesPage))).pop();
     await tester.runAsync(manager.refresh);
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(manager.policy.pluginEnabled('source.smb'), isFalse);
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: row, matching: find.textContaining('已关闭')),
+      findsOneWidget,
+    );
     expect(find.textContaining('正在等待播放'), findsWidgets);
+  });
+
+  testWidgets('speech recognition says when FFmpeg must be switched on', (
+    tester,
+  ) async {
+    tester.view.physicalSize = const Size(800, 2000);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.reset);
+    final sources = FakeSources();
+    await tester.pumpWidget(
+      TestApp(home: CapabilitySwitchesPage(sources: sources)),
+    );
+    await tester.pumpAndSettle();
+    final speech = find.byKey(const ValueKey('capability-asr.whisper'));
+    expect(
+      find.descendant(of: speech, matching: find.textContaining('需要先开启')),
+      findsNothing,
+    );
+    await tester.tap(
+      find.byKey(const ValueKey('capability-switch-media.ffmpeg')),
+    );
+    await tester.pumpAndSettle();
+    expect(sources.switches.enabled('asr.whisper'), isFalse);
+    expect(
+      find.descendant(of: speech, matching: find.textContaining('需要先开启')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('wide windows show list and detail without AI or permission '

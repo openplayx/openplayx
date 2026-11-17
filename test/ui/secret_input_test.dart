@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/app/theme/app_theme.dart';
+import 'package:openplayx/ui/theme/app_theme.dart';
 import 'package:openplayx/l10n/generated/app_localizations.dart';
 import 'package:openplayx/ui/components/forms/secret_input.dart';
 import 'package:openplayx/ui/icons/app_icons.dart';

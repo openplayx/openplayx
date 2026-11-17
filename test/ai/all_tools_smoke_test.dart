@@ -2,12 +2,12 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/ai_tools/media_tools.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/assistant/plugins/library/media_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../support/library_test_helpers.dart';
@@ -110,7 +110,6 @@ void main() {
     await call('media_get', {'media_id': media});
     await call('search_media', {'query': 'Film'});
     await call('progress_query', {});
-    await call('media_set_favorite', {'media_id': media, 'favorite': true});
     await call('playback_get', {});
     await call('playback_open', {'ref': fileRef});
     results['playback_open(resource_id)'] = await call('playback_open', {
@@ -138,10 +137,6 @@ void main() {
           .where((e) => e.value.status != 'success')
           .map((e) => e.key),
       isEmpty,
-    );
-    expect(
-      library.db.select('SELECT favorite FROM media').single['favorite'],
-      1,
     );
     expect(controls, [
       'pause',

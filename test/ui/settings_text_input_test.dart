@@ -2,7 +2,7 @@ import 'dart:math';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/app/theme/app_theme.dart';
+import 'package:openplayx/ui/theme/app_theme.dart';
 import 'package:openplayx/l10n/generated/app_localizations.dart';
 import 'package:openplayx/ui/components/forms/settings_text_input.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';

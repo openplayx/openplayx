@@ -2,12 +2,12 @@ import '../../app_test_host.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/features/sources/file_source_browser_page.dart';
-import 'package:openplayx/features/sources/source_page.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/features/sources/view/file_source_browser_page.dart';
+import 'package:openplayx/features/sources/view/source_page.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
 

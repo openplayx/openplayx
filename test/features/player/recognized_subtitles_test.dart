@@ -2,11 +2,12 @@ import 'dart:io';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
-import 'package:openplayx/features/player/player_page.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/subtitles/recognized_subtitles.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/features/player/view/widgets/player_widgets.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/speech/recognized_subtitles.dart';
 import 'package:openplayx_playback/playback.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -139,7 +140,7 @@ void main() {
       );
       await tester.pumpAndSettle();
 
-      await tester.tap(find.byTooltip('音轨与字幕'));
+      await tester.tap(find.byTooltip('字幕'));
       await tester.pumpAndSettle();
       expect(find.text('简体中文'), findsOneWidget); // embedded tracks stay
       expect(find.text('识别字幕'), findsOneWidget);
@@ -153,7 +154,7 @@ void main() {
       // and selecting the recognised entry again switches without re-adding.
       await tester.tapAt(const Offset(10, 300)); // outside the sheet
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('音轨与字幕'));
+      await tester.tap(find.byTooltip('字幕'));
       await tester.pumpAndSettle();
       expect(find.text('Track 20'), findsNothing);
       await tester.tap(find.text('简体中文'));
@@ -189,7 +190,7 @@ void main() {
       () => Future<void>.delayed(const Duration(milliseconds: 100)),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('音轨与字幕'));
+    await tester.tap(find.byTooltip('字幕'));
     await tester.pumpAndSettle();
     expect(find.text('识别字幕'), findsNothing);
     await tester.pumpWidget(const SizedBox());
@@ -239,9 +240,7 @@ void main() {
       'binding_id': 'b1',
     });
     expect(backend.added, [Uri.file(srt.path)]);
-    expect((await control({'off': true}))['subtitle'], {
-      'kind': 'off_or_default',
-    });
+    expect((await control({'off': true}))['subtitle'], {'kind': 'off'});
     await control({'binding_id': 'b1'});
     expect(backend.added, hasLength(1)); // switched back without re-adding
     Object? error;
@@ -257,6 +256,53 @@ void main() {
     });
     expect(error, isA<StateError>());
     expect((error as StateError).message, 'subtitleNotFound');
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('the chosen subtitle comes back when the file plays again', (
+    tester,
+  ) async {
+    final library = LibraryService(sqlite3.openInMemory());
+    addTearDown(library.close);
+    final backend = _ExternalBackend();
+    await tester.pumpWidget(
+      TestApp(
+        home: PlayerPage(
+          backend: backend,
+          libraryService: library,
+          pickMedia: () async => LocalMedia(Uri.file('/demo.mp4'), 'demo.mp4'),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final state = tester.state<PlayerPageState>(find.byType(PlayerPage));
+    Future<void> open() async {
+      await state.openFile();
+      // Tracking resolves the local path with real file IO.
+      await tester.runAsync(
+        () => Future<void>.delayed(const Duration(milliseconds: 100)),
+      );
+      await tester.pumpAndSettle();
+    }
+
+    await open();
+    expect(backend.subtitleSelections, isEmpty); // nothing remembered yet
+    await tester.tap(find.byTooltip('字幕'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('English').last);
+    await tester.pumpAndSettle();
+    expect(backend.subtitleSelections, [5]);
+    await tester.tapAt(const Offset(10, 300)); // close the sheet
+    await tester.pumpAndSettle();
+
+    await open();
+    expect(backend.subtitleSelections, [5, 5]);
+    await tester.tap(find.byTooltip('字幕'));
+    await tester.pumpAndSettle();
+    final row = tester.widget<PlayerMenuRow>(
+      find.byKey(const ValueKey('subtitle-embedded:5')),
+    );
+    expect(row.selected, isTrue);
     await tester.pumpWidget(const SizedBox());
   });
 }

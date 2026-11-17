@@ -3,15 +3,15 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/plugins/model_langchain/langchain_model.dart';
-import 'package:openplayx/services/ai_tools/media_tools.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/conversations/conversation_coordinator.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/assistant/model/langchain_model.dart';
+import 'package:openplayx/assistant/plugins/library/media_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/conversation/conversation_coordinator.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../support/library_test_helpers.dart';

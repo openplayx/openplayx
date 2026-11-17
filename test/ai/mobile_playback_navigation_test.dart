@@ -7,11 +7,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app_shell.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/features/ai_assistant/ai_chat_view.dart';
-import 'package:openplayx/features/player/player_page.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../app_test_host.dart';

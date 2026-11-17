@@ -61,12 +61,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aboutDescription => '你的媒体，一个安静的播放空间。';
 
   @override
-  String get favorite => '收藏';
-
-  @override
-  String get unfavorite => '取消收藏';
-
-  @override
   String get retry => '重试';
 
   @override
@@ -1356,9 +1350,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get markUnwatched => '标记为未看';
 
   @override
-  String get removeFavorite => '取消收藏';
-
-  @override
   String get aiMore => '更多';
 
   @override
@@ -1747,6 +1738,12 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get embeddedSubtitles => '内嵌字幕';
+
+  @override
+  String get externalSubtitles => '外部字幕';
+
+  @override
   String get recognizedSubtitles => '识别字幕';
 
   @override
@@ -1819,9 +1816,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get plAbSetB => '设置 B 点';
 
   @override
-  String get plAddBookmark => '添加书签';
-
-  @override
   String get plAdvancedTools => '高级工具行';
 
   @override
@@ -1834,23 +1828,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get plAudioDelay => '音频延迟';
 
   @override
-  String plBookmarkAdded(String time) {
-    return '已添加书签 $time';
-  }
-
-  @override
-  String get plBookmarks => '书签';
-
-  @override
   String plBoosting(String speed) {
     return '$speed 快进中 · 松手恢复';
   }
 
   @override
   String get plDelayHint => '正值表示声音或字幕延后。';
-
-  @override
-  String get plDeleteBookmark => '删除书签';
 
   @override
   String get plExitFullscreen => '退出全屏';
@@ -1948,9 +1931,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get plNextSubtitle => '下一字幕';
 
   @override
-  String get plNoBookmarks => '暂无书签';
-
-  @override
   String get plNormalSpeed => '恢复正常速度';
 
   @override
@@ -1961,11 +1941,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plPictureAndSound => '画面与声音';
-
-  @override
-  String plQuickBookmarkSet(String slot) {
-    return '已设置快速书签 $slot';
-  }
 
   @override
   String get plRepeatMode => '重复模式';
@@ -2109,9 +2084,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plExternalSubtitleShort => '+ 外部字幕';
-
-  @override
-  String get plBookmarksShort => '书签';
 
   @override
   String get listSeparator => '、';
@@ -2320,6 +2292,30 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plgSwitchOff => '已阻止新的调用；实例配置保留';
+
+  @override
+  String get settingsCapabilities => '基础能力';
+
+  @override
+  String get capabilitySwitchesFooter =>
+      '关闭的能力在整个 App 中都不再承接新的调用，AI 也无法使用；已有配置会保留。';
+
+  @override
+  String capabilityNeeds(String name) {
+    return '需要先开启「$name」';
+  }
+
+  @override
+  String get plgCapabilitySwitch => '基础能力开关';
+
+  @override
+  String get plgCapabilitySwitchHint => '在「设置 → 基础能力」中开关，对整个 App 生效';
+
+  @override
+  String get capabilityOn => '已开启';
+
+  @override
+  String get capabilityOff => '已关闭';
 
   @override
   String get plgLocation => '执行位置';
@@ -3593,9 +3589,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiToolProgressQuery => '查看观看进度';
 
   @override
-  String get aiToolMediaSetFavorite => '设置收藏';
-
-  @override
   String get aiToolPlaybackGet => '读取播放状态';
 
   @override
@@ -3720,15 +3713,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get aiArgOff => '关闭';
-
-  @override
-  String get aiArgFavorite => '收藏';
-
-  @override
-  String get aiArgFavoriteOn => '收藏';
-
-  @override
-  String get aiArgFavoriteOff => '取消收藏';
 
   @override
   String get aiArgWait => '等待';
@@ -3921,12 +3905,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aboutDescription => '你的媒体，一个安静的播放空间。';
 
   @override
-  String get favorite => '收藏';
-
-  @override
-  String get unfavorite => '取消收藏';
-
-  @override
   String get retry => '重试';
 
   @override
@@ -5216,9 +5194,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get markUnwatched => '标记为未看';
 
   @override
-  String get removeFavorite => '取消收藏';
-
-  @override
   String get aiMore => '更多';
 
   @override
@@ -5607,6 +5582,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String get embeddedSubtitles => '内嵌字幕';
+
+  @override
+  String get externalSubtitles => '外部字幕';
+
+  @override
   String get recognizedSubtitles => '识别字幕';
 
   @override
@@ -5679,9 +5660,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get plAbSetB => '设置 B 点';
 
   @override
-  String get plAddBookmark => '添加书签';
-
-  @override
   String get plAdvancedTools => '高级工具行';
 
   @override
@@ -5694,23 +5672,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get plAudioDelay => '音频延迟';
 
   @override
-  String plBookmarkAdded(String time) {
-    return '已添加书签 $time';
-  }
-
-  @override
-  String get plBookmarks => '书签';
-
-  @override
   String plBoosting(String speed) {
     return '$speed 快进中 · 松手恢复';
   }
 
   @override
   String get plDelayHint => '正值表示声音或字幕延后。';
-
-  @override
-  String get plDeleteBookmark => '删除书签';
 
   @override
   String get plExitFullscreen => '退出全屏';
@@ -5808,9 +5775,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get plNextSubtitle => '下一字幕';
 
   @override
-  String get plNoBookmarks => '暂无书签';
-
-  @override
   String get plNormalSpeed => '恢复正常速度';
 
   @override
@@ -5821,11 +5785,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plPictureAndSound => '画面与声音';
-
-  @override
-  String plQuickBookmarkSet(String slot) {
-    return '已设置快速书签 $slot';
-  }
 
   @override
   String get plRepeatMode => '重复模式';
@@ -5969,9 +5928,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plExternalSubtitleShort => '+ 外部字幕';
-
-  @override
-  String get plBookmarksShort => '书签';
 
   @override
   String get listSeparator => '、';
@@ -6180,6 +6136,30 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plgSwitchOff => '已阻止新的调用；实例配置保留';
+
+  @override
+  String get settingsCapabilities => '基础能力';
+
+  @override
+  String get capabilitySwitchesFooter =>
+      '关闭的能力在整个 App 中都不再承接新的调用，AI 也无法使用；已有配置会保留。';
+
+  @override
+  String capabilityNeeds(String name) {
+    return '需要先开启「$name」';
+  }
+
+  @override
+  String get plgCapabilitySwitch => '基础能力开关';
+
+  @override
+  String get plgCapabilitySwitchHint => '在「设置 → 基础能力」中开关，对整个 App 生效';
+
+  @override
+  String get capabilityOn => '已开启';
+
+  @override
+  String get capabilityOff => '已关闭';
 
   @override
   String get plgLocation => '执行位置';
@@ -7453,9 +7433,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiToolProgressQuery => '查看观看进度';
 
   @override
-  String get aiToolMediaSetFavorite => '设置收藏';
-
-  @override
   String get aiToolPlaybackGet => '读取播放状态';
 
   @override
@@ -7580,15 +7557,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get aiArgOff => '关闭';
-
-  @override
-  String get aiArgFavorite => '收藏';
-
-  @override
-  String get aiArgFavoriteOn => '收藏';
-
-  @override
-  String get aiArgFavoriteOff => '取消收藏';
 
   @override
   String get aiArgWait => '等待';
@@ -7779,12 +7747,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aboutDescription => '你的媒體，一個安靜的播放空間。';
-
-  @override
-  String get favorite => '收藏';
-
-  @override
-  String get unfavorite => '取消收藏';
 
   @override
   String get retry => '重試';
@@ -9076,9 +9038,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get markUnwatched => '標記為未看';
 
   @override
-  String get removeFavorite => '取消收藏';
-
-  @override
   String get aiMore => '更多';
 
   @override
@@ -9467,6 +9426,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
+  String get embeddedSubtitles => '內嵌字幕';
+
+  @override
+  String get externalSubtitles => '外部字幕';
+
+  @override
   String get recognizedSubtitles => '辨識字幕';
 
   @override
@@ -9539,9 +9504,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get plAbSetB => '設定 B 點';
 
   @override
-  String get plAddBookmark => '新增書籤';
-
-  @override
   String get plAdvancedTools => '進階工具列';
 
   @override
@@ -9554,23 +9516,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get plAudioDelay => '音訊延遲';
 
   @override
-  String plBookmarkAdded(String time) {
-    return '已新增書籤 $time';
-  }
-
-  @override
-  String get plBookmarks => '書籤';
-
-  @override
   String plBoosting(String speed) {
     return '$speed 快轉中 · 放開恢復';
   }
 
   @override
   String get plDelayHint => '正值表示聲音或字幕延後。';
-
-  @override
-  String get plDeleteBookmark => '刪除書籤';
 
   @override
   String get plExitFullscreen => '結束全螢幕';
@@ -9668,9 +9619,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get plNextSubtitle => '下一字幕';
 
   @override
-  String get plNoBookmarks => '尚無書籤';
-
-  @override
   String get plNormalSpeed => '恢復正常速度';
 
   @override
@@ -9681,11 +9629,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plPictureAndSound => '畫面與聲音';
-
-  @override
-  String plQuickBookmarkSet(String slot) {
-    return '已設定快速書籤 $slot';
-  }
 
   @override
   String get plRepeatMode => '重複模式';
@@ -9829,9 +9772,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plExternalSubtitleShort => '+ 外部字幕';
-
-  @override
-  String get plBookmarksShort => '書籤';
 
   @override
   String get listSeparator => '、';
@@ -10040,6 +9980,30 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plgSwitchOff => '已阻止新的呼叫；實例設定保留';
+
+  @override
+  String get settingsCapabilities => '基礎能力';
+
+  @override
+  String get capabilitySwitchesFooter =>
+      '關閉的能力在整個 App 中都不再承接新的呼叫，AI 也無法使用；既有設定會保留。';
+
+  @override
+  String capabilityNeeds(String name) {
+    return '需要先開啟「$name」';
+  }
+
+  @override
+  String get plgCapabilitySwitch => '基礎能力開關';
+
+  @override
+  String get plgCapabilitySwitchHint => '在「設定 → 基礎能力」中開關，對整個 App 生效';
+
+  @override
+  String get capabilityOn => '已開啟';
+
+  @override
+  String get capabilityOff => '已關閉';
 
   @override
   String get plgLocation => '執行位置';
@@ -11313,9 +11277,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiToolProgressQuery => '檢視觀看進度';
 
   @override
-  String get aiToolMediaSetFavorite => '設定收藏';
-
-  @override
   String get aiToolPlaybackGet => '讀取播放狀態';
 
   @override
@@ -11440,15 +11401,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aiArgOff => '關閉';
-
-  @override
-  String get aiArgFavorite => '收藏';
-
-  @override
-  String get aiArgFavoriteOn => '收藏';
-
-  @override
-  String get aiArgFavoriteOff => '取消收藏';
 
   @override
   String get aiArgWait => '等待';

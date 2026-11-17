@@ -4,7 +4,7 @@ import 'dart:math';
 
 import 'package:smb_connect/smb_connect.dart';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import 'progressive_read_session.dart';
 
 class _ReadCancellation {

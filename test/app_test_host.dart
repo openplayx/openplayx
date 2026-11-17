@@ -1,5 +1,5 @@
 import 'package:openplayx/app/app.dart';
-import 'package:openplayx/app/theme/app_theme_controller.dart';
+import 'package:openplayx/features/settings/app_theme_controller.dart';
 
 /// Exercises the same themes, localization and overlays as the application.
 class TestApp extends OpenPlayXApp {

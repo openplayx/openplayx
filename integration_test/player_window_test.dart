@@ -6,10 +6,10 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/app/app.dart';
 import 'package:openplayx/app/player_window.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/subtitles/recognized_subtitles.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/speech/recognized_subtitles.dart';
 
 Future<void> main([List<String> args = const []]) async {
   if (await runPlayerWindowIfRequested(args)) return;

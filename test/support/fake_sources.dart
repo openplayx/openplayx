@@ -1,6 +1,6 @@
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
 
 /// One SMB connection `s` ("NAS") whose every folder holds `Film.mp4`.
 class Sources extends SourceManager {

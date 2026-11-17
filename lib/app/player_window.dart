@@ -8,11 +8,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:openplayx_playback/playback.dart';
 
-import '../core/plugins/source_capability.dart';
-import '../data/sources/source_manager.dart';
-import '../features/player/player_page.dart';
+import '../core/capabilities/source_capability.dart';
+import '../capabilities/sources/source_manager.dart';
+import '../features/player/view/player_page.dart';
 import 'app.dart';
-import 'theme/app_theme_controller.dart';
+import '../features/settings/app_theme_controller.dart';
 
 /// First dart-entrypoint argument desktop_multi_window gives to a sub-window.
 const playerWindowEntryArgument = 'multi_window';

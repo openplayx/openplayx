@@ -1,9 +1,9 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
 import 'package:openplayx/data/library/library_repository.dart';
-import 'package:openplayx/services/external/external_service_registry.dart';
-import 'package:openplayx/services/subtitles/asr_backend_config.dart';
-import 'package:openplayx/services/subtitles/asr_model_store.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
+import 'package:openplayx/capabilities/speech/asr_backend_config.dart';
+import 'package:openplayx/capabilities/speech/asr_model_store.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 Set<Object?> tables(Database db) => {

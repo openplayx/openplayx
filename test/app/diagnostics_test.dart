@@ -2,8 +2,8 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
-import 'package:openplayx/app/diagnostics/diagnostics_bootstrap.dart';
-import 'package:openplayx/app/diagnostics/diagnostics_service.dart';
+import 'package:openplayx/data/diagnostics/diagnostics_bootstrap.dart';
+import 'package:openplayx/data/diagnostics/diagnostics_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();

@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/metadata_capability.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/metadata_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/features/settings/scrape_management_section.dart';
-import 'package:openplayx/services/artwork/artwork_service.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/artwork/artwork_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -26,12 +26,12 @@ class _FakeArtwork extends ArtworkService {
 
 class _QuotaSources extends MemorySources {
   int mb = 256;
-  final changes = <int>[];
+  final quotaChanges = <int>[];
   @override
   int get artworkCacheQuotaMb => mb;
   @override
   Future<void> setArtworkCacheQuotaMb(int value) async {
-    changes.add(value);
+    quotaChanges.add(value);
     mb = value;
   }
 }
@@ -157,12 +157,12 @@ void main() {
 
       // Raising the limit only saves it.
       await pick('256 MB', '1 GB');
-      expect(sources.changes, [1024]);
+      expect(sources.quotaChanges, [1024]);
       expect(artwork.trims, 0);
       expect(find.text('1 GB'), findsOneWidget);
       // Lowering it also evicts down to the new limit right away.
       await pick('1 GB', '128 MB');
-      expect(sources.changes, [1024, 128]);
+      expect(sources.quotaChanges, [1024, 128]);
       expect(artwork.trims, 1);
       expect(find.text('128 MB'), findsOneWidget);
       expect(tester.takeException(), isNull);

@@ -14,7 +14,7 @@
 |---|---|
 | 播放 | 本地与远程媒体、拖动定位、倍速、音量、音轨、外部字幕和键盘控制 |
 | 来源 | 本地文件夹、SMB、WebDAV、FTP、SFTP、S3、Plex、Jellyfin、Emby、DLNA 适配；各来源能力不同 |
-| 媒体库 | 扫描、搜索、筛选、收藏、观看进度、季集、花絮和资源版本 |
+| 媒体库 | 扫描、搜索、筛选、观看进度、季集、花絮和资源版本 |
 | 元数据 | 文件名解析、NFO/图片导入、TMDB 匹配、候选确认、字段锁定与海报选择 |
 | AI | 可配置 OpenAI 兼容模型、流式对话、受限工具调用和操作确认 |
 | 外部工具 | 用户配置的 MCP 服务、可移除的联网搜索预置和内置公网网页读取 |
@@ -75,7 +75,7 @@ flutter test
 
 原生播放器、模型、真实服务与设备测试有额外要求，见 [单元/Widget 测试](test/README.md)、[原生集成测试](integration_test/README.md) 和 [测试服务准备](tool/source_services/README.md)。真实联网检查需显式启用；模拟测试通过不等于所有设备和媒体格式均已验证。
 
-`lib/app` 负责界面装配，`lib/features` 存放功能页面，`lib/services` 提供业务服务，`lib/data` 实现来源与存储，`packages/playback` 封装播放桥接。
+`lib/` 分层组织，每层只依赖其下的层（由 `test/architecture_test.dart` 检查）：`core`（接口与纯模型）、`data`（存储与来源连接器）、`capabilities`（App 与 AI 共用的基础能力：来源、媒体库、元数据、媒体处理、语音识别、播放入口，以及它们的全局开关）、`assistant`（AI：模型接入、会话，以及把基础能力包装成 AI 工具的插件）、`ui`（设计系统）、`features`（各界面，按 `model`/`controller`/`view` 拆分）和 `app`（装配与导航）。`packages/playback` 封装播放桥接。
 
 ## 文档与贡献
 

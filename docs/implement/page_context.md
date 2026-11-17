@@ -11,7 +11,7 @@ return AppPage(
   pageContext: PageContextData(
     pageType: 'media_detail',
     entity: {'media_id': mediaId},
-    state: {'favorite': favorite, 'playable': playable},
+    state: {'watched': watched, 'playable': playable},
   ),
   title: Text(title),
   body: content,

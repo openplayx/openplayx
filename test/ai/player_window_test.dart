@@ -1,8 +1,8 @@
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/player_window.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
 
 void main() {
   final binding = TestWidgetsFlutterBinding.ensureInitialized();

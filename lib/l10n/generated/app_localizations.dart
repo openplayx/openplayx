@@ -202,18 +202,6 @@ abstract class AppLocalizations {
   /// **'Your media. A quieter place to play.'**
   String get aboutDescription;
 
-  /// No description provided for @favorite.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorite'**
-  String get favorite;
-
-  /// No description provided for @unfavorite.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove favorite'**
-  String get unfavorite;
-
   /// No description provided for @retry.
   ///
   /// In en, this message translates to:
@@ -2661,12 +2649,6 @@ abstract class AppLocalizations {
   /// **'Mark as unwatched'**
   String get markUnwatched;
 
-  /// No description provided for @removeFavorite.
-  ///
-  /// In en, this message translates to:
-  /// **'Remove from favorites'**
-  String get removeFavorite;
-
   /// No description provided for @aiMore.
   ///
   /// In en, this message translates to:
@@ -3399,6 +3381,18 @@ abstract class AppLocalizations {
   /// **'Recognition unavailable: {reason}'**
   String asrTranscribeBlocked(String reason);
 
+  /// No description provided for @embeddedSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Embedded subtitles'**
+  String get embeddedSubtitles;
+
+  /// No description provided for @externalSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'External subtitles'**
+  String get externalSubtitles;
+
   /// No description provided for @recognizedSubtitles.
   ///
   /// In en, this message translates to:
@@ -3519,12 +3513,6 @@ abstract class AppLocalizations {
   /// **'Set point B'**
   String get plAbSetB;
 
-  /// No description provided for @plAddBookmark.
-  ///
-  /// In en, this message translates to:
-  /// **'Add bookmark'**
-  String get plAddBookmark;
-
   /// No description provided for @plAdvancedTools.
   ///
   /// In en, this message translates to:
@@ -3549,18 +3537,6 @@ abstract class AppLocalizations {
   /// **'Audio delay'**
   String get plAudioDelay;
 
-  /// No description provided for @plBookmarkAdded.
-  ///
-  /// In en, this message translates to:
-  /// **'Bookmark at {time}'**
-  String plBookmarkAdded(String time);
-
-  /// No description provided for @plBookmarks.
-  ///
-  /// In en, this message translates to:
-  /// **'Bookmarks'**
-  String get plBookmarks;
-
   /// No description provided for @plBoosting.
   ///
   /// In en, this message translates to:
@@ -3572,12 +3548,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Positive values play audio or show subtitles later.'**
   String get plDelayHint;
-
-  /// No description provided for @plDeleteBookmark.
-  ///
-  /// In en, this message translates to:
-  /// **'Delete bookmark'**
-  String get plDeleteBookmark;
 
   /// No description provided for @plExitFullscreen.
   ///
@@ -3765,12 +3735,6 @@ abstract class AppLocalizations {
   /// **'Next subtitle'**
   String get plNextSubtitle;
 
-  /// No description provided for @plNoBookmarks.
-  ///
-  /// In en, this message translates to:
-  /// **'No bookmarks yet'**
-  String get plNoBookmarks;
-
   /// No description provided for @plNormalSpeed.
   ///
   /// In en, this message translates to:
@@ -3794,12 +3758,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Picture & sound'**
   String get plPictureAndSound;
-
-  /// No description provided for @plQuickBookmarkSet.
-  ///
-  /// In en, this message translates to:
-  /// **'Quick bookmark {slot} set'**
-  String plQuickBookmarkSet(String slot);
 
   /// No description provided for @plRepeatMode.
   ///
@@ -4070,12 +4028,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'+ External'**
   String get plExternalSubtitleShort;
-
-  /// No description provided for @plBookmarksShort.
-  ///
-  /// In en, this message translates to:
-  /// **'Bookmarks'**
-  String get plBookmarksShort;
 
   /// No description provided for @listSeparator.
   ///
@@ -4442,6 +4394,48 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New calls are blocked; instance settings are kept'**
   String get plgSwitchOff;
+
+  /// No description provided for @settingsCapabilities.
+  ///
+  /// In en, this message translates to:
+  /// **'Capabilities'**
+  String get settingsCapabilities;
+
+  /// No description provided for @capabilitySwitchesFooter.
+  ///
+  /// In en, this message translates to:
+  /// **'A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.'**
+  String get capabilitySwitchesFooter;
+
+  /// No description provided for @capabilityNeeds.
+  ///
+  /// In en, this message translates to:
+  /// **'Needs “{name}” switched on'**
+  String capabilityNeeds(String name);
+
+  /// No description provided for @plgCapabilitySwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Capability switch'**
+  String get plgCapabilitySwitch;
+
+  /// No description provided for @plgCapabilitySwitchHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched in Settings → Capabilities, for the whole App'**
+  String get plgCapabilitySwitchHint;
+
+  /// No description provided for @capabilityOn.
+  ///
+  /// In en, this message translates to:
+  /// **'On'**
+  String get capabilityOn;
+
+  /// No description provided for @capabilityOff.
+  ///
+  /// In en, this message translates to:
+  /// **'Off'**
+  String get capabilityOff;
 
   /// No description provided for @plgLocation.
   ///
@@ -6873,12 +6867,6 @@ abstract class AppLocalizations {
   /// **'View watch progress'**
   String get aiToolProgressQuery;
 
-  /// No description provided for @aiToolMediaSetFavorite.
-  ///
-  /// In en, this message translates to:
-  /// **'Set favorite'**
-  String get aiToolMediaSetFavorite;
-
   /// No description provided for @aiToolPlaybackGet.
   ///
   /// In en, this message translates to:
@@ -7130,24 +7118,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'off'**
   String get aiArgOff;
-
-  /// No description provided for @aiArgFavorite.
-  ///
-  /// In en, this message translates to:
-  /// **'Favorite'**
-  String get aiArgFavorite;
-
-  /// No description provided for @aiArgFavoriteOn.
-  ///
-  /// In en, this message translates to:
-  /// **'favorite'**
-  String get aiArgFavoriteOn;
-
-  /// No description provided for @aiArgFavoriteOff.
-  ///
-  /// In en, this message translates to:
-  /// **'unfavorite'**
-  String get aiArgFavoriteOff;
 
   /// No description provided for @aiArgWait.
   ///

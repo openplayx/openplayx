@@ -2,7 +2,7 @@ import 'dart:convert';
 
 import 'package:sqlite3/sqlite3.dart';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import '../sources/source_config.dart';
 import '../sources/source_schema.dart';
 import 'configuration_database.dart';
@@ -79,7 +79,7 @@ class SourceConfigurationService {
         );
         SourceSchemas.validate(config);
         if (config.id != row['instance_id'] ||
-            config.pluginId != row['plugin_id'] ||
+            config.providerId != row['plugin_id'] ||
             config.revision != row['revision'] ||
             config.enabled != (row['enabled_desired'] == 1)) {
           throw FormatException(appStrings.errInstanceMetaMismatch);
@@ -130,7 +130,7 @@ class SourceConfigurationService {
         'INSERT OR REPLACE INTO plugin_instance_configs VALUES (?,?,?,?,?,?,?)',
         [
           saved.id,
-          saved.pluginId,
+          saved.providerId,
           jsonEncode(saved.toJson()),
           saved.configVersion,
           saved.revision,

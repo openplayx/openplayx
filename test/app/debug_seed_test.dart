@@ -6,10 +6,10 @@ import 'package:openplayx/app/debug_seed/seed_template.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/external/external_service_registry.dart';
-import 'package:openplayx/services/subtitles/asr_backend_config.dart';
-import 'package:openplayx/services/subtitles/asr_model_store.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
+import 'package:openplayx/capabilities/speech/asr_backend_config.dart';
+import 'package:openplayx/capabilities/speech/asr_model_store.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 const uuid = '11111111-1111-4111-8111-111111111111';

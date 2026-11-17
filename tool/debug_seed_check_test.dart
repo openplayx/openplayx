@@ -10,14 +10,14 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/debug_seed/debug_seed.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/plugins/metadata_tmdb/tmdb_metadata_plugin.dart';
-import 'package:openplayx/services/conversations/assistant_store.dart';
-import 'package:openplayx/services/external/external_service_registry.dart';
-import 'package:openplayx/services/external/external_service_setup.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/capabilities/metadata/providers/tmdb_metadata_plugin.dart';
+import 'package:openplayx/assistant/conversation/assistant_store.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_setup.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 const _timeout = Duration(seconds: 20);

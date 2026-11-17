@@ -10,9 +10,9 @@ import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/remote_access/remote_config.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/features/sources/source_page.dart';
-import 'package:openplayx/features/sources/source_instance_form.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/features/sources/view/source_page.dart';
+import 'package:openplayx/features/sources/view/source_instance_form.dart';
 import 'package:openplayx/data/sources/source_sign_in.dart';
 
 import 'source_flow_test.dart' show MemorySources;

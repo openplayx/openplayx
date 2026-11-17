@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/speech_recognition_capability.dart';
-import 'package:openplayx/services/subtitles/subtitle_format.dart';
-import 'package:openplayx/services/subtitles/transcript.dart';
+import 'package:openplayx/core/capabilities/speech_recognition_capability.dart';
+import 'package:openplayx/capabilities/speech/subtitle_format.dart';
+import 'package:openplayx/capabilities/speech/transcript.dart';
 import 'package:openplayx_whisper/openplayx_whisper.dart';
 
 RawTranscript raw(List<RawWindow> windows, {int audioMs = 90000}) =>

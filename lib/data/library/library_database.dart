@@ -61,10 +61,8 @@ abstract final class LibraryDatabase {
     db.execute('PRAGMA busy_timeout=5000');
     if (current != 0 && current < version) _reset(db);
     db.execute('PRAGMA foreign_keys=ON');
-    db.execute(
-      '''CREATE TABLE IF NOT EXISTS media (
-      id TEXT PRIMARY KEY, title TEXT NOT NULL, favorite INTEGER NOT NULL DEFAULT 0)''',
-    );
+    db.execute('''CREATE TABLE IF NOT EXISTS media (
+      id TEXT PRIMARY KEY, title TEXT NOT NULL)''');
     db.execute('''CREATE TABLE IF NOT EXISTS resources (
       id TEXT PRIMARY KEY, media_id TEXT NOT NULL REFERENCES media(id),
       source TEXT NOT NULL, item TEXT NOT NULL, name TEXT NOT NULL,
@@ -126,6 +124,10 @@ abstract final class LibraryDatabase {
       resource_id TEXT PRIMARY KEY REFERENCES resources(id), session TEXT NOT NULL,
       position INTEGER NOT NULL DEFAULT 0, duration INTEGER NOT NULL DEFAULT 0,
       updated_at INTEGER NOT NULL, completed INTEGER NOT NULL DEFAULT 0)''');
+    // The subtitle last chosen per file (JSON, see SubtitleChoice).
+    db.execute('''CREATE TABLE IF NOT EXISTS subtitle_choices (
+      resource_id TEXT PRIMARY KEY REFERENCES resources(id),
+      choice TEXT NOT NULL, updated_at INTEGER NOT NULL)''');
     db.execute('''CREATE TABLE IF NOT EXISTS resource_locators (
       source TEXT NOT NULL, item TEXT NOT NULL, resource_id TEXT NOT NULL REFERENCES resources(id),
       PRIMARY KEY(source,item))''');

@@ -2,8 +2,8 @@ import 'package:flutter/widgets.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/library/library_service.dart';
-import '../../services/metadata/tmdb_credentials.dart';
+import '../../capabilities/library/library_service.dart';
+import '../../capabilities/metadata/tmdb_credentials.dart';
 import '../../ui/components/forms/form_actions.dart';
 import '../../ui/components/forms/secret_input.dart';
 import '../../ui/components/forms/settings_text_input.dart';

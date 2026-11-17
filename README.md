@@ -18,7 +18,7 @@ projects and shared Dart code do not imply full device coverage.
 |---|---|
 | Playback | Local and remote media, seeking, speed, volume, audio tracks, external subtitles and keyboard controls |
 | Sources | Local folders, SMB, WebDAV, FTP, SFTP, S3, Plex, Jellyfin, Emby and DLNA adapters; capabilities vary by source |
-| Library | Scanning, search, filters, favorites, watch progress, seasons/episodes, extras and resource versions |
+| Library | Scanning, search, filters, watch progress, seasons/episodes, extras and resource versions |
 | Metadata | Filename parsing, NFO/artwork import, TMDB matching, review, field locks and artwork selection |
 | AI | Configurable OpenAI-compatible models, streaming conversations, bounded tools and confirmation for actions |
 | External tools | User-configured MCP services, a removable web-search preset and built-in public-page reading |
@@ -113,9 +113,14 @@ additional requirements. Read [unit/widget tests](test/README.md),
 [test service setup](tool/source_services/README.md). Live checks are opt-in;
 passing mocked tests does not verify every device or media format.
 
-The UI and application wiring live in `lib/app`, feature pages in
-`lib/features`, services in `lib/services`, source/storage implementations
-in `lib/data`, and the playback bridge in `packages/playback`.
+`lib/` is layered, each layer depending only on those below it (enforced by
+`test/architecture_test.dart`): `core` (interfaces and plain models), `data`
+(storage, source connectors), `capabilities` (abilities shared by the App and
+the AI: sources, library, metadata, media processing, speech, playback
+launch, and their App-wide switches), `assistant` (the AI: model access,
+conversations, and plugins that wrap capabilities as AI tools), `ui` (design
+system), `features` (screens, each split into `model`/`controller`/`view`) and
+`app` (wiring and navigation). The playback bridge is in `packages/playback`.
 
 ## Documentation and contributing
 

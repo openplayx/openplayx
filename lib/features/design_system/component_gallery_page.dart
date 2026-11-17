@@ -55,7 +55,7 @@ class ComponentGalleryPage extends StatelessWidget {
               const SizedBox(height: AppSpacing.lg),
               ShadCheckbox(
                 value: false,
-                label: Text(l.favorite),
+                label: Text(l.advanced),
                 onChanged: (_) {},
               ),
               const SizedBox(height: AppSpacing.lg),

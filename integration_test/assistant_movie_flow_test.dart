@@ -11,7 +11,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/app/app.dart';
 import 'package:openplayx/app/player_window.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/features/ai_assistant/ai_chat_view.dart';
+import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
 import 'package:openplayx/ui/adaptive/assistant_action.dart';
 
 const movieFlowPrompt =

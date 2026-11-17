@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/data/library/library_database.dart';
 import 'package:openplayx/data/library/library_repository.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 void main() {

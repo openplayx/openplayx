@@ -3,25 +3,26 @@ import 'diagnostics_section.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../app/theme/app_theme_controller.dart';
+import 'app_theme_controller.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/feedback/app_feedback.dart';
-import '../../services/library/library_service.dart';
+import '../../capabilities/library/library_service.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_metrics.dart';
-import '../../data/sources/source_manager.dart';
+import '../../capabilities/sources/source_manager.dart';
 import 'scan_extensions_row.dart';
 import 'scrape_management_section.dart';
 import 'tmdb_settings_section.dart';
 import 'remote_access_settings_page.dart';
 import 'asr_settings_section.dart';
-import 'plugins/plugin_management_page.dart';
-import '../../services/plugins/plugin_manager.dart';
-import '../../services/subtitles/asr_backend_config.dart';
-import '../../services/subtitles/asr_model_store.dart';
-import '../../services/subtitles/subtitle_generation_service.dart';
+import 'capability_switches_section.dart';
+import '../assistant/view/plugins/plugin_management_page.dart';
+import '../../assistant/plugins/plugin_manager.dart';
+import '../../capabilities/speech/asr_backend_config.dart';
+import '../../capabilities/speech/asr_model_store.dart';
+import '../../capabilities/speech/subtitle_generation_service.dart';
 
 /// One settings category. On phones it is a row in the root menu that opens
 /// [sections] on a sub-page (or runs [onOpen] for categories that already
@@ -74,6 +75,17 @@ class SettingsPage extends StatelessWidget {
                 key: const ValueKey('sources'),
                 title: l.sources,
                 children: [ScanExtensionsRow(sources: sources!)],
+              ),
+            ],
+          ),
+        if (sources != null)
+          _Category(
+            icon: AppIcons.plugins,
+            title: l.settingsCapabilities,
+            sections: [
+              CapabilitySwitchesSection(
+                key: const ValueKey('capability-switches'),
+                sources: sources!,
               ),
             ],
           ),

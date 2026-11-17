@@ -6,7 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:dartssh2/dartssh2.dart';
 import 'package:xml/xml.dart';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';

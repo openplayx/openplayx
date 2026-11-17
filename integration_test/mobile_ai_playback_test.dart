@@ -6,12 +6,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/app/app_shell.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/features/ai_assistant/ai_chat_view.dart';
-import 'package:openplayx/features/player/player_page.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:openplayx_playback/playback.dart';
 import 'package:sqlite3/sqlite3.dart';
 

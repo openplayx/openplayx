@@ -1,9 +1,9 @@
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/services/ai_tools/media_processing_tools.dart';
-import 'package:openplayx/services/ai_tools/task_wait.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
+import 'package:openplayx/assistant/plugins/media_processing/media_processing_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/task_wait.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
 
 void main() {
   late StreamController<String> changes;

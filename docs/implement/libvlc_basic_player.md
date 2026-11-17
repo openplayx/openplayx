@@ -11,7 +11,7 @@
 ## 依赖与结构
 
 - `packages/playback`：本地 Flutter 包 `openplayx_playback`，封装 `vlc_player ^2.1.2`。实际安装版本由根目录 `pubspec.lock` 固定为 2.1.2。
-- `lib/features/player/player_page.dart`：共用 Flutter 页面，只依赖 `PlayerBackend`、`PlayerSnapshot` 和 `PlayerVideoView`，不直接使用 VLC 插件类型。
+- `lib/features/player/view/player_page.dart`（逻辑在 `lib/features/player/controller/`，数据在 `lib/features/player/model/`）：共用 Flutter 页面，只依赖 `PlayerBackend`、`PlayerSnapshot` 和 `PlayerVideoView`，不直接使用 VLC 插件类型。
 - `lib/data/files/local_media_picker.dart`：通过 `file_selector ^1.1.0` 调用系统文件选择器，实际安装版本为 1.1.0。
 - `lib/main.dart`：应用入口和平台支持判断。
 

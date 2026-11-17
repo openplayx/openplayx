@@ -6,15 +6,15 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/core/plugins/speech_recognition_capability.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/media_processing/media_processing_service.dart';
-import 'package:openplayx/services/subtitles/asr_backend_config.dart';
-import 'package:openplayx/services/subtitles/asr_model_store.dart';
-import 'package:openplayx/services/subtitles/http_asr_backend.dart';
-import 'package:openplayx/services/subtitles/subtitle_generation_service.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/core/capabilities/speech_recognition_capability.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/media_processing/media_processing_service.dart';
+import 'package:openplayx/capabilities/speech/asr_backend_config.dart';
+import 'package:openplayx/capabilities/speech/asr_model_store.dart';
+import 'package:openplayx/capabilities/speech/http_asr_backend.dart';
+import 'package:openplayx/capabilities/speech/subtitle_generation_service.dart';
 import 'package:openplayx_ffmpeg/openplayx_ffmpeg.dart';
 import 'package:sqlite3/sqlite3.dart';
 

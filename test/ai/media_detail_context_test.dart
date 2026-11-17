@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
-import 'package:openplayx/features/library/media_detail_page.dart';
-import 'package:openplayx/services/artwork/artwork_service.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
+import 'package:openplayx/features/library/view/media_detail_page.dart';
+import 'package:openplayx/capabilities/artwork/artwork_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:openplayx/ui/adaptive/app_page.dart';
 import 'package:openplayx/ui/adaptive/assistant_action.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -47,10 +47,7 @@ void main() {
     await tester.tap(find.byTooltip('AI 助手'));
     expect(origin!.read()['pageType'], 'media_detail');
     expect(origin!.read()['entity']['media_id'], id);
-    expect(origin!.read()['state']['favorite'], false);
-    await tester.tap(find.byTooltip('收藏'));
-    await tester.pumpAndSettle();
-    expect(origin!.read()['state']['favorite'], true);
+    expect(origin!.read()['state'].containsKey('favorite'), isFalse);
     await tester.pumpWidget(const SizedBox());
     library.close();
     expect(tester.takeException(), isNull);

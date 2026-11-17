@@ -2,7 +2,7 @@
 
 ## 职责
 
-- `lib/services/library/library_service.dart`：面向页面和工具的业务入口。负责输入校验、资源身份与服务端元数据合并策略、库成员关系、来源扫描和过滤、进度有效性校验、变更通知，以及等待正在执行的扫描/元数据操作结束后关闭资源。
+- `lib/capabilities/library/library_service.dart`：面向页面和工具的业务入口。负责输入校验、资源身份与服务端元数据合并策略、库成员关系、来源扫描和过滤、进度有效性校验、变更通知，以及等待正在执行的扫描/元数据操作结束后关闭资源。
 - `lib/data/library/library_repository.dart`：负责媒体库查询、资源/绑定/成员关系/扫描游标/观看进度的 SQL 读写，以及元数据仓储和队列的存储接入。不依赖页面或 SourceManager，不发起网络访问或扫描遍历。
 - `lib/data/library/library_database.dart`：负责数据库文件位置和名称验证、建表、索引、版本迁移、异常退出后的恢复，以及 SQLite 事务的提交和回滚。
 

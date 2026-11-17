@@ -2,7 +2,7 @@ import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
 
 void main() {
   test('rejects malformed JSON, unknown tools, extra fields, bad numeric types and bounds', () async {

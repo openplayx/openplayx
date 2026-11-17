@@ -3,7 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/dlna_source.dart';
 import 'package:openplayx/data/sources/media_server_sources.dart';
 import 'package:openplayx/data/sources/network_file_sources.dart';

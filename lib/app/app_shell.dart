@@ -1,5 +1,4 @@
 import 'dart:async';
-import 'dart:io';
 
 import 'package:flutter/material.dart';
 
@@ -12,47 +11,41 @@ import '../ui/adaptive/app_page.dart';
 
 import 'package:openplayx_playback/playback.dart';
 
-import '../core/plugins/source_capability.dart';
+import '../core/capabilities/source_capability.dart';
 import '../core/models/text_model.dart';
 import '../data/files/local_media_picker.dart';
-import '../data/sources/source_manager.dart';
-import '../features/library/home_page.dart';
+import '../capabilities/playback/playback_launcher.dart';
+import '../capabilities/sources/source_manager.dart';
+import '../features/library/view/home_page.dart';
 import 'app_destination.dart';
-import '../features/player/player_page.dart';
-import '../features/sources/source_page.dart';
-import '../services/artwork/artwork_service.dart';
-import '../services/library/library_service.dart';
-import '../services/metadata/metadata_runtime.dart';
-import '../ui/adaptive/app_navigation.dart';
+import '../features/player/view/player_page.dart';
+import '../features/sources/view/source_page.dart';
+import '../capabilities/artwork/artwork_service.dart';
+import '../capabilities/library/library_service.dart';
+import '../capabilities/metadata/metadata_runtime.dart';
+import 'app_navigation.dart';
 import '../features/settings/settings_page.dart';
-import '../features/settings/plugins/plugin_management_page.dart';
+import '../features/assistant/view/plugins/plugin_management_page.dart';
 import 'player_window.dart';
 import '../ui/tokens/app_motion.dart';
 import '../ui/tokens/app_spacing.dart';
-import 'theme/app_theme.dart';
+import '../ui/theme/app_theme.dart';
 
-import '../plugins/model_langchain/langchain_model.dart';
-import '../services/ai_tools/media_processing_tools.dart';
-import '../services/ai_tools/media_tools.dart';
-import '../services/ai_tools/subtitle_tools.dart';
-import '../services/subtitles/asr_backend_config.dart';
-import '../services/subtitles/asr_model_store.dart';
-import '../services/subtitles/subtitle_generation_service.dart';
-import '../services/media_processing/media_processing_service.dart';
-import '../services/ai_tools/tool_registry.dart';
-import '../services/ai_tools/web_tools.dart';
-import '../services/ai_tools/plugin_tools.dart';
-import '../services/ai_tools/external_tools.dart';
-import '../services/external/external_service_registry.dart';
-import '../services/external/external_presets.dart';
-import '../services/external/external_service_setup.dart';
-import '../services/metadata/tmdb_credentials.dart';
-import '../services/plugins/plugin_manager.dart';
-import '../services/conversations/assistant_store.dart';
-import '../services/conversations/conversation_coordinator.dart';
-import '../features/ai_assistant/assistant_page.dart';
-import '../features/ai_assistant/ai_chat_controller.dart';
-import '../features/ai_assistant/ai_chat_panel.dart';
+import '../assistant/plugins/library/media_tools.dart';
+import '../capabilities/speech/asr_backend_config.dart';
+import '../capabilities/speech/asr_model_store.dart';
+import '../capabilities/speech/subtitle_generation_service.dart';
+import '../capabilities/media_processing/media_processing_service.dart';
+import '../assistant/plugins/external/external_service_registry.dart';
+import '../capabilities/metadata/tmdb_credentials.dart';
+import '../assistant/assistant_module.dart';
+import '../assistant/playback_port.dart';
+import '../assistant/plugins/plugin_manager.dart';
+import '../assistant/conversation/assistant_store.dart';
+import '../assistant/conversation/conversation_coordinator.dart';
+import '../features/assistant/view/assistant_page.dart';
+import '../features/assistant/controller/ai_chat_controller.dart';
+import '../features/assistant/view/ai_chat_panel.dart';
 import '../ui/icons/app_icons.dart';
 import '../ui/adaptive/assistant_action.dart';
 import '../ui/components/feedback/app_feedback.dart';
@@ -79,6 +72,7 @@ class AppShell extends StatefulWidget {
 class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   AppLocalizations get l => AppLocalizations.of(context);
   late final _sources = widget.sources ?? SourceManager();
+  late final _launcher = PlaybackLauncher(_sources);
   final _revision = ValueNotifier(0);
   final _player = GlobalKey<PlayerPageState>();
   final _branches = List.generate(
@@ -93,14 +87,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   LibraryService? _library;
   MetadataRuntime? _metadataRuntime;
   ArtworkService? _artwork;
-  AssistantStore? _assistantStore;
-  ConversationCoordinator? _assistant;
+  AssistantModule? _assistantModule;
+  AssistantStore? get _assistantStore => _assistantModule?.store;
+  ConversationCoordinator? get _assistant => _assistantModule?.coordinator;
   AiChatController? _chat;
-  MediaTools? _mediaTools;
+  MediaTools? get _mediaTools => _assistantModule?.mediaTools;
   MediaProcessingService? _mediaProcessing;
   SubtitleGenerationService? _subtitles;
   PluginManager? _plugins;
-  ExternalTools? _externalTools;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
@@ -136,12 +130,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         if (widget.library == null) library.close();
         return;
       }
+      // The library drops what a removed connection brought in.
+      library.followSources(_sources);
       setState(() {
         _library = library;
         final media = _mediaProcessing = MediaProcessingService(
           db: library.db,
           sources: _sources,
           root: MediaProcessingService.defaultRoot(),
+          switches: _sources.switches,
         );
         MediaProcessingService.current = media;
         unawaited(media.recover().catchError((_) {}));
@@ -154,6 +151,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               models: AsrModelStore(asrModelRoot()),
             ),
             root: SubtitleGenerationService.defaultRoot(),
+            switches: _sources.switches,
           );
           SubtitleGenerationService.current = subtitles;
           unawaited(subtitles.recover().catchError((_) {}));
@@ -161,8 +159,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           // Optional: subtitle generation must not block playback.
           _subtitles = null;
         }
-        // Plugin Manager adapts the services above; it installs the host
-        // gate so plugin switches apply to every business path.
+        // Plugin Manager: the AI's view of the capabilities above, following
+        // their App-wide switches.
         final plugins = _plugins = PluginManager(
           sources: _sources,
           asr: () => _subtitles?.backends,
@@ -184,7 +182,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               config.configured,
             );
           },
-        )..install();
+        );
         unawaited(plugins.refresh().catchError((_) {}));
         _artwork = ArtworkService(
           _sources,
@@ -200,8 +198,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           _initializeAssistant(library);
         } catch (_) {
           // Optional AI storage must not prevent traditional playback.
-          _assistant = null;
-          _assistantStore = null;
+          _assistantModule = null;
         }
       });
     } catch (_) {
@@ -215,10 +212,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     unawaited(_metadataRuntime?.dispose());
     _artwork?.dispose();
     _chat?.dispose();
-    _assistant?.dispose();
-    _assistantStore?.close();
+    _assistantModule?.dispose();
     _plugins?.dispose();
-    _externalTools?.dispose();
     if (SubtitleGenerationService.current == _subtitles) {
       SubtitleGenerationService.current = null;
     }
@@ -260,176 +255,17 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   }
 
   void _initializeAssistant(LibraryService library) {
-    final store = _assistantStore = AssistantStore(
-      library.db,
-      configuration: library.configuration,
-    );
-    final tools = _mediaTools = MediaTools(
-      canExecute: () => _assistant?.acceptingActions ?? false,
+    final module = _assistantModule = AssistantModule(
       library: library,
       sources: _sources,
       context: _aiContext,
-      playbackSnapshot: _backend == null ? null : _playbackSnapshot,
-      playbackControl: _backend == null
-          ? null
-          : (command, args) async {
-              if (_playerWindows?.hasActive ?? false) {
-                try {
-                  return await _playerWindows!.control(command, args);
-                } on StateError catch (e) {
-                  throw ToolFailure(e.message);
-                }
-              }
-              final player = _player.currentState;
-              if (player == null ||
-                  player.assistantSnapshot()['session_id'] !=
-                      args['session_id']) {
-                throw const ToolFailure('staleSession');
-              }
-              try {
-                return await player.assistantControl(command, args);
-              } on StateError catch (e) {
-                // Short codes such as staleSession or noSavedSubtitle.
-                throw ToolFailure(
-                  RegExp(r'^[a-zA-Z]{1,40}$').hasMatch(e.message)
-                      ? e.message
-                      : 'playbackRejected',
-                );
-              } catch (_) {
-                throw const ToolFailure('playbackRejected');
-              }
-            },
-      openResource: _backend == null
-          ? null
-          : (entry) async {
-              if (!ToolExecution.active || _opening || _exitingPlayer) {
-                throw const ToolFailure('playerBusy');
-              }
-              final ref = entry.ref;
-              final PlayableStream stream;
-              if (ref.instanceId == '@local') {
-                if (!await File(ref.id).exists()) {
-                  throw const ToolFailure('notFound');
-                }
-                stream = PlayableStream(Uri.file(ref.id));
-              } else {
-                stream = await _sources.resolve(ref);
-              }
-              // The user may stop generation or open another resource during resolve.
-              if (!mounted ||
-                  !ToolExecution.active ||
-                  !(_assistant?.acceptingActions ?? false) ||
-                  _opening ||
-                  _exitingPlayer) {
-                await stream.release();
-                throw const ToolFailure('cancelled');
-              }
-              await _play(
-                SourceSelection(entry.name, stream, ref: ref, entry: entry),
-              );
-              final result = await _playbackSnapshot(waitForSession: true);
-              if (result['status'] == 'error') {
-                throw const ToolFailure('playbackFailed');
-              }
-              return {'command_status': 'submitted', 'playback': result};
-            },
+      playback: _backend == null ? null : _ShellPlayback(this),
+      media: _mediaProcessing,
+      subtitles: _subtitles,
+      plugins: _plugins,
+      model: widget.assistantModel,
     );
-    final media = _mediaProcessing;
-    if (media != null) {
-      final mediaTools = MediaProcessingTools(
-        registry: tools.registry,
-        service: media,
-        library: library,
-        sources: _sources,
-        entryForReference: tools.entryForReference,
-        issueReference: tools.issueReference,
-        canExecute: () => _assistant?.acceptingActions ?? false,
-      );
-      final subtitles = _subtitles;
-      if (subtitles != null) {
-        SubtitleTools(
-          registry: tools.registry,
-          service: subtitles,
-          media: mediaTools,
-          canExecute: () => _assistant?.acceptingActions ?? false,
-        );
-      }
-    }
-    // Built-in reading of public web pages (private and local addresses are
-    // refused). Web search is the preset 联网搜索 service below.
-    WebTools(
-      registry: tools.registry,
-      canExecute: () => _assistant?.acceptingActions ?? false,
-    );
-    // External capabilities (AI → 外部能力): tools of MCP services, the
-    // user's and the App's presets (联网搜索 / mcp-tavily).
-    final externalRegistry = ExternalServiceRegistry.forDb(
-      library.configuration,
-    );
-    final external = _externalTools = ExternalTools(
-      registry: tools.registry,
-      setup: ExternalServiceSetup(registry: externalRegistry),
-      canExecute: () => _assistant?.acceptingActions ?? false,
-    );
-    unawaited(
-      ExternalPresets.ensure(externalRegistry, InstallId(library.configuration))
-          .then((_) {}, onError: (_) {})
-          .then((_) => external.start())
-          .catchError((_) {}),
-    );
-    final plugins = _plugins;
-    if (plugins != null) {
-      // One tool catalog; the plugin policy narrows it per request and the
-      // gateway re-checks it before every execution.
-      tools.registry.policy = plugins;
-      plugins.externalSummary = () => [
-        for (final s in external.services.services)
-          {
-            'name': s.name,
-            'service': s.label,
-            'available': s.available,
-            'tools': [
-              for (final t in s.tools)
-                if (external.unsupported[s.id]?[t] == null)
-                  ExternalTools.alias(s, t),
-            ],
-          },
-      ];
-      PluginTools(registry: tools.registry, plugins: plugins);
-    }
-    _assistant = ConversationCoordinator(
-      store: store,
-      gateway: ToolGateway(tools.registry, journal: store),
-      context: _aiContext,
-      confirmationTarget: (tool, arguments) {
-        final external = _externalTools?.describe(tool);
-        if (external != null) return external;
-        final id = arguments['media_id'];
-        if (id is! String) return null;
-        final rows = _library!.db.select('SELECT title FROM media WHERE id=?', [
-          id,
-        ]);
-        return rows.isEmpty
-            ? null
-            : MediaTools.safeText(rows.first['title'] as String);
-      },
-      model:
-          widget.assistantModel ??
-          () async {
-            final config = store.loadConfig();
-            config.validate();
-            final key = await store.key(config);
-            if (key.isEmpty) throw const ModelFailure('configurationRequired');
-            return LangChainModel(
-              apiKey: key,
-              endpoint: config.endpoint,
-              model: config.model,
-              maxTokens: config.maxTokens,
-              streaming: config.streamVerified || !config.textVerified,
-            );
-          },
-    );
-    _chat = AiChatController(_assistant!);
+    _chat = AiChatController(module.coordinator);
   }
 
   /// Model settings live on the AI page's 模型 page.
@@ -451,20 +287,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // toolsSupported records a connection probe, not a user permission.
     // A skipped/failed/stale probe must not silently turn actions into chat.
     // The registry and gateway still enforce per-plugin AI permissions.
-    toolsEnabled: () => _assistantStore!.loadConfig().configured,
+    toolsEnabled: () => _assistant!.configured,
     onSettings: _modelSettings,
     onOpenMedia: _openChatMedia,
-    onFavorite: (id) async {
-      final rows = _library!.db.select(
-        'SELECT favorite FROM media WHERE id=?',
-        [id],
-      );
-      if (rows.isEmpty) throw StateError('Media unavailable');
-      final favorite = rows.first['favorite'] != 1;
-      _library!.favorite(id, favorite);
-      _revision.value++;
-      return favorite;
-    },
   );
 
   Future<void> _openChatMedia(Map<String, dynamic> item) async {
@@ -523,21 +348,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (entry == null || entry.isFolder || !mounted) {
       throw StateError('Resource unavailable');
     }
-    if (entry.ref.instanceId == '@local' &&
-        !await File(entry.ref.id).exists()) {
-      throw StateError('File unavailable');
-    }
-    final stream = entry.ref.instanceId == '@local'
-        ? PlayableStream(Uri.file(entry.ref.id))
-        : await _sources.resolve(entry.ref);
-    if (!mounted) {
-      await stream.release();
-      return;
-    }
-    _closeAssistant();
-    await _play(
-      SourceSelection(entry.name, stream, ref: entry.ref, entry: entry),
+    final selection = await _launcher.select(
+      entry.ref,
+      entry.name,
+      entry: entry,
+      wanted: () => mounted,
     );
+    if (selection == null) return;
+    _closeAssistant();
+    await _play(selection);
   }
 
   Future<void> _openAssistant() => showAiChatPage(
@@ -676,22 +495,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     );
     _opening = true;
     try {
-      PlayableStream stream;
-      if (ref.instanceId == '@local') {
-        if (!await File(ref.id).exists()) throw StateError(l.fileUnavailable);
-        stream = PlayableStream(Uri.file(ref.id));
-      } else {
-        await _sources.load();
-        stream = await _sources.resolve(ref);
-      }
-      if (!mounted) {
-        await stream.release();
-        return;
-      }
-      _opening = false;
-      await _play(
-        SourceSelection(resource['name'] as String, stream, ref: ref),
+      final selection = await _launcher.select(
+        ref,
+        resource['name'] as String,
+        wanted: () => mounted,
       );
+      if (selection == null) return;
+      _opening = false;
+      await _play(selection);
     } catch (_) {
       if (mounted) _message(l.historyOpenFailed);
     } finally {
@@ -884,6 +695,39 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 }
 
 /// Counts the page routes on a tab's navigator (dialogs use the root one).
+/// The player as the assistant reaches it: the active player window on
+/// desktop, else the embedded player.
+class _ShellPlayback implements PlaybackPort {
+  _ShellPlayback(this._shell);
+  final _AppShellState _shell;
+
+  @override
+  FutureOr<Map<String, dynamic>> snapshot({bool waitForSession = false}) =>
+      _shell._playbackSnapshot(waitForSession: waitForSession);
+
+  @override
+  Future<Map<String, dynamic>> control(
+    String command,
+    Map<String, dynamic> args,
+  ) async {
+    final windows = _shell._playerWindows;
+    if (windows?.hasActive ?? false) return windows!.control(command, args);
+    final player = _shell._player.currentState;
+    if (player == null ||
+        player.assistantSnapshot()['session_id'] != args['session_id']) {
+      throw StateError('staleSession');
+    }
+    return player.assistantControl(command, args);
+  }
+
+  @override
+  bool get ready =>
+      _shell.mounted && !_shell._opening && !_shell._exitingPlayer;
+
+  @override
+  Future<void> play(SourceSelection selection) => _shell._play(selection);
+}
+
 class _PageDepthObserver extends NavigatorObserver {
   _PageDepthObserver(this.onChanged);
   final VoidCallback onChanged;

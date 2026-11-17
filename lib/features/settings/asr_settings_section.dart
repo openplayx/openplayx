@@ -6,8 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/subtitles/asr_backend_config.dart';
-import '../../services/subtitles/asr_model_store.dart';
+import '../../capabilities/speech/asr_backend_config.dart';
+import '../../capabilities/speech/asr_model_store.dart';
 import '../../ui/components/forms/secret_input.dart';
 import '../../ui/components/forms/settings_text_input.dart';
 import '../../ui/components/settings/settings_section.dart';

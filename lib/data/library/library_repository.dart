@@ -91,7 +91,6 @@ class LibraryRepository {
 
   List<Row> query({
     String search = '',
-    bool favorites = false,
     String? source,
     String? contentType,
     int? year,
@@ -103,11 +102,11 @@ class LibraryRepository {
       '''WITH $_enabledSourcesCte, visible AS (
       SELECT m.*, lm.added_at, ${_versionGroup('m.id')} AS version_group
       FROM media m JOIN memberships lm ON lm.media_id=m.id
-      WHERE instr(lower(m.title),lower(?))>0 ${favorites ? 'AND m.favorite=1' : ''}
+      WHERE instr(lower(m.title),lower(?))>0
       AND ${_visibleMedia('m.id')}
       AND $_visibleContainer
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id WHERE child.media_id=m.id))
-      AND (?<>'' OR ${favorites ? '1' : '0'}=1 OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id))
+      AND (?<>'' OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM source_media child JOIN source_media parent ON child.source=parent.source AND child.parent_key=parent.source_key JOIN memberships pm ON pm.media_id=parent.media_id WHERE child.media_id=m.id))
+      AND (?<>'' OR ? IS NOT NULL OR ? IS NOT NULL OR NOT EXISTS (SELECT 1 FROM metadata_relations mr JOIN memberships pm ON pm.media_id=mr.parent_id WHERE mr.child_id=m.id))
       AND (? IS NULL OR EXISTS (SELECT 1 FROM source_media sm WHERE sm.media_id=m.id AND sm.source=?) OR EXISTS (SELECT 1 FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=m.id AND l.source=?))
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.kind') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.kind FROM source_media sm WHERE sm.media_id=m.id LIMIT 1),'video')=?)
       AND (? IS NULL OR COALESCE((SELECT json_extract(mp.fields,'\$.year') FROM metadata_projection mp WHERE mp.media_id=m.id),(SELECT sm.year FROM source_media sm WHERE sm.media_id=m.id LIMIT 1))=?)
@@ -264,6 +263,7 @@ class LibraryRepository {
       }
       for (final table in [
         'progress',
+        'subtitle_choices',
         'local_identity',
         'resource_locators',
         'evidence',
@@ -482,15 +482,6 @@ class LibraryRepository {
     [jsonEncode(enabledFileSourceIds()), jsonEncode(versionGroup(media))],
   );
 
-  void setFavorite(int favorite, String media) =>
-      db.execute('UPDATE media SET favorite=? WHERE id=?', [favorite, media]);
-
-  bool isFavorite(String media) =>
-      db.select('SELECT favorite FROM media WHERE id=?', [
-        media,
-      ]).firstOrNull?['favorite'] ==
-      1;
-
   /// Media whose projected metadata names the same collection, oldest first.
   ResultSet collectionMembers(String collection) => db.select(
     '''SELECT m.* FROM metadata_projection mp JOIN media m ON m.id=mp.media_id
@@ -587,6 +578,17 @@ class LibraryRepository {
 
   ResultSet checkpoint(String resource) =>
       db.select('SELECT * FROM progress WHERE resource_id=?', [resource]);
+
+  ResultSet subtitleChoice(String resource) => db.select(
+    'SELECT choice FROM subtitle_choices WHERE resource_id=?',
+    [resource],
+  );
+
+  void saveSubtitleChoice(String resource, String choice, int timestamp) =>
+      db.execute(
+        'INSERT INTO subtitle_choices(resource_id,choice,updated_at) VALUES (?,?,?) ON CONFLICT(resource_id) DO UPDATE SET choice=excluded.choice,updated_at=excluded.updated_at',
+        [resource, choice, timestamp],
+      );
 
   void beginSession(String resource, String session, int timestamp) =>
       db.execute(

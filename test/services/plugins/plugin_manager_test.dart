@@ -2,18 +2,17 @@ import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/core/plugins/plugin_gate.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/configuration/source_credential_broker.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/ai_tools/media_tools.dart';
-import 'package:openplayx/services/ai_tools/plugin_tools.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/plugins/plugin_ai_policy.dart';
-import 'package:openplayx/services/plugins/plugin_catalog.dart';
-import 'package:openplayx/services/plugins/plugin_manager.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/assistant/plugins/library/media_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/plugin_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/capability_switches.dart';
+import 'package:openplayx/assistant/plugins/plugin_catalog.dart';
+import 'package:openplayx/assistant/plugins/plugin_manager.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 class FakeSources extends SourceManager {
@@ -60,13 +59,14 @@ PluginCatalog _catalog() => PluginCatalog.builtIn();
 
 Future<PluginManager> _manager({
   FakeSources? sources,
-  PluginPolicyStore? store,
+  CapabilitySwitchStore? store,
 }) async {
+  final switchStore = store ?? MemorySwitchStore();
   final manager = PluginManager(
     catalog: _catalog(),
     sources: sources ?? FakeSources(),
-    store: store ?? MemoryPolicyStore(),
-  )..install();
+    switches: CapabilitySwitches(() => switchStore),
+  );
   addTearDown(manager.dispose);
   await manager.refresh();
   return manager;
@@ -96,7 +96,6 @@ void main() {
             summary: id,
             category: PluginCategory.model,
             location: ExecutionLocation.device,
-            icon: _catalog().definitions.first.icon,
             dependsOn: deps,
             capabilities: [
               PluginCapabilityInfo('x.cap', 'cap', 'd', tools: t ?? const []),
@@ -119,13 +118,11 @@ void main() {
   });
 
   group('policy', () {
-    tearDown(() => PluginGate.current = null);
-
     test(
       'AI may call every capability of enabled plugins and instances',
       () async {
         final sources = FakeSources();
-        final store = MemoryPolicyStore();
+        final store = MemorySwitchStore();
         var manager = await _manager(sources: sources, store: store);
         expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
         expect(manager.aiAllows('source.smb', instanceId: 'office'), isTrue);
@@ -149,9 +146,10 @@ void main() {
         );
         manager = await _manager(sources: sources, store: store);
         expect(manager.aiAllows('source.smb', instanceId: 'new'), isTrue);
-        // Only the plugin and instance switches narrow it.
+        // Only the capability and instance switches narrow it; the switch
+        // is App-wide, not just for the AI.
         manager.setPluginEnabled('source.smb', false);
-        expect(PluginGate.enabled('source.smb'), isFalse);
+        expect(manager.switches.enabled('source.smb'), isFalse);
         expect(manager.aiAllows('source.smb', instanceId: 'home'), isFalse);
         manager.setPluginEnabled('source.smb', true);
         expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
@@ -190,7 +188,7 @@ void main() {
         'disabling them', () async {
       final manager = PluginManager(
         catalog: _catalog(),
-        store: MemoryPolicyStore(),
+        switches: CapabilitySwitches.memory(),
       );
       addTearDown(manager.dispose);
       await manager.refresh();
@@ -198,7 +196,7 @@ void main() {
       expect(manager.pluginEnabled('media.ffmpeg'), isFalse);
       expect(manager.pluginEnabled('asr.whisper'), isFalse);
       expect(manager.snapshot('media.ffmpeg')!.platformSupported, isFalse);
-      expect(manager.policy.pluginEnabled('asr.whisper'), isTrue);
+      expect(manager.switches.isOn('asr.whisper'), isTrue);
       expect(manager.decide('media_probe'), ToolDecision.capabilityUnavailable);
       // Task query/cancel channel stays; host tools are never gated.
       expect(manager.decide('subtitle_task_get'), ToolDecision.allowed);
@@ -223,7 +221,7 @@ void main() {
     });
 
     test('stale writes conflict instead of overwriting', () async {
-      final store = MemoryPolicyStore();
+      final store = MemorySwitchStore();
       final manager = await _manager(store: store);
       store.value = store.value!.copyWith(revision: store.value!.revision + 1);
       expect(
@@ -234,8 +232,6 @@ void main() {
   });
 
   group('AI tools', () {
-    tearDown(() => PluginGate.current = null);
-
     test('gateway rejects a tool whose policy changed after listing', () async {
       final manager = await _manager();
       final registry = ToolRegistry()..policy = manager;
@@ -341,19 +337,26 @@ void main() {
     });
   });
 
-  test('policy document round-trips and ignores old AI grants', () {
-    final policy = const PluginPolicy().withPluginEnabled('source.smb', false);
-    final json =
-        jsonDecode(jsonEncode(policy.toJson())) as Map<String, dynamic>;
+  test('switch document round-trips and ignores old AI grants', () {
+    final state = const CapabilitySwitchState().withSwitch('source.smb', false);
+    final json = jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
     expect(json.containsKey('ai'), isFalse);
-    final back = PluginPolicy.fromJson({
+    final back = CapabilitySwitchState.fromJson({
       ...json,
       'ai': {
         'source.smb': {'allowed': false},
       },
     }, 3);
-    expect(back.pluginEnabled('source.smb'), isFalse);
-    expect(back.pluginEnabled('source.ftp'), isTrue);
+    expect(back.isOn('source.smb'), isFalse);
+    expect(back.isOn('source.ftp'), isTrue);
     expect(back.revision, 3);
+  });
+
+  test('a provider whose dependency is off takes no work', () {
+    final switches = CapabilitySwitches.memory()..set('media.ffmpeg', false);
+    expect(switches.isOn('asr.whisper'), isTrue);
+    expect(switches.enabled('asr.whisper'), isFalse);
+    switches.set('media.ffmpeg', true);
+    expect(switches.enabled('asr.whisper'), isTrue);
   });
 }

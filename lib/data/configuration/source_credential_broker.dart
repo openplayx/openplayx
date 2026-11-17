@@ -1,4 +1,4 @@
-import '../configuration/source_configuration_service.dart';
+import 'source_configuration_service.dart';
 import '../sources/source_config.dart';
 import '../../l10n/l10n.dart';
 

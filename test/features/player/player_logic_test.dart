@@ -2,10 +2,11 @@ import 'dart:ui';
 
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/features/player/player_extras.dart';
-import 'package:openplayx/features/player/player_keymap.dart';
-import 'package:openplayx/features/player/player_page.dart';
-import 'package:openplayx/features/player/video_frame.dart';
+import 'package:openplayx/features/player/model/playback_tools_state.dart';
+import 'package:openplayx/features/player/model/player_action.dart';
+import 'package:openplayx/features/player/view/player_keymap.dart';
+import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/features/player/model/video_frame.dart';
 
 PlayerAction? key(
   LogicalKeyboardKey key, {
@@ -19,7 +20,7 @@ PlayerAction? key(
   alt: alt,
   primary: primary,
   otherModifier: other,
-)?.action;
+);
 
 void main() {
   group('keymap follows VLC Qt defaults', () {
@@ -80,25 +81,9 @@ void main() {
       expect(key(LogicalKeyboardKey.space, primary: true), isNull);
     });
 
-    test('F1–F10 jump to quick bookmarks; with Mod they set them', () {
-      final jump = resolvePlayerKey(
-        LogicalKeyboardKey.f3,
-        shift: false,
-        alt: false,
-        primary: false,
-        otherModifier: false,
-      )!;
-      expect(jump.bookmarkSlot, 2);
-      expect(jump.setBookmark, isFalse);
-      final set = resolvePlayerKey(
-        LogicalKeyboardKey.f10,
-        shift: false,
-        alt: false,
-        primary: true,
-        otherModifier: false,
-      )!;
-      expect(set.bookmarkSlot, 9);
-      expect(set.setBookmark, isTrue);
+    test('function keys are not player shortcuts', () {
+      expect(key(LogicalKeyboardKey.f3), isNull);
+      expect(key(LogicalKeyboardKey.f10, primary: true), isNull);
     });
 
     test('labels use the platform modifier', () {

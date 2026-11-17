@@ -2,7 +2,7 @@ import 'package:flutter/widgets.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/sources/source_config.dart';
-import '../../data/sources/source_manager.dart';
+import '../../capabilities/sources/source_manager.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/components/settings/settings_section.dart';
 

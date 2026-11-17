@@ -8,7 +8,7 @@ import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/remote_access/remote_config.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
 import 'package:openplayx/features/settings/remote_access_settings_page.dart';
 import 'package:sqlite3/sqlite3.dart';
 

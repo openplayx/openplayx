@@ -3,13 +3,13 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/artwork/artwork_service.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/services/metadata/metadata_background.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/capabilities/artwork/artwork_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/capabilities/metadata/metadata_background.dart';
 import 'package:workmanager/workmanager.dart';
 
 import '../test/support/library_test_helpers.dart';

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/remote_access/remote_access_service.dart';
-import '../../data/sources/source_manager.dart';
+import '../../capabilities/sources/source_manager.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/forms/form_actions.dart';
 import '../../ui/components/settings/settings_adaptive.dart';

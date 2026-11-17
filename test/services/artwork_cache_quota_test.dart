@@ -1,11 +1,11 @@
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/metadata_capability.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/metadata_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/services/artwork/artwork_service.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/capabilities/artwork/artwork_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../metadata/metadata_test.dart' show FixtureSources;

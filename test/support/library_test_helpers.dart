@@ -1,4 +1,4 @@
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 
 const _testFileSourceName = 'Test library';
 

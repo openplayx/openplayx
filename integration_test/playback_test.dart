@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:openplayx_playback/playback.dart';
 import 'package:openplayx/app/app.dart';
-import 'package:openplayx/app/theme/app_theme_controller.dart';
+import 'package:openplayx/features/settings/app_theme_controller.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:sqlite3/sqlite3.dart';

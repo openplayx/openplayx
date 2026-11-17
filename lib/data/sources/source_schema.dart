@@ -1,5 +1,5 @@
-import '../../core/plugins/config_schema.dart';
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/config_schema.dart';
+import '../../core/capabilities/source_capability.dart';
 import 'source_config.dart';
 import '../../l10n/l10n.dart';
 

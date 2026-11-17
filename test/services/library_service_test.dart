@@ -1,10 +1,10 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sqlite3/sqlite3.dart';
-import 'package:openplayx/services/library/library_service.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
-import 'package:openplayx/core/plugins/metadata_capability.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/core/capabilities/metadata_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
 
 import '../support/library_test_helpers.dart';
@@ -336,13 +336,7 @@ void main() {
       ]);
       expect(service.versions(card).first['size'], 4 << 30);
 
-      // Favorites and hiding cover every version.
-      service.favorite(card, true);
-      expect(service.db.select('SELECT favorite FROM media').map((r) => r[0]), [
-        1,
-        1,
-        1,
-      ]);
+      // Hiding covers every version.
       service.hide(card);
       expect(service.query(), isEmpty);
       service.clearIgnored();
@@ -504,8 +498,6 @@ void main() {
     await service.scan(binding, sources);
     await service.scan(service.addFileSource('s'), sources);
     expect(service.query().single['id'], media);
-    service.favorite(media, true);
-    expect(service.query(favorites: true).single['id'], media);
     service.rename(media, 'User title');
     await service.scan(binding, sources);
     expect(service.query().single['title'], 'User title');
@@ -538,7 +530,6 @@ void main() {
       final binding = service.addFileSource('s');
       await service.scan(binding, sources);
       final media = service.query().single['id'] as String;
-      service.favorite(media, true);
       service.hide(media);
       await service.scan(binding, sources);
       expect(service.query(), isEmpty);

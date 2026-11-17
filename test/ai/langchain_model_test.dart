@@ -3,7 +3,7 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/plugins/model_langchain/langchain_model.dart';
+import 'package:openplayx/assistant/model/langchain_model.dart';
 
 void main() {
   test('SDK assembles interleaved streaming arguments and preserves call/result IDs', () async {

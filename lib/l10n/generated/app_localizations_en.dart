@@ -62,12 +62,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aboutDescription => 'Your media. A quieter place to play.';
 
   @override
-  String get favorite => 'Favorite';
-
-  @override
-  String get unfavorite => 'Remove favorite';
-
-  @override
   String get retry => 'Retry';
 
   @override
@@ -1422,9 +1416,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get markUnwatched => 'Mark as unwatched';
 
   @override
-  String get removeFavorite => 'Remove from favorites';
-
-  @override
   String get aiMore => 'More';
 
   @override
@@ -1832,6 +1823,12 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get embeddedSubtitles => 'Embedded subtitles';
+
+  @override
+  String get externalSubtitles => 'External subtitles';
+
+  @override
   String get recognizedSubtitles => 'Recognised subtitles';
 
   @override
@@ -1904,9 +1901,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plAbSetB => 'Set point B';
 
   @override
-  String get plAddBookmark => 'Add bookmark';
-
-  @override
   String get plAdvancedTools => 'Advanced tools row';
 
   @override
@@ -1919,14 +1913,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plAudioDelay => 'Audio delay';
 
   @override
-  String plBookmarkAdded(String time) {
-    return 'Bookmark at $time';
-  }
-
-  @override
-  String get plBookmarks => 'Bookmarks';
-
-  @override
   String plBoosting(String speed) {
     return '$speed fast forward · release to restore';
   }
@@ -1934,9 +1920,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get plDelayHint =>
       'Positive values play audio or show subtitles later.';
-
-  @override
-  String get plDeleteBookmark => 'Delete bookmark';
 
   @override
   String get plExitFullscreen => 'Exit full screen';
@@ -2034,9 +2017,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get plNextSubtitle => 'Next subtitle';
 
   @override
-  String get plNoBookmarks => 'No bookmarks yet';
-
-  @override
   String get plNormalSpeed => 'Normal speed';
 
   @override
@@ -2047,11 +2027,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plPictureAndSound => 'Picture & sound';
-
-  @override
-  String plQuickBookmarkSet(String slot) {
-    return 'Quick bookmark $slot set';
-  }
 
   @override
   String get plRepeatMode => 'Repeat';
@@ -2196,9 +2171,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get plExternalSubtitleShort => '+ External';
-
-  @override
-  String get plBookmarksShort => 'Bookmarks';
 
   @override
   String get listSeparator => ', ';
@@ -2428,6 +2400,31 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get plgSwitchOff =>
       'New calls are blocked; instance settings are kept';
+
+  @override
+  String get settingsCapabilities => 'Capabilities';
+
+  @override
+  String get capabilitySwitchesFooter =>
+      'A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.';
+
+  @override
+  String capabilityNeeds(String name) {
+    return 'Needs “$name” switched on';
+  }
+
+  @override
+  String get plgCapabilitySwitch => 'Capability switch';
+
+  @override
+  String get plgCapabilitySwitchHint =>
+      'Switched in Settings → Capabilities, for the whole App';
+
+  @override
+  String get capabilityOn => 'On';
+
+  @override
+  String get capabilityOff => 'Off';
 
   @override
   String get plgLocation => 'Runs where';
@@ -3841,9 +3838,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiToolProgressQuery => 'View watch progress';
 
   @override
-  String get aiToolMediaSetFavorite => 'Set favorite';
-
-  @override
   String get aiToolPlaybackGet => 'Read playback state';
 
   @override
@@ -3969,15 +3963,6 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiArgOff => 'off';
-
-  @override
-  String get aiArgFavorite => 'Favorite';
-
-  @override
-  String get aiArgFavoriteOn => 'favorite';
-
-  @override
-  String get aiArgFavoriteOff => 'unfavorite';
 
   @override
   String get aiArgWait => 'Wait';

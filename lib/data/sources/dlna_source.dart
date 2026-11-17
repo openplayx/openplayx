@@ -4,7 +4,7 @@ import 'dart:io';
 
 import 'package:xml/xml.dart';
 
-import '../../core/plugins/source_capability.dart';
+import '../../core/capabilities/source_capability.dart';
 import 'file_sources.dart';
 import 'network_file_sources.dart';
 import 'source_config.dart';

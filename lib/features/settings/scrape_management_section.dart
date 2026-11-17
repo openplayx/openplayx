@@ -3,10 +3,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../data/sources/source_manager.dart';
+import '../../capabilities/sources/source_manager.dart';
 import '../../l10n/generated/app_localizations.dart';
-import '../../services/artwork/artwork_service.dart';
-import '../../services/library/library_service.dart';
+import '../../capabilities/artwork/artwork_service.dart';
+import '../../capabilities/library/library_service.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/components/feedback/app_feedback.dart';

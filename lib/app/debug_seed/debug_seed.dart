@@ -11,14 +11,14 @@ import '../../data/configuration/source_configuration_service.dart';
 import '../../data/metadata/metadata_repository.dart';
 import '../../data/remote_access/remote_access_service.dart';
 import '../../data/sources/source_config.dart';
-import '../../data/sources/source_manager.dart';
-import '../../services/conversations/assistant_store.dart';
-import '../../services/external/external_service_registry.dart';
-import '../../services/external/external_service_setup.dart';
-import '../../services/metadata/tmdb_credentials.dart';
-import '../../services/subtitles/asr_backend_config.dart';
-import '../../services/subtitles/asr_model_store.dart';
-import '../diagnostics/diagnostics_service.dart';
+import '../../capabilities/sources/source_manager.dart';
+import '../../assistant/conversation/assistant_store.dart';
+import '../../assistant/plugins/external/external_service_registry.dart';
+import '../../assistant/plugins/external/external_service_setup.dart';
+import '../../capabilities/metadata/tmdb_credentials.dart';
+import '../../capabilities/speech/asr_backend_config.dart';
+import '../../capabilities/speech/asr_model_store.dart';
+import '../../data/diagnostics/diagnostics_service.dart';
 
 /// Outcome of one seed import, per item (`sources/nas-smb`, `metadata`, …).
 class DebugSeedReport {

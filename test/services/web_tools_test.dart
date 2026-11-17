@@ -3,15 +3,15 @@ import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/models/text_model.dart';
-import 'package:openplayx/services/ai_tools/tool_registry.dart';
-import 'package:openplayx/services/ai_tools/web_tools.dart';
+import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
+import 'package:openplayx/assistant/plugins/web/web_tools.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
-import 'package:openplayx/services/ai_tools/external_tools.dart';
-import 'package:openplayx/services/external/external_presets.dart';
-import 'package:openplayx/services/external/external_service_registry.dart';
-import 'package:openplayx/services/external/external_service_setup.dart';
-import 'package:openplayx/services/web/page_reader.dart';
-import 'package:openplayx/services/web/safe_http.dart';
+import 'package:openplayx/assistant/plugins/external/external_tools.dart';
+import 'package:openplayx/assistant/plugins/external/external_presets.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_setup.dart';
+import 'package:openplayx/assistant/plugins/web/page_reader.dart';
+import 'package:openplayx/assistant/plugins/web/safe_http.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 const _article = '''

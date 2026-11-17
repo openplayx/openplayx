@@ -21,7 +21,7 @@
 
 `packages/playback/lib/playback.dart` 增加 `PlayerAudioTrack`、倍速/音量快照，以及设置倍速、音量、发现与选择音轨的接口。VLC 类型仍封装在播放包内。
 
-`lib/features/player/player_page.dart` 负责界面、持续倍率与临时倍率的区分、触控锁定和画面调暗。音量和倍速的原生快照由 VLC 事件提供；调整失败会提示，避免把未执行的选项标记为已选择。
+`lib/features/player/view/player_page.dart` 负责界面、触控锁定和画面调暗；持续倍率与临时倍率的区分在 `lib/features/player/controller/playback_tools_controller.dart`。音量和倍速的原生快照由 VLC 事件提供；调整失败会提示，避免把未执行的选项标记为已选择。
 
 ## 验证范围
 

@@ -2,12 +2,12 @@ import '../../app_test_host.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:openplayx/core/plugins/source_capability.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/sources/source_config.dart';
-import 'package:openplayx/data/sources/source_manager.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
 import 'package:openplayx/app/app_shell.dart';
-import 'package:openplayx/services/library/library_service.dart';
+import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../player/player_page_test.dart' show FakeBackend;
@@ -38,7 +38,11 @@ class MemorySources extends SourceManager {
   }
 
   @override
-  Future<void> remove(String id) async => saved.removeWhere((c) => c.id == id);
+  Future<void> remove(String id) async {
+    saved.removeWhere((c) => c.id == id);
+    announce(SourceRemoved(id));
+  }
+
   @override
   Future<BrowseResult> browse(String id, BrowseRequest request) async {
     if (failBrowse) {
@@ -148,6 +152,8 @@ void main() {
             address: 'smb://localhost/media',
           ),
         );
+      // As in the app: the library follows connection changes.
+      library.followSources(sources);
       final media = library.register(
         const SourceEntry(
           ResourceRef('nas', '/media/film.mp4'),
