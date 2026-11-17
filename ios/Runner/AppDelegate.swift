@@ -7,6 +7,7 @@ import Network
   private let networkMonitor = NWPathMonitor()
   private let networkQueue = DispatchQueue(label: "openplayx.network-policy")
   private var networkChannel: FlutterMethodChannel?
+  private var sourceAccess: SourceAccess?
 
   override func application(
     _ application: UIApplication,
@@ -18,6 +19,9 @@ import Network
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXSourceAccess") {
+      sourceAccess = SourceAccess(messenger: registrar.messenger())
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXNetworkPolicy") {
       let channel = FlutterMethodChannel(name: "openplayx/network_policy", binaryMessenger: registrar.messenger())
       networkChannel = channel

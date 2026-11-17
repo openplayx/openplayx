@@ -2,6 +2,7 @@ import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
+import 'package:file_selector/file_selector.dart';
 import 'package:flutter/services.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -157,6 +158,16 @@ class SourceManager {
   SourceBindings get bindings =>
       _configuration?.bindings() ?? const SourceBindings();
   static const _bookmarks = MethodChannel('openplayx/source_access');
+
+  /// Local folders outside the sandbox need a security-scoped bookmark.
+  static bool get _usesBookmarks => Platform.isMacOS || Platform.isIOS;
+
+  /// Asks the user for a local folder; null when cancelled. iOS has no
+  /// `file_selector` folder picker, so it uses the native one, which also
+  /// opens the folder's access for this session.
+  static Future<String?> pickLocalFolder() => Platform.isIOS
+      ? _bookmarks.invokeMethod<String>('pickDirectory')
+      : getDirectoryPath();
   Future<void>? _loading;
   Future<void> load() => _loading ??= _load().catchError((Object error) {
     _loading = null;
@@ -219,7 +230,7 @@ class SourceManager {
       pluginVersion: SourceSchemas.forKind(config.kind).version,
       hasSecret: previous?.hasSecret ?? false,
     );
-    if (Platform.isMacOS && config.kind == SourceKind.local) {
+    if (_usesBookmarks && config.kind == SourceKind.local) {
       final bookmark =
           previous?.address == config.address && previous?.bookmark != null
           ? previous!.bookmark
@@ -422,7 +433,7 @@ class SourceManager {
       ...config.toJson(),
       'bookmark': null,
     });
-    if (Platform.isMacOS &&
+    if (_usesBookmarks &&
         config.kind == SourceKind.local &&
         config.bookmark != null) {
       final String? path;

@@ -1,6 +1,5 @@
 import 'dart:async';
 
-import 'package:file_selector/file_selector.dart';
 import 'package:flutter/widgets.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -308,7 +307,7 @@ class SourceFormController extends ChangeNotifier {
 
   Future<void> pickDirectory() async {
     try {
-      final picked = await (chooseDirectory?.call() ?? getDirectoryPath());
+      final picked = await (chooseDirectory?.call() ?? SourceManager.pickLocalFolder());
       if (picked != null && !_disposed) {
         address.text = picked;
         _notify();
