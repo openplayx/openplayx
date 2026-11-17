@@ -47,6 +47,8 @@ dependencies:
   sqlite3: ^3.3.1
   path_provider: ^2.1.6
   url_launcher: ^6.3.3
+  # App version for 关于 (the --build-name a release builds with).
+  package_info_plus: ^10.2.2
   shadcn_ui: ^0.59.0
   lucide_icons_flutter: ^3.1.25
   flutter_localizations:

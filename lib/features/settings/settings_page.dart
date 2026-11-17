@@ -1,5 +1,6 @@
 import 'diagnostics_section.dart';
 
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -300,7 +301,10 @@ class _AboutSection extends StatelessWidget {
         SettingsRow(
           title: 'OpenPlayX',
           description: l.aboutDescription,
-          control: const Text('1.0.0'),
+          control: FutureBuilder<PackageInfo>(
+            future: PackageInfo.fromPlatform(),
+            builder: (context, snapshot) => Text(snapshot.data?.version ?? ''),
+          ),
         ),
       ],
     );
