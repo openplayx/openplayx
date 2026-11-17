@@ -65,8 +65,11 @@ void main() {
     expect(find.byKey(const ValueKey('plugin-row-source.smb')), findsNothing);
     expect(find.byKey(const ValueKey('external-configure')), findsNothing);
     await openGroup(tester, 'external');
-    // Empty until services are configured.
-    expect(find.text('还没有配置外部服务'), findsOneWidget);
+    // Empty until services are configured: one centered 配置 button.
+    expect(
+      find.byKey(const ValueKey('external-configure-empty')),
+      findsOneWidget,
+    );
     expect(find.byKey(const ValueKey('plugin-row-model.llm')), findsNothing);
     // HTTP recognition is part of 语音识别, not a separate service.
     expect(find.byKey(const ValueKey('plugin-row-asr.http')), findsNothing);
@@ -81,7 +84,7 @@ void main() {
     }
     // The list never carries plugin-wide switches.
     expect(find.byType(ShadSwitch), findsNothing);
-    // 外部能力 has one 配置 button.
+    // The header carries the plain + button, like 来源.
     expect(find.byKey(const ValueKey('external-configure')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('external-configure')));
     await tester.pumpAndSettle();
@@ -135,7 +138,10 @@ void main() {
     await tester.runAsync(() => Future<void>.delayed(Duration.zero));
     await tester.pumpAndSettle();
     expect(registry.services, isEmpty);
-    expect(find.text('还没有配置外部服务'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('external-configure-empty')),
+      findsOneWidget,
+    );
   });
 
   testWidgets('内部能力 page is read-only and opens the detail', (tester) async {

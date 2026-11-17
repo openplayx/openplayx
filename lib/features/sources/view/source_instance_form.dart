@@ -106,14 +106,13 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     int maxLines = 1,
     Key? key,
   }) {
-    final inline = maxLines == 1;
+    // Label above a bordered input, like the 模型 settings form.
     final Widget input = password
         ? SecretInput(
             key: key ?? ValueKey(label),
             controller: c,
             enabled: !_c.busy,
             placeholder: hint,
-            inline: inline,
           )
         : SettingsTextInput(
             key: key ?? ValueKey(label),
@@ -122,17 +121,14 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             enabled: !_c.busy,
             maxLines: maxLines,
             keyboardType: number ? TextInputType.number : TextInputType.text,
-            inline: inline,
             example: hint,
           );
-    return inline
-        ? SettingsFieldRow(title: label, description: help, field: input)
-        : SettingsRow(
-            title: label,
-            description: help,
-            stacked: true,
-            control: input,
-          );
+    return SettingsRow(
+      title: label,
+      description: help,
+      stacked: true,
+      control: input,
+    );
   }
 
   Widget _switchRow(

@@ -408,22 +408,45 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
       children: [
         for (final s in _setup.registry.services)
           _externalRow(context, s, wide),
-        if (_setup.registry.services.isEmpty)
-          SettingsRow(title: appStrings.plgExternalEmpty),
-      ],
-    ),
-    SettingsSection(
-      children: [
-        SettingsRow(
-          key: const ValueKey('external-configure'),
-          icon: AppIcons.add,
-          title: appStrings.extConfigureTitle,
-          accent: true,
-          onTap: () => _configureExternal(context),
-        ),
       ],
     ),
   ];
+
+  /// Header button (top right, next to the assistant), same look as the
+  /// 来源 page's add button.
+  Widget _configureExternalButton(BuildContext context) => Tooltip(
+    message: appStrings.extConfigureTitle,
+    child: Semantics(
+      label: appStrings.extConfigureTitle,
+      button: true,
+      excludeSemantics: true,
+      child: ShadIconButton.ghost(
+        key: const ValueKey('external-configure'),
+        width: 40,
+        height: 40,
+        icon: const Icon(AppIcons.add),
+        onPressed: () => _configureExternal(context),
+      ),
+    ),
+  );
+
+  /// Shown in the middle of the page while no external service exists.
+  Widget _emptyExternal(BuildContext context) => Center(
+    child: Padding(
+      padding: const EdgeInsets.all(32),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          ShadButton(
+            key: const ValueKey('external-configure-empty'),
+            onPressed: () => _configureExternal(context),
+            leading: const Icon(AppIcons.add),
+            child: Text(appStrings.extConfigureTitle),
+          ),
+        ],
+      ),
+    ),
+  );
 
   List<Widget> _builtIn(BuildContext context, bool wide) {
     final visible = manager.snapshots.where(_matches).toList();
@@ -465,13 +488,16 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     );
   }
 
-  Widget _list(BuildContext context, bool wide) => SettingsListView(
-    children: switch (_group) {
-      PluginGroup.model => [_modelSettings()],
-      PluginGroup.external => _external(context, wide),
-      PluginGroup.builtIn => _builtIn(context, wide),
-    },
-  );
+  Widget _list(BuildContext context, bool wide) =>
+      _group == PluginGroup.external && _setup.registry.services.isEmpty
+      ? _emptyExternal(context)
+      : SettingsListView(
+          children: switch (_group) {
+            PluginGroup.model => [_modelSettings()],
+            PluginGroup.external => _external(context, wide),
+            PluginGroup.builtIn => _builtIn(context, wide),
+          },
+        );
 
   Widget _detail(BuildContext context) {
     final selected = manager.snapshot(_selected ?? '');
@@ -509,6 +535,9 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     builder: (context, constraints) {
       final wide = constraints.maxWidth >= AppMetrics.wideBreakpoint;
       final title = Text(_group.label);
+      final trailing = [
+        if (_group == PluginGroup.external) _configureExternalButton(context),
+      ];
       // The model form needs no detail pane.
       if (!wide || _group == PluginGroup.model) {
         return AppPage(
@@ -517,6 +546,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
             state: {'group': _group.name, 'selectedId': _selected},
           ),
           title: title,
+          trailing: trailing,
           body: _list(context, wide),
         );
       }
@@ -526,6 +556,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
           state: {'group': _group.name, 'selectedId': _selected},
         ),
         title: title,
+        trailing: trailing,
         body: Row(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
