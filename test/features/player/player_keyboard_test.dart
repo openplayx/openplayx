@@ -50,6 +50,26 @@ void main() {
     },
   );
 
+  testWidgets('remote centre and separate play/pause keys', (tester) async {
+    final backend = await openPlayer(tester);
+    await tester.sendKeyEvent(LogicalKeyboardKey.select);
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.paused);
+    // Pause while paused stays paused; Play resumes; Play again is a no-op.
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.paused);
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.playing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPlay);
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.playing);
+    await tester.sendKeyEvent(LogicalKeyboardKey.mediaPause);
+    await tester.pumpAndSettle();
+    expect(backend.value.status, PlaybackStatus.paused);
+  });
+
   testWidgets('modifier jumps, speed, delays and repeat follow VLC keys', (
     tester,
   ) async {

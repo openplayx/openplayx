@@ -1,3 +1,5 @@
+import '../ui/input/remote_select.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -67,7 +69,7 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
             setAppStrings(AppLocalizations.of(context));
             return AnnotatedRegion<SystemUiOverlayStyle>(
               value: appSystemUiStyle(Theme.of(context).brightness),
-              child: ShadAppBuilder(child: child!),
+              child: RemoteSelectAsEnter(child: ShadAppBuilder(child: child!)),
             );
           },
           routes: {'/design-system': (_) => const ComponentGalleryPage()},

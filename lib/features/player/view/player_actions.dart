@@ -32,6 +32,27 @@ extension _PlayerActions on PlayerPageState {
       }
       return KeyEventResult.handled;
     }
+    // Remote Back closes an open panel; otherwise the system handles it.
+    if (key == LogicalKeyboardKey.goBack && _panel != PlayerPanel.none) {
+      if (event is! KeyRepeatEvent) _closePanel();
+      return KeyEventResult.handled;
+    }
+    // Separate Play and Pause keys (TV remotes) only ever go one way.
+    if (key == LogicalKeyboardKey.mediaPlay ||
+        key == LogicalKeyboardKey.mediaPause) {
+      if (event is KeyRepeatEvent ||
+          _locked ||
+          !_enabled ||
+          _panel != PlayerPanel.none) {
+        return KeyEventResult.handled;
+      }
+      final playing = _backend.value.status == PlaybackStatus.playing;
+      if (playing == (key == LogicalKeyboardKey.mediaPause)) {
+        _showControls();
+        unawaited(_perform(PlayerAction.togglePlay));
+      }
+      return KeyEventResult.handled;
+    }
     final keyboard = HardwareKeyboard.instance;
     final apple = isApplePlatform;
     final action = resolvePlayerKey(

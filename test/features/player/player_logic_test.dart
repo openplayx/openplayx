@@ -23,6 +23,28 @@ PlayerAction? key(
 );
 
 void main() {
+  test('TV remote and media keys', () {
+    expect(key(LogicalKeyboardKey.select), PlayerAction.togglePlay);
+    expect(key(LogicalKeyboardKey.mediaPlayPause), PlayerAction.togglePlay);
+    expect(key(LogicalKeyboardKey.mediaStop), PlayerAction.stop);
+    expect(
+      key(LogicalKeyboardKey.mediaFastForward),
+      PlayerAction.jumpForwardMedium,
+    );
+    expect(key(LogicalKeyboardKey.mediaRewind), PlayerAction.jumpBackMedium);
+    expect(
+      key(LogicalKeyboardKey.closedCaptionToggle),
+      PlayerAction.nextSubtitle,
+    );
+    expect(
+      key(LogicalKeyboardKey.mediaAudioTrack),
+      PlayerAction.nextAudioTrack,
+    );
+    expect(key(LogicalKeyboardKey.info), PlayerAction.showPosition);
+    expect(key(LogicalKeyboardKey.contextMenu), PlayerAction.toggleControls);
+    expect(key(LogicalKeyboardKey.select, shift: true), isNull);
+  });
+
   group('keymap follows VLC Qt defaults', () {
     test('four jump lengths by modifier', () {
       const left = LogicalKeyboardKey.arrowLeft;

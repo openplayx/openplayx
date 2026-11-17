@@ -20,6 +20,20 @@ PlayerAction? resolvePlayerKey(
   if (otherModifier) return null;
   PlayerAction? action;
   final plain = !shift && !alt && !primary;
+  // TV remote and media keys (D-pad arrows are the arrow keys below).
+  final remote = switch (key) {
+    LogicalKeyboardKey.select ||
+    LogicalKeyboardKey.mediaPlayPause => PlayerAction.togglePlay,
+    LogicalKeyboardKey.mediaStop => PlayerAction.stop,
+    LogicalKeyboardKey.mediaFastForward => PlayerAction.jumpForwardMedium,
+    LogicalKeyboardKey.mediaRewind => PlayerAction.jumpBackMedium,
+    LogicalKeyboardKey.closedCaptionToggle => PlayerAction.nextSubtitle,
+    LogicalKeyboardKey.mediaAudioTrack => PlayerAction.nextAudioTrack,
+    LogicalKeyboardKey.info => PlayerAction.showPosition,
+    LogicalKeyboardKey.contextMenu => PlayerAction.toggleControls,
+    _ => null,
+  };
+  if (remote != null) return plain ? remote : null;
   if (key == LogicalKeyboardKey.arrowLeft ||
       key == LogicalKeyboardKey.arrowRight) {
     final back = key == LogicalKeyboardKey.arrowLeft;

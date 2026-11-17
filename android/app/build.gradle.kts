@@ -30,6 +30,24 @@ android {
         versionName = flutter.versionName
     }
 
+    // Package native libraries (VLC, Go core, ...) only for the ABIs Flutter builds for.
+    // Without this a `--target-platform android-arm,android-arm64` APK still carries
+    // x86_64 copies of plugin libraries that can never load without libflutter.so.
+    // (abiFilters cannot be used: the Flutter Gradle plugin resets them later.)
+    val flutterTargetPlatforms = project.findProperty("target-platform") as String?
+    if (flutterTargetPlatforms != null && project.findProperty("split-per-abi") != "true") {
+        val abiByPlatform = mapOf(
+            "android-arm" to "armeabi-v7a",
+            "android-arm64" to "arm64-v8a",
+            "android-x64" to "x86_64",
+            "android-x86" to "x86",
+        )
+        val wanted = flutterTargetPlatforms.split(",").mapNotNull { abiByPlatform[it.trim()] }.toSet()
+        if (wanted.isNotEmpty()) {
+            for (abi in abiByPlatform.values - wanted) packaging.jniLibs.excludes += "lib/$abi/**"
+        }
+    }
+
     buildTypes {
         release {
             // TODO: Add your own signing config for the release build.
