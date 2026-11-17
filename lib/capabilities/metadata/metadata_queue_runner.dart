@@ -74,6 +74,9 @@ class MetadataQueueRunner {
       ))
         r['media_id'] as String,
     ];
+    // The legacy TMDB language setting (no longer editable) stays in the key
+    // so existing keys stay valid. The UI language is deliberately not part
+    // of it: switching language must not scrape everything again.
     final language = library.metadata.setting('language');
     final tmdbRevision = library.metadata.setting('tmdbRevision');
     for (final media in members) {
@@ -240,7 +243,7 @@ class MetadataQueueRunner {
     // that pick is then resolved lazily.
     final logos = ArtworkService.orderedLogos(
       library.metadata.artworkCandidates(media),
-      library.metadata.setting('language'),
+      library.metadata.language,
     );
     if (logos.isNotEmpty && _valid(media, owner)) {
       await artwork.resolveLogo(logos);

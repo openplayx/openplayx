@@ -10,7 +10,10 @@ import '../../l10n/l10n.dart';
 /// App produces while it is used (that lives in `library.sqlite3`). It stays
 /// small and is the only place configuration is kept.
 ///
-/// A password, token or API key is stored on the configuration item it
+/// Cloud OAuth credentials and branded WebDAV passwords use OS secure storage,
+/// with an opaque reference in the source row. Other existing credentials are
+/// unchanged by that source-specific policy.
+/// A legacy password, token or API key is stored on the configuration item it
 /// belongs to (a source row, an external service row, a settings document),
 /// not in a separate store. It is kept here instead of the OS keychain so
 /// saving a credential never triggers a system password prompt.

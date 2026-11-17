@@ -1,4 +1,5 @@
-.PHONY: help ios-devices ios-build ios-install ios-install-seeded seed seed-check seed-push run-seeded
+.PHONY: help ios-devices ios-build ios-install ios-install-seeded seed seed-check seed-push run-seeded \
+	integration-defines integration-ollama integration-macos integration-ios integration-android
 
 # iOS device to install on: UDID or name as shown by `make ios-devices`.
 # Empty picks the only connected iPhone/iPad; with several, set it explicitly:
@@ -14,6 +15,22 @@ PLATFORM ?=
 # run-seeded: any `flutter run -d` device id (empty: Flutter's default).
 DEVICE ?=
 
+# Integration tests (integration_test/README.md): live services are required.
+IT_DEFINES := build/integration-defines.json
+# Small local model for the assistant movie flow, with room for every tool.
+OLLAMA_BASE ?= qwen3.5:4b-mlx
+OLLAMA_MODEL ?= openplayx-it
+OLLAMA_CTX ?= 32768
+# integration-ios / integration-android device ids.
+IOS_SIM ?= $(shell xcrun simctl list devices booted 2>/dev/null | grep -Eo '[0-9A-F-]{36}' | head -1)
+ANDROID_DEVICE ?= emulator-5554
+IT_MOBILE := integration_test/playback_test.dart integration_test/ffmpeg_bridge_test.dart \
+	integration_test/whisper_bridge_test.dart integration_test/source_storage_test.dart \
+	integration_test/sources_test.dart integration_test/mobile_ai_playback_test.dart \
+	integration_test/metadata_background_test.dart
+IT_DRIVE = flutter drive --driver=test_driver/integration_test.dart -d macos \
+	--dart-define-from-file=$(IT_DEFINES) --target=integration_test/$(1)
+
 help:
 	@echo "make ios-devices                 List connected iOS devices"
 	@echo "make ios-build                   Build a signed release Runner.app"
@@ -23,6 +40,11 @@ help:
 	@echo "make seed-check                  Check every seed item against the real services"
 	@echo "make seed-push PLATFORM=…        Put the seed into the installed debug App (next start)"
 	@echo "make run-seeded [DEVICE=…]       flutter run with the seed (any platform)"
+	@echo "make integration-defines         Write $(IT_DEFINES) (test VM, movie share, Ollama, whisper)"
+	@echo "make integration-ollama          Create the Ollama test model $(OLLAMA_MODEL) from $(OLLAMA_BASE)"
+	@echo "make integration-macos           All integration tests on macOS (live services required)"
+	@echo "make integration-ios [IOS_SIM=…] Mobile integration tests on an iOS simulator"
+	@echo "make integration-android [ANDROID_DEVICE=…]  Mobile integration tests on Android"
 
 ios-devices:
 	@xcrun devicectl list devices
@@ -85,3 +107,25 @@ seed-push: seed
 
 run-seeded: seed
 	flutter run $(if $(DEVICE),-d $(DEVICE)) "$$(dart run tool/debug_seed.dart define)"
+
+integration-defines:
+	python3 tool/integration/defines.py
+
+# The base model with a context window that holds the App's tool schemas.
+integration-ollama:
+	printf 'FROM $(OLLAMA_BASE)\nPARAMETER num_ctx $(OLLAMA_CTX)\n' | ollama create $(OLLAMA_MODEL) -f -
+
+integration-macos: integration-defines
+	flutter test -d macos --dart-define-from-file=$(IT_DEFINES) $(filter-out \
+		integration_test/metadata_background_test.dart integration_test/mobile_ai_playback_test.dart,$(IT_MOBILE)) \
+		integration_test/ui_screenshots_test.dart
+	$(call IT_DRIVE,player_window_test.dart)
+	$(call IT_DRIVE,assistant_movie_flow_test.dart)
+
+integration-ios: integration-defines
+	@test -n "$(IOS_SIM)" || { echo "Boot an iOS simulator or set IOS_SIM=<udid>" >&2; exit 1; }
+	flutter test -d $(IOS_SIM) --dart-define-from-file=$(IT_DEFINES) $(IT_MOBILE)
+
+integration-android: integration-defines
+	flutter test -d $(ANDROID_DEVICE) --dart-define-from-file=$(IT_DEFINES) \
+		--dart-define=OPENPLAYX_METADATA_DATABASE=metadata_workmanager_test.sqlite3 $(IT_MOBILE)

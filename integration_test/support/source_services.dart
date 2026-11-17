@@ -13,6 +13,9 @@ SourceConfig sourceServiceConfig(
   kind: kind,
   name: kind.label,
   address: switch (kind) {
+    SourceKind.onedrive || SourceKind.dropbox => throw UnsupportedError(
+      'Cloud sources require real OAuth accounts',
+    ),
     SourceKind.local => '/',
     SourceKind.smb => 'smb://$host/media',
     SourceKind.webdav => 'http://$host:18080/media',

@@ -77,3 +77,37 @@ flutter test integration_test/source_storage_test.dart -d macos
 ```
 
 媒体源测试现在通过 `SourceManager` 创建配置和安全凭据，验证默认实例路由，并在播放中禁用实例，确认新请求被拒绝、已有播放句柄可继续暂停和 Seek。存储测试覆盖 SQLite 的源实例恢复与 Keychain、目录书签协作。
+
+## iOS 模拟器与 Android 模拟器
+
+以下 7 个测试适用于移动端，可一次性运行（Android 需带上元数据后台测试的隔离数据库参数）：
+
+```sh
+TESTS="integration_test/playback_test.dart integration_test/ffmpeg_bridge_test.dart \
+  integration_test/whisper_bridge_test.dart integration_test/source_storage_test.dart \
+  integration_test/sources_test.dart integration_test/mobile_ai_playback_test.dart \
+  integration_test/metadata_background_test.dart"
+flutter test -d <iOS 模拟器 UDID> $TESTS
+flutter test -d emulator-5554 \
+  --dart-define=OPENPLAYX_METADATA_DATABASE=metadata_workmanager_test.sqlite3 $TESTS
+```
+
+`player_window_test.dart`（桌面多窗口）、`ui_screenshots_test.dart`（macOS 截图）和 `assistant_movie_flow_test.dart`（真实模型与 SMB）不适用于移动端。
+
+Android 的 FFmpeg 与 whisper.cpp 桥接需要先构建预编译静态库，否则 CMake 退回 stub，`ffmpeg_bridge_test` 与 `whisper_bridge_test` 会因 `available == false` 失败：
+
+```sh
+export ANDROID_NDK_HOME=~/Library/Android/sdk/ndk/<版本>
+for abi in arm64-v8a armeabi-v7a x86_64; do
+  (cd ../ffmpeg-package && bash tool/build_ffmpeg.sh android-$abi)
+  (cd ../package-whisper && bash tool/build_whisper.sh android-$abi)
+done
+rm -rf ../ffmpeg-package/android/.cxx ../package-whisper/android/.cxx  # 丢弃旧的 stub 配置
+```
+
+2026-11-18 验证结果（`SOURCE_SERVICES` 未开启，SMB 等 9 个远程源按条件跳过）：
+
+| 平台 | 设备 | 结果 |
+| --- | --- | --- |
+| iOS | iPhone 17 Pro 模拟器，iOS 26.5 | 6 通过，元数据后台测试仅限 Android 而跳过 |
+| Android | Medium_Phone 模拟器，API 37，arm64-v8a | 7 全部通过 |

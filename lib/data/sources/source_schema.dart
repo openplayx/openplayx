@@ -21,6 +21,7 @@ class SourceSchemas {
     configSchema: PluginConfigSchema(
       version: 2,
       fields: switch (kind) {
+        SourceKind.onedrive || SourceKind.dropbox => [],
         SourceKind.local => [
           ConfigField(
             'address',

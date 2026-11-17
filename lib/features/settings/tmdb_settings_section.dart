@@ -6,11 +6,11 @@ import '../../capabilities/library/library_service.dart';
 import '../../capabilities/metadata/tmdb_credentials.dart';
 import '../../ui/components/forms/form_actions.dart';
 import '../../ui/components/forms/secret_input.dart';
-import '../../ui/components/forms/settings_text_input.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
 import '../../ui/components/settings/settings_section.dart';
 
-/// Settings entry for the TMDB read access token and metadata language.
+/// Settings entry for the TMDB read access token. Metadata follows the App's
+/// UI language.
 ///
 /// The token is the `metadata / tmdbToken` setting. Bumping `tmdbRevision` makes the
 /// background metadata runtime rebuild its TMDB plugin and retry blocked items.
@@ -53,21 +53,12 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
     final l = AppLocalizations.of(context);
     final token = SecretController()
       ..loadStored(() async => _token.isEmpty ? null : _token);
-    // Unset: blank field, the default zh-CN shown as the hint.
-    final language = DefaultTextController(
-      text: widget.library.metadata.setting('language'),
-      defaultValue: 'zh-CN',
-    );
     final configured = _configured == true;
     final tokenInput = SecretInput(
       key: const ValueKey('tmdb-token'),
       controller: token,
       // The row title already names the field; only hint at a kept token.
       placeholder: configured ? l.metadataTokenStatusSaved : null,
-    );
-    final languageInput = SettingsTextInput(
-      key: const ValueKey('tmdb-language'),
-      controller: language,
     );
     // Phones: a full-screen page with Save in the header; true saves,
     // false forgets the token, null is back.
@@ -90,11 +81,6 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
                     title: l.metadataToken,
                     stacked: true,
                     control: tokenInput,
-                  ),
-                  SettingsRow(
-                    title: l.metadataLanguage,
-                    stacked: true,
-                    control: languageInput,
                   ),
                 ],
               ),
@@ -141,27 +127,19 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
                     Text(l.metadataPrivacy),
                     const SizedBox(height: 16),
                     tokenInput,
-                    const SizedBox(height: 12),
-                    languageInput,
                   ],
                 ),
               ),
             ),
           );
     final trimmed = token.edited;
-    final languageCode = language.resolved;
     token.dispose();
-    language.dispose();
     if (!mounted || saved == null) return;
     if (!saved) return _forget();
     await _run(() async {
-      if (!RegExp(r'^[a-z]{2,3}(?:-[A-Za-z]{2,4})?$').hasMatch(languageCode)) {
-        throw const FormatException('language');
-      }
       if (trimmed.isNotEmpty) {
         widget.library.metadata.setSetting(tmdbTokenKey, trimmed);
       }
-      widget.library.metadata.setSetting('language', languageCode);
       if (trimmed.isNotEmpty) _bump();
       if (mounted && trimmed.isNotEmpty) setState(() => _configured = true);
     });

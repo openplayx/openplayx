@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:ui' show Locale, PlatformDispatcher;
 
 import 'package:crypto/crypto.dart';
 
@@ -635,6 +636,35 @@ class MetadataRepository {
       ConfigurationDatabase.readSetting(_configuration, settingsNamespace, key)
           as String? ??
       fallback;
+  /// Setting with the App's UI language, saved by the App so background work
+  /// (another isolate) fetches in the same language.
+  static const uiLanguageKey = 'uiLanguage';
+
+  /// TMDB language for a UI locale: zh-CN, zh-TW or en-US.
+  static String tmdbLanguageFor(Locale locale) {
+    if (locale.languageCode != 'zh') return 'en-US';
+    final traditional =
+        locale.scriptCode == 'Hant' ||
+        (locale.scriptCode == null &&
+            const ['TW', 'HK', 'MO'].contains(locale.countryCode));
+    return traditional ? 'zh-TW' : 'zh-CN';
+  }
+
+  /// Language newly scraped metadata is fetched in: the App's UI language.
+  /// Changing it leaves existing metadata as it is; only new scrapes and
+  /// user-requested refreshes use the new language.
+  String get language {
+    final saved = setting(uiLanguageKey).trim();
+    if (saved.isNotEmpty) return saved;
+    return tmdbLanguageFor(PlatformDispatcher.instance.locale);
+  }
+
+  /// Saves the App's UI language for [language]; no-op when unchanged.
+  void followUiLanguage(Locale locale) {
+    final value = tmdbLanguageFor(locale);
+    if (setting(uiLanguageKey) != value) setSetting(uiLanguageKey, value);
+  }
+
   void setSetting(String key, String value) {
     ConfigurationDatabase.writeSetting(
       _configuration,

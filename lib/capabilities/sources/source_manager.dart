@@ -11,6 +11,11 @@ import '../../core/capabilities/metadata_capability.dart';
 import '../capability_switches.dart';
 import '../../data/configuration/source_configuration_service.dart';
 import '../../data/configuration/source_credential_broker.dart';
+import '../../data/configuration/source_secure_store.dart';
+import '../../data/sources/cloud_oauth.dart';
+import '../../data/sources/cloud_file_source.dart';
+import '../../data/sources/onedrive_source.dart';
+import '../../data/sources/dropbox_source.dart';
 import '../../data/library/library_database.dart';
 import '../../data/sources/source_state_store.dart';
 import '../../data/sources/file_sources.dart';
@@ -28,19 +33,43 @@ import '../../data/sources/source_schema.dart';
 import '../../l10n/l10n.dart';
 
 /// Builds the provider for one configuration snapshot and its secret.
-SourceCapability createSourceProvider(SourceConfig config, String secret) =>
-    switch (config.kind) {
-      SourceKind.local => LocalFolderPlugin(config),
-      SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, secret)),
-      SourceKind.webdav => WebDavPlugin(config, secret),
-      SourceKind.ftp => FtpPlugin(config, secret),
-      SourceKind.sftp => SftpPlugin(config, secret),
-      SourceKind.s3 => S3Plugin(config, secret),
-      SourceKind.plex => PlexPlugin(config, SourceHttp(config, secret)),
-      SourceKind.jellyfin ||
-      SourceKind.emby => JellyfinPlugin(config, SourceHttp(config, secret)),
-      SourceKind.dlna => DlnaPlugin(config),
-    };
+SourceCapability createSourceProvider(
+  SourceConfig config,
+  String secret, {
+  CloudTokenSession? cloudSession,
+  bool ownsCloudSession = true,
+}) => switch (config.kind) {
+  SourceKind.onedrive => OneDriveSource(
+    config,
+    cloudSession ??
+        CloudTokenSession(
+          config.kind,
+          CloudTokens.decode(secret),
+          persist: (_) async {},
+        ),
+    ownsSession: ownsCloudSession,
+  ),
+  SourceKind.dropbox => DropboxSource(
+    config,
+    cloudSession ??
+        CloudTokenSession(
+          config.kind,
+          CloudTokens.decode(secret),
+          persist: (_) async {},
+        ),
+    ownsSession: ownsCloudSession,
+  ),
+  SourceKind.local => LocalFolderPlugin(config),
+  SourceKind.smb => SmbPlugin.withAccess(config, SmbAccess(config, secret)),
+  SourceKind.webdav => WebDavPlugin(config, secret),
+  SourceKind.ftp => FtpPlugin(config, secret),
+  SourceKind.sftp => SftpPlugin(config, secret),
+  SourceKind.s3 => S3Plugin(config, secret),
+  SourceKind.plex => PlexPlugin(config, SourceHttp(config, secret)),
+  SourceKind.jellyfin ||
+  SourceKind.emby => JellyfinPlugin(config, SourceHttp(config, secret)),
+  SourceKind.dlna => DlnaPlugin(config),
+};
 
 class SourceSelection {
   const SourceSelection(this.name, this.stream, {this.ref, this.entry});
@@ -80,6 +109,7 @@ class SourceManager {
   SourceManager({
     SourceConfigurationService? configuration,
     SourceStateStore? sourceState,
+    SourceSecureStore? secureStore,
     RemoteAccessService? remoteAccess,
     Future<void> Function(Map<String, dynamic> outbound, int port)?
     remoteCoreValidator,
@@ -91,7 +121,10 @@ class SourceManager {
            (configuration == null
                ? null
                : SourceStateStore(sqlite3.openInMemory())) {
-    _credentials = SourceCredentialBroker(() => _configuration!);
+    _credentials = SourceCredentialBroker(
+      () => _configuration!,
+      secureStore: secureStore,
+    );
     _remoteCoreValidator = remoteCoreValidator ?? _checkRemoteCore;
     _remote =
         remoteAccess ??
@@ -138,6 +171,8 @@ class SourceManager {
   final _runtimes = <String, _SourceRuntime>{};
   final _retired = <_SourceRuntime>{};
   final _creating = <String, Future<_SourceRuntime>>{};
+  final _cloudSessions = <String, (int, CloudTokenSession)>{};
+  final _openingCloudSessions = <String, Future<CloudTokenSession>>{};
   List<SourceConfig> get configs => List.unmodifiable(_configs);
 
   /// The shared configuration service once [load] completed.
@@ -202,6 +237,11 @@ class SourceManager {
         await _retire(runtime.config.id);
       }
     }
+    for (final entry in _cloudSessions.entries.toList()) {
+      if (!next.any((c) => c.id == entry.key && c.revision == entry.value.$1)) {
+        await _retire(entry.key);
+      }
+    }
     _configs
       ..clear()
       ..addAll(next);
@@ -255,11 +295,26 @@ class SourceManager {
         throw PluginException('authRequired', appStrings.errTokenRequired);
       }
     }
-    saved = _configuration!.save(
-      saved,
-      expectedRevision: config.revision,
-      secret: newSecret,
-    );
+    if (config.kind.oauth) await _retire(config.id);
+    final oldReference = _configuration!.readSecret(config.id);
+    String? staged;
+    if (newSecret != null && (config.kind.oauth || config.presetId != null)) {
+      staged = await _credentials.stage(config.id, newSecret);
+      newSecret = staged;
+    }
+    try {
+      saved = _configuration!.save(
+        saved,
+        expectedRevision: config.revision,
+        secret: newSecret,
+      );
+    } catch (_) {
+      await _credentials.discard(staged, instanceId: config.id);
+      rethrow;
+    }
+    if (staged != null) {
+      await _credentials.discard(oldReference, instanceId: config.id);
+    }
     _state?.reset(
       saved.id,
       saved.revision,
@@ -308,10 +363,12 @@ class SourceManager {
   Future<void> remove(String id) async {
     await load();
     final config = _config(id);
+    final reference = _configuration!.readSecret(id);
+    await _retire(id);
+    await _credentials.discard(reference, instanceId: config.id);
     _configuration!.remove(id, config.revision);
     _state?.delete(id);
     _configs.removeWhere((c) => c.id == id);
-    await _retire(id);
     announce(SourceRemoved(id));
   }
 
@@ -330,9 +387,13 @@ class SourceManager {
   }
 
   Future<void> _retire(String id) async {
+    _cloudSessions.remove(id)?.$2.close();
     final runtime = _runtimes.remove(id);
     if (runtime == null) return;
     _retired.add(runtime);
+    if (runtime.provider is CloudFileSource) {
+      await (runtime.provider as Plugin).dispose();
+    }
     await runtime.retire();
   }
 
@@ -401,6 +462,69 @@ class SourceManager {
     _configuration!.saveScanExtensions(extensions);
   }
 
+  Future<CloudTokenSession> cloudTokenSession(SourceConfig config) async {
+    if (!_configs.any(
+      (c) => c.id == config.id && c.revision == config.revision,
+    )) {
+      throw PluginException('cancelled', appStrings.errInstanceChanged);
+    }
+    final current = _cloudSessions[config.id];
+    if (current != null &&
+        current.$1 == config.revision &&
+        !current.$2.isClosed) {
+      return current.$2;
+    }
+    final key = '${config.id}:${config.revision}';
+    return _openingCloudSessions[key] ??=
+        (() async {
+          final secret = await _credentials.readForHost(config);
+          if (_disposed ||
+              secret == null ||
+              !_configs.any(
+                (c) => c.id == config.id && c.revision == config.revision,
+              )) {
+            throw PluginException('authRequired', appStrings.cloudReauthorize);
+          }
+          late final CloudTokenSession session;
+          session = CloudTokenSession(
+            config.kind,
+            CloudTokens.decode(secret),
+            persist: (next) async {
+              final old = _configuration!.readSecret(config.id);
+              if (old == null) {
+                throw PluginException(
+                  'cancelled',
+                  appStrings.errInstanceChanged,
+                );
+              }
+              final reference = await _credentials.stage(
+                config.id,
+                next.encode(),
+              );
+              if (session.isClosed ||
+                  !_configuration!.replaceSecret(
+                    config.id,
+                    old,
+                    reference,
+                    expectedRevision: config.revision,
+                  )) {
+                await _credentials.discard(reference, instanceId: config.id);
+                throw PluginException(
+                  'cancelled',
+                  appStrings.errInstanceChanged,
+                );
+              }
+              await _credentials.discard(old, instanceId: config.id);
+            },
+          );
+          _cloudSessions[config.id]?.$2.close();
+          _cloudSessions[config.id] = (config.revision, session);
+          return session;
+        })().whenComplete(() {
+          _openingCloudSessions.remove(key);
+        });
+  }
+
   Future<_SourceRuntime> _runtime(String id) async {
     await load();
     final config = _config(id);
@@ -410,7 +534,8 @@ class SourceManager {
     if (!switches.enabled(config.providerId)) {
       throw PluginException('disabled', appStrings.errPluginDisabled);
     }
-    if (config.credentialExpiresAt != null &&
+    if (!config.kind.oauth &&
+        config.credentialExpiresAt != null &&
         !config.credentialExpiresAt!.isAfter(DateTime.now())) {
       throw PluginException('authRequired', appStrings.errTokenExpired);
     }
@@ -468,7 +593,11 @@ class SourceManager {
         appStrings.errCredentialsUnavailable,
       );
     }
-    final provider = createSourceProvider(pluginConfig, secret);
+    final provider = createSourceProvider(
+      pluginConfig,
+      secret,
+      cloudSession: config.kind.oauth ? await cloudTokenSession(config) : null,
+    );
     if (_disposed ||
         !_configs.any(
           (c) =>
@@ -609,6 +738,23 @@ class SourceManager {
           },
         );
       }, releaseLate: (stream) => stream.release());
+  Future<ResourceRef?> parent(ResourceRef ref) =>
+      _call(ref.instanceId, (runtime) async {
+        final provider = runtime.provider;
+        if (provider is SourceHierarchyCapability) {
+          return (provider as SourceHierarchyCapability).parent(
+            ref,
+            CallContext.forInstance(ref.instanceId),
+          );
+        }
+        final slash = ref.id.replaceFirst(RegExp(r'/+$'), '').lastIndexOf('/');
+        if (slash < 0) return null;
+        return ResourceRef(
+          ref.instanceId,
+          slash == 0 ? '/' : ref.id.substring(0, slash),
+        );
+      });
+
   Future<MetadataResult> lookupMetadata(String id, MetadataRequest request) =>
       _call(id, (runtime) async {
         final provider = runtime.provider;
@@ -761,7 +907,14 @@ class SourceManager {
     if (config.kind.requiresSecret && value.isEmpty) {
       throw PluginException('authRequired', appStrings.errTokenRequired);
     }
-    final provider = createSourceProvider(config, value);
+    final sharedSession =
+        config.kind.oauth && secret.isEmpty && existing != null;
+    final provider = createSourceProvider(
+      config,
+      value,
+      cloudSession: sharedSession ? await cloudTokenSession(existing) : null,
+      ownsCloudSession: !sharedSession,
+    );
     final operation = provider.browse(
       const BrowseRequest(limit: 1),
       CallContext.forInstance(config.id),
@@ -773,6 +926,7 @@ class SourceManager {
     try {
       await completed.timeout(Duration(seconds: draft.requestTimeoutSeconds));
     } on TimeoutException {
+      if (provider is CloudFileSource) await (provider as Plugin).dispose();
       throw PluginException('timeout', appStrings.errTestTimeout);
     } on PluginException {
       rethrow;
@@ -814,7 +968,9 @@ class SourceManager {
           throw PluginException('cancelled', appStrings.errScanConfigChanged);
         }
         for (final entry in page.entries) {
-          final relative = config.kind == SourceKind.local
+          final relative = config.kind.oauth
+              ? entry.name
+              : config.kind == SourceKind.local
               ? entry.ref.id
                     .substring(fileRoot!.length)
                     .replaceAll('\\', '/')
@@ -847,6 +1003,10 @@ class SourceManager {
     for (final runtime in _retired) {
       await runtime.cleanup();
     }
+    for (final session in _cloudSessions.values) {
+      session.$2.close();
+    }
+    _cloudSessions.clear();
     if (_hasBookmarks) await _bookmarks.invokeMethod<void>('releaseAll');
     if (_ownsConfiguration) _configuration?.close();
     if (_ownsState) _state?.db.close();

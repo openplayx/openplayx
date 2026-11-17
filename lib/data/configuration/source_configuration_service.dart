@@ -314,5 +314,19 @@ class SourceConfigurationService {
           ).firstOrNull?['secret']
           as String?;
 
+  /// Rotating OAuth tokens does not edit the source's user configuration.
+  bool replaceSecret(
+    String id,
+    String expected,
+    String replacement, {
+    required int expectedRevision,
+  }) {
+    _db.execute(
+      'UPDATE plugin_instance_configs SET secret=? WHERE instance_id=? AND secret=? AND revision=?',
+      [replacement, id, expected, expectedRevision],
+    );
+    return _db.updatedRows == 1;
+  }
+
   void close() => _db.close();
 }

@@ -58,6 +58,8 @@ void main() {
     for (final label in [
       'SMB',
       'WebDAV',
+      'OneDrive',
+      'Dropbox',
       'FTP',
       'SFTP',
       'S3',
@@ -87,6 +89,67 @@ void main() {
     expect(saved.username, 'viewer');
     expect(sources.secrets.single, 'secret');
   });
+
+  testWidgets('Jianguoyun preset keeps WebDAV protocol and default folder', (
+    tester,
+  ) async {
+    final sources = MemorySources();
+    await openForm(tester, sources);
+    await chooseKind(tester, 'WebDAV');
+    await tester.tap(find.text('自定义 WebDAV'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('坚果云').last);
+    await tester.pumpAndSettle();
+    final fields = find.byType(EditableText);
+    await tester.enterText(fields.at(2), 'account@example.com');
+    await tester.enterText(fields.at(3), 'app-password');
+    await tester.tap(find.text('添加'));
+    await tester.pumpAndSettle();
+    final saved = sources.saved.single;
+    expect(saved.kind, SourceKind.webdav);
+    expect(saved.presetId, 'jianguoyun');
+    expect(saved.address, 'https://dav.jianguoyun.com/dav');
+    expect(saved.typeLabel, '坚果云');
+  });
+
+  testWidgets(
+    '123 preset leaves endpoint empty and explains account entitlement',
+    (tester) async {
+      await openForm(tester, MemorySources());
+      await chooseKind(tester, 'WebDAV');
+      await tester.tap(find.text('自定义 WebDAV'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('123 云盘').last);
+      await tester.pumpAndSettle();
+      expect(
+        tester
+            .widget<EditableText>(find.byType(EditableText).at(1))
+            .controller
+            .text,
+        isEmpty,
+      );
+      expect(find.textContaining('WebDAV 权益'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'cloud form offers browser sign-in without developer key or password fields',
+    (tester) async {
+      await openForm(tester, MemorySources());
+      await chooseKind(tester, 'OneDrive');
+      expect(find.text('使用浏览器登录'), findsOneWidget);
+      expect(
+        find.byType(EditableText),
+        findsOneWidget,
+      ); // optional instance name
+      expect(
+        tester
+            .widget<ShadButton>(find.byKey(const ValueKey('source-save')))
+            .enabled,
+        isFalse,
+      );
+    },
+  );
 
   testWidgets('S3 shows key, region and bucket fields', (tester) async {
     final sources = MemorySources();

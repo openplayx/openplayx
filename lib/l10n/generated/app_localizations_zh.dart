@@ -3462,7 +3462,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get webSearchPresetName => '联网搜索';
 
   @override
-  String get errAssistantConfig => '请填写有效的 HTTPS API 基址、模型和输出上限（128–16384）';
+  String get errAssistantConfig =>
+      '请填写有效的 HTTPS API 基址（本机服务可用 http，例如 http://localhost:11434/v1）、模型和输出上限（128–16384）';
 
   @override
   String get errExtRootAddress => '请输入服务根地址，例如 https://bt.example.com';
@@ -3847,6 +3848,62 @@ class AppLocalizationsZh extends AppLocalizations {
   String aiReasoningMinutes(int minutes) {
     return '思考了 $minutes 分钟';
   }
+
+  @override
+  String get cloudJianguoyun => '坚果云';
+
+  @override
+  String get cloud123 => '123 云盘';
+
+  @override
+  String get cloudJianguoyunHelp => '使用账号和第三方应用密码，可调整默认 WebDAV 目录。';
+
+  @override
+  String get cloud123Help => '先确认 123 账号具备 WebDAV 权益，填写官方后台提供的地址和凭据；可用性取决于套餐。';
+
+  @override
+  String get cloudPreset => 'WebDAV 预设';
+
+  @override
+  String get cloudCustom => '自定义 WebDAV';
+
+  @override
+  String get catSummaryCloudDrive => '浏览和播放云盘文件。';
+
+  @override
+  String get cloudSignIn => '使用浏览器登录';
+
+  @override
+  String get cloudSignInHelp =>
+      '仅读取文件，请在下方选择根目录。断开 OneDrive 后，还需到微软账号权限页面解除应用授权。';
+
+  @override
+  String get cloudNotConfigured => '此构建尚未配置云盘登录，需由发布者配置 OAuth 应用。';
+
+  @override
+  String get cloudSignInFailed => '云盘授权失败，请重试。';
+
+  @override
+  String get cloudCallbackInvalid => '无法验证授权回调。';
+
+  @override
+  String get cloudRoot => '已选根目录';
+
+  @override
+  String get cloudRootHelp => '打开文件夹即可选为根目录，仅浏览和扫描此目录下的文件。';
+
+  @override
+  String get cloudReauthorize => '授权已过期或撤销，请重新登录。';
+
+  @override
+  String get cloudPersonalOnly => '目前仅支持个人 OneDrive 账号。';
+
+  @override
+  String get cloudDisconnect => '断开账号';
+
+  @override
+  String get cloudDisconnectHelp =>
+      '清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -7306,7 +7363,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get webSearchPresetName => '联网搜索';
 
   @override
-  String get errAssistantConfig => '请填写有效的 HTTPS API 基址、模型和输出上限（128–16384）';
+  String get errAssistantConfig =>
+      '请填写有效的 HTTPS API 基址（本机服务可用 http，例如 http://localhost:11434/v1）、模型和输出上限（128–16384）';
 
   @override
   String get errExtRootAddress => '请输入服务根地址，例如 https://bt.example.com';
@@ -7691,6 +7749,62 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String aiReasoningMinutes(int minutes) {
     return '思考了 $minutes 分钟';
   }
+
+  @override
+  String get cloudJianguoyun => '坚果云';
+
+  @override
+  String get cloud123 => '123 云盘';
+
+  @override
+  String get cloudJianguoyunHelp => '使用账号和第三方应用密码，可调整默认 WebDAV 目录。';
+
+  @override
+  String get cloud123Help => '先确认 123 账号具备 WebDAV 权益，填写官方后台提供的地址和凭据；可用性取决于套餐。';
+
+  @override
+  String get cloudPreset => 'WebDAV 预设';
+
+  @override
+  String get cloudCustom => '自定义 WebDAV';
+
+  @override
+  String get catSummaryCloudDrive => '浏览和播放云盘文件。';
+
+  @override
+  String get cloudSignIn => '使用浏览器登录';
+
+  @override
+  String get cloudSignInHelp =>
+      '仅读取文件，请在下方选择根目录。断开 OneDrive 后，还需到微软账号权限页面解除应用授权。';
+
+  @override
+  String get cloudNotConfigured => '此构建尚未配置云盘登录，需由发布者配置 OAuth 应用。';
+
+  @override
+  String get cloudSignInFailed => '云盘授权失败，请重试。';
+
+  @override
+  String get cloudCallbackInvalid => '无法验证授权回调。';
+
+  @override
+  String get cloudRoot => '已选根目录';
+
+  @override
+  String get cloudRootHelp => '打开文件夹即可选为根目录，仅浏览和扫描此目录下的文件。';
+
+  @override
+  String get cloudReauthorize => '授权已过期或撤销，请重新登录。';
+
+  @override
+  String get cloudPersonalOnly => '目前仅支持个人 OneDrive 账号。';
+
+  @override
+  String get cloudDisconnect => '断开账号';
+
+  @override
+  String get cloudDisconnectHelp =>
+      '清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11150,7 +11264,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get webSearchPresetName => '聯網搜尋';
 
   @override
-  String get errAssistantConfig => '請填寫有效的 HTTPS API 基礎位址、模型和輸出上限（128–16384）';
+  String get errAssistantConfig =>
+      '請填寫有效的 HTTPS API 基礎位址（本機服務可用 http，例如 http://localhost:11434/v1）、模型和輸出上限（128–16384）';
 
   @override
   String get errExtRootAddress => '請輸入服務根位址，例如 https://bt.example.com';
@@ -11535,4 +11650,60 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String aiReasoningMinutes(int minutes) {
     return '思考了 $minutes 分鐘';
   }
+
+  @override
+  String get cloudJianguoyun => '堅果雲';
+
+  @override
+  String get cloud123 => '123 雲端硬碟';
+
+  @override
+  String get cloudJianguoyunHelp => '使用帳號和第三方應用程式密碼，可調整預設 WebDAV 目錄。';
+
+  @override
+  String get cloud123Help => '先確認 123 帳號具備 WebDAV 權益，填寫官方後台提供的位址和憑證；可用性取決於方案。';
+
+  @override
+  String get cloudPreset => 'WebDAV 預設';
+
+  @override
+  String get cloudCustom => '自訂 WebDAV';
+
+  @override
+  String get catSummaryCloudDrive => '瀏覽和播放雲端硬碟檔案。';
+
+  @override
+  String get cloudSignIn => '使用瀏覽器登入';
+
+  @override
+  String get cloudSignInHelp =>
+      '僅讀取檔案，請在下方選擇根目錄。中斷 OneDrive 後，還需到微軟帳號權限頁面解除應用程式授權。';
+
+  @override
+  String get cloudNotConfigured => '此組建尚未設定雲端硬碟登入，需由發行者設定 OAuth 應用程式。';
+
+  @override
+  String get cloudSignInFailed => '雲端硬碟授權失敗，請重試。';
+
+  @override
+  String get cloudCallbackInvalid => '無法驗證授權回呼。';
+
+  @override
+  String get cloudRoot => '已選根目錄';
+
+  @override
+  String get cloudRootHelp => '開啟資料夾即可選為根目錄，僅瀏覽和掃描此目錄下的檔案。';
+
+  @override
+  String get cloudReauthorize => '授權已過期或撤銷，請重新登入。';
+
+  @override
+  String get cloudPersonalOnly => '目前僅支援個人 OneDrive 帳號。';
+
+  @override
+  String get cloudDisconnect => '中斷帳號連線';
+
+  @override
+  String get cloudDisconnectHelp =>
+      '清除本機憑證並停止雲端硬碟請求。還需在微軟或 Dropbox 帳號權限頁面移除此應用程式，以解除平台授權。';
 }

@@ -222,6 +222,22 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   ];
 
   List<Widget> _networkSections() => [
+    if (_c.kind == SourceKind.webdav)
+      SettingsSection(
+        footer: _c.preset?.help,
+        children: [
+          SettingsChoiceRow<String>(
+            title: l.cloudPreset,
+            value: _c.preset?.name ?? '',
+            enabled: !_c.busy && _c.initial == null,
+            options: {
+              '': l.cloudCustom,
+              for (final p in SourcePreset.values) p.name: p.label,
+            },
+            onChanged: (value) => _c.changePreset(SourcePreset.byId(value)),
+          ),
+        ],
+      ),
     SettingsSection(
       children: [
         _field(_c.address, l.address, hint: _addressHint),
@@ -274,6 +290,59 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
         ],
       ],
     ),
+  ];
+
+  List<Widget> _cloudSections() => [
+    SettingsSection(
+      footer: l.cloudSignInHelp,
+      children: [
+        SettingsRow(
+          title: l.cloudSignIn,
+          icon: AppIcons.signIn,
+          onTap: _c.busy ? null : _c.loginCloud,
+        ),
+      ],
+    ),
+    if (_c.cloudConnected)
+      SettingsSection(
+        footer: l.cloudRootHelp,
+        children: [
+          SettingsRow(
+            title: l.cloudRoot,
+            description: _c.cloudFolderName,
+            onTap: _c.busy ? null : () => _c.browseCloudFolder(),
+          ),
+          if (_c.cloudCanBack)
+            SettingsRow(
+              title: l.backToParent,
+              icon: AppIcons.parent,
+              onTap: _c.busy ? null : () => _c.browseCloudFolder(null, true),
+            ),
+          for (final folder in _c.cloudFolders)
+            SettingsRow(
+              title: folder.name,
+              icon: AppIcons.folder,
+              onTap: _c.busy ? null : () => _c.browseCloudFolder(folder),
+            ),
+        ],
+      ),
+    if (_c.initial != null)
+      SettingsSection(
+        footer: l.cloudDisconnectHelp,
+        children: [
+          SettingsRow(
+            title: l.cloudDisconnect,
+            icon: AppIcons.delete,
+            onTap: _c.busy
+                ? null
+                : () async {
+                    if (await _c.disconnectCloud() && mounted) {
+                      Navigator.pop(context, true);
+                    }
+                  },
+          ),
+        ],
+      ),
   ];
 
   List<Widget> _dlnaSections() => [
@@ -480,6 +549,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                   ],
                 ),
                 ...switch (_c.kind) {
+                  SourceKind.onedrive || SourceKind.dropbox => _cloudSections(),
                   SourceKind.local => _localSections(),
                   SourceKind.plex => _plexSections(),
                   SourceKind.dlna => _dlnaSections(),

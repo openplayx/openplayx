@@ -10,6 +10,9 @@ import '../../../data/sources/dlna_source.dart';
 import '../../../data/sources/source_config.dart';
 import '../../../data/sources/source_connection.dart';
 import '../../../data/sources/source_sign_in.dart';
+import '../../../data/sources/cloud_oauth.dart';
+import '../../../data/sources/cloud_file_source.dart';
+import '../../../data/sources/onedrive_source.dart';
 import '../../../l10n/l10n.dart';
 import '../../../ui/components/forms/secret_input.dart';
 
@@ -31,6 +34,9 @@ class SourceFormController extends ChangeNotifier {
     final initial = this.initial;
     id = initial?.id ?? '${DateTime.now().microsecondsSinceEpoch}';
     _kind = initial?.kind ?? initialKind ?? SourceKind.local;
+    _preset = SourcePreset.byId(initial?.presetId);
+    _cloudRootId = initial?.cloudRootId ?? '';
+    _cloudDriveId = initial?.cloudDriveId ?? '';
     name.text = initial?.name ?? '';
     final remote = initial?.remote;
     _remoteEnabled = remote != null;
@@ -82,6 +88,19 @@ class SourceFormController extends ChangeNotifier {
   final localEndpoint = TextEditingController();
   final localFingerprint = TextEditingController();
 
+  SourcePreset? _preset;
+  SourcePreset? get preset => _preset;
+  CloudTokens? _cloudTokens;
+  String _cloudRootId = '';
+  String _cloudDriveId = '';
+  String _cloudFolderName = '/';
+  String get cloudFolderName => _cloudFolderName;
+  List<SourceEntry> _cloudFolders = [];
+  List<SourceEntry> get cloudFolders => _cloudFolders;
+  final _cloudParents = <(String, String)>[];
+  bool get cloudCanBack => _cloudParents.isNotEmpty;
+  bool get cloudConnected => _cloudTokens != null || initial?.hasSecret == true;
+
   late SourceKind _kind;
   SourceKind get kind => _kind;
   late bool _remoteEnabled;
@@ -125,7 +144,9 @@ class SourceFormController extends ChangeNotifier {
   void _fillConnection(SourceConfig config) {
     username.text = config.username;
     domain.text = config.domain;
-    if (config.kind == SourceKind.local || config.kind == SourceKind.dlna) {
+    if (config.kind.oauth ||
+        config.kind == SourceKind.local ||
+        config.kind == SourceKind.dlna) {
       address.text = config.address;
       return;
     }
@@ -141,6 +162,13 @@ class SourceFormController extends ChangeNotifier {
   void changeKind(SourceKind kind) {
     _loginGeneration++;
     _kind = kind;
+    _preset = null;
+    _cloudTokens = null;
+    _cloudRootId = '';
+    _cloudDriveId = '';
+    _cloudFolderName = '/';
+    _cloudFolders = [];
+    _cloudParents.clear();
     _advanced = false;
     _manualPlex = false;
     _remoteEnabled = false;
@@ -169,9 +197,20 @@ class SourceFormController extends ChangeNotifier {
     _notify();
   }
 
+  void changePreset(SourcePreset? preset) {
+    _preset = preset;
+    address.text = preset?.address ?? '';
+    path.clear();
+    port.clear();
+    _https = false;
+    normalizeAddress(notify: false);
+    _notify();
+  }
+
   /// Splits a pasted URL into host, port, path and HTTPS.
   void normalizeAddress({bool notify = true}) {
-    if (_kind == SourceKind.local ||
+    if (_kind.oauth ||
+        _kind == SourceKind.local ||
         _kind == SourceKind.dlna ||
         !address.text.contains('://')) {
       return;
@@ -257,6 +296,7 @@ class SourceFormController extends ChangeNotifier {
 
   bool get canSave =>
       !(_busy ||
+          _kind.oauth && !cloudConnected ||
           (_kind == SourceKind.local || _kind == SourceKind.dlna) &&
               address.text.trim().isEmpty ||
           _kind == SourceKind.plex &&
@@ -266,6 +306,7 @@ class SourceFormController extends ChangeNotifier {
 
   String _connectionAddress() {
     normalizeAddress(notify: false);
+    if (_kind.oauth) return '${_kind.name}://account';
     return _kind == SourceKind.local
         ? address.text
         : SourceConnection.address(
@@ -283,11 +324,20 @@ class SourceFormController extends ChangeNotifier {
     // server the user picked from sign-in discovery brings its own name.
     final defaultName = _server?.name ?? _device?.name ?? '';
     final config =
-        initial ?? SourceConfig(id: id, kind: _kind, name: '', address: '');
+        initial ??
+        SourceConfig(
+          id: id,
+          kind: _kind,
+          name: '',
+          address: '',
+          presetId: _preset?.name,
+        );
     // Hidden management policies are preserved when editing, never reset by
     // this connection form. Only the fields the user can see are changed.
     return config.copyWith(
       name: name.text.trim().isEmpty ? defaultName : name.text.trim(),
+      cloudRootId: _cloudRootId,
+      cloudDriveId: _cloudDriveId,
       address: address,
       username: username.text.trim(),
       domain: domain.text.trim(),
@@ -307,7 +357,8 @@ class SourceFormController extends ChangeNotifier {
 
   Future<void> pickDirectory() async {
     try {
-      final picked = await (chooseDirectory?.call() ?? SourceManager.pickLocalFolder());
+      final picked =
+          await (chooseDirectory?.call() ?? SourceManager.pickLocalFolder());
       if (picked != null && !_disposed) {
         address.text = picked;
         _notify();
@@ -375,6 +426,127 @@ class SourceFormController extends ChangeNotifier {
     }
   }
 
+  Future<bool> disconnectCloud() async {
+    _busy = true;
+    _notify();
+    try {
+      await manager.remove(id);
+      return !_disposed;
+    } catch (_) {
+      if (!_disposed) onFailure(appStrings.connectionFormFailed);
+      return false;
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
+  Future<void> loginCloud() async {
+    final generation = ++_loginGeneration;
+    _busy = true;
+    _authorizing = true;
+    _notify();
+    try {
+      final tokens = await CloudOAuth.signIn(_kind);
+      if (_disposed || generation != _loginGeneration || tokens == null) return;
+      _cloudTokens = tokens;
+      _cloudRootId = '';
+      _cloudDriveId = '';
+      _cloudParents.clear();
+      await _loadCloudFolders();
+    } catch (error) {
+      if (!_disposed) {
+        onFailure(
+          error is PluginException
+              ? error.message
+              : appStrings.cloudSignInFailed,
+        );
+      }
+    } finally {
+      if (!_disposed && generation == _loginGeneration) {
+        _busy = false;
+        _authorizing = false;
+        _notify();
+      }
+    }
+  }
+
+  Future<void> _loadCloudFolders() async {
+    final shared = _cloudTokens == null && initial != null;
+    if (!shared && _cloudTokens == null) return;
+    final session = shared
+        ? await manager.cloudTokenSession(initial!)
+        : CloudTokenSession(
+            _kind,
+            _cloudTokens!,
+            persist: (next) async {
+              _cloudTokens = next;
+            },
+          );
+    final provider = createSourceProvider(
+      _draft(),
+      session.tokens.encode(),
+      cloudSession: session,
+      ownsCloudSession: !shared,
+    ) as CloudFileSource;
+    try {
+      final folder = await provider.root();
+      if (provider is OneDriveSource) _cloudDriveId = await provider.driveId;
+      _cloudRootId = folder.id;
+      _cloudFolderName = folder.name;
+      final folders = <SourceEntry>[];
+      int? offset = 0;
+      do {
+        final page = await provider.browse(
+          BrowseRequest(offset: offset!, limit: 200),
+          CallContext.forInstance(id),
+        );
+        folders.addAll(page.entries.where((e) => e.isFolder));
+        offset = page.nextOffset;
+      } while (offset != null && !_disposed);
+      if (!_disposed) {
+        _cloudFolders = folders;
+        if (!shared) _cloudTokens = session.tokens;
+      }
+    } finally {
+      await provider.dispose();
+    }
+  }
+
+  Future<void> browseCloudFolder([
+    SourceEntry? folder,
+    bool back = false,
+  ]) async {
+    final previous = (_cloudRootId, _cloudFolderName);
+    _busy = true;
+    _notify();
+    try {
+      if (back && _cloudParents.isNotEmpty) {
+        final parent = _cloudParents.removeLast();
+        _cloudRootId = parent.$1;
+        _cloudFolderName = parent.$2;
+      } else if (folder != null) {
+        _cloudParents.add(previous);
+        _cloudRootId = folder.ref.id;
+        _cloudFolderName = folder.name;
+      }
+      await _loadCloudFolders();
+    } catch (error) {
+      _cloudRootId = previous.$1;
+      _cloudFolderName = previous.$2;
+      if (!_disposed) {
+        onFailure(
+          error is PluginException
+              ? error.message
+              : appStrings.cloudSignInFailed,
+        );
+      }
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
   Future<void> searchDlna() async {
     _searching = true;
     _notify();
@@ -413,8 +585,12 @@ class SourceFormController extends ChangeNotifier {
         );
         _plexToken = _server!.token;
       }
+      if (_kind.oauth) await _loadCloudFolders();
       var draft = _draft();
       switch (_kind) {
+        case SourceKind.onedrive || SourceKind.dropbox:
+          secret = _cloudTokens?.encode() ?? '';
+          await manager.testDraft(draft, secret);
         case SourceKind.local || SourceKind.dlna:
           await manager.testDraft(draft, '');
         case SourceKind.smb ||

@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'dart:math';
 
 import 'package:sqlite3/sqlite3.dart';
@@ -60,7 +61,7 @@ class AssistantConfig {
   void validate() {
     final uri = Uri.tryParse(endpoint);
     if (uri == null ||
-        uri.scheme != 'https' ||
+        !(uri.scheme == 'https' || uri.scheme == 'http' && isLoopback(uri)) ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
         uri.hasQuery ||
@@ -71,6 +72,15 @@ class AssistantConfig {
         maxTokens > 16384) {
       throw FormatException(appStrings.errAssistantConfig);
     }
+  }
+
+  /// Plain http is accepted only for a model server on this device (Ollama,
+  /// LM Studio): the key and conversation never leave the machine.
+  static bool isLoopback(Uri uri) {
+    final host = uri.host.toLowerCase();
+    if (host == 'localhost') return true;
+    final address = InternetAddress.tryParse(host);
+    return address != null && address.isLoopback;
   }
 }
 

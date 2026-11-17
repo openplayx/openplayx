@@ -188,6 +188,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           _sources,
           retainedArtwork: () => library.metadata.retainedArtwork,
         );
+        // Before the first scrape, so it fetches in the UI language.
+        _followUiLanguage(library);
         _metadataRuntime = MetadataRuntime(library, _sources);
         unawaited(_metadataRuntime!.start());
         _backend =
@@ -203,6 +205,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       });
     } catch (_) {
       if (mounted) setState(() => _error = l.libraryOpenFailed);
+    }
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    // Runs again when the App's language changes.
+    final library = _library;
+    if (library != null) _followUiLanguage(library);
+  }
+
+  /// TMDB metadata follows the UI language. Only new scrapes (and refreshes
+  /// the user asks for) use it; existing metadata is kept.
+  void _followUiLanguage(LibraryService library) {
+    try {
+      library.metadata.followUiLanguage(Localizations.localeOf(context));
+    } catch (_) {
+      // Settings storage unavailable: keep the previous language.
     }
   }
 

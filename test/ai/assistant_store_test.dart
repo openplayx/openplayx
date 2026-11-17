@@ -54,6 +54,25 @@ void main() {
     }
     expect(await store.key(store.loadConfig()), 'KEY');
   });
+  test('plain http is accepted only for a model server on this device', () {
+    for (final endpoint in [
+      'http://localhost:11434/v1',
+      'http://127.0.0.1:11434/v1',
+      'http://[::1]:1234/v1',
+    ]) {
+      AssistantConfig(endpoint: endpoint).validate();
+    }
+    for (final endpoint in [
+      'http://192.168.1.10:11434/v1',
+      'http://10.0.2.2:11434/v1',
+      'http://localhost.example.com/v1',
+    ]) {
+      expect(
+        () => AssistantConfig(endpoint: endpoint).validate(),
+        throwsFormatException,
+      );
+    }
+  });
   test(
     'durable host operation journal prevents replay after Gateway recreation',
     () async {

@@ -6,6 +6,8 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx/core/capabilities/metadata_capability.dart';
 import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/metadata/metadata_queue.dart';
+import 'package:openplayx/data/metadata/metadata_repository.dart';
+import 'package:flutter/widgets.dart' show Locale;
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/capabilities/artwork/artwork_service.dart';
 import 'package:openplayx/capabilities/library/library_service.dart';
@@ -25,6 +27,7 @@ class TestMetadataProvider implements Plugin, MetadataCapability {
   String searchTitle = 'Film';
   Map<String, List<String>> aliases = {};
   final aliasLookups = <String>[];
+  final languages = <String>[];
   PluginException? failure;
   Completer<MetadataResult>? pending;
   @override
@@ -50,6 +53,7 @@ class TestMetadataProvider implements Plugin, MetadataCapability {
     CallContext context,
   ) async {
     calls++;
+    languages.add(request.language);
     if (failure != null) throw failure!;
     if (request.action == MetadataAction.search) {
       if (pending != null) return pending!.future;
@@ -202,6 +206,53 @@ void main() {
       await worker.reconcile();
       await worker.runBatch();
       expect(provider.calls, before);
+    } finally {
+      await worker.dispose();
+    }
+  });
+  test('TMDB language follows the UI locale', () {
+    String lang(Locale l) => MetadataRepository.tmdbLanguageFor(l);
+    expect(lang(const Locale('en')), 'en-US');
+    expect(lang(const Locale('fr', 'FR')), 'en-US');
+    expect(lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans')), 'zh-CN');
+    expect(lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')), 'zh-TW');
+    expect(lang(const Locale('zh', 'HK')), 'zh-TW');
+    library.metadata.followUiLanguage(const Locale('en'));
+    expect(library.metadata.language, 'en-US');
+  });
+  test('switching the UI language keeps scraped metadata and only affects new scrapes', () async {
+    library.metadata.followUiLanguage(
+      const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans'),
+    );
+    addToLibrary(library, media);
+    final worker = runner();
+    try {
+      await worker.reconcile();
+      await worker.runBatch();
+      expect(worker.queue.item(media)!['state'], 'completed');
+      expect(provider.languages.toSet(), {'zh-CN'});
+      final calls = provider.calls;
+      library.metadata.followUiLanguage(const Locale('en'));
+      await worker.reconcile();
+      await worker.runBatch();
+      // Nothing is scraped again and the existing title stays.
+      expect(provider.calls, calls);
+      expect(worker.queue.item(media)!['state'], 'completed');
+      expect(library.metadata.fields(media)['title'], '已识别影片');
+      // A newly added item is fetched in the new language.
+      final added = library.register(
+        const SourceEntry(
+          ResourceRef('@local', '/Other.2014.mkv'),
+          'Other.2014.mkv',
+          isFolder: false,
+        ),
+      );
+      addToLibrary(library, added);
+      provider.searchTitle = 'Other';
+      await worker.reconcile();
+      await worker.runBatch();
+      expect(provider.calls, greaterThan(calls));
+      expect(provider.languages.skip(provider.languages.length - 1).single, 'en-US');
     } finally {
       await worker.dispose();
     }

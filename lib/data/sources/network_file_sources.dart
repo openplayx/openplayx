@@ -218,7 +218,10 @@ class WebDavPlugin extends RemoteFilePlugin {
   }) async {
     final request = await _client.openUrl(method, uri);
     request.followRedirects = false;
-    ({..._headers, ...headers}).forEach(request.headers.set);
+    ({
+      ...(_sameOrigin(uri) ? _headers : <String, String>{}),
+      ...headers,
+    }).forEach(request.headers.set);
     if (body != null) {
       // Explicit length: not every WebDAV server accepts a chunked body.
       final bytes = utf8.encode(body);

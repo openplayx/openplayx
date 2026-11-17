@@ -60,7 +60,11 @@ void main() {
       final local = restored.configs.singleWhere(
         (c) => c.id == '$prefix-local',
       );
-      expect(local.bookmark, Platform.isMacOS ? isNotNull : isNull);
+      // macOS and iOS keep security-scoped bookmarks for local folders.
+      expect(
+        local.bookmark,
+        Platform.isMacOS || Platform.isIOS ? isNotNull : isNull,
+      );
       final files = await restored.browse(local.id, const BrowseRequest());
       expect(files.entries.single.name, 'openplayx-test.mp4');
       final stream = await restored.resolve(files.entries.single.ref);

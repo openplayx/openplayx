@@ -32,6 +32,8 @@ cross-device sync, live TV/IPTV/EPG and TV remote interfaces are not provided.
 The Flutter Web player is not supported; [openplayx.com](https://openplayx.com)
 is the separate project website.
 
+Cloud sources include Jianguoyun/123 WebDAV presets and read-only OneDrive/Dropbox adapters. OAuth requires publisher app registration; real-account acceptance is pending. See [setup and validation](docs/cloud_drive_sources.md).
+
 ## Download
 
 Use the assets and installation notes on the

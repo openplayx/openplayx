@@ -24,6 +24,8 @@
 
 应用在本机运行，无需部署 OpenPlayX 服务端。模型、在线元数据、联网搜索及远程服务按需连接。完整跨设备同步、直播/IPTV/EPG 和电视遥控器界面尚未提供。不支持 Flutter Web 播放；[openplayx.com](https://openplayx.com) 是独立的项目官网。
 
+云盘新增坚果云/123 WebDAV 预设及 OneDrive/Dropbox 只读适配；OAuth 需发布者配置应用，真实账号验收待完成。详见[配置与验收记录](docs/cloud_drive_sources.md)。
+
 ## 下载
 
 从 [Release 页面](https://github.com/openplayx/openplayx/releases) 选择平台和架构对应的安装包，并阅读安装说明。Windows、Linux 和 iOS 工程的存在不代表已有可直接安装的正式版本。

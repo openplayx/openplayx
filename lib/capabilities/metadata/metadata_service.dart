@@ -62,8 +62,9 @@ class MetadataService {
       repository.job(id)['input'] as String,
     ) as Map<String, dynamic>;
     final revisions = input['sourceRevisions'] as Map? ?? {};
-    return (!input.containsKey('language') || input['language'] == language) &&
-        (!input.containsKey('providerRevision') ||
+    // The language is not checked: a job started before a language switch
+    // finishes in its language; the switch only affects new scrapes.
+    return (!input.containsKey('providerRevision') ||
             input['providerRevision'] == repository.setting('tmdbRevision')) &&
         revisions.entries.every(
           (r) => sources.configs.any(
@@ -77,7 +78,7 @@ class MetadataService {
     _check(id);
   }
 
-  String get language => repository.setting('language', fallback: 'zh-CN');
+  String get language => repository.language;
   MediaNameEvidence evidence(String media) {
     final files = library.resources(media);
     final fields = repository.fields(media);
@@ -580,7 +581,7 @@ class MetadataService {
     final config = sources.configs.firstWhere(
       (c) => c.id == directory.instanceId,
     );
-    var root = config.rootPath;
+    var root = config.kind.oauth ? config.cloudRootId : config.rootPath;
     // Folders of the file sources on this connection that found [media].
     final found = {
       for (final r in library.db.select(
@@ -605,9 +606,18 @@ class MetadataService {
     MetadataRecord? show, season;
     String? showKey, seasonKey;
     for (var level = 0; level < 3; level++) {
-      if (path != root && !path.startsWith('$root/')) break;
+      if (!config.kind.oauth && path != root && !path.startsWith('$root/')) {
+        break;
+      }
       final entries = await _directory(
-        ResourceRef(directory.instanceId, path.isEmpty ? '/' : path),
+        ResourceRef(
+          directory.instanceId,
+          config.kind.oauth
+              ? path
+              : path.isEmpty
+              ? '/'
+              : path,
+        ),
       );
       for (final name in ['tvshow.nfo', 'season.nfo']) {
         final file = entries
@@ -642,6 +652,16 @@ class MetadataService {
         }
       }
       if (show != null || path == root) break;
+      if (config.kind.oauth) {
+        // A bound subfolder is an additional ancestor boundary.
+        if (fileSourceRoots.any((r) => r['root'] == path)) break;
+        final parent = await sources.parent(
+          ResourceRef(directory.instanceId, path),
+        );
+        if (parent == null) break;
+        path = parent.id;
+        continue;
+      }
       final slash = path.lastIndexOf('/');
       if (slash < 0) break;
       path = path.substring(0, slash);
@@ -729,16 +749,18 @@ class MetadataService {
       if (config == null || !config.isFileSource || !config.enabled) continue;
       final item = resource['item'] as String;
       final slash = item.lastIndexOf('/');
-      if (slash < 0) continue;
+      if (slash < 0 && !config.kind.oauth) continue;
+      final directory = config.kind.oauth
+          ? await sources.parent(ResourceRef(source, item))
+          : ResourceRef(source, item.substring(0, slash + 1));
+      if (directory == null) continue;
       final id = repository.createJob(media, {
         'sidecars': source,
         'sourceRevision': config.revision,
       });
       await _run(id, () async {
         repository.stage(id, 'collecting');
-        final entries = await _directory(
-          ResourceRef(source, item.substring(0, slash + 1)),
-        );
+        final entries = await _directory(directory);
         final stem = (resource['name'] as String).replaceFirst(
           RegExp(r'\.[^.]+$'),
           '',
@@ -830,11 +852,7 @@ class MetadataService {
             stem,
             directoryOwned: single,
           );
-          final parents = await _localAncestors(
-            media,
-            enriched,
-            ResourceRef(source, item.substring(0, slash + 1)),
-          );
+          final parents = await _localAncestors(media, enriched, directory);
           _check(id);
           if (enriched.artwork.isEmpty && parents.isEmpty) {
             repository.stage(id, 'unmatched');
@@ -878,11 +896,7 @@ class MetadataService {
           stem,
           directoryOwned: single,
         );
-        final ancestors = await _localAncestors(
-          media,
-          record,
-          ResourceRef(source, item.substring(0, slash + 1)),
-        );
+        final ancestors = await _localAncestors(media, record, directory);
         await sources.reload();
         if (!sources.configs.any(
           (c) => c.id == source && c.enabled && c.revision == config.revision,

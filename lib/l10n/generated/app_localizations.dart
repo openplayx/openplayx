@@ -6624,7 +6624,7 @@ abstract class AppLocalizations {
   /// No description provided for @errAssistantConfig.
   ///
   /// In en, this message translates to:
-  /// **'Enter a valid HTTPS API base URL, model and output limit (128–16384)'**
+  /// **'Enter a valid HTTPS API base URL (http only for a server on this device, such as http://localhost:11434/v1), model and output limit (128–16384)'**
   String get errAssistantConfig;
 
   /// No description provided for @errExtRootAddress.
@@ -7334,6 +7334,114 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Thought for {minutes, plural, =1{a minute} other{{minutes} minutes}}'**
   String aiReasoningMinutes(int minutes);
+
+  /// No description provided for @cloudJianguoyun.
+  ///
+  /// In en, this message translates to:
+  /// **'Jianguoyun'**
+  String get cloudJianguoyun;
+
+  /// No description provided for @cloud123.
+  ///
+  /// In en, this message translates to:
+  /// **'123 Cloud Drive'**
+  String get cloud123;
+
+  /// No description provided for @cloudJianguoyunHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your account and a third-party app password. The default WebDAV folder can be changed.'**
+  String get cloudJianguoyunHelp;
+
+  /// No description provided for @cloud123Help.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable WebDAV in your 123 account first. Enter the exact URL and credentials supplied by the official console; availability depends on your plan.'**
+  String get cloud123Help;
+
+  /// No description provided for @cloudPreset.
+  ///
+  /// In en, this message translates to:
+  /// **'WebDAV preset'**
+  String get cloudPreset;
+
+  /// No description provided for @cloudCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom WebDAV'**
+  String get cloudCustom;
+
+  /// No description provided for @catSummaryCloudDrive.
+  ///
+  /// In en, this message translates to:
+  /// **'Browse and play files in your cloud drive.'**
+  String get catSummaryCloudDrive;
+
+  /// No description provided for @cloudSignIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in with browser'**
+  String get cloudSignIn;
+
+  /// No description provided for @cloudSignInHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Read-only access. Choose the root folder below. To fully disconnect OneDrive, also remove this app in your Microsoft account permissions.'**
+  String get cloudSignInHelp;
+
+  /// No description provided for @cloudNotConfigured.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sign-in is unavailable in this build. The publisher must configure an OAuth application.'**
+  String get cloudNotConfigured;
+
+  /// No description provided for @cloudSignInFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud sign-in failed. Please try again.'**
+  String get cloudSignInFailed;
+
+  /// No description provided for @cloudCallbackInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'The authorization callback could not be verified.'**
+  String get cloudCallbackInvalid;
+
+  /// No description provided for @cloudRoot.
+  ///
+  /// In en, this message translates to:
+  /// **'Selected root folder'**
+  String get cloudRoot;
+
+  /// No description provided for @cloudRootHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open a folder to select it as the root. Only files below this folder will be browsed and scanned.'**
+  String get cloudRootHelp;
+
+  /// No description provided for @cloudReauthorize.
+  ///
+  /// In en, this message translates to:
+  /// **'Authorization expired or was revoked. Please sign in again.'**
+  String get cloudReauthorize;
+
+  /// No description provided for @cloudPersonalOnly.
+  ///
+  /// In en, this message translates to:
+  /// **'Only personal OneDrive accounts are supported.'**
+  String get cloudPersonalOnly;
+
+  /// No description provided for @cloudDisconnect.
+  ///
+  /// In en, this message translates to:
+  /// **'Disconnect account'**
+  String get cloudDisconnect;
+
+  /// No description provided for @cloudDisconnectHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Clears local credentials and stops cloud requests. Also remove this app in your Microsoft or Dropbox account permissions to revoke the platform grant.'**
+  String get cloudDisconnectHelp;
 }
 
 class _AppLocalizationsDelegate

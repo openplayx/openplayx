@@ -145,6 +145,52 @@ void main() {
     expect(SourceKind.emby.files || SourceKind.dlna.files, isFalse);
   });
 
+  test(
+    'WebDAV redirect probe and playback never leak credentials across origins',
+    () async {
+      final cdn = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final origin = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      final seen = <String?>[];
+      cdn.listen((request) async {
+        seen.add(request.headers.value('authorization'));
+        request.response.add([1]);
+        await request.response.close();
+      });
+      origin.listen((request) async {
+        expect(request.headers.value('authorization'), startsWith('Basic '));
+        request.response.statusCode = 302;
+        request.response.headers.set(
+          'location',
+          'http://127.0.0.1:${cdn.port}/movie.mp4',
+        );
+        await request.response.close();
+      });
+      final plugin = WebDavPlugin(
+        SourceConfig(
+          id: 'dav',
+          kind: SourceKind.webdav,
+          name: '',
+          address: 'http://127.0.0.1:${origin.port}/dav',
+          username: 'viewer',
+        ),
+        'password',
+      );
+      final stream = await plugin.resolve(
+        const ResolveRequest(ResourceRef('dav', '/dav/movie.mp4')),
+        CallContext.forInstance('dav'),
+      );
+      final reader = HttpClient();
+      final response = await (await reader.getUrl(stream.uri)).close();
+      await response.drain<void>();
+      expect(seen, [null, null]);
+      reader.close(force: true);
+      await stream.release();
+      await plugin.dispose();
+      await origin.close(force: true);
+      await cdn.close(force: true);
+    },
+  );
+
   test('WebDAV lists, plays with ranges and stays inside its root', () async {
     final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
     addTearDown(() => server.close(force: true));

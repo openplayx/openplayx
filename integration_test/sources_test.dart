@@ -13,23 +13,43 @@ import 'package:sqlite3/sqlite3.dart';
 import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx_playback/playback.dart';
 
+import 'support/live_services.dart';
 import 'support/source_services.dart';
 import 'support/test_video.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  const services = bool.fromEnvironment('SOURCE_SERVICES');
-  const host = String.fromEnvironment('SOURCE_HOST', defaultValue: '127.0.0.1');
+  // Remote kinds need the tool/source_services stack: required, never skipped.
+  const host = sourceHost;
+  const ports = {
+    SourceKind.smb: 445,
+    SourceKind.webdav: 18080,
+    SourceKind.ftp: 2121,
+    SourceKind.sftp: 2222,
+    SourceKind.s3: 19000,
+    SourceKind.plex: 13240,
+    SourceKind.jellyfin: 18096,
+    SourceKind.emby: 18097,
+    SourceKind.dlna: 8200,
+  };
   const defines = <String, dynamic>{
     'JELLYFIN_USER_ID': String.fromEnvironment('JELLYFIN_USER_ID'),
     'JELLYFIN_TOKEN': String.fromEnvironment('JELLYFIN_TOKEN'),
     'EMBY_USER_ID': String.fromEnvironment('EMBY_USER_ID'),
     'EMBY_TOKEN': String.fromEnvironment('EMBY_TOKEN'),
   };
-  for (final kind in SourceKind.values) {
+  for (final kind in SourceKind.values.where((kind) => !kind.oauth)) {
     testWidgets('${kind.label}: real source browse, Range, VLC decode and seek', (
       tester,
     ) async {
+      if (kind != SourceKind.local) {
+        requireDefines({'SOURCE_HOST': host});
+        await requireReachable(
+          '${kind.label} test service',
+          host,
+          ports[kind]!,
+        );
+      }
       final dir = await Directory.systemTemp.createTemp('openplayx-source-');
       final mediaDirectory = await Directory('${dir.path}/media').create();
       final fixture = await createTestVideo(mediaDirectory);
@@ -185,6 +205,6 @@ void main() {
       await backend.play();
       await waitFor(() => backend.value.position.inSeconds >= 6);
       await tester.pumpWidget(const SizedBox());
-    }, skip: kind != SourceKind.local && !services);
+    });
   }
 }

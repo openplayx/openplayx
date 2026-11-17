@@ -174,3 +174,8 @@ abstract interface class SearchCapability {
     CallContext context,
   );
 }
+
+/// Stable-ID file providers expose parents without deriving them from paths.
+abstract interface class SourceHierarchyCapability {
+  Future<ResourceRef?> parent(ResourceRef ref, CallContext context);
+}

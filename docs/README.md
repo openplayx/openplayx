@@ -8,11 +8,14 @@ not a fresh platform or deployment acceptance report.
 
 - Navigation: Home/library, Sources, AI and Settings. AI manages models,
   external MCP services and internal capabilities.
-- Configuration: `configuration.sqlite3` owns settings and credentials on
-  their items (no separate OS keychain). `library.sqlite3` owns media,
+- Configuration: `configuration.sqlite3` owns settings and existing credentials.
+  Cloud OAuth and branded WebDAV credentials use OS secure storage references.
+  `library.sqlite3` owns media,
   progress, conversations, jobs and artifacts. Development upgrades can
   rebuild old tables and lose data.
-- Sources: local, SMB, WebDAV, FTP, SFTP, S3, Plex, Jellyfin, Emby and DLNA.
+- Sources: local, SMB, WebDAV (including Jianguoyun/123 presets), FTP, SFTP, S3,
+  Plex, Jellyfin, Emby, DLNA, OneDrive and Dropbox. See
+  [cloud setup and pending account acceptance](cloud_drive_sources.md).
 - AI: model calls and bounded tools; public web-page reading on the device,
   and a removable mcp-tavily web-search preset through the MCP client.
 - Native media: libVLC playback, in-process FFmpeg processing and whisper.cpp

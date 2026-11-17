@@ -3706,7 +3706,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get errAssistantConfig =>
-      'Enter a valid HTTPS API base URL, model and output limit (128–16384)';
+      'Enter a valid HTTPS API base URL (http only for a server on this device, such as http://localhost:11434/v1), model and output limit (128–16384)';
 
   @override
   String get errExtRootAddress =>
@@ -4104,4 +4104,68 @@ class AppLocalizationsEn extends AppLocalizations {
     );
     return 'Thought for $_temp0';
   }
+
+  @override
+  String get cloudJianguoyun => 'Jianguoyun';
+
+  @override
+  String get cloud123 => '123 Cloud Drive';
+
+  @override
+  String get cloudJianguoyunHelp =>
+      'Use your account and a third-party app password. The default WebDAV folder can be changed.';
+
+  @override
+  String get cloud123Help =>
+      'Enable WebDAV in your 123 account first. Enter the exact URL and credentials supplied by the official console; availability depends on your plan.';
+
+  @override
+  String get cloudPreset => 'WebDAV preset';
+
+  @override
+  String get cloudCustom => 'Custom WebDAV';
+
+  @override
+  String get catSummaryCloudDrive =>
+      'Browse and play files in your cloud drive.';
+
+  @override
+  String get cloudSignIn => 'Sign in with browser';
+
+  @override
+  String get cloudSignInHelp =>
+      'Read-only access. Choose the root folder below. To fully disconnect OneDrive, also remove this app in your Microsoft account permissions.';
+
+  @override
+  String get cloudNotConfigured =>
+      'Cloud sign-in is unavailable in this build. The publisher must configure an OAuth application.';
+
+  @override
+  String get cloudSignInFailed => 'Cloud sign-in failed. Please try again.';
+
+  @override
+  String get cloudCallbackInvalid =>
+      'The authorization callback could not be verified.';
+
+  @override
+  String get cloudRoot => 'Selected root folder';
+
+  @override
+  String get cloudRootHelp =>
+      'Open a folder to select it as the root. Only files below this folder will be browsed and scanned.';
+
+  @override
+  String get cloudReauthorize =>
+      'Authorization expired or was revoked. Please sign in again.';
+
+  @override
+  String get cloudPersonalOnly =>
+      'Only personal OneDrive accounts are supported.';
+
+  @override
+  String get cloudDisconnect => 'Disconnect account';
+
+  @override
+  String get cloudDisconnectHelp =>
+      'Clears local credentials and stops cloud requests. Also remove this app in your Microsoft or Dropbox account permissions to revoke the platform grant.';
 }

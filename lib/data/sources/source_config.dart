@@ -5,6 +5,8 @@ enum SourceKind {
   local('Local', files: true),
   smb('SMB', files: true, scheme: 'smb', standardPort: 445),
   webdav('WebDAV', files: true, scheme: 'http'),
+  onedrive('OneDrive', files: true),
+  dropbox('Dropbox', files: true),
   ftp('FTP', files: true, scheme: 'ftp', standardPort: 21),
   sftp('SFTP', files: true, scheme: 'sftp', standardPort: 22),
   s3('S3', files: true, scheme: 'http'),
@@ -25,7 +27,7 @@ enum SourceKind {
   /// Display name: the protocol or product name, localized for local folders.
   String get label => this == local ? appStrings.localFolder : _label;
 
-  /// Path-addressed file tree that can be scanned into the library.
+  /// File tree that can be scanned into the library.
   final bool files;
 
   /// URL scheme of the address; `http` also accepts `https`.
@@ -41,7 +43,10 @@ enum SourceKind {
   bool get isHttp => scheme == 'http';
 
   /// Media servers that only work with a sign-in token.
-  bool get requiresSecret => this == plex || this == jellyfin || this == emby;
+  bool get oauth => this == onedrive || this == dropbox;
+
+  bool get requiresSecret =>
+      oauth || this == plex || this == jellyfin || this == emby;
 
   /// Username/password are optional (anonymous or guest access).
   bool get optionalCredential =>
@@ -84,6 +89,9 @@ class SourceConfig {
     required this.kind,
     required this.name,
     required this.address,
+    this.presetId,
+    this.cloudDriveId = '',
+    this.cloudRootId = '',
     this.username = '',
     this.domain = '',
     this.userId = '',
@@ -111,6 +119,10 @@ class SourceConfig {
   final SourceKind kind;
   final String name;
   final String address;
+  final String? presetId;
+  final String cloudDriveId;
+  final String cloudRootId;
+  String get typeLabel => SourcePreset.byId(presetId)?.label ?? kind.label;
   final String username;
   final String domain;
   final String userId;
@@ -122,7 +134,7 @@ class SourceConfig {
   final int revision;
 
   /// A password or token is saved for this instance (in its configuration
-  /// row; never part of [toJson]).
+  /// row or OS secure store; never part of [toJson]).
   final bool hasSecret;
   final DateTime? credentialExpiresAt;
   final bool includeInSearch;
@@ -146,7 +158,7 @@ class SourceConfig {
   /// filters, file source rows): always prefixed with the type. A blank name
   /// falls back to the address, so the default is "type + address".
   String get displayName =>
-      '${kind.label} · ${name.trim().isEmpty ? address : name.trim()}';
+      '$typeLabel · ${name.trim().isEmpty ? address : name.trim()}';
 
   /// Name for the connection's own management row: the user's name, or the
   /// type-prefixed default when none was entered.
@@ -157,6 +169,7 @@ class SourceConfig {
   /// of remote file sources are decoded absolute paths below it.
   String get rootPath {
     if (kind == SourceKind.local) return address;
+    if (kind.oauth) return '/';
     final segments = Uri.parse(address).pathSegments.where((s) => s.isNotEmpty);
     return '/${segments.join('/')}';
   }
@@ -170,6 +183,9 @@ class SourceConfig {
   SourceConfig copyWith({
     String? name,
     String? address,
+    String? presetId,
+    String? cloudDriveId,
+    String? cloudRootId,
     String? username,
     String? domain,
     String? userId,
@@ -200,6 +216,9 @@ class SourceConfig {
     kind: kind,
     name: name ?? this.name,
     address: address ?? this.address,
+    presetId: presetId ?? this.presetId,
+    cloudDriveId: cloudDriveId ?? this.cloudDriveId,
+    cloudRootId: cloudRootId ?? this.cloudRootId,
     username: username ?? this.username,
     domain: domain ?? this.domain,
     userId: userId ?? this.userId,
@@ -233,6 +252,9 @@ class SourceConfig {
     'kind': kind.name,
     'name': name,
     'address': address,
+    if (presetId != null) 'presetId': presetId,
+    if (kind.oauth) 'cloudDriveId': cloudDriveId,
+    if (kind.oauth) 'cloudRootId': cloudRootId,
     'username': username,
     'domain': domain,
     'userId': userId,
@@ -259,6 +281,9 @@ class SourceConfig {
       'kind',
       'name',
       'address',
+      'presetId',
+      'cloudDriveId',
+      'cloudRootId',
       'username',
       'domain',
       'userId',
@@ -289,6 +314,9 @@ class SourceConfig {
       kind: SourceKind.values.byName(j['kind'] as String),
       name: j['name'] as String,
       address: j['address'] as String,
+      presetId: j['presetId'] as String?,
+      cloudDriveId: j['cloudDriveId'] as String? ?? '',
+      cloudRootId: j['cloudRootId'] as String? ?? '',
       username: j['username'] as String? ?? '',
       domain: j['domain'] as String? ?? '',
       userId: j['userId'] as String? ?? '',
@@ -320,6 +348,10 @@ class SourceConfig {
   }
 
   void validate() {
+    if (presetId != null &&
+        (kind != SourceKind.webdav || SourcePreset.byId(presetId) == null)) {
+      throw FormatException(appStrings.errInvalidServerAddress);
+    }
     if (remote != null) {
       if (!kind.mediaBrowser &&
           kind != SourceKind.plex &&
@@ -369,6 +401,14 @@ class SourceConfig {
     if (!isFileSource &&
         (allowedPaths.any((p) => p.isNotEmpty) || scanExclusions.isNotEmpty)) {
       throw FormatException(appStrings.errLibraryNoDirPolicy);
+    }
+    if (kind.oauth) {
+      if (address != '${kind.name}://account' ||
+          allowedPaths.any((p) => p.isNotEmpty) ||
+          scanExclusions.isNotEmpty) {
+        throw FormatException(appStrings.errInvalidServerAddress);
+      }
+      return;
     }
     if (kind == SourceKind.local) {
       if (!address.startsWith('/') &&
@@ -436,4 +476,23 @@ class SourceConfig {
     expression.write(r'(?:/.*)?$');
     return RegExp(expression.toString()).hasMatch(relative);
   });
+}
+
+/// Brands sharing the existing WebDAV provider and persistence format.
+enum SourcePreset {
+  jianguoyun('https://dav.jianguoyun.com/dav/'),
+  cloud123('');
+
+  const SourcePreset(this.address);
+  final String address;
+  String get label => switch (this) {
+    jianguoyun => appStrings.cloudJianguoyun,
+    cloud123 => appStrings.cloud123,
+  };
+  String get help => switch (this) {
+    jianguoyun => appStrings.cloudJianguoyunHelp,
+    cloud123 => appStrings.cloud123Help,
+  };
+  static SourcePreset? byId(String? id) =>
+      values.where((p) => p.name == id).firstOrNull;
 }

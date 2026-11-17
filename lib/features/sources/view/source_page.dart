@@ -268,7 +268,7 @@ class _SourcePageState extends State<SourcePage> {
               ],
             ),
             subtitle: Text(
-              '${source.kind == SourceKind.local ? l.localSource : source.kind.label}'
+              '${source.kind == SourceKind.local ? l.localSource : source.typeLabel}'
               '${files == null ? '' : ' · ${l.sourceFileCount(bindings.length)}'}',
             ),
             status: Text(

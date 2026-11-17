@@ -202,6 +202,7 @@ String _sourceSummary(SourceKind kind) => switch (kind) {
   SourceKind.local => 'catSummaryLocal',
   SourceKind.smb => 'catSummarySmb',
   SourceKind.webdav => 'catSummaryWebdav',
+  SourceKind.onedrive || SourceKind.dropbox => 'catSummaryCloudDrive',
   SourceKind.ftp => 'catSummaryFtp',
   SourceKind.sftp => 'catSummarySftp',
   SourceKind.s3 => 'catSummaryS3',

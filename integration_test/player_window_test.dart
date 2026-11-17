@@ -8,41 +8,54 @@ import 'package:openplayx/app/app.dart';
 import 'package:openplayx/app/player_window.dart';
 import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/capabilities/sources/source_manager.dart';
-import 'package:openplayx/capabilities/library/library_service.dart';
-import 'package:openplayx/capabilities/speech/recognized_subtitles.dart';
+import 'package:openplayx/data/sources/source_config.dart';
+
+import 'support/live_services.dart';
+import 'support/source_services.dart';
+
+// Desktop only (separate OS windows). Runs with `flutter drive` so child
+// engines receive their entrypoint arguments; see integration_test/README.md.
+// The SMB case needs the tool/source_services stack (required, never skipped).
+// Choosing a saved recognised subtitle in the child window is covered by
+// assistant_movie_flow_test.dart.
+final _data = Directory(
+  '${Directory.systemTemp.path}/openplayx-it-player-window',
+);
 
 Future<void> main([List<String> args = const []]) async {
+  // Main and child engines share one scratch data directory, not the user's.
+  useAppDataDirectory(_data);
   if (await runPlayerWindowIfRequested(args)) return;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  if (_data.existsSync()) _data.deleteSync(recursive: true);
+  _data.createSync(recursive: true);
   for (final smb in [false, true]) {
     testWidgets(
-      'real desktop window plays ${smb ? 'saved SMB clip' : 'local fixture'}',
+      'real desktop window plays ${smb ? 'an SMB source' : 'local fixture'}',
       (tester) async {
+        if (smb) {
+          requireDefines({'SOURCE_HOST': sourceHost});
+          await requireReachable('SMB test service', sourceHost, 445);
+        }
         await tester.pumpWidget(const OpenPlayXApp(home: SizedBox.shrink()));
         final sources = SourceManager();
         Directory? temp;
-        String? binding;
         try {
           final SourceSelection selection;
           if (smb) {
-            final library = await LibraryService.open();
-            final row = library.db
-                .select(
-                  "SELECT source,item,name FROM resources WHERE item LIKE '%OpenPlayX/%' AND name LIKE '%.mp4' ORDER BY rowid DESC LIMIT 1",
-                )
-                .single;
-            final ref = ResourceRef(
-              row['source'] as String,
-              row['item'] as String,
+            final config = sourceServiceConfig(SourceKind.smb, sourceHost, {});
+            await sources.save(
+              config,
+              sourceServiceSecret(SourceKind.smb, const {}),
             );
-            final name = row['name'] as String;
-            binding = recognizedSubtitles(library.db, ref).first.bindingId;
-            library.close();
-            await sources.load();
+            final entry = (await sources.browse(
+              config.id,
+              const BrowseRequest(),
+            )).entries.firstWhere((e) => e.name.endsWith('.mp4'));
             selection = SourceSelection(
-              name,
-              await sources.resolve(ref),
-              ref: ref,
+              entry.name,
+              await sources.resolve(entry.ref),
+              ref: entry.ref,
             );
           } else {
             temp = await Directory.systemTemp.createTemp('opx-window-');
@@ -65,20 +78,10 @@ Future<void> main([List<String> args = const []]) async {
             snapshot = await windows.snapshot();
           }
           expect(snapshot['status'], 'playing');
-          if (binding != null) {
-            snapshot = await windows.control('set_subtitle', {
-              'session_id': snapshot['session_id'],
-              'binding_id': binding,
-            });
-            for (var i = 0; i < 20; i++) {
-              debugPrint('WINDOW subtitle $i: $snapshot');
-              if (snapshot['status'] == 'playing') break;
-              await tester.pump(const Duration(milliseconds: 250));
-              snapshot = await windows.snapshot();
-            }
-            expect(snapshot['status'], 'playing');
-            expect((snapshot['subtitle'] as Map)['binding_id'], binding);
-          }
+          expect(
+            snapshot['duration_ms'] as num,
+            inInclusiveRange(11000, 13000),
+          );
           await windows.control('stop', {'session_id': snapshot['session_id']});
         } finally {
           await tester.pumpWidget(const SizedBox.shrink());
@@ -86,7 +89,6 @@ Future<void> main([List<String> args = const []]) async {
           await temp?.delete(recursive: true);
         }
       },
-      skip: smb && !const bool.fromEnvironment('LIVE_ASSISTANT_FLOW'),
       timeout: const Timeout(Duration(minutes: 2)),
     );
   }
