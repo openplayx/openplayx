@@ -1213,7 +1213,7 @@ abstract class AppLocalizations {
   /// No description provided for @readSpeed.
   ///
   /// In en, this message translates to:
-  /// **'Read {speed} MB/s'**
+  /// **'{speed} MB/s'**
   String readSpeed(String speed);
 
   /// No description provided for @notVerified.

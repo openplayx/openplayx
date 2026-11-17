@@ -697,7 +697,7 @@ extension _MobilePlayer on PlayerPageState {
   );
 
   /// Time row: current position, seek bar, remaining/total (tap toggles).
-  Widget _timeRow(PlayerSnapshot value) {
+  Widget _timeRow(PlayerSnapshot value, {bool readSpeed = true}) {
     final duration = value.duration.inMilliseconds.toDouble();
     final position = _shownPosition(value);
     const timeStyle = TextStyle(
@@ -717,7 +717,7 @@ extension _MobilePlayer on PlayerPageState {
       mainAxisSize: MainAxisSize.min,
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        _readSpeedLabel(value),
+        if (readSpeed) _readSpeedLabel(value),
         Row(
           children: [
             Text(current, style: timeStyle),
@@ -795,15 +795,26 @@ extension _MobilePlayer on PlayerPageState {
               fontWeight: FontWeight.w600,
             ),
           ),
-          if (_subtitle != null)
-            Text(
-              _subtitle!,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: const TextStyle(color: PlayerStyle.muted, fontSize: 12.5),
-            ),
+          // File name (truncated) and read speed share one line.
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _subtitle ?? '',
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(
+                    color: PlayerStyle.muted,
+                    fontSize: 12.5,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 12),
+              _readSpeedLabel(value),
+            ],
+          ),
           const SizedBox(height: 8),
-          _timeRow(value),
+          _timeRow(value, readSpeed: false),
           const SizedBox(height: 12),
           Row(children: _primaryButtons(speed: false)),
           const SizedBox(height: 8),

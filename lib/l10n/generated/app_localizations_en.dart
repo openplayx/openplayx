@@ -613,7 +613,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String readSpeed(String speed) {
-    return 'Read $speed MB/s';
+    return '$speed MB/s';
   }
 
   @override

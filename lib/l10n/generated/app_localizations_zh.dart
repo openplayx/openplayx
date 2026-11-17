@@ -591,7 +591,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String readSpeed(String speed) {
-    return '读取 $speed MB/s';
+    return '$speed MB/s';
   }
 
   @override
@@ -4435,7 +4435,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String readSpeed(String speed) {
-    return '读取 $speed MB/s';
+    return '$speed MB/s';
   }
 
   @override
@@ -8279,7 +8279,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String readSpeed(String speed) {
-    return '讀取 $speed MB/s';
+    return '$speed MB/s';
   }
 
   @override

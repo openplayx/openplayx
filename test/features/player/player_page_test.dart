@@ -571,7 +571,7 @@ void main() {
     await openPlayer(tester, backend);
     final speed = find.byKey(const Key('playback-read-speed'));
     expect(speed, findsOneWidget);
-    expect(tester.widget<Text>(speed).data, '读取 -- MB/s');
+    expect(tester.widget<Text>(speed).data, '-- MB/s');
     backend.value = const PlayerSnapshot(
       status: PlaybackStatus.playing,
       readSpeedMBps: 12.345,
@@ -579,7 +579,7 @@ void main() {
       canSeek: true,
     );
     await tester.pump();
-    expect(tester.widget<Text>(speed).data, '读取 12.35 MB/s');
+    expect(tester.widget<Text>(speed).data, '12.35 MB/s');
   });
 
   testWidgets('read speed lives in the statistics, measured or placeholder', (
@@ -591,7 +591,14 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('媒体信息'));
     await tester.pumpAndSettle();
-    expect(find.text('-- MB/s'), findsOneWidget);
+    // The control bar shows the same text; look only at the statistics.
+    Finder stat(String text) => find.byWidgetPredicate(
+      (w) =>
+          w is Text &&
+          w.data == text &&
+          w.key != const Key('playback-read-speed'),
+    );
+    expect(stat('-- MB/s'), findsOneWidget);
     backend.value = const PlayerSnapshot(
       status: PlaybackStatus.playing,
       readSpeedMBps: 12.345,
@@ -599,7 +606,7 @@ void main() {
       canSeek: true,
     );
     await tester.pump();
-    expect(find.text('12.35 MB/s'), findsOneWidget);
+    expect(stat('12.35 MB/s'), findsOneWidget);
     await tester.tapAt(const Offset(10, 300)); // outside the sheet
     await tester.pumpAndSettle();
   });

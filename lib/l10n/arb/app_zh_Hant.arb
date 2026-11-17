@@ -277,7 +277,7 @@
       }
     }
   },
-  "readSpeed": "讀取 {speed} MB/s",
+  "readSpeed": "{speed} MB/s",
   "@readSpeed": {
     "placeholders": {
       "speed": {
