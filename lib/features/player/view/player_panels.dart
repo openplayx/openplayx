@@ -84,7 +84,7 @@ extension _PlayerPanels on PlayerPageState {
             label: _audioName(track),
             subtitle: track.language,
             height: _mobileDisplay ? 48 : 36,
-            selected: _audioState.selected == track.id,
+            selected: _audioState.current == track.id,
             onTap: () => _selectAudio(track.id),
           ),
         );

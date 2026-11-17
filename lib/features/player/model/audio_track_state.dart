@@ -17,10 +17,14 @@ class AudioTrackState {
   final int? selected;
   final Duration delay;
 
+  /// The track that is playing: the chosen one, else the first listed track,
+  /// which is what libVLC starts with when nothing was chosen.
+  int? get current => selected ?? (tracks.isEmpty ? null : tracks.first.id);
+
   /// Track after the current one, wrapping around; null without tracks.
   int? get nextTrack {
     if (tracks.isEmpty) return null;
-    final index = tracks.indexWhere((t) => t.id == selected);
+    final index = tracks.indexWhere((t) => t.id == current);
     return tracks[(index + 1) % tracks.length].id;
   }
 

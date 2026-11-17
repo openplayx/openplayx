@@ -364,11 +364,14 @@ class LibVlcBackend extends PlayerBackend {
   @override
   Future<List<PlayerAudioTrack>> getAudioTracks() async => [
     for (final track in await _controller.getAudioTracks())
-      PlayerAudioTrack(
-        id: track.id,
-        name: track.name,
-        language: track.language,
-      ),
+      // libVLC lists a "Disable" entry with a negative id, which the plugin
+      // refuses to select; muting is done through the volume instead.
+      if (track.id >= 0)
+        PlayerAudioTrack(
+          id: track.id,
+          name: track.name,
+          language: track.language,
+        ),
   ];
   @override
   Future<void> setAudioTrack(int id) => _controller.setAudioTrack(id);

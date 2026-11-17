@@ -688,7 +688,7 @@ extension _DesktopPlayer on PlayerPageState {
             item(
               _audioName(track),
               enabled ? () => _selectAudio(track.id) : null,
-              checked: _audioState.selected == track.id,
+              checked: _audioState.current == track.id,
             ),
           if (_audioState.tracks.isEmpty) item(l.noAudioTracks, null),
           item(

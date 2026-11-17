@@ -133,7 +133,9 @@ void main() {
 
     await press(LogicalKeyboardKey.keyB);
     await tester.pumpAndSettle();
-    expect(backend.audioSelections, [3]);
+    // Nothing chosen yet: the first track counts as playing, so next is the
+    // second one.
+    expect(backend.audioSelections, [7]);
     // Nothing chosen yet (the player's default is unknown): next is the
     // first subtitle.
     await press(LogicalKeyboardKey.keyV);
