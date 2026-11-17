@@ -100,6 +100,12 @@ void main() {
         jellyfinToken ?? sourceServiceSecret(kind, defines),
       );
       debugPrint('Source integration: ${kind.name} saved');
+      final mediaServer = const {
+        SourceKind.plex,
+        SourceKind.jellyfin,
+        SourceKind.emby,
+        SourceKind.dlna,
+      }.contains(kind);
       // Test bounded pages and traverse the actual media library to a playable leaf.
       Future<SourceEntry?> findVideo(ResourceRef? node, int depth) async {
         if (depth > 5) return null;
@@ -108,7 +114,12 @@ void main() {
           final request = BrowseRequest(node: node, offset: offset, limit: 10);
           final page = await manager.browse(config.id, request);
           for (final entry in page.entries) {
-            if (!entry.isFolder) return entry;
+            // File sources also list the fixtures' non-video files; media
+            // servers list titles of videos only.
+            if (!entry.isFolder) {
+              if (mediaServer || entry.name.endsWith('.mp4')) return entry;
+              continue;
+            }
             final child = await findVideo(entry.ref, depth + 1);
             if (child != null) return child;
           }
