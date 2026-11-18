@@ -120,7 +120,12 @@ class MediaProcessingService {
 
   /// Resolves to an absolute local path or the host's loopback session
   /// stream. Remote URLs (which FFmpeg would fetch itself) are refused.
-  Future<_Input> _open(ResourceRef ref) async {
+  Future<_Input> _open(ResourceRef ref) => _openResource(sources, ref);
+
+  static Future<_Input> _openResource(
+    SourceManager sources,
+    ResourceRef ref,
+  ) async {
     if (ref.instanceId == '@local') {
       final file = File(ref.id);
       if (!file.isAbsolute || !await file.exists()) {
@@ -153,6 +158,55 @@ class MediaProcessingService {
       return await processor.probe(input.location);
     } finally {
       await input.release();
+    }
+  }
+
+  /// Regenerable cover from exactly one fifth of an authorised video.
+  static Future<List<int>> videoCover(
+    SourceManager sources,
+    ResourceRef ref, {
+    MediaProcessor? processor,
+  }) async {
+    final engine = processor ?? sharedProcessor;
+    if (!sources.switches.enabled(providerId) || !engine.available) {
+      throw const MediaException(MediaErrorCode.unavailable);
+    }
+    final input = await _openResource(sources, ref);
+    Directory? temporary;
+    try {
+      final caps = await engine.capabilities();
+      final probe = await engine.probe(input.location);
+      final duration = probe.duration;
+      if (duration == null || duration <= Duration.zero) {
+        throw const MediaException(
+          MediaErrorCode.inputUnsupported,
+          'duration_unknown',
+        );
+      }
+      final plan = MediaPlanner.plan(
+        MediaPreset.imagePreview,
+        probe,
+        caps,
+        PlanRequest(time: Duration(microseconds: duration.inMicroseconds ~/ 5)),
+      );
+      temporary = await Directory.systemTemp.createTemp('opx_cover_');
+      final result = await engine
+          .submit(
+            plan,
+            input: input.location,
+            output: '${temporary.path}/cover.${plan.extension}',
+          )
+          .done;
+      if (!result.succeeded) {
+        throw MediaException(result.error ?? MediaErrorCode.nativeFailure);
+      }
+      return await File(result.outputPath!).readAsBytes();
+    } finally {
+      try {
+        if (temporary != null) await temporary.delete(recursive: true);
+      } finally {
+        await input.release();
+      }
     }
   }
 

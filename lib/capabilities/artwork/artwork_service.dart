@@ -11,6 +11,7 @@ import 'package:path_provider/path_provider.dart';
 import '../../core/capabilities/metadata_capability.dart';
 import '../../core/capabilities/source_capability.dart';
 import '../sources/source_manager.dart';
+import '../media_processing/media_processing_service.dart';
 import '../../l10n/l10n.dart';
 
 /// Host-controlled, bounded artwork fetching. Cache removal never changes
@@ -68,6 +69,7 @@ class ArtworkService {
   int _active = 0;
   bool _closed = false;
   static const maxBytes = 20 * 1024 * 1024;
+  static const videoCoverPrefix = 'video-cover-one-fifth:';
   Future<Directory> _root() async => _directory ??= Directory(
     '${(await getApplicationCacheDirectory()).path}/artwork',
   );
@@ -278,7 +280,12 @@ class ArtworkService {
     File? temporary;
     try {
       final List<int> bytes;
-      if (artwork.source != null) {
+      if (artwork.id.startsWith(videoCoverPrefix) && artwork.source != null) {
+        bytes = await MediaProcessingService.videoCover(
+          sources,
+          artwork.source!,
+        );
+      } else if (artwork.source != null) {
         bytes = await sources.readAttachment(
           artwork.source!,
           maxBytes: maxBytes,

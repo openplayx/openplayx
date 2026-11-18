@@ -17,7 +17,7 @@ import '../../l10n/l10n.dart';
 typedef MetadataCredentialReader = Future<String?> Function();
 
 /// A bounded runner, usable by Android WorkManager and foreground desktop hosts.
-/// It owns no widgets and never obtains a video playback URL.
+/// It owns no widgets; fallback covers resolve videos through the artwork service.
 class MetadataQueueRunner {
   MetadataQueueRunner(
     this.library,
@@ -89,7 +89,8 @@ class MetadataQueueRunner {
     final added = queue.reconcile(inputs);
     // A new name rule can match items the previous one could not: give every
     // automatic miss one more try (user-confirmed matches are untouched).
-    final rule = '${MediaNameEvidence.ruleVersion}/$matchRule';
+    final rule =
+        '${MediaNameEvidence.ruleVersion}/$matchRule/cover-one-fifth-v1';
     if (library.metadata.setting('nameRule') != rule) {
       library.db.execute(
         '''UPDATE metadata_queue SET state='queued',phase=0,attempts=0,next_at=0,error_code=NULL,
@@ -229,6 +230,47 @@ class MetadataQueueRunner {
 
   bool _valid(String media, String owner) =>
       !_stopped && !library.isClosing && queue.owns(media, owner);
+
+  Future<void> _fallbackCover(String media, String owner) async {
+    final metadata = library.metadata;
+    if (metadata.displayArtwork(media) != null ||
+        metadata.association(media) != null) {
+      return;
+    }
+    final resource = library.resources(media).firstOrNull;
+    if (resource == null) return;
+    final revision = metadata.revision(media);
+    final image = ArtworkDescriptor(
+      id: '${ArtworkService.videoCoverPrefix}${resource['id']}',
+      type: 'poster',
+      source: ResourceRef(
+        resource['source'] as String,
+        resource['item'] as String,
+      ),
+    );
+    try {
+      await artwork.load(image);
+    } catch (_) {
+      // A missing decoder or unreadable video does not change a catalog miss.
+      return;
+    }
+    if (!_valid(media, owner) || metadata.revision(media) != revision) return;
+    library.transaction(
+      () => metadata.apply(
+        media,
+        MetadataRecord(
+          ref: MetadataRef('video-cover', MediaKind.movie, media),
+          fields: const {},
+          artwork: [image],
+        ),
+        sourceKey: 'video-cover',
+        authority: 0,
+        expectedRevision: revision,
+        operationId: 'video-cover:$media:$revision',
+      ),
+    );
+  }
+
   Future<void> _images(String media, String owner) async {
     final selected = [
       for (final type in ['poster', 'backdrop', 'thumbnail'])
@@ -494,13 +536,17 @@ class MetadataQueueRunner {
     var match = await _match(job, evidence, service);
     if (!_valid(media, owner)) return;
     if (match == null) {
+      final noResults =
+          _candidates(job).isEmpty && jobInput['nextPage'] == null;
+      if (noResults) await _fallbackCover(media, owner);
+      if (!_valid(media, owner)) return;
       queue.finish(
         media,
         owner,
-        _candidates(job).isEmpty ? 'unmatched' : 'awaitingSelection',
+        noResults ? 'unmatched' : 'awaitingSelection',
         phase: 1,
         job: job,
-        error: _candidates(job).isEmpty ? 'noResults' : 'ambiguousMatch',
+        error: noResults ? 'noResults' : 'ambiguousMatch',
       );
       return;
     }
@@ -540,6 +586,8 @@ class MetadataQueueRunner {
             .where((c) => c.ref.episode == evidence.episodes.single)
             .firstOrNull;
         if (match == null) {
+          await _fallbackCover(media, owner);
+          if (!_valid(media, owner)) return;
           queue.finish(
             media,
             owner,

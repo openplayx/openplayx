@@ -286,6 +286,33 @@ void main() {
     skip: skip,
   );
 
+  test('video cover uses exactly one fifth of the probed duration', () async {
+    final ref = ResourceRef('@local', video);
+    final bytes = await MediaProcessingService.videoCover(
+      sources,
+      ref,
+      processor: service.processor,
+    );
+    final probe = await service.probe(ref);
+    final plan = MediaPlanner.plan(
+      MediaPreset.imagePreview,
+      probe,
+      await service.capabilities(),
+      PlanRequest(
+        time: Duration(microseconds: probe.duration!.inMicroseconds ~/ 5),
+      ),
+    );
+    final result = await service.processor
+        .submit(
+          plan,
+          input: video,
+          output: '${root.path}/expected.${plan.extension}',
+        )
+        .done;
+    expect(result.succeeded, isTrue);
+    expect(bytes, await File(result.outputPath!).readAsBytes());
+  }, skip: skip);
+
   test('recover marks unfinished tasks interrupted and compensates', () async {
     final db = library.db;
     final now = DateTime.now().millisecondsSinceEpoch;
