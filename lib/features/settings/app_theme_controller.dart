@@ -17,6 +17,8 @@ class AppThemeController extends ChangeNotifier {
   ThemeMode _mode;
   String _language;
   bool _developerMode;
+  bool _followSystemOrientation = true;
+  bool get followSystemOrientation => _followSystemOrientation;
   String? _saveError;
   ThemeMode get mode => _mode;
   String get language => _language;
@@ -48,6 +50,8 @@ class AppThemeController extends ChangeNotifier {
           ThemeMode.system;
       _language = _configuration!.appearance('language') ?? 'system';
       _developerMode = _configuration!.appearance('developerMode') == 'true';
+      _followSystemOrientation =
+          _configuration!.appearance('followSystemOrientation') != 'false';
     } catch (_) {
       // An unreadable preference must not prevent application startup.
     }
@@ -83,6 +87,12 @@ class AppThemeController extends ChangeNotifier {
     _developerMode = value;
     notifyListeners();
     await _save('developerMode', '$value');
+  }
+
+  Future<void> setFollowSystemOrientation(bool value) async {
+    _followSystemOrientation = value;
+    notifyListeners();
+    await _save('followSystemOrientation', '$value');
   }
 
   @override

@@ -4168,4 +4168,13 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get cloudDisconnectHelp =>
       'Clears local credentials and stops cloud requests. Also remove this app in your Microsoft or Dropbox account permissions to revoke the platform grant.';
+
+  @override
+  String get plSwitchToLandscape => 'Switch to landscape';
+
+  @override
+  String get plSwitchToPortrait => 'Switch to portrait';
+
+  @override
+  String get followSystemOrientation => 'Follow system orientation';
 }

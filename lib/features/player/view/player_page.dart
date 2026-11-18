@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/gestures.dart';
 
+import '../../settings/app_theme_controller.dart';
 import '../adapters/player_assistant.dart';
 import '../controller/audio_track_controller.dart';
 import '../controller/media_info_controller.dart';
@@ -180,58 +181,34 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   final _orientationSession = PlayerOrientationSession();
-  PlayerScreenOrientation _screenOrientation = PlayerScreenOrientation.system;
-  int _videoQuarterTurns = 0;
-  bool _changingDisplay = false;
+  StreamSubscription<dynamic>? _deviceOrientationSubscription;
+  bool _followSystemOrientation = true;
+  PlayerScreenOrientation get _currentOrientation =>
+      MediaQuery.orientationOf(context) == Orientation.landscape
+      ? PlayerScreenOrientation.landscape
+      : PlayerScreenOrientation.portrait;
+  PlayerScreenOrientation get _targetOrientation =>
+      _currentOrientation == PlayerScreenOrientation.portrait
+      ? PlayerScreenOrientation.landscape
+      : PlayerScreenOrientation.portrait;
+  String get _rotateLabel =>
+      _targetOrientation == PlayerScreenOrientation.landscape
+      ? l.plSwitchToLandscape
+      : l.plSwitchToPortrait;
 
-  Future<void> _showDisplayOptions() async {
+  Future<void> _toggleOrientation() async {
     if (!_enabled || _changingDisplay) return;
-    _endBoost();
-    _panelOpened();
+    final target = _targetOrientation;
+    setState(() => _changingDisplay = true);
     try {
-      final options = _mobileDisplay
-          ? [l.orientationSystem, l.orientationPortrait, l.orientationLandscape]
-          : [l.rotationOriginal, '90°', '180°', '270°'];
-      final current = _mobileDisplay
-          ? _screenOrientation.index
-          : _videoQuarterTurns;
-      final selected = await showShadDialog<int>(
-        context: context,
-        builder: (context) => ShadTheme(
-          data: AppTheme.dark,
-          child: ShadDialog(
-            title: Text(_displayLabel),
-            child: Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              children: [
-                for (var index = 0; index < options.length; index++)
-                  ShadButton.outline(
-                    onPressed: () => Navigator.pop(context, index),
-                    leading: current == index ? Icon(AppIcons.check) : null,
-                    child: Text(options[index]),
-                  ),
-              ],
-            ),
-          ),
-        ),
-      );
-      if (selected == null || !mounted || !_enabled) return;
-      if (_mobileDisplay) {
-        setState(() => _changingDisplay = true);
-        final orientation = PlayerScreenOrientation.values[selected];
-        if (await _adjust(() => _orientationSession.apply(orientation)) &&
-            mounted) {
-          setState(() => _screenOrientation = orientation);
-        }
-      } else {
-        setState(() => _videoQuarterTurns = selected);
-      }
+      await _adjust(() => _orientationSession.apply(target));
     } finally {
       if (mounted) setState(() => _changingDisplay = false);
-      _panelClosed();
     }
   }
+
+  int _videoQuarterTurns = 0;
+  bool _changingDisplay = false;
 
   bool get _enabled => _player.canControlMedia && !_locked;
 
@@ -624,6 +601,21 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         if (mounted) setState(() => _controlsVisible = true);
       },
       onStatusChanged: () {
+        if (_mobileDisplay) {
+          if (_backend.value.status == PlaybackStatus.ended) {
+            unawaited(_adjust(_orientationSession.restore));
+          } else if (_backend.value.status == PlaybackStatus.playing &&
+              !_orientationSession.active) {
+            unawaited(
+              _adjust(
+                () => _orientationSession.start(
+                  followSystem: _followSystemOrientation,
+                  current: _currentOrientation,
+                ),
+              ),
+            );
+          }
+        }
         if (mounted) setState(() => _controlsVisible = true);
         _scheduleHide();
       },
@@ -637,8 +629,45 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _subtitles,
       _info,
     ])..addListener(_rebuild);
+    if (_mobileDisplay) {
+      _deviceOrientationSubscription =
+          const EventChannel('openplayx/device_orientation')
+              .receiveBroadcastStream()
+              .listen(
+                (event) {
+                  if (event is String) {
+                    unawaited(
+                      _adjust(
+                        () =>
+                            _orientationSession.deviceOrientationChanged(event),
+                      ),
+                    );
+                  }
+                },
+                onError: (Object error) {
+                  debugPrint('Device orientation unavailable: $error');
+                },
+              );
+    }
     WidgetsBinding.instance.addObserver(this);
     if (widget.active) _enterImmersive();
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    _followSystemOrientation =
+        AppAppearance.maybeOf(context)?.followSystemOrientation ?? true;
+    if (_mobileDisplay) {
+      unawaited(
+        _adjust(
+          () => _orientationSession.setFollowSystem(
+            _followSystemOrientation,
+            _currentOrientation,
+          ),
+        ),
+      );
+    }
   }
 
   @override
@@ -692,6 +721,16 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _resetMediaState() {
     _drag = null;
     _panel = PlayerPanel.none;
+    if (_mobileDisplay && _name != null) {
+      unawaited(
+        _adjust(
+          () => _orientationSession.start(
+            followSystem: _followSystemOrientation,
+            current: _currentOrientation,
+          ),
+        ),
+      );
+    }
   }
 
   Future<void> _open() async {
@@ -752,7 +791,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       await _tools.speedCommands;
       if (!mounted) return false;
       await _player.stopMedia(
-        restoreDisplay: () => _adjust(_orientationSession.restore),
+        restoreDisplay: () async {
+          // Native orientation replies can be delayed, including by an earlier
+          // queued change. Restore in order without blocking cleanup or exit.
+          unawaited(_adjust(_orientationSession.restore));
+        },
       );
       if (!mounted) return false;
       _hideTimer?.cancel();
@@ -762,7 +805,6 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         _locked = false;
         _videoQuarterTurns = 0;
         _frame = const VideoFrameSettings();
-        _screenOrientation = PlayerScreenOrientation.system;
         _controlsVisible = true;
         _statsOverlay = false;
         _resetMediaState();
@@ -814,6 +856,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    unawaited(_deviceOrientationSubscription?.cancel());
     if (widget.active) _exitImmersive();
     unawaited(
       _orientationSession.restore().catchError((Object error) {

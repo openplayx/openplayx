@@ -3904,6 +3904,15 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get cloudDisconnectHelp =>
       '清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。';
+
+  @override
+  String get plSwitchToLandscape => '切换到横屏';
+
+  @override
+  String get plSwitchToPortrait => '切换到竖屏';
+
+  @override
+  String get followSystemOrientation => '横竖屏跟随系统';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -7805,6 +7814,15 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String get cloudDisconnectHelp =>
       '清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。';
+
+  @override
+  String get plSwitchToLandscape => '切换到横屏';
+
+  @override
+  String get plSwitchToPortrait => '切换到竖屏';
+
+  @override
+  String get followSystemOrientation => '横竖屏跟随系统';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -11706,4 +11724,13 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get cloudDisconnectHelp =>
       '清除本機憑證並停止雲端硬碟請求。還需在微軟或 Dropbox 帳號權限頁面移除此應用程式，以解除平台授權。';
+
+  @override
+  String get plSwitchToLandscape => '切換到橫向';
+
+  @override
+  String get plSwitchToPortrait => '切換到直向';
+
+  @override
+  String get followSystemOrientation => '螢幕方向跟隨系統';
 }

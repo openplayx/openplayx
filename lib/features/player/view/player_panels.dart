@@ -410,14 +410,8 @@ extension _PlayerPanels on PlayerPageState {
       if (_mobileDisplay)
         PlayerMenuRow(
           icon: AppIcons.screenOrientation,
-          label: _displayLabel,
-          value: switch (_screenOrientation) {
-            PlayerScreenOrientation.system => l.orientationSystem,
-            PlayerScreenOrientation.portrait => l.orientationPortrait,
-            PlayerScreenOrientation.landscape => l.orientationLandscape,
-          },
-          chevron: true,
-          onTap: _showDisplayOptions,
+          label: _rotateLabel,
+          onTap: _enabled && !_changingDisplay ? _toggleOrientation : null,
         )
       else
         PlayerChoiceWrap<int>(

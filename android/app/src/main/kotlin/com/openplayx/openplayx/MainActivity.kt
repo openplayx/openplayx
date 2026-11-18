@@ -8,6 +8,8 @@ import android.content.Context
 import android.os.Handler
 import android.os.Looper
 import android.provider.OpenableColumns
+import android.view.OrientationEventListener
+import io.flutter.plugin.common.EventChannel
 import io.flutter.embedding.android.FlutterActivity
 import io.flutter.embedding.engine.FlutterEngine
 import io.flutter.plugin.common.MethodChannel
@@ -15,11 +17,34 @@ import java.io.File
 import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
+    private var orientationListener: OrientationEventListener? = null
     private var pendingPick: MethodChannel.Result? = null
     private val fileWorker = Executors.newSingleThreadExecutor()
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        EventChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/device_orientation")
+            .setStreamHandler(object : EventChannel.StreamHandler {
+                override fun onListen(arguments: Any?, events: EventChannel.EventSink) {
+                    orientationListener?.disable()
+                    orientationListener = object : OrientationEventListener(this@MainActivity) {
+                        private var last = -1
+                        override fun onOrientationChanged(angle: Int) {
+                            if (angle == ORIENTATION_UNKNOWN) return
+                            val quadrant = ((angle + 45) / 90) % 4
+                            val distance = kotlin.math.abs(angle - quadrant * 90)
+                            // Ignore diagonal readings to avoid jitter at the boundary.
+                            if (kotlin.math.min(distance, 360 - distance) > 30 || quadrant == last) return
+                            last = quadrant
+                            events.success(listOf("portraitUp", "landscapeRight", "portraitDown", "landscapeLeft")[quadrant])
+                        }
+                    }.also { it.enable() }
+                }
+                override fun onCancel(arguments: Any?) {
+                    orientationListener?.disable()
+                    orientationListener = null
+                }
+            })
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/network_policy")
             .setMethodCallHandler { call, result ->
                 if (call.method != "usingCellular") { result.notImplemented() }
@@ -91,6 +116,12 @@ class MainActivity : FlutterActivity() {
                 }
             }
         }
+    }
+
+    override fun onDestroy() {
+        orientationListener?.disable()
+        orientationListener = null
+        super.onDestroy()
     }
 
     companion object {

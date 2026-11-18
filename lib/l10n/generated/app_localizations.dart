@@ -7442,6 +7442,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Clears local credentials and stops cloud requests. Also remove this app in your Microsoft or Dropbox account permissions to revoke the platform grant.'**
   String get cloudDisconnectHelp;
+
+  /// No description provided for @plSwitchToLandscape.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to landscape'**
+  String get plSwitchToLandscape;
+
+  /// No description provided for @plSwitchToPortrait.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to portrait'**
+  String get plSwitchToPortrait;
+
+  /// No description provided for @followSystemOrientation.
+  ///
+  /// In en, this message translates to:
+  /// **'Follow system orientation'**
+  String get followSystemOrientation;
 }
 
 class _AppLocalizationsDelegate

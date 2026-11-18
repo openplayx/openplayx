@@ -8,6 +8,7 @@ import Network
   private let networkQueue = DispatchQueue(label: "openplayx.network-policy")
   private var networkChannel: FlutterMethodChannel?
   private var sourceAccess: SourceAccess?
+  private var orientationStream: DeviceOrientationStream?
 
   override func application(
     _ application: UIApplication,
@@ -19,6 +20,12 @@ import Network
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXDeviceOrientation") {
+      let stream = DeviceOrientationStream()
+      orientationStream = stream
+      FlutterEventChannel(name: "openplayx/device_orientation", binaryMessenger: registrar.messenger())
+        .setStreamHandler(stream)
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXSourceAccess") {
       sourceAccess = SourceAccess(messenger: registrar.messenger())
     }
@@ -33,5 +40,35 @@ import Network
         result(path.usesInterfaceType(.cellular))
       }
     }
+  }
+}
+
+// Device notifications continue while the interface orientation is locked.
+private final class DeviceOrientationStream: NSObject, FlutterStreamHandler {
+  private var observer: NSObjectProtocol?
+
+  func onListen(withArguments arguments: Any?, eventSink events: @escaping FlutterEventSink) -> FlutterError? {
+    UIDevice.current.beginGeneratingDeviceOrientationNotifications()
+    func emit() {
+      switch UIDevice.current.orientation {
+      case .portrait: events("portraitUp")
+      case .portraitUpsideDown: events("portraitDown")
+      case .landscapeLeft: events("landscapeLeft")
+      case .landscapeRight: events("landscapeRight")
+      default: break // Face-up/down and unknown readings have no screen direction.
+      }
+    }
+    observer = NotificationCenter.default.addObserver(
+      forName: UIDevice.orientationDidChangeNotification, object: nil, queue: .main
+    ) { _ in emit() }
+    emit()
+    return nil
+  }
+
+  func onCancel(withArguments arguments: Any?) -> FlutterError? {
+    if let observer = observer { NotificationCenter.default.removeObserver(observer) }
+    observer = nil
+    UIDevice.current.endGeneratingDeviceOrientationNotifications()
+    return nil
   }
 }

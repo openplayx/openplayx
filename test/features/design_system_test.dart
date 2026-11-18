@@ -52,6 +52,25 @@ void main() {
     configuration.close();
   });
 
+  test(
+    'follow system orientation defaults on and persists both values',
+    () async {
+      final configuration = SourceConfigurationService(sqlite3.openInMemory());
+      final first = AppThemeController(configuration: configuration);
+      await first.load();
+      expect(first.followSystemOrientation, isTrue);
+      for (final value in [false, true]) {
+        await first.setFollowSystemOrientation(value);
+        final restarted = AppThemeController(configuration: configuration);
+        await restarted.load();
+        expect(restarted.followSystemOrientation, value);
+        restarted.dispose();
+      }
+      first.dispose();
+      configuration.close();
+    },
+  );
+
   test('developer mode defaults off and persists', () async {
     final configuration = SourceConfigurationService(sqlite3.openInMemory());
     final first = AppThemeController(configuration: configuration);

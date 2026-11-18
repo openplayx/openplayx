@@ -67,6 +67,11 @@ class SettingsPage extends StatelessWidget {
           title: l.appearance,
           sections: [_AppearanceSection(key: const ValueKey('appearance'))],
         ),
+        _Category(
+          icon: AppIcons.screenOrientation,
+          title: l.plMenuPlayback,
+          sections: [const _PlaybackSection()],
+        ),
         if (sources != null)
           _Category(
             icon: AppIcons.folder,
@@ -351,4 +356,32 @@ PluginEditorOpener pluginEditorOpener({
     await Navigator.of(context)
         .push(MaterialPageRoute<void>(builder: (_) => target));
   };
+}
+
+class _PlaybackSection extends StatelessWidget {
+  const _PlaybackSection();
+
+  @override
+  Widget build(BuildContext context) {
+    final preferences = AppAppearance.of(context);
+    final l = AppLocalizations.of(context);
+    return SettingsSection(
+      title: l.plMenuPlayback,
+      children: [
+        SettingsRow(
+          title: l.followSystemOrientation,
+          control: ShadSwitch(
+            key: const ValueKey('follow-system-orientation'),
+            value: preferences.followSystemOrientation,
+            onChanged: preferences.setFollowSystemOrientation,
+          ),
+        ),
+        if (preferences.saveError != null)
+          AppAlert.error(
+            title: l.preferenceSaveFailed,
+            description: l.preferenceSaveRetry,
+          ),
+      ],
+    );
+  }
 }

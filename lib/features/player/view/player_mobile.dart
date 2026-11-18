@@ -634,7 +634,7 @@ extension _MobilePlayer on PlayerPageState {
       mainAxisSize: MainAxisSize.min,
       children: [
         _timeRow(value),
-        Row(children: _primaryButtons()),
+        Row(children: [..._primaryButtons(), _rotationButton()]),
       ],
     ),
   );
@@ -646,6 +646,7 @@ extension _MobilePlayer on PlayerPageState {
     VoidCallback? onTap, {
     VoidCallback? onLongPress,
     String? text,
+    int iconTurns = 0,
   }) => Expanded(
     child: Tooltip(
       message: tooltip,
@@ -673,10 +674,13 @@ extension _MobilePlayer on PlayerPageState {
                     ),
                   )
                 else
-                  Icon(
-                    icon,
-                    size: 21,
-                    color: onTap == null ? PlayerStyle.muted : PlayerStyle.fg,
+                  RotatedBox(
+                    quarterTurns: iconTurns,
+                    child: Icon(
+                      icon,
+                      size: 21,
+                      color: onTap == null ? PlayerStyle.muted : PlayerStyle.fg,
+                    ),
                   ),
                 const SizedBox(height: 2),
                 Text(
@@ -735,9 +739,8 @@ extension _MobilePlayer on PlayerPageState {
     );
   }
 
-  /// Main buttons; [speed] adds the speed button (the portrait layout
-  /// puts it on the second row).
-  List<Widget> _primaryButtons({bool speed = true}) => [
+  /// Shared controls in their reading order; rotation follows these in landscape.
+  List<Widget> _primaryButtons() => [
     _barButton(
       l.audioTrack,
       l.audioTrack,
@@ -751,12 +754,6 @@ extension _MobilePlayer on PlayerPageState {
       _enabled ? () => _openPanel(PlayerPanel.subtitles) : null,
     ),
     _barButton(
-      l.plOrientationShort,
-      _displayLabel,
-      AppIcons.screenOrientation,
-      _enabled && !_changingDisplay ? _showDisplayOptions : null,
-    ),
-    _barButton(
       _frame.isDefault
           ? l.plFitBest
           : videoAspectLabels[_frame.aspectIndex] ?? _fitLabel(_frame.mode),
@@ -765,8 +762,16 @@ extension _MobilePlayer on PlayerPageState {
       _enabled ? _cycleFramePreset : null,
       onLongPress: () => _openPanel(PlayerPanel.frame),
     ),
-    if (speed) _speedButton(),
+    _speedButton(),
   ];
+
+  Widget _rotationButton() => _barButton(
+    _rotateLabel,
+    _rotateLabel,
+    AppIcons.screenOrientation,
+    _enabled && !_changingDisplay ? _toggleOrientation : null,
+    iconTurns: _targetOrientation == PlayerScreenOrientation.landscape ? 1 : 0,
+  );
 
   Widget _speedButton() => _barButton(
     l.plSpeedShort,
@@ -816,11 +821,10 @@ extension _MobilePlayer on PlayerPageState {
           const SizedBox(height: 8),
           _timeRow(value, readSpeed: false),
           const SizedBox(height: 12),
-          Row(children: _primaryButtons(speed: false)),
+          Row(children: _primaryButtons()),
           const SizedBox(height: 8),
           Row(
             children: [
-              _speedButton(),
               _barButton(
                 l.plLockShort,
                 l.lockControls,
@@ -839,7 +843,10 @@ extension _MobilePlayer on PlayerPageState {
                   l.plSnapshot,
                   AppIcons.snapshot,
                   _enabled ? () => _perform(PlayerAction.snapshot) : null,
-                ),
+                )
+              else
+                const Spacer(),
+              _rotationButton(),
             ],
           ),
         ],

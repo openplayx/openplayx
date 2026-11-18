@@ -34,13 +34,6 @@ void main() {
     return backend;
   }
 
-  Future<void> choose(WidgetTester tester, String menu, String option) async {
-    await tester.tap(find.byTooltip(menu));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text(option));
-    await tester.pumpAndSettle();
-  }
-
   for (final platform in [
     TargetPlatform.macOS,
     TargetPlatform.windows,
@@ -118,8 +111,37 @@ void main() {
             null,
           ),
         );
+        tester.view.devicePixelRatio = 1;
+        tester.view.physicalSize = const Size(430, 932);
+        addTearDown(() {
+          tester.view.resetPhysicalSize();
+          tester.view.resetDevicePixelRatio();
+        });
         await openPlayer(tester);
-        await choose(tester, 'Screen orientation', 'Landscape');
+        final landscapeButton = find.byTooltip('Switch to landscape');
+        expect(find.byTooltip('Switch to portrait'), findsNothing);
+        expect(
+          tester
+              .widget<RotatedBox>(
+                find.descendant(
+                  of: landscapeButton,
+                  matching: find.byType(RotatedBox),
+                ),
+              )
+              .quarterTurns,
+          1,
+        );
+        final rotateAt = tester.getCenter(landscapeButton);
+        expect(
+          rotateAt.dx,
+          greaterThan(tester.getCenter(find.byTooltip('Sleep timer')).dx),
+        );
+        expect(
+          rotateAt.dy,
+          greaterThan(tester.getCenter(find.byTooltip('Playback speed')).dy),
+        );
+        await tester.tap(landscapeButton);
+        await tester.pumpAndSettle();
         expect(calls.last, [
           'DeviceOrientation.landscapeLeft',
           'DeviceOrientation.landscapeRight',
@@ -130,7 +152,27 @@ void main() {
               .quarterTurns,
           0,
         );
-        await choose(tester, 'Screen orientation', 'Portrait');
+        tester.view.physicalSize = const Size(932, 430);
+        await tester.pumpAndSettle();
+        expect(find.byTooltip('Switch to landscape'), findsNothing);
+        final portraitButton = find.byTooltip('Switch to portrait');
+        expect(
+          tester
+              .widget<RotatedBox>(
+                find.descendant(
+                  of: portraitButton,
+                  matching: find.byType(RotatedBox),
+                ),
+              )
+              .quarterTurns,
+          0,
+        );
+        expect(
+          tester.getCenter(portraitButton).dx,
+          greaterThan(tester.getCenter(find.byTooltip('Playback speed')).dx),
+        );
+        await tester.tap(portraitButton);
+        await tester.pumpAndSettle();
         expect(calls.last, ['DeviceOrientation.portraitUp']);
         await tester
             .state<PlayerPageState>(find.byType(PlayerPage))
@@ -138,6 +180,53 @@ void main() {
         await tester.pumpAndSettle();
         expect(calls.last, isEmpty);
         debugDefaultTargetPlatformOverride = null;
+      },
+    );
+  }
+
+  for (final blockedRequest in [1, 2]) {
+    testWidgets(
+      'stopping completes while orientation request $blockedRequest is pending',
+      (tester) async {
+        debugDefaultTargetPlatformOverride = TargetPlatform.android;
+        addTearDown(() => debugDefaultTargetPlatformOverride = null);
+        final gate = Completer<void>();
+        final calls = <Object?>[];
+        final messenger = tester.binding.defaultBinaryMessenger;
+        messenger.setMockMethodCallHandler(SystemChannels.platform, (
+          call,
+        ) async {
+          if (call.method == 'SystemChrome.setPreferredOrientations') {
+            calls.add(call.arguments);
+            if (calls.length == blockedRequest) await gate.future;
+          }
+          return null;
+        });
+        addTearDown(() {
+          if (!gate.isCompleted) gate.complete();
+          messenger.setMockMethodCallHandler(SystemChannels.platform, null);
+        });
+        final backend = await openPlayer(tester);
+        var stopped = false;
+        final stopping = tester
+            .state<PlayerPageState>(find.byType(PlayerPage))
+            .stopPlayback()
+            .then((result) => stopped = result);
+        await tester.pumpAndSettle();
+
+        expect(stopped, isTrue);
+        expect(backend.stops, 1);
+        expect(backend.value.status, PlaybackStatus.idle);
+        expect(calls, hasLength(blockedRequest));
+
+        gate.complete();
+        await stopping;
+        await tester.pumpAndSettle();
+        expect(calls, hasLength(2));
+        expect(calls.last, isEmpty);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
       },
     );
   }
@@ -175,6 +264,91 @@ void main() {
     expect(tester.takeException(), isNull);
     debugDefaultTargetPlatformOverride = null;
   });
+
+  test(
+    'system changes release a manual lock only when following is enabled',
+    () async {
+      final calls = <Object?>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'SystemChrome.setPreferredOrientations') {
+          calls.add(call.arguments);
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      final session = PlayerOrientationSession();
+      await session.deviceOrientationChanged('portraitUp');
+      await session.start(
+        followSystem: true,
+        current: PlayerScreenOrientation.portrait,
+      );
+      expect(calls.last, isEmpty);
+      await session.apply(PlayerScreenOrientation.landscape);
+      final lockedCalls = calls.length;
+      await session.deviceOrientationChanged('portraitUp');
+      expect(calls, hasLength(lockedCalls));
+      await session.deviceOrientationChanged('landscapeLeft');
+      expect(calls.last, isEmpty);
+
+      await session.setFollowSystem(false, PlayerScreenOrientation.landscape);
+      expect(calls.last, [
+        'DeviceOrientation.landscapeLeft',
+        'DeviceOrientation.landscapeRight',
+      ]);
+      await session.apply(PlayerScreenOrientation.portrait);
+      final manualCalls = calls.length;
+      await session.deviceOrientationChanged('portraitUp');
+      expect(calls, hasLength(manualCalls));
+      expect(calls.last, ['DeviceOrientation.portraitUp']);
+      await session.setFollowSystem(true, PlayerScreenOrientation.portrait);
+      expect(calls.last, isEmpty);
+
+      await session.apply(PlayerScreenOrientation.landscape);
+      await session.restore();
+      final stoppedCalls = calls.length;
+      await session.deviceOrientationChanged('landscapeRight');
+      expect(calls, hasLength(stoppedCalls));
+      expect(calls.last, isEmpty);
+      await session.start(
+        followSystem: true,
+        current: PlayerScreenOrientation.portrait,
+      );
+      expect(calls.last, isEmpty);
+    },
+  );
+
+  test(
+    'disabled following locks the starting direction and ignores sensor events',
+    () async {
+      final calls = <Object?>[];
+      final messenger =
+          TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(SystemChannels.platform, (call) async {
+        if (call.method == 'SystemChrome.setPreferredOrientations') {
+          calls.add(call.arguments);
+        }
+        return null;
+      });
+      addTearDown(
+        () => messenger.setMockMethodCallHandler(SystemChannels.platform, null),
+      );
+      final session = PlayerOrientationSession();
+      await session.start(
+        followSystem: false,
+        current: PlayerScreenOrientation.portrait,
+      );
+      expect(calls.last, ['DeviceOrientation.portraitUp']);
+      await session.deviceOrientationChanged('portraitUp');
+      await session.deviceOrientationChanged('landscapeLeft');
+      expect(calls, hasLength(1));
+      await session.restore();
+      expect(calls.last, isEmpty);
+    },
+  );
 
   test('orientation restore waits for an in-flight change', () async {
     final gate = Completer<void>();
@@ -222,7 +396,8 @@ void main() {
       ),
     );
     await openPlayer(tester);
-    await choose(tester, 'Screen orientation', 'Portrait');
+    await tester.tap(find.byTooltip('Switch to portrait'));
+    await tester.pumpAndSettle();
     await tester.pumpWidget(const SizedBox());
     await tester.pump();
     expect(calls.last, isEmpty);

@@ -1351,5 +1351,8 @@
   "cloudReauthorize": "授权已过期或撤销，请重新登录。",
   "cloudPersonalOnly": "目前仅支持个人 OneDrive 账号。",
   "cloudDisconnect": "断开账号",
-  "cloudDisconnectHelp": "清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。"
+  "cloudDisconnectHelp": "清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。",
+  "plSwitchToLandscape": "切换到横屏",
+  "plSwitchToPortrait": "切换到竖屏",
+  "followSystemOrientation": "横竖屏跟随系统"
 }

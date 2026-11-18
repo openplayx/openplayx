@@ -1351,5 +1351,8 @@
   "cloudReauthorize": "授權已過期或撤銷，請重新登入。",
   "cloudPersonalOnly": "目前僅支援個人 OneDrive 帳號。",
   "cloudDisconnect": "中斷帳號連線",
-  "cloudDisconnectHelp": "清除本機憑證並停止雲端硬碟請求。還需在微軟或 Dropbox 帳號權限頁面移除此應用程式，以解除平台授權。"
+  "cloudDisconnectHelp": "清除本機憑證並停止雲端硬碟請求。還需在微軟或 Dropbox 帳號權限頁面移除此應用程式，以解除平台授權。",
+  "plSwitchToLandscape": "切換到橫向",
+  "plSwitchToPortrait": "切換到直向",
+  "followSystemOrientation": "螢幕方向跟隨系統"
 }
