@@ -18,7 +18,6 @@ import '../../assistant/plugins/external/external_service_setup.dart';
 import '../../capabilities/metadata/tmdb_credentials.dart';
 import '../../capabilities/speech/asr_backend_config.dart';
 import '../../capabilities/speech/asr_model_store.dart';
-import '../../data/diagnostics/diagnostics_service.dart';
 
 /// Outcome of one seed import, per item (`sources/nas-smb`, `metadata`, …).
 class DebugSeedReport {
@@ -216,16 +215,6 @@ abstract final class DebugSeed {
         for (final key in ['themeMode', 'language', 'developerMode']) {
           if (a[key] != null) configuration.saveAppearance(key, '${a[key]}');
         }
-      });
-    }
-    if (seed['diagnostics'] case final bool enabled) {
-      await item('diagnostics', () async {
-        ConfigurationDatabase.writeSetting(
-          db,
-          DiagnosticsService.namespace,
-          DiagnosticsService.key,
-          enabled,
-        );
       });
     }
     ConfigurationDatabase.writeSetting(db, _namespace, _appliedKey, hash);

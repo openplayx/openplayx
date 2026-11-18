@@ -1,76 +1,77 @@
-import 'dart:convert';
-
 import 'package:flutter_test/flutter_test.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
 import 'package:openplayx/data/diagnostics/diagnostics_bootstrap.dart';
-import 'package:openplayx/data/diagnostics/diagnostics_service.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  tearDown(Sentry.close);
+
   test('missing DSN starts normally without initializing Sentry', () async {
     var starts = 0;
     await runWithDiagnostics(DiagnosticRole.main, () async {
       starts++;
-    });
+    }, dsn: '');
     expect(starts, 1);
     expect(Sentry.isEnabled, false);
   });
+
   test('application failures propagate without a second startup', () async {
     var starts = 0;
     await expectLater(
       runWithDiagnostics(DiagnosticRole.player, () async {
         starts++;
         throw StateError('startup');
-      }),
+      }, dsn: ''),
       throwsStateError,
     );
     expect(starts, 1);
   });
+
+  test('reports the original exception, message and stack to Sentry', () async {
+    SentryEvent? reported;
+    await Sentry.init((options) {
+      options
+        ..dsn = 'https://public@example.invalid/1'
+        ..transport = _NoOpTransport()
+        ..beforeSend = (event, hint) {
+          reported = event;
+          return null;
+        };
+    });
+    final error = StateError('Actual playback failure: fixture.mkv');
+    final stack = StackTrace.fromString(
+      '#0      play (package:openplayx/main.dart:42:7)',
+    );
+
+    await reportDiagnostic(error, DiagnosticRole.player, stack);
+
+    expect(reported, isNotNull);
+    expect(reported!.throwable, same(error));
+    expect(reported!.exceptions!.single.type, 'StateError');
+    expect(reported!.exceptions!.single.value, contains(error.message));
+    expect(reported!.exceptions!.single.stackTrace!.frames.last.lineNo, 42);
+    expect(reported!.tags!['engine_role'], 'player');
+  });
+
   test(
-    'allowlist removes private data while retaining package frame locations',
-    () {
-      const secret = 'https://nas:password@192.168.1.10/private/movie.mkv';
-      final event = SentryEvent(
-        message: SentryMessage(secret),
-        tags: {'url': secret, 'failure': 'metadataBatch'},
-        user: SentryUser(email: secret),
-        breadcrumbs: [Breadcrumb(message: secret)],
-        exceptions: [
-          SentryException(
-            type: 'StateError',
-            value: secret,
-            stackTrace: SentryStackTrace(
-              frames: [
-                SentryStackFrame(absPath: secret, vars: {'key': secret}),
-                SentryStackFrame(
-                  absPath: 'package:openplayx/main.dart',
-                  function: secret,
-                  lineNo: 42,
-                  vars: {'token': secret},
-                ),
-              ],
-            ),
-          ),
-        ],
-      );
-      final safe = sanitizeDiagnosticEvent(event, DiagnosticRole.player);
-      final json = jsonEncode(safe.toJson());
-      expect(json, isNot(contains(secret)));
-      expect(json, isNot(contains('password')));
-      expect(safe.exceptions!.single.stackTrace!.frames.single.lineNo, 42);
-      expect(safe.tags, {'engine_role': 'player', 'failure': 'metadataBatch'});
+    'an existing client starts the app once without reinitialization',
+    () async {
+      await Sentry.init((options) {
+        options
+          ..dsn = 'https://public@example.invalid/1'
+          ..transport = _NoOpTransport();
+      });
+      var starts = 0;
+      await runWithDiagnostics(DiagnosticRole.background, () async {
+        starts++;
+      });
+      expect(starts, 1);
+      expect(Sentry.isEnabled, isTrue);
     },
   );
+}
 
-  test('arbitrary exception types and tags cannot carry user content', () {
-    final safe = sanitizeDiagnosticEvent(
-      SentryEvent(
-        tags: {'failure': '/private/user'},
-        exceptions: [SentryException(type: '/private/user', value: 'chat')],
-      ),
-      DiagnosticRole.background,
-    );
-    expect(safe.exceptions!.single.type, 'UnexpectedError');
-    expect(safe.tags!.containsKey('failure'), false);
-  });
+class _NoOpTransport implements Transport {
+  @override
+  Future<SentryId?> send(SentryEnvelope envelope) async => null;
 }

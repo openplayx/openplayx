@@ -1174,13 +1174,6 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiEarlier => 'Load earlier messages';
 
   @override
-  String get diagnosticsTitle => 'Send diagnostics';
-
-  @override
-  String get diagnosticsDescription =>
-      'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.';
-
-  @override
   String get anonymousHelp =>
       'Leave username and password blank for anonymous access.';
 

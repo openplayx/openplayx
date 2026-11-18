@@ -104,6 +104,9 @@ flutter:
   generate: true
   assets:
     - test/fixtures/test_video.mp4
+    - test/fixtures/test_video_short.mp4
+    - test/fixtures/test_video_no_audio.mp4
+    - test/fixtures/asr_en.wav
     - assets/branding/plex.svg
     - assets/branding/jellyfin.svg
     - assets/branding/emby.svg

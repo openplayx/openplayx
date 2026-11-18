@@ -1,11 +1,11 @@
-# Optional diagnostics
+# Diagnostics
 
 Dependencies are pinned to sentry_flutter 10.3.0 and sentry_dart_plugin 3.4.0.
 
 ## Build and enable
 
 The project DSN (US region) is built in as the default in
-`lib/app/diagnostics/diagnostics_bootstrap.dart`. Override it with
+`lib/data/diagnostics/diagnostics_bootstrap.dart`. Override it with
 `--dart-define=SENTRY_DSN=...`, or pass `--dart-define=SENTRY_DSN=` to build
 without diagnostics. Build with values matching the actual artifact, for example:
 
@@ -18,36 +18,26 @@ flutter build macos --release \
   --split-debug-info=build/symbols
 ```
 
-Users must separately enable Send diagnostics in Settings and restart. Default
-is off. Missing/invalid configuration or SDK initialization failure must not
-prevent application startup. Do not use production for acceptance tests.
+Error reporting is enabled whenever a DSN is configured. There is no runtime
+preference, configuration database lookup or Settings switch. Old diagnostic
+settings are unused. Missing/invalid SDK configuration or initialization failure
+must not prevent application startup.
 
-Disable takes effect on the next event consent check in every engine. Requests
-already in flight cannot be recalled. Preferences use SharedPreferencesAsync
-rather than an engine-local cached snapshot. Enabling an existing main/player
-engine requires restart; a fresh background engine reads the current preference.
+## SDK configuration and reports
 
-## Current collection boundary
+The integration follows the [Sentry Flutter basic setup](https://pub.dev/packages/sentry_flutter).
+It uses `SentryFlutter.init` with `appRunner`, DSN, environment
+and optional release/dist overrides. Other features use SDK defaults. The main
+engine initializes the native SDK. Player and background engines skip native
+initialization and scope synchronization and use the Dart HTTP transport, so
+they do not reinitialize process-wide native state.
 
-Main and player entries initialize separate Dart clients; background tasks do
-likewise. Native initialization, scope synchronization, native crash handling,
-sessions, performance tracing, screenshots, view trees, breadcrumbs, logs,
-metrics and replay are not enabled. The transport explicitly uses Dart HTTP
-rather than Sentry Flutter's default native filesystem transport. There is no
-durable diagnostic queue or native replay-on-restart in this implementation.
-Failed requests are dropped rather than retried by a business queue.
-
-beforeSend reconstructs an event using an allowlist: release/dist/environment,
-platform, engine role, fixed failure codes, exception type and package/Dart
-stack locations. Raw exception messages, users, contexts, HTTP requests, local
-paths, frame variables, arbitrary tags and breadcrumbs are discarded. This
-intentionally sacrifices some debugging detail. Runtime engine roles are fixed;
-no window request, media URI, provider response or AI content is attached.
-
-Playback command failures and metadata batch failures use fixed-code reports.
-The SDK handles uncaught Dart/Flutter exceptions. Expected cancellation and
-network/business outcomes elsewhere are not automatically promoted to errors.
-Performance spans remain disabled in this first phase.
+There are no application-level event filters or redaction hooks. Caught playback
+command and metadata batch failures send the original exception and stack via
+`Sentry.captureException`, tagged with the engine role. Uncaught errors are
+handled by SDK integrations. SDK defaults (including default PII behavior) and
+Sentry project-side processing still apply; raw error messages, paths and
+breadcrumb data are no longer removed by an application allowlist.
 
 ## Symbols
 
@@ -61,17 +51,11 @@ does not guarantee that prebuilt libVLC symbols are available or match.
 
 ## Verification and remaining acceptance
 
-Automated tests exercise the allowlist with private URLs, credentials, paths,
-chat-like values and stack variables. No DSN is configured in tests.
+Run automated tests with `--dart-define=SENTRY_DSN=` to avoid live reporting.
+Capture tests use a synthetic DSN and a no-op transport to verify original
+exception messages, stack locations and engine tags without network requests.
 
-On 2026-11-11 the Apple Sentry plugin compiled via SPM alongside CocoaPods, but
-full debug packaging was blocked by existing dartssh2 2.14.0 nullability and an
-unhandled SourceKind.webdav switch in source_instance_form.dart.
-
-Still required with a test DSN: inspect actual outgoing envelopes, verify one
-event per exception for main/player/background, consent-off across engines,
-offline/reconnect/restart behavior, release symbol readability and overhead.
-Native/libVLC crashes are **not covered**. Enabling native capture requires a
-separate verified process owner, shared consent and cache-purge strategy,
-server-side scrubbing and detached-device native crash/symbol acceptance.
-Do not advertise native crash or all-platform coverage before these pass.
+Live acceptance remains: inspect received events from main/player/background,
+check native capture and duplicate reports across engines, offline/restart
+behavior, release symbol readability and overhead. Native/libVLC symbol coverage
+must be checked on actual builds and devices.

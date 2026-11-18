@@ -1122,13 +1122,6 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiEarlier => '加载更早消息';
 
   @override
-  String get diagnosticsTitle => '发送诊断信息';
-
-  @override
-  String get diagnosticsDescription =>
-      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
-
-  @override
   String get anonymousHelp => '匿名访问时，用户名和密码都留空';
 
   @override
@@ -5032,13 +5025,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiEarlier => '加载更早消息';
 
   @override
-  String get diagnosticsTitle => '发送诊断信息';
-
-  @override
-  String get diagnosticsDescription =>
-      '可选向配置的 Sentry 服务发送应用版本及脱敏错误堆栈，不含媒体路径、凭据或聊天内容。开启后重启生效，关闭立即停止所有窗口及后台任务的新上报。暂不收集原生崩溃。';
-
-  @override
   String get anonymousHelp => '匿名访问时，用户名和密码都留空';
 
   @override
@@ -8940,13 +8926,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get aiEarlier => '載入較早的訊息';
-
-  @override
-  String get diagnosticsTitle => '傳送診斷資訊';
-
-  @override
-  String get diagnosticsDescription =>
-      '選擇是否向配置的 Sentry 服務傳送應用版本及脫敏錯誤堆疊，不含媒體路徑、憑證或聊天內容。開啟後重啟生效，關閉立即停止所有視窗及背景任務的新上報。暫不收集原生崩潰。';
 
   @override
   String get anonymousHelp => '匿名存取時，使用者名稱和密碼都留空';

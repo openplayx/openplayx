@@ -2235,18 +2235,6 @@ abstract class AppLocalizations {
   /// **'Load earlier messages'**
   String get aiEarlier;
 
-  /// No description provided for @diagnosticsTitle.
-  ///
-  /// In en, this message translates to:
-  /// **'Send diagnostics'**
-  String get diagnosticsTitle;
-
-  /// No description provided for @diagnosticsDescription.
-  ///
-  /// In en, this message translates to:
-  /// **'Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.'**
-  String get diagnosticsDescription;
-
   /// No description provided for @anonymousHelp.
   ///
   /// In en, this message translates to:

@@ -85,7 +85,6 @@ Map<String, Object?> seed({String smbName = '211 NAS'}) => {
     },
   },
   'appearance': {'themeMode': 'dark', 'developerMode': true},
-  'diagnostics': true,
 };
 
 void main() {
@@ -138,7 +137,7 @@ void main() {
     test('every section lands on its configuration item', () async {
       final report = await DebugSeed.apply(db, jsonEncode(seed()));
       expect(report.failed, isEmpty);
-      expect(report.applied, hasLength(11));
+      expect(report.applied, hasLength(10));
 
       final sources = SourceConfigurationService(db);
       expect([for (final c in sources.load()) c.id], ['nas-smb', 'nas-plex']);
@@ -177,7 +176,6 @@ void main() {
       expect(setting('metadata', 'tmdbToken'), 'tmdb-token');
       expect(setting('metadata', 'language'), 'zh-CN');
       expect(setting('metadata', 'tmdbRevision'), isNotNull);
-      expect(setting('diagnostics', 'enabled'), 'true');
 
       final remote = RemoteAccessService(db);
       await remote.load();

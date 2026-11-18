@@ -4,7 +4,6 @@ import 'package:flutter/foundation.dart';
 import 'package:openplayx_playback/playback.dart';
 
 import '../../../data/diagnostics/diagnostics_bootstrap.dart';
-import '../../../data/diagnostics/diagnostics_service.dart';
 import '../../../core/capabilities/source_capability.dart';
 import '../../../data/files/local_media_picker.dart';
 import '../../../data/sources/source_config.dart';
@@ -139,13 +138,7 @@ class PlayerController extends ChangeNotifier {
     try {
       await action();
     } catch (error, stack) {
-      unawaited(
-        reportDiagnostic(
-          DiagnosticFailure.playbackCommand,
-          DiagnosticRole.player,
-          stack,
-        ),
-      );
+      unawaited(reportDiagnostic(error, DiagnosticRole.player, stack));
       debugPrint('Playback command failed: $error\n$stack');
       if (!_disposed) {
         _set(_state.copyWith(error: () => PlayerError.playbackCommand));

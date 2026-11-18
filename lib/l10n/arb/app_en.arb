@@ -512,8 +512,6 @@
   "aiReplying": "Replying…",
   "aiToolSummary": "Actions and results come from local services",
   "aiEarlier": "Load earlier messages",
-  "diagnosticsTitle": "Send diagnostics",
-  "diagnosticsDescription": "Optional error reports to the configured Sentry service: app version and sanitized error stacks. No media paths, credentials or chat content. Enabling takes effect after restart; disabling stops new reports in all windows and background tasks. Native crashes are not collected yet.",
   "anonymousHelp": "Leave username and password blank for anonymous access.",
   "s3AccessKey": "Access Key ID",
   "s3SecretKey": "Secret Access Key",

@@ -74,6 +74,5 @@ iOS 真机没有可写入的位置，用 `make run-seeded` 或 `make ios-install
 | `metadata` | `language`、`tmdbToken` | |
 | `remoteAccess` | `pairing`：Relay 导出的 App 配置（JSON 对象或字符串） | |
 | `appearance` | `themeMode`、`language`、`developerMode` | |
-| `diagnostics` | `true` / `false` | |
 
 不需要的段直接省略。

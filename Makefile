@@ -24,7 +24,8 @@ OLLAMA_CTX ?= 32768
 # integration-ios / integration-android device ids.
 IOS_SIM ?= $(shell xcrun simctl list devices booted 2>/dev/null | grep -Eo '[0-9A-F-]{36}' | head -1)
 ANDROID_DEVICE ?= emulator-5554
-IT_MOBILE := integration_test/playback_test.dart integration_test/ffmpeg_bridge_test.dart \
+IT_MOBILE := integration_test/playback_test.dart integration_test/playback_recovery_test.dart \
+	integration_test/ffmpeg_bridge_test.dart \
 	integration_test/whisper_bridge_test.dart integration_test/source_storage_test.dart \
 	integration_test/sources_test.dart integration_test/mobile_ai_playback_test.dart \
 	integration_test/metadata_background_test.dart

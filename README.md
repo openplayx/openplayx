@@ -76,8 +76,7 @@ are separate from installer availability.
 3. Configure metadata lookup if wanted; review ambiguous matches.
 4. Under AI, configure a model and its credentials, test the connection and
    review data-sharing consent. External MCP services are managed there too.
-5. Use Settings for appearance, language, recognition, remote access and
-   optional diagnostics.
+5. Use Settings for appearance, language, recognition and remote access.
 
 Scanning does not download videos. Server-side download tools are separate
 services, and actions require confirmation. Web search uses the bundled
@@ -96,8 +95,9 @@ runs on the device and refuses local/private addresses.
 - Model requests can include conversation and authorized tool context.
   Web searches go to the configured search service; page reading contacts
   the requested public site. Local playback does not require an AI model.
-- Diagnostics are opt-in; see [SENTRY.md](SENTRY.md) for collection and build
-  settings. Never publish databases, debug seeds or logs containing secrets.
+- Error reporting to Sentry is enabled by default;
+  see [SENTRY.md](SENTRY.md) for collection and build settings. Never publish
+  databases, debug seeds or logs containing secrets.
 
 See [security reporting](SECURITY.md) and
 [current implementation notes](docs/README.md).

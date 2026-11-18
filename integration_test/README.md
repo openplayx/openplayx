@@ -17,10 +17,18 @@
 
 ```text
 integration_test/
-├── README.md
 ├── playback_test.dart
+├── playback_recovery_test.dart
+├── ffmpeg_bridge_test.dart
+├── whisper_bridge_test.dart
+├── source_storage_test.dart
+├── sources_test.dart
+├── mobile_ai_playback_test.dart
+├── metadata_background_test.dart
+├── player_window_test.dart
+├── assistant_movie_flow_test.dart
+├── ui_screenshots_test.dart
 └── support/
-    └── test_video.dart
 ```
 
 - `playback_test.dart`：调用真实 libVLC，验证视频时长、尺寸、播放进度、暂停、Seek、重新打开同一媒体及结束后重播；最后解绑视频视图并清理播放后端。
@@ -88,7 +96,7 @@ make integration-android       # emulator-5554（或 ANDROID_DEVICE=<id>）
 
 ## iOS 模拟器与 Android 模拟器
 
-`make integration-ios` / `make integration-android` 运行适用于移动端的 7 个测试：`playback`、`ffmpeg_bridge`、`whisper_bridge`、`source_storage`、`sources`、`mobile_ai_playback`、`metadata_background`（仅 Android，带隔离数据库参数）。`player_window_test`、`ui_screenshots_test` 和 `assistant_movie_flow_test` 只在 macOS 运行。
+`make integration-ios` / `make integration-android` 运行适用于移动端的 8 个测试文件：`playback`、`playback_recovery`、`ffmpeg_bridge`、`whisper_bridge`、`source_storage`、`sources`、`mobile_ai_playback`、`metadata_background`（仅 Android，带隔离数据库参数）。`player_window_test`、`ui_screenshots_test` 和 `assistant_movie_flow_test` 只在 macOS 运行。
 
 Android 的 FFmpeg 与 whisper.cpp 桥接需要先构建预编译静态库，否则 CMake 退回 stub，`ffmpeg_bridge_test` 与 `whisper_bridge_test` 会因 `available == false` 失败：
 
@@ -112,3 +120,47 @@ rm -rf ../ffmpeg-package/android/.cxx ../package-whisper/android/.cxx  # 丢弃�
 | Android | Medium_Phone 模拟器，API 37，arm64-v8a | 16 全部通过（含 9 个远程源） |
 
 已知问题：iOS 与 Android 上 VLC 经网络（HTTP，含应用的本地网关与 Plex 等直连）播放**无声**视频时，进度停在 0.25 秒不再推进，随后结束；本地文件和 macOS 不受影响，带音轨的视频经同一 SMB 网关在 Android 上正常播放。与 MP4 的 moov 位置无关（faststart 版本表现相同）。测试素材原本无音轨，移动端远程源测试因此全部失败；现已为 `test/fixtures/test_video.mp4` 加入静音 AAC 音轨，无声视频的网络播放问题仍未修复。
+
+## 播放恢复与真实语音回归
+
+`playback_recovery_test.dart` 使用真实 VLC 与测试进程内的 HTTP 服务，不需要 VM 或模型服务，覆盖：
+
+- 12 秒 A → 5 秒 B → A：检查时长、尺寸、进度推进和 B 的实际结束事件，避免仅以 open 返回成功判断切换。
+- A → 损坏 MP4 → B：要求损坏文件上报错误，随后有效媒体正常播放。
+- HTTP 服务返回 503 → 恢复服务 → 重新打开同一 URL：检查实际失败请求、错误事件和恢复后的进度。这验证服务不可用后的手动重试；尚不覆盖播放中物理断网、系统网络切换或自动重连。
+- 无音轨 MP4 经 HTTP 播放：必须持续推进并正常结束，不跳过 iOS/Android 已知缺陷。该缺陷修复前，移动端的集成套件可能因此失败，应保留失败证据。
+
+```sh
+flutter test -d macos integration_test/playback_recovery_test.dart
+flutter test -d macos integration_test/whisper_bridge_test.dart \
+  --dart-define=ASR_MODEL_DIR="$HOME/.cache/openplayx-asr-models"
+```
+
+`whisper_bridge_test.dart` 除引擎与非法模型检查外，还使用已知英文语音检查真实识别关键词 `quick brown fox`、语言、音频时长及字幕片段时间戳的顺序和边界。优先读取 `ASR_MODEL_DIR` 中 SHA-256 校验通过的 tiny 模型；移动端无法读取构建机目录时，在测试临时目录下载模型清单中固定校验值的约 78 MB 模型，失败直接报错，结束时清理。下载超时 5 分钟、识别超时 2 分钟，不使用个人模型配置。此用例不验证字幕保存、绑定或音频提取，完整保存与播放绑定仍由电影流程测试覆盖。
+
+新增素材及来源见 [`test/fixtures/README.md`](../test/fixtures/README.md)。本节描述测试断言；跨平台实际执行结果应另行记录，不能沿用上方历史验证结果。
+
+### 本次新增用例的执行记录（2026-11-18）
+
+基于主应用 `64bc8bb` 加未提交工作区修改执行（包含本次测试和执行前已有修改），仅运行上述两个测试文件，不代表整个集成套件通过：
+
+| 场景 | macOS arm64，27.2.1 | Android 模拟器 arm64，API 37 |
+| --- | --- | --- |
+| 不同媒体切换 | 通过 | 通过 |
+| 损坏媒体错误状态与恢复 | 失败：实际为 `ended` | 失败：实际为 `ended` |
+| HTTP 503 错误状态与重试 | 失败：实际为 `idle` | 失败：实际为 `idle` |
+| 无音轨 HTTP 播放 | 通过 | 失败：停在 0.25 秒后结束 |
+| 原生 Whisper 引擎与非法模型 | 通过 | 通过 |
+| tiny 模型真实英文识别及时间戳 | 通过，读取宿主机校验模型 | 通过，下载并校验模型 |
+
+macOS 与 Android 的最终恢复用例均确认损坏文件后可重新播放 A/B、HTTP 服务恢复后可重新播放；错误状态断言仍失败，不将重试成功记为整项通过。iOS 本次未执行新增用例。`flutter analyze --no-pub integration_test/playback_recovery_test.dart integration_test/whisper_bridge_test.dart` 无问题，`git diff --check` 通过。
+
+Android 运行命令：
+
+```sh
+flutter test --no-pub -d emulator-5554 \
+  integration_test/playback_recovery_test.dart \
+  integration_test/whisper_bridge_test.dart --reporter expanded
+```
+
+macOS 同样指定这两个文件，并传入上文的 `ASR_MODEL_DIR`。新增失败断言已接入 Makefile 的平台集成测试入口；修复原生错误状态和移动端无音轨播放之前，相关入口会报告失败。

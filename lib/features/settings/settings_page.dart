@@ -1,5 +1,3 @@
-import 'diagnostics_section.dart';
-
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -153,10 +151,7 @@ class SettingsPage extends StatelessWidget {
         _Category(
           icon: AppIcons.preferences,
           title: l.developerMode,
-          sections: [
-            const DiagnosticsSection(key: ValueKey('diagnostics')),
-            _DeveloperSection(key: const ValueKey('developer')),
-          ],
+          sections: [_DeveloperSection(key: const ValueKey('developer'))],
         ),
         _Category(
           icon: AppIcons.info,

@@ -1,5 +1,4 @@
 import 'data/diagnostics/diagnostics_bootstrap.dart';
-import 'data/diagnostics/diagnostics_service.dart';
 
 import 'package:flutter/widgets.dart';
 

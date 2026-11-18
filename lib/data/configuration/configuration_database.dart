@@ -69,8 +69,7 @@ abstract final class ConfigurationDatabase {
       config_version INTEGER NOT NULL, revision INTEGER NOT NULL, enabled_desired INTEGER NOT NULL,
       secret TEXT)''');
     // Typed settings documents: appearance, scanning, plugin policy, speech
-    // recognition backends, assistant model, metadata, remote access,
-    // diagnostics, …
+    // recognition backends, assistant model, metadata, remote access, …
     db.execute('''CREATE TABLE IF NOT EXISTS settings (
       namespace TEXT NOT NULL, scope TEXT NOT NULL, owner_id TEXT NOT NULL,
       key TEXT NOT NULL, value_json TEXT NOT NULL, revision INTEGER NOT NULL,

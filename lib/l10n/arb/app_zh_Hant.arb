@@ -484,8 +484,6 @@
   "aiReplying": "正在回覆…",
   "aiToolSummary": "操作及結果來自本機服務",
   "aiEarlier": "載入較早的訊息",
-  "diagnosticsTitle": "傳送診斷資訊",
-  "diagnosticsDescription": "選擇是否向配置的 Sentry 服務傳送應用版本及脫敏錯誤堆疊，不含媒體路徑、憑證或聊天內容。開啟後重啟生效，關閉立即停止所有視窗及背景任務的新上報。暫不收集原生崩潰。",
   "anonymousHelp": "匿名存取時，使用者名稱和密碼都留空",
   "s3AccessKey": "Access Key ID",
   "s3SecretKey": "Secret Access Key",

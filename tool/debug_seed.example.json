@@ -49,6 +49,5 @@
     "apiKey": "${LLM_API_KEY}"
   },
   "metadata": { "language": "zh-CN", "tmdbToken": "${TMDB_TOKEN}" },
-  "appearance": { "themeMode": "dark", "language": "zh-Hans", "developerMode": true },
-  "diagnostics": false
+  "appearance": { "themeMode": "dark", "language": "zh-Hans", "developerMode": true }
 }
