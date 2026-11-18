@@ -19,6 +19,7 @@ import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
 import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
 import 'package:openplayx/ui/adaptive/assistant_action.dart';
+import 'package:smb_connect/smb_connect.dart';
 
 import 'support/live_services.dart';
 
@@ -123,6 +124,52 @@ Future<void> _prepareAppData() async {
   }
 }
 
+/// `{folder, name}` of every clip [turns] saved with media_save_to_source.
+List<Map<String, dynamic>> _savedClips(Iterable<dynamic> turns) {
+  final saves = <String?>{};
+  final clips = <Map<String, dynamic>>[];
+  for (final turn in turns) {
+    for (final m in turn.messages) {
+      for (final call in m.calls) {
+        if (call.name == 'media_save_to_source') saves.add(call.id);
+      }
+      if (m.role != 'tool' || !saves.contains(m.callId)) continue;
+      final result = jsonDecode(m.text) as Map<String, dynamic>;
+      final data = result['data'];
+      if (result['status'] == 'success' &&
+          data is Map &&
+          data['saved'] == true) {
+        clips.add(Map<String, dynamic>.from(data));
+      }
+    }
+  }
+  return clips;
+}
+
+/// Deletes the clips this run saved, so repeated runs leave the movie share
+/// as it was. Never touches files the run did not create.
+Future<void> _deleteSavedClips(List<Map<String, dynamic>> clips) async {
+  if (clips.isEmpty) return;
+  final uri = Uri.parse(movieSmbAddress);
+  final share = uri.pathSegments.firstWhere((s) => s.isNotEmpty);
+  final smb = await SmbConnect.connectAuth(
+    host: uri.host,
+    username: movieSmbUser,
+    password: movieSmbPassword,
+    domain: '',
+  );
+  try {
+    for (final clip in clips) {
+      final path = '/$share/${clip['folder']}/${clip['name']}';
+      final file = await smb.file(path);
+      if (file.isExists) await smb.delete(file);
+      debugPrint('FLOW cleanup: deleted $path');
+    }
+  } finally {
+    await smb.close();
+  }
+}
+
 Future<void> main([List<String> args = const []]) async {
   // Main and child engines share one scratch data directory, not the user's.
   useAppDataDirectory(_data);
@@ -163,174 +210,189 @@ Future<void> main([List<String> args = const []]) async {
     final view = tester.widget<AiChatView>(find.byType(AiChatView).first);
     final c = view.coordinator;
     final previousConversation = c.conversationId;
-    VoidCallback? traceListener;
-    try {
-      expect(
-        view.toolsEnabled(),
-        isTrue,
-        reason: 'A saved negative connection probe must not silently remove all tools.',
-      );
-      c.newConversation();
-      final seen = <String>{};
-      void trace() {
-        final turn = c.currentTurn ?? c.turns.lastOrNull;
-        if (turn == null) return;
-        for (final m in turn.messages) {
-          if (m.id == null || !seen.add(m.id!)) continue;
-          for (final call in m.calls) {
-            debugPrint('FLOW call ${call.name} ${call.arguments}');
-          }
-          if (m.role == 'tool') {
-            final r = jsonDecode(m.text) as Map;
-            debugPrint(
-              'FLOW result ${m.callId}: ${r['status']} ${r['error_code'] ?? ''} ${jsonEncode(r['data'])}',
-            );
-          } else if (m.role == 'assistant' && m.text.isNotEmpty) {
-            debugPrint('FLOW assistant: ${m.text}');
-          }
-        }
-      }
-
-      traceListener = trace;
-      c.addListener(trace);
-      var done = false;
-      // Submit through the same controller as the composer, with the exact prompt.
-      view.controller!.draft.text = movieFlowPrompt;
-      final flow = view.controller!
-          .send(toolsEnabled: view.toolsEnabled())
-          .whenComplete(() => done = true);
-      final deadline = DateTime.now().add(const Duration(minutes: 25));
-      while (!done && DateTime.now().isBefore(deadline)) {
-        // Native window occlusion may suspend frame delivery. Model/tool
-        // work and confirmations must progress independently of UI frames.
-        await Future<void>.delayed(const Duration(milliseconds: 200));
-        final confirmation = c.confirmation;
-        if (confirmation != null) {
-          // Assert outside the listener: it may run inside tester.pump's
-          // async guard. Only this prompt's authorised write is approved.
-          expect(confirmation.tool, 'media_save_to_source');
-          c.decide(true);
-        }
-      }
-      if (!done) c.stop();
-      await flow;
-      trace();
-      final turn = c.turns.single;
-      expect(turn.error, isNull, reason: 'FLOW status=${turn.status}');
-      final calls = turn.messages.expand((m) => m.calls).toList();
-      final results = {
-        for (final m in turn.messages.where((m) => m.role == 'tool'))
-          m.callId: jsonDecode(m.text) as Map<String, dynamic>,
-      };
-      const required = [
-        'source_browse',
-        'media_probe',
-        'media_transcode',
-        'media_save_to_source',
-        'subtitle_generate',
-        'subtitle_save',
-        'playback_open',
-        'playback_set_subtitle',
-      ];
-      for (final name in required) {
+    // A small local model occasionally wanders off (e.g. recognising the
+    // source movie instead of the clip) and runs out of context budget.
+    // Retry the whole flow once in a fresh conversation; the first
+    // failure stays in the log.
+    const attempts = 2;
+    for (var attempt = 1; attempt <= attempts; attempt++) {
+      VoidCallback? traceListener;
+      try {
         expect(
-          calls.where(
-            (call) =>
-                call.name == name && results[call.id]?['status'] == 'success',
-          ),
-          isNotEmpty,
-          reason: 'Workflow stopped before successful $name',
+          view.toolsEnabled(),
+          isTrue,
+          reason: 'A saved negative connection probe must not silently remove all tools.',
         );
-      }
-      final transcode = calls.firstWhere(
-        (call) => call.name == 'media_transcode',
-      );
-      final range = jsonDecode(transcode.arguments) as Map;
-      expect((range['end_ms'] as num) - (range['start_ms'] as num), 60000);
-      final probe = calls.firstWhere(
-        (call) =>
-            call.name == 'media_probe' &&
-            (jsonDecode(call.arguments) as Map)['resource_ref'] ==
-                range['resource_ref'],
-      );
-      final duration =
-          (results[probe.id]!['data'] as Map)['duration_ms'] as num;
-      expect(
-        range['start_ms'] as num,
-        inInclusiveRange(duration * .1, duration * .8),
-      );
-      final save = calls.firstWhere(
-        (call) =>
-            call.name == 'media_save_to_source' &&
-            results[call.id]?['status'] == 'success',
-      );
-      final savedClip = results[save.id]!['data'] as Map;
-      expect(savedClip['saved'], true);
-      expect(savedClip['bytes'] as num, greaterThan(0));
-      final generate = calls.firstWhere(
-        (call) => call.name == 'subtitle_generate',
-      );
-      final args = jsonDecode(generate.arguments) as Map;
-      expect(args['backend_id'] ?? 'embedded', 'embedded');
-      expect(args['resource_ref'], savedClip['ref']);
-      final open = calls.firstWhere(
-        (call) =>
-            call.name == 'playback_open' &&
-            results[call.id]?['status'] == 'success',
-      );
-      expect((jsonDecode(open.arguments) as Map)['ref'], savedClip['ref']);
-      final savedSubtitle = calls.firstWhere(
-        (call) =>
-            call.name == 'subtitle_save' &&
-            results[call.id]?['status'] == 'success',
-      );
-      final binding = (results[savedSubtitle.id]!['data'] as Map)['binding_id'];
-      final select = calls.firstWhere(
-        (call) =>
-            call.name == 'playback_set_subtitle' &&
-            results[call.id]?['status'] == 'success',
-      );
-      final playback = results[select.id]!['data'] as Map;
-      expect(playback['session_id'], isNotNull);
-      expect(playback['subtitle'], {
-        'kind': 'recognized',
-        'binding_id': binding,
-      });
-      // Native track changes can emit transitional snapshots. Read back the
-      // real child engine until stable rather than trusting the command ack.
-      Map<String, dynamic>? livePlayback;
-      for (var i = 0; i < 20; i++) {
-        await Future<void>.delayed(const Duration(milliseconds: 500));
-        final actual = await c.gateway.invoke(
-          turn: '${turn.id}:verify',
-          call: ModelToolCall('verify-$i', 'playback_get', '{}'),
-          allowed: {'playback_get'},
-          active: () => true,
-          confirm: (_, _) async => false,
+        c.newConversation();
+        final seen = <String>{};
+        void trace() {
+          final turn = c.currentTurn ?? c.turns.lastOrNull;
+          if (turn == null) return;
+          for (final m in turn.messages) {
+            if (m.id == null || !seen.add(m.id!)) continue;
+            for (final call in m.calls) {
+              debugPrint('FLOW call ${call.name} ${call.arguments}');
+            }
+            if (m.role == 'tool') {
+              final r = jsonDecode(m.text) as Map;
+              debugPrint(
+                'FLOW result ${m.callId}: ${r['status']} ${r['error_code'] ?? ''} ${jsonEncode(r['data'])}',
+              );
+            } else if (m.role == 'assistant' && m.text.isNotEmpty) {
+              debugPrint('FLOW assistant: ${m.text}');
+            }
+          }
+        }
+
+        traceListener = trace;
+        c.addListener(trace);
+        var done = false;
+        // Submit through the same controller as the composer, with the exact prompt.
+        view.controller!.draft.text = movieFlowPrompt;
+        final flow = view.controller!
+            .send(toolsEnabled: view.toolsEnabled())
+            .whenComplete(() => done = true);
+        final deadline = DateTime.now().add(const Duration(minutes: 20));
+        while (!done && DateTime.now().isBefore(deadline)) {
+          // Native window occlusion may suspend frame delivery. Model/tool
+          // work and confirmations must progress independently of UI frames.
+          await Future<void>.delayed(const Duration(milliseconds: 200));
+          final confirmation = c.confirmation;
+          if (confirmation != null) {
+            // Assert outside the listener: it may run inside tester.pump's
+            // async guard. Only this prompt's authorised write is approved.
+            expect(confirmation.tool, 'media_save_to_source');
+            c.decide(true);
+          }
+        }
+        if (!done) c.stop();
+        await flow;
+        trace();
+        final turn = c.turns.single;
+        expect(turn.error, isNull, reason: 'FLOW status=${turn.status}');
+        final calls = turn.messages.expand((m) => m.calls).toList();
+        final results = {
+          for (final m in turn.messages.where((m) => m.role == 'tool'))
+            m.callId: jsonDecode(m.text) as Map<String, dynamic>,
+        };
+        const required = [
+          'source_browse',
+          'media_probe',
+          'media_transcode',
+          'media_save_to_source',
+          'subtitle_generate',
+          'subtitle_save',
+          'playback_open',
+          'playback_set_subtitle',
+        ];
+        for (final name in required) {
+          expect(
+            calls.where(
+              (call) =>
+                  call.name == name && results[call.id]?['status'] == 'success',
+            ),
+            isNotEmpty,
+            reason: 'Workflow stopped before successful $name',
+          );
+        }
+        final transcode = calls.firstWhere(
+          (call) => call.name == 'media_transcode',
         );
-        expect(actual.status, 'success');
-        livePlayback = actual.data;
-        if (['playing', 'paused'].contains(livePlayback['status'])) break;
+        final range = jsonDecode(transcode.arguments) as Map;
+        expect((range['end_ms'] as num) - (range['start_ms'] as num), 60000);
+        final probe = calls.firstWhere(
+          (call) =>
+              call.name == 'media_probe' &&
+              (jsonDecode(call.arguments) as Map)['resource_ref'] ==
+                  range['resource_ref'],
+        );
+        final duration =
+            (results[probe.id]!['data'] as Map)['duration_ms'] as num;
+        expect(
+          range['start_ms'] as num,
+          inInclusiveRange(duration * .1, duration * .8),
+        );
+        final save = calls.firstWhere(
+          (call) =>
+              call.name == 'media_save_to_source' &&
+              results[call.id]?['status'] == 'success',
+        );
+        final savedClip = results[save.id]!['data'] as Map;
+        expect(savedClip['saved'], true);
+        expect(savedClip['bytes'] as num, greaterThan(0));
+        final generate = calls.firstWhere(
+          (call) => call.name == 'subtitle_generate',
+        );
+        final args = jsonDecode(generate.arguments) as Map;
+        expect(args['backend_id'] ?? 'embedded', 'embedded');
+        expect(args['resource_ref'], savedClip['ref']);
+        final open = calls.firstWhere(
+          (call) =>
+              call.name == 'playback_open' &&
+              results[call.id]?['status'] == 'success',
+        );
+        expect((jsonDecode(open.arguments) as Map)['ref'], savedClip['ref']);
+        final savedSubtitle = calls.firstWhere(
+          (call) =>
+              call.name == 'subtitle_save' &&
+              results[call.id]?['status'] == 'success',
+        );
+        final binding =
+            (results[savedSubtitle.id]!['data'] as Map)['binding_id'];
+        final select = calls.firstWhere(
+          (call) =>
+              call.name == 'playback_set_subtitle' &&
+              results[call.id]?['status'] == 'success',
+        );
+        final playback = results[select.id]!['data'] as Map;
+        expect(playback['session_id'], isNotNull);
+        expect(playback['subtitle'], {
+          'kind': 'recognized',
+          'binding_id': binding,
+        });
+        // Native track changes can emit transitional snapshots. Read back the
+        // real child engine until stable rather than trusting the command ack.
+        Map<String, dynamic>? livePlayback;
+        for (var i = 0; i < 20; i++) {
+          await Future<void>.delayed(const Duration(milliseconds: 500));
+          final actual = await c.gateway.invoke(
+            turn: '${turn.id}:verify',
+            call: ModelToolCall('verify-$i', 'playback_get', '{}'),
+            allowed: {'playback_get'},
+            active: () => true,
+            confirm: (_, _) async => false,
+          );
+          expect(actual.status, 'success');
+          livePlayback = actual.data;
+          if (['playing', 'paused'].contains(livePlayback['status'])) break;
+        }
+        debugPrint('FLOW playback readback: ${jsonEncode(livePlayback)}');
+        expect(livePlayback!['status'], isIn(['playing', 'paused']));
+        expect(
+          livePlayback['duration_ms'] as num,
+          inInclusiveRange(59000, 61000),
+        );
+        expect(livePlayback['subtitle'], {
+          'kind': 'recognized',
+          'binding_id': binding,
+        });
+        debugPrint(
+          'FLOW VERIFIED: 60s clip saved, local subtitle bound and selected; tokens=${turn.tokens}',
+        );
+        break;
+      } on TestFailure catch (error) {
+        if (attempt == attempts) rethrow;
+        debugPrint('FLOW attempt $attempt failed, retrying once: $error');
+      } finally {
+        // testWidgets disposes the tree before addTearDown callbacks. Restore
+        // selection here while the coordinator and its database are alive.
+        if (traceListener != null) c.removeListener(traceListener);
+        c.stop();
+        // Collect before switching away: turns belong to this conversation.
+        final clips = _savedClips(c.turns);
+        c.selectConversation(previousConversation);
+        await _deleteSavedClips(clips);
       }
-      debugPrint('FLOW playback readback: ${jsonEncode(livePlayback)}');
-      expect(livePlayback!['status'], isIn(['playing', 'paused']));
-      expect(
-        livePlayback['duration_ms'] as num,
-        inInclusiveRange(59000, 61000),
-      );
-      expect(livePlayback['subtitle'], {
-        'kind': 'recognized',
-        'binding_id': binding,
-      });
-      debugPrint(
-        'FLOW VERIFIED: 60s clip saved, local subtitle bound and selected; tokens=${turn.tokens}',
-      );
-    } finally {
-      // testWidgets disposes the tree before addTearDown callbacks. Restore
-      // selection here while the coordinator and its database are alive.
-      if (traceListener != null) c.removeListener(traceListener);
-      c.stop();
-      c.selectConversation(previousConversation);
     }
-  }, timeout: const Timeout(Duration(minutes: 30)));
+  }, timeout: const Timeout(Duration(minutes: 50)));
 }

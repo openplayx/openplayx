@@ -18,7 +18,7 @@ DEVICE ?=
 # Integration tests (integration_test/README.md): live services are required.
 IT_DEFINES := build/integration-defines.json
 # Small local model for the assistant movie flow, with room for every tool.
-OLLAMA_BASE ?= qwen3:8b
+OLLAMA_BASE ?= qwen3:14b
 OLLAMA_MODEL ?= openplayx-it
 OLLAMA_CTX ?= 32768
 # integration-ios / integration-android device ids.

@@ -26,7 +26,7 @@ integration_test/
 - `playback_test.dart`：调用真实 libVLC，验证视频时长、尺寸、播放进度、暂停、Seek、重新打开同一媒体及结束后重播；最后解绑视频视图并清理播放后端。
 - `support/test_video.dart`：将 `test/fixtures/test_video.mp4` 复制到应用沙箱内的临时目录，使原生播放器可以访问，不依赖网络或用户文件。
 
-当前播放测试直接挂载视频组件，不通过完整播放器页面操作。这样可以将原生引擎验证与应用窗口前后台策略隔离。它不是对完整用户流程的端到端验收，也没有直接断言原生资源计数；无声素材不能验证声音输出。
+当前播放测试直接挂载视频组件，不通过完整播放器页面操作。这样可以将原生引擎验证与应用窗口前后台策略隔离。它不是对完整用户流程的端到端验收，也没有直接断言原生资源计数；静音音轨不能验证声音输出。
 
 ## 运行方式
 
@@ -54,7 +54,7 @@ flutter test integration_test/playback_test.dart -d macos
 | --- | --- | --- |
 | 媒体源测试服务（SMB、WebDAV、FTP、SFTP、S3、Plex、Jellyfin、Emby、DLNA） | `sources_test`、`player_window_test` | 本机测试 VM，见 [source_services/README.md](../tool/source_services/README.md) |
 | 可读写的电影 SMB 共享（`smb://<SOURCE_HOST>/movie`） | `assistant_movie_flow_test` | 同一 VM，账号来自 `.env` 的 `SMB_USER`、`SMB_PASSWORD` |
-| Ollama 本地模型 `openplayx-it` | `assistant_movie_flow_test` | 本机，`make integration-ollama` 由 `qwen3:8b` 派生，上下文 32K 以容纳全部工具定义 |
+| Ollama 本地模型 `openplayx-it` | `assistant_movie_flow_test` | 本机，`make integration-ollama` 由 `qwen3:14b` 派生，上下文 32K 以容纳全部工具定义 |
 | whisper.cpp `ggml-tiny.bin` | `assistant_movie_flow_test` 的本地识别 | `~/.cache/openplayx-asr-models`，缺失时自动下载并校验 |
 
 准备与运行：
@@ -74,9 +74,9 @@ make integration-android       # emulator-5554（或 ANDROID_DEVICE=<id>）
 
 手机端的 `mobile_ai_playback_test.dart` 使用脚本模型、内存媒体库和随应用打包的本地视频，通过真实 `playback_open` 工具验证聊天页退出、播放器可见、键盘收起及原生视频进度推进，不调用模型 API 或 SMB。对应的 `test/ai/mobile_playback_navigation_test.dart` 覆盖 Android/iOS 手机布局，并检查退出聊天页不会取消后续工具调用。
 
-`assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交原始提问：从 SMB 电影共享挑一部电影截取 60 秒、存回共享、本地识别字幕、保存、播放并选择字幕。应用运行在临时数据目录上（主窗口与播放子窗口共用，不读写用户的配置和媒体库），测试通过 debug seed 写入 Ollama 模型、电影共享和本地 whisper tiny，不模拟模型或工具。它会在共享的 `OpenPlayX` 文件夹新增一个子视频；测试只自动批准原提问中 `media_save_to_source` 的确认，不覆盖或删除已有媒体。失败时日志包含逐步工具调用与实际结果；测试检查各阶段成功，最后从真实子窗口读回播放状态与字幕绑定，而不把助手的“已完成”文字当成成功证据。
+`assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交原始提问：从 SMB 电影共享挑一部电影截取 60 秒、存回共享、本地识别字幕、保存、播放并选择字幕。应用运行在临时数据目录上（主窗口与播放子窗口共用，不读写用户的配置和媒体库），测试通过 debug seed 写入 Ollama 模型、电影共享和本地 whisper tiny，不模拟模型或工具。流程会在共享的 `OpenPlayX` 文件夹新增子视频，测试结束时（无论成败）通过 SMB 删除本次运行存入的子视频，不触碰其他文件；测试只自动批准原提问中 `media_save_to_source` 的确认。失败时日志包含逐步工具调用与实际结果；测试检查各阶段成功，最后从真实子窗口读回播放状态与字幕绑定，而不把助手的“已完成”文字当成成功证据。
 
-模型选择（2026-11-18，同一提示词）：`qwen3.5:4b` 与 `qwen3.5:9b` 把“10%-80% 之间选起点截取 60 秒”误解为截到 80%；`qwen3:8b` 范围正确，并能根据 `invalidArguments` 返回的缺失/无效字段自行纠正参数，约 4 分钟完成全流程。
+模型选择（2026-11-18，同一提示词）：`qwen3.5:4b` 与 `qwen3.5:9b` 把“10%-80% 之间选起点截取 60 秒”误解为截到 80%；`qwen3:8b` 范围正确，能根据 `invalidArguments` 的缺失/无效字段和 `staleReference` 的提示纠正参数，但 3 次只过 2 次（失败时先识别了原电影，绕回子视频后超出单轮 64000 字符的上下文预算 `contextBudget`）；`qwen3:14b`（默认）连续 3 次首轮通过，每次 3–4 分钟、约 6 万 token。测试在断言失败时于新对话中整体重试一次，首次失败原因保留在日志（`FLOW attempt 1 failed`）；服务缺失等环境问题在重试之前检查，直接失败。
 
 `player_window_test.dart` 不调用模型：在独立播放窗口中播放本地素材和 SMB 测试服务上的视频，验证真实子窗口的播放状态。子窗口选择已保存识别字幕由电影流程覆盖。
 
@@ -103,12 +103,12 @@ rm -rf ../ffmpeg-package/android/.cxx ../package-whisper/android/.cxx  # 丢弃�
 
 ## 验证记录
 
-2026-11-18，服务在本机测试 VM（192.168.1.107）：
+2026-11-18，服务在本机测试 VM（192.168.1.107），测试素材带静音音轨：
 
 | 平台 | 设备 | 结果 |
 | --- | --- | --- |
-| macOS | Mac Studio | `sources_test` 10 项（本地 + 9 个远程源）、`player_window_test`、`assistant_movie_flow_test`（`qwen3:8b`，约 4 分钟）全部通过 |
-| iOS | iPhone 17 Pro 模拟器，iOS 26.5 | 6 通过；`metadata_background` 仅 Android 而跳过；9 个远程源失败（见下） |
-| Android | Medium_Phone 模拟器，API 37，arm64-v8a | 7 通过；9 个远程源失败（见下） |
+| macOS | Mac Studio | `make integration-macos` 全部通过：14 项（1 项仅 Android 跳过）、`player_window_test` 2 项、`assistant_movie_flow_test`（`qwen3:14b`，连续 3 次首轮通过，每次 3–4 分钟） |
+| iOS | iPhone 17 Pro 模拟器，iOS 26.5 | 15 通过（含 9 个远程源），`metadata_background` 仅 Android 而跳过 |
+| Android | Medium_Phone 模拟器，API 37，arm64-v8a | 16 全部通过（含 9 个远程源） |
 
-已知问题：iOS 与 Android 上 VLC 经网络（HTTP，含应用的本地网关与 Plex 等直连）播放**无声**视频时，进度停在 0.25 秒不再推进，随后结束；本地文件和 macOS 不受影响，带音轨的视频经同一 SMB 网关在 Android 上正常播放。测试素材 `test/fixtures/test_video.mp4` 无音轨，所以移动端的远程源测试全部因此失败。与 MP4 的 moov 位置无关（faststart 版本表现相同）。
+已知问题：iOS 与 Android 上 VLC 经网络（HTTP，含应用的本地网关与 Plex 等直连）播放**无声**视频时，进度停在 0.25 秒不再推进，随后结束；本地文件和 macOS 不受影响，带音轨的视频经同一 SMB 网关在 Android 上正常播放。与 MP4 的 moov 位置无关（faststart 版本表现相同）。测试素材原本无音轨，移动端远程源测试因此全部失败；现已为 `test/fixtures/test_video.mp4` 加入静音 AAC 音轨，无声视频的网络播放问题仍未修复。

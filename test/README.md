@@ -26,7 +26,7 @@ test/
 ```
 
 - `player_page_test.dart`：使用模拟播放后端，验证播放器页面的按钮状态、取消选择、暂停、错误恢复、进度条交互和后端释放调用，不启动真实 VLC。
-- `test_video.mp4`：原创的约 12 秒、160×90 无声 H.264 测试视频，供原生集成测试使用；生成工具位于主项目的 `tool/generate_test_video.swift`。
+- `test_video.mp4`：原创的约 12 秒、160×90 H.264 测试视频，带一条静音 AAC 音轨，供原生集成测试使用；生成工具位于主项目的 `tool/generate_test_video.swift`（`swift tool/generate_test_video.swift test/fixtures/test_video.mp4`）。音轨不可省略：iOS 与 Android 上 VLC 经网络播放无音轨视频会停在 0.25 秒。更换素材后需同步到测试 VM 的 `/opt/openplayx-source-test/test/fixtures/` 并重新运行 `tool/source_services/bootstrap.py`。
 
 ## 元数据测试
 

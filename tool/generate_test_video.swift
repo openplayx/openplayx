@@ -1,8 +1,15 @@
 import AVFoundation
 import Foundation
 
+// Generates test/fixtures/test_video.mp4: 12 s, 160x90 H.264 at 10 fps, with a
+// silent AAC track. The audio track matters: VLC on iOS and Android stalls at
+// 0.25 s when it plays a video without audio over HTTP, so remote source
+// tests need it. Usage: swift tool/generate_test_video.swift <output.mp4>
 let output = URL(fileURLWithPath: CommandLine.arguments[1])
+try? FileManager.default.removeItem(at: output)
 let width = 160, height = 90, fps: Int32 = 10, frames = 120
+let sampleRate = 44100, audioChunk = 1024
+let audioFrames = sampleRate * frames / Int(fps)
 let writer = try AVAssetWriter(outputURL: output, fileType: .mp4)
 let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
     AVVideoCodecKey: AVVideoCodecType.h264,
@@ -11,11 +18,41 @@ let input = AVAssetWriterInput(mediaType: .video, outputSettings: [
 let adapter = AVAssetWriterInputPixelBufferAdaptor(assetWriterInput: input,
     sourcePixelBufferAttributes: [kCVPixelBufferPixelFormatTypeKey as String: kCVPixelFormatType_32ARGB,
         kCVPixelBufferWidthKey as String: width, kCVPixelBufferHeightKey as String: height])
+let audio = AVAssetWriterInput(mediaType: .audio, outputSettings: [
+    AVFormatIDKey: kAudioFormatMPEG4AAC,
+    AVSampleRateKey: sampleRate, AVNumberOfChannelsKey: 1, AVEncoderBitRateKey: 32000
+])
 writer.add(input)
+writer.add(audio)
 writer.startWriting()
 writer.startSession(atSourceTime: .zero)
-for frame in 0..<frames {
-    while !input.isReadyForMoreMediaData { Thread.sleep(forTimeInterval: 0.01) }
+
+var pcmFormat = AudioStreamBasicDescription(
+    mSampleRate: Float64(sampleRate), mFormatID: kAudioFormatLinearPCM,
+    mFormatFlags: kLinearPCMFormatFlagIsSignedInteger | kLinearPCMFormatFlagIsPacked,
+    mBytesPerPacket: 2, mFramesPerPacket: 1, mBytesPerFrame: 2,
+    mChannelsPerFrame: 1, mBitsPerChannel: 16, mReserved: 0)
+var audioFormat: CMAudioFormatDescription?
+CMAudioFormatDescriptionCreate(allocator: nil, asbd: &pcmFormat, layoutSize: 0, layout: nil,
+    magicCookieSize: 0, magicCookie: nil, extensions: nil, formatDescriptionOut: &audioFormat)
+
+// Silence: `count` zeroed 16-bit mono samples starting at sample `start`.
+func silence(start: Int, count: Int) -> CMSampleBuffer {
+    let bytes = count * 2
+    var block: CMBlockBuffer?
+    CMBlockBufferCreateWithMemoryBlock(allocator: nil, memoryBlock: nil, blockLength: bytes,
+        blockAllocator: nil, customBlockSource: nil, offsetToData: 0, dataLength: bytes,
+        flags: 0, blockBufferOut: &block)
+    CMBlockBufferFillDataBytes(with: 0, blockBuffer: block!, offsetIntoDestination: 0, dataLength: bytes)
+    var sample: CMSampleBuffer?
+    CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: nil, dataBuffer: block!,
+        formatDescription: audioFormat!, sampleCount: count,
+        presentationTimeStamp: CMTime(value: Int64(start), timescale: Int32(sampleRate)),
+        packetDescriptions: nil, sampleBufferOut: &sample)
+    return sample!
+}
+
+func videoFrame(_ frame: Int) -> CVPixelBuffer {
     var buffer: CVPixelBuffer?
     CVPixelBufferPoolCreatePixelBuffer(nil, adapter.pixelBufferPool!, &buffer)
     let pixelBuffer = buffer!
@@ -32,14 +69,39 @@ for frame in 0..<frames {
         }
     }
     CVPixelBufferUnlockBaseAddress(pixelBuffer, [])
-    guard adapter.append(pixelBuffer, withPresentationTime: CMTime(value: Int64(frame), timescale: fps)) else {
-        fatalError("Could not encode frame: \(String(describing: writer.error))")
-    }
+    return pixelBuffer
 }
-input.markAsFinished()
-writer.finishWriting {
-    if writer.status != .completed { fatalError("Encoding failed: \(String(describing: writer.error))") }
-    print(output.path)
-    exit(0)
+
+// Both inputs are fed as they become ready so the writer can interleave them.
+let group = DispatchGroup()
+var frame = 0
+group.enter()
+input.requestMediaDataWhenReady(on: DispatchQueue(label: "video")) {
+    while input.isReadyForMoreMediaData && frame < frames {
+        guard adapter.append(videoFrame(frame), withPresentationTime: CMTime(value: Int64(frame), timescale: fps)) else {
+            fatalError("Could not encode frame: \(String(describing: writer.error))")
+        }
+        frame += 1
+    }
+    if frame == frames { input.markAsFinished(); frame += 1; group.leave() }
+}
+var sample = 0
+group.enter()
+audio.requestMediaDataWhenReady(on: DispatchQueue(label: "audio")) {
+    while audio.isReadyForMoreMediaData && sample < audioFrames {
+        let count = min(audioChunk, audioFrames - sample)
+        guard audio.append(silence(start: sample, count: count)) else {
+            fatalError("Could not encode audio: \(String(describing: writer.error))")
+        }
+        sample += count
+    }
+    if sample == audioFrames { audio.markAsFinished(); sample += 1; group.leave() }
+}
+group.notify(queue: .main) {
+    writer.finishWriting {
+        if writer.status != .completed { fatalError("Encoding failed: \(String(describing: writer.error))") }
+        print(output.path)
+        exit(0)
+    }
 }
 dispatchMain()

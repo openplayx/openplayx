@@ -82,7 +82,12 @@ class MediaProcessingTools {
       }
     }
     if (entry == null || entry.isFolder) {
-      throw const ToolFailure('staleReference');
+      throw const ToolFailure('staleReference', {
+        'argument': 'resource_ref',
+        'hint':
+            'Use a non-folder ref returned in this conversation (source_browse, '
+            'search, media_save_to_source) or a library resource_id.',
+      });
     }
     final source = entry.ref.instanceId;
     if (source != '@local') {
@@ -113,7 +118,13 @@ class MediaProcessingTools {
     if (token == null) return null;
     final t = _tracks[token];
     if (t == null || t.$1 != _key(ref)) {
-      throw const ToolFailure('staleReference');
+      throw const ToolFailure('staleReference', {
+        'argument': 'track_ref',
+        'hint':
+            'A track_ref belongs to the resource it was probed from. Call '
+            'media_probe on this resource_ref and use its track_ref, or omit '
+            'the track to use the default one.',
+      });
     }
     return t.$2;
   }

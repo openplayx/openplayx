@@ -161,7 +161,12 @@ class MediaTools {
             (folder == null ||
                 !folder.isFolder ||
                 folder.ref.instanceId != source)) {
-          throw const ToolFailure('staleReference');
+          throw const ToolFailure('staleReference', {
+            'argument': 'folder_ref',
+            'hint':
+                'Use a folder ref from source_browse of the same source_id, or '
+                'omit folder_ref to list the root.',
+          });
         }
         final page = await sources.browse(
           source,
@@ -352,7 +357,12 @@ class MediaTools {
             }
           }
           if (entry == null || entry.isFolder) {
-            throw const ToolFailure('staleReference');
+            throw ToolFailure('staleReference', {
+              'argument': a['ref'] != null ? 'ref' : 'resource_id',
+              'hint':
+                  'ref takes a non-folder ref from search, browse or '
+                  'media_save_to_source; resource_id takes an id from media_get.',
+            });
           }
           if (entry.ref.instanceId != '@local' &&
               !_enabled(entry.ref.instanceId, 'source.resolve')) {

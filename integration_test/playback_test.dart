@@ -121,9 +121,9 @@ void main() {
     await backend.setSpeed(1);
     await waitFor(() => (backend.value.speed - 1).abs() < 0.01);
     await backend.setVolume(100);
-    // This fixture is silent; track discovery must still be safe.
+    // The fixture carries one silent AAC track.
     final tracks = await backend.getAudioTracks();
-    expect(tracks.where((track) => track.id >= 0), isEmpty);
+    expect(tracks.where((track) => track.id >= 0), hasLength(1));
 
     // 5. 请求暂停，并等待原生事件确认暂停状态。
     await backend.pause();

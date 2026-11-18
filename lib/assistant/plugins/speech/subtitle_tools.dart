@@ -123,7 +123,14 @@ class SubtitleTools {
     if (index != null) {
       final info = await service.inspect(ref);
       trackRef = info.tracks.where((t) => t.index == index).firstOrNull?.ref;
-      if (trackRef == null) throw const ToolFailure('staleReference');
+      if (trackRef == null) {
+        throw const ToolFailure('staleReference', {
+          'argument': 'audio_track_ref',
+          'hint':
+              'Call media_probe on this resource_ref and use one of its audio '
+              'track_ref values, or omit audio_track_ref.',
+        });
+      }
     }
     final run = service.start(
       SubtitleRequest(
