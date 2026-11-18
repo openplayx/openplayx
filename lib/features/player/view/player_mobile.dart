@@ -870,6 +870,7 @@ extension _MobilePlayer on PlayerPageState {
       PlayerPanel.help => _helpContent(),
       _ => _frameContent(),
     };
+    var handleDrag = 0.0;
     final sheet = PlayerGlass(
       key: Key('panel-${_panel.name}'),
       radius: landscape
@@ -886,14 +887,33 @@ extension _MobilePlayer on PlayerPageState {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (!landscape)
-            Center(
-              child: Container(
-                width: 36,
-                height: 5,
-                margin: const EdgeInsets.only(bottom: 8),
-                decoration: BoxDecoration(
-                  color: const Color(0x4DFFFFFF),
-                  borderRadius: BorderRadius.circular(3),
+            Semantics(
+              button: true,
+              label: l.close,
+              child: GestureDetector(
+                key: const Key('panel-handle'),
+                behavior: HitTestBehavior.opaque,
+                onTap: _closePanel,
+                onVerticalDragStart: (_) => handleDrag = 0,
+                onVerticalDragUpdate: (details) =>
+                    handleDrag += details.delta.dy,
+                onVerticalDragEnd: (details) {
+                  if (handleDrag > 40 || (details.primaryVelocity ?? 0) > 300) {
+                    _closePanel();
+                  }
+                },
+                child: SizedBox(
+                  height: 32,
+                  child: Center(
+                    child: Container(
+                      width: 36,
+                      height: 5,
+                      decoration: BoxDecoration(
+                        color: const Color(0x4DFFFFFF),
+                        borderRadius: BorderRadius.circular(3),
+                      ),
+                    ),
+                  ),
                 ),
               ),
             ),

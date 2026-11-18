@@ -59,6 +59,9 @@ Future<Uri?> pickSubtitleFile() async {
       XTypeGroup(
         label: 'Subtitles',
         extensions: ['srt', 'ass', 'ssa', 'vtt', 'sub', 'idx', 'smi', 'txt'],
+        // iOS rejects extension-only groups before opening its picker. Allow
+        // data files since subtitle formats do not share a registered UTI.
+        uniformTypeIdentifiers: ['public.data'],
       ),
       XTypeGroup(label: '*'),
     ],

@@ -160,9 +160,9 @@ extension _PlayerPanels on PlayerPageState {
       PlayerSectionLabel(
         l.subtitleTrack,
         trailing: _mobileDisplay && _backend.supportsExternalSubtitles
-            ? GestureDetector(
+            ? TextButton(
                 key: const Key('add-subtitle-header'),
-                onTap: _addSubtitleFile,
+                onPressed: _enabled ? _addSubtitleFile : null,
                 child: Text(
                   l.plExternalSubtitleShort,
                   style: TextStyle(
