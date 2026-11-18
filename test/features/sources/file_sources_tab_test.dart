@@ -73,6 +73,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
     Text status() => tester.widget<Text>(
       find.byKey(ValueKey('file-source-status-$binding')),
     );
@@ -104,8 +106,15 @@ void main() {
     expect(find.byTooltip('重新扫描全部文件源'), findsNothing);
     expect(find.byTooltip('重新加载配置'), findsNothing);
 
-    // Adding is visible inline and is also available in the parent menu.
+    // Connections start collapsed; expanding reveals the inline add action.
+    expect(find.byKey(const ValueKey('source-add-folder-s')), findsNothing);
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('source-add-folder-s')), findsOneWidget);
+    service.notifyChanged();
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('source-add-folder-s')), findsOneWidget);
+    // Adding is also available in the parent menu.
     await tester.tap(find.byKey(const ValueKey('source-menu-s')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('source-add-file-s')));
@@ -156,6 +165,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('Movies'), findsNothing);
     expect(find.byType(FileSourceBrowserPage), findsNothing);
+    service.notifyChanged();
+    await tester.pumpAndSettle();
+    expect(find.text('Movies'), findsNothing);
+    expect(find.byKey(const ValueKey('source-add-folder-s')), findsNothing);
     await tester.tap(find.text('NAS'));
     await tester.pumpAndSettle();
     expect(find.text('Movies'), findsOneWidget);
@@ -214,6 +227,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await tester.tap(find.text('NAS'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
     await tester.pumpAndSettle();
@@ -228,6 +243,9 @@ void main() {
         home: SourcePage(manager: _BrowseSources(), library: service),
       ),
     );
+    await tester.pumpAndSettle();
+    expect(find.text('Movies'), findsNothing);
+    await tester.tap(find.text('NAS'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('Movies'));
     await tester.pumpAndSettle();

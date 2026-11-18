@@ -114,6 +114,9 @@ void main() {
         );
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
+        expect(find.text('/video/movies'), findsNothing);
+        await tester.tap(find.text('家庭 NAS'));
+        await tester.pumpAndSettle();
         expect(find.text('/video/movies'), findsOneWidget);
         expect(find.text('收藏'), findsNothing);
 
@@ -171,6 +174,8 @@ void main() {
           home: SourcePage(manager: sources, library: library),
         ),
       );
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('NAS'));
       await tester.pumpAndSettle();
       expect(find.byKey(ValueKey('file-source-scan-$first')), findsNothing);
       await tester.tap(find.byKey(ValueKey('file-source-menu-$first')));

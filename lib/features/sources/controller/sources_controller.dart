@@ -68,7 +68,7 @@ class SourcesController extends ChangeNotifier {
   }
 
   bool isExpanded(SourceConfig connection) =>
-      _state.expanded[connection.id] ?? connection.enabled;
+      _state.expanded[connection.id] ?? false;
 
   void setExpanded(String connection, bool expanded) => _set(
     _state.copyWith(expanded: {..._state.expanded, connection: expanded}),

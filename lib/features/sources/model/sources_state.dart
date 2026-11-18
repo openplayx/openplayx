@@ -48,7 +48,7 @@ class SourcesState {
   final bool busy;
   final SourcesFailure? failure;
 
-  /// Connection id → expanded; unset follows whether it is enabled.
+  /// Connection id → expanded; unset connections are collapsed.
   final Map<String, bool> expanded;
 
   /// The connection whose files are browsed, if any.

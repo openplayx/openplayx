@@ -85,11 +85,58 @@ void main() {
     expect(controller.state.failure?.message, '测试服务不可用');
   });
 
-  test('expanding follows the switch until the user chooses', () {
+  test('all source kinds start collapsed, enabled or disabled', () {
+    for (final kind in SourceKind.values) {
+      for (final enabled in [true, false]) {
+        final connection = SourceConfig(
+          id: '${kind.name}-$enabled',
+          kind: kind,
+          name: kind.name,
+          address: '',
+          enabled: enabled,
+        );
+        expect(controller.isExpanded(connection), isFalse);
+      }
+    }
+  });
+
+  test('manual expansion survives reloads per connection', () async {
     final nas = sources.saved.single;
-    expect(controller.isExpanded(nas), isTrue);
-    controller.setExpanded('nas', false);
+    final other = SourceConfig(
+      id: 'other',
+      kind: nas.kind,
+      name: 'Other',
+      address: nas.address,
+    );
+    sources.saved.add(other);
+    await controller.load();
     expect(controller.isExpanded(nas), isFalse);
+    controller.setExpanded('nas', true);
+    expect(controller.isExpanded(nas), isTrue);
+    expect(controller.isExpanded(other), isFalse);
+    await controller.load();
+    expect(controller.isExpanded(nas), isTrue);
+    expect(controller.isExpanded(other), isFalse);
+
+    controller.setExpanded('nas', false);
+    controller.setExpanded('other', true);
+    await controller.load();
+    expect(controller.isExpanded(nas), isFalse);
+    expect(controller.isExpanded(other), isTrue);
+  });
+
+  test('changing enabled state does not change manual expansion', () async {
+    final nas = sources.saved.single;
+    controller.setExpanded('nas', true);
+    // A refreshed config snapshot keeps the same connection identity.
+    sources.saved[0] = nas.copyWith(enabled: false);
+    await controller.load();
+    expect(controller.isExpanded(sources.saved.single), isTrue);
+
+    controller.setExpanded('nas', false);
+    sources.saved[0] = nas.copyWith(enabled: true);
+    await controller.load();
+    expect(controller.isExpanded(sources.saved.single), isFalse);
   });
 
   test('a stale entry is never resolved for a page that left', () async {
