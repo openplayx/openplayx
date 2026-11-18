@@ -279,6 +279,49 @@ void main() {
       expect(fake.sessions, before + 1);
     });
 
+    test(
+      'Torrent aliases keep their original identifiers and MCP routing',
+      () async {
+        const names = ['list_destinations', 'create_plan'];
+        final service = ExternalService(
+          id: 'torrent',
+          name: 'Torrent',
+          baseUrl: fake.url,
+          endpoint: fake.url,
+          serverName: 'openplayx-bittorrent',
+          available: true,
+          tools: names,
+          toolDefs: [
+            for (final name in names)
+              {
+                'name': name,
+                'inputSchema': {'type': 'object'},
+                'annotations': {'readOnlyHint': true},
+              },
+          ],
+        );
+        await services.save(service, token: 'good');
+        tools.sync();
+
+        final gateway = ToolGateway(registry);
+        for (final name in names) {
+          final alias = ExternalTools.alias(service, name);
+          expect(alias, 'mcp_orrent_$name');
+          final call = _call(alias, {});
+          final result = await gateway.invoke(
+            turn: 'torrent',
+            call: call,
+            allowed: {alias},
+            active: () => true,
+            confirm: (_, _) async => true,
+          );
+          expect(result.status, 'success');
+          expect(call.name, alias);
+          expect(fake.calls.last, {'name': name, 'arguments': {}});
+        }
+      },
+    );
+
     test('removing a service withdraws its tools', () async {
       final s = await add();
       await Future<void>.delayed(Duration.zero);

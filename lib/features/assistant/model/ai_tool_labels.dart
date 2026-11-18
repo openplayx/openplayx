@@ -53,6 +53,12 @@ abstract final class AiToolLabels {
 
   static String _readable(String name) {
     final words = name.split('_');
+    // ExternalTools.alias keeps only the last six service-id characters,
+    // so torrent becomes orrent. Restore the display name without changing
+    // the alias used by stored calls and MCP routing.
+    if (words.length > 2 && words[0] == 'mcp' && words[1] == 'orrent') {
+      words[1] = 'Torrent';
+    }
     return '${words.first[0].toUpperCase()}${words.first.substring(1)} ${words.skip(1).join(' ')}'
         .trim();
   }
