@@ -44,7 +44,8 @@ Future<void> _requireOllama() async {
     )).close();
     final body = jsonDecode(await utf8.decodeStream(response)) as Map;
     final models = [for (final m in body['data'] as List) (m as Map)['id']];
-    if (!models.contains(ollamaModel)) {
+    if (!models.contains(ollamaModel) &&
+        !models.contains('$ollamaModel:latest')) {
       fail(
         'Ollama has no model $ollamaModel (has $models). '
         'Run `make integration-ollama`.',

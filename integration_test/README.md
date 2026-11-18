@@ -46,53 +46,49 @@ flutter test integration_test/playback_test.dart -d macos
 - 本目录中的测试与主项目代码、插件注册及平台构建环境紧密关联，因此保留在主项目中。
 - 从应用外部操作完整产品的端到端测试、验收场景、跨平台矩阵及可追溯报告，放在独立的 `openplayx-test` 仓库；本目录的执行结果可以作为其验收证据的一部分。
 
-## 真实 AI 电影处理流程
+## 依赖的真实服务（必需）
 
-手机端的 `mobile_ai_playback_test.dart` 使用脚本模型、内存媒体库和随应用打包的本地视频，通过真实 `playback_open` 工具验证聊天页退出、播放器可见、键盘收起及原生视频进度推进，不调用模型 API 或 SMB：
+集成测试不再按开关跳过：缺少配置或服务连不上时，测试直接失败并说明缺什么。依赖如下：
+
+| 服务 | 用途 | 位置 |
+| --- | --- | --- |
+| 媒体源测试服务（SMB、WebDAV、FTP、SFTP、S3、Plex、Jellyfin、Emby、DLNA） | `sources_test`、`player_window_test` | 本机测试 VM，见 [source_services/README.md](../tool/source_services/README.md) |
+| 可读写的电影 SMB 共享（`smb://<SOURCE_HOST>/movie`） | `assistant_movie_flow_test` | 同一 VM，账号来自 `.env` 的 `SMB_USER`、`SMB_PASSWORD` |
+| Ollama 本地模型 `openplayx-it` | `assistant_movie_flow_test` | 本机，`make integration-ollama` 由 `qwen3:8b` 派生，上下文 32K 以容纳全部工具定义 |
+| whisper.cpp `ggml-tiny.bin` | `assistant_movie_flow_test` 的本地识别 | `~/.cache/openplayx-asr-models`，缺失时自动下载并校验 |
+
+准备与运行：
 
 ```sh
-flutter test integration_test/mobile_ai_playback_test.dart -d <手机设备ID>
+SOURCE_HOST=<VM 地址> python3 tool/source_services/bootstrap.py  # 生成 defines.local.json
+make integration-ollama        # 创建测试模型（换模型：OLLAMA_BASE=<名称>）
+make integration-defines       # 汇总为 build/integration-defines.json（含凭据，已 gitignore）
+make integration-macos         # macOS 全部集成测试
+make integration-ios           # 已启动的 iOS 模拟器（或 IOS_SIM=<UDID>）
+make integration-android       # emulator-5554（或 ANDROID_DEVICE=<id>）
 ```
 
-对应的 `test/ai/mobile_playback_navigation_test.dart` 覆盖 Android/iOS 手机布局，并检查退出聊天页不会取消后续工具调用。
+单独运行某个测试时，带上 `--dart-define-from-file=build/integration-defines.json`。桌面多窗口测试（`player_window_test`、`assistant_movie_flow_test`）用 `flutter drive --driver=test_driver/integration_test.dart -d macos --target=...`：`flutter test` 的包装入口会丢弃子窗口参数。
 
-`assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交 SMB 电影截取、存回共享、本地识别字幕、保存、播放并选择字幕的原始提问。使用应用当前保存的模型、凭据、SMB 源、插件权限和本地识别模型，不模拟模型或工具。默认跳过；必须显式开启：
+## AI 电影处理流程
 
-```sh
-flutter drive --driver=test_driver/integration_test.dart --target=integration_test/assistant_movie_flow_test.dart -d macos --dart-define=LIVE_ASSISTANT_FLOW=true
-```
+手机端的 `mobile_ai_playback_test.dart` 使用脚本模型、内存媒体库和随应用打包的本地视频，通过真实 `playback_open` 工具验证聊天页退出、播放器可见、键盘收起及原生视频进度推进，不调用模型 API 或 SMB。对应的 `test/ai/mobile_playback_navigation_test.dart` 覆盖 Android/iOS 手机布局，并检查退出聊天页不会取消后续工具调用。
 
-这里使用 `flutter drive`，让桌面播放子窗口收到真实 Dart 入口参数；`flutter test` 的包装入口会丢弃子窗口参数，不适合验证多窗口流程。这会调用付费模型 API，并在 SMB 共享的 `OpenPlayX` 文件夹新增视频、在应用中保存字幕和测试聊天。测试只自动批准原提问中 `media_save_to_source` 的确认，不覆盖或删除已有媒体。运行前需要配置好真实源、识别模型及对应 AI 权限。失败时日志包含逐步工具调用与实际结果；测试检查各阶段成功，而不把助手的“已完成”文字当成成功证据。测试结束恢复之前选中的聊天，测试聊天保留便于排查。
+`assistant_movie_flow_test.dart` 启动完整应用，通过聊天控制器提交原始提问：从 SMB 电影共享挑一部电影截取 60 秒、存回共享、本地识别字幕、保存、播放并选择字幕。应用运行在临时数据目录上（主窗口与播放子窗口共用，不读写用户的配置和媒体库），测试通过 debug seed 写入 Ollama 模型、电影共享和本地 whisper tiny，不模拟模型或工具。它会在共享的 `OpenPlayX` 文件夹新增一个子视频；测试只自动批准原提问中 `media_save_to_source` 的确认，不覆盖或删除已有媒体。失败时日志包含逐步工具调用与实际结果；测试检查各阶段成功，最后从真实子窗口读回播放状态与字幕绑定，而不把助手的“已完成”文字当成成功证据。
 
-`player_window_test.dart` 是不调用模型的原生小测试，使用相同驱动命令并更换 `--target` 即可运行。默认验证本地素材；开启 `LIVE_ASSISTANT_FLOW` 后，还会读取已有 SMB 子视频及其已保存字幕，验证独立窗口的真实播放状态和字幕绑定，不新增 SMB 文件。
+模型选择（2026-11-18，同一提示词）：`qwen3.5:4b` 与 `qwen3.5:9b` 把“10%-80% 之间选起点截取 60 秒”误解为截到 80%；`qwen3:8b` 范围正确，并能根据 `invalidArguments` 返回的缺失/无效字段自行纠正参数，约 4 分钟完成全流程。
+
+`player_window_test.dart` 不调用模型：在独立播放窗口中播放本地素材和 SMB 测试服务上的视频，验证真实子窗口的播放状态。子窗口选择已保存识别字幕由电影流程覆盖。
 
 ## 媒体源集成测试
 
-`sources_test.dart` 验证本地文件夹、SMB、Plex、Jellyfin 的真实浏览、资源解析、完整文件/Range 读取和原生 libVLC 播放、暂停、Seek。临时服务启动、初始化及清理步骤见 [source_services/README.md](../tool/source_services/README.md)。未设置 `SOURCE_SERVICES` 时只运行本地文件夹测试，其他源明确跳过。
+`sources_test.dart` 验证本地文件夹及 SMB、WebDAV、FTP、SFTP、S3、Plex、Jellyfin、Emby、DLNA 的真实浏览、资源解析、完整文件/Range 读取和原生 libVLC 播放、暂停、Seek，并在播放中禁用实例，确认新请求被拒绝、已有播放句柄可继续暂停和 Seek。远程源缺少 `SOURCE_HOST` 或服务端口连不上时失败。
 
-`source_storage_test.dart` 在真实应用中验证配置持久化、系统安全存储读写和本地目录书签恢复，不依赖 Docker：
-
-```sh
-flutter test integration_test/source_storage_test.dart -d macos
-```
-
-媒体源测试现在通过 `SourceManager` 创建配置和安全凭据，验证默认实例路由，并在播放中禁用实例，确认新请求被拒绝、已有播放句柄可继续暂停和 Seek。存储测试覆盖 SQLite 的源实例恢复与 Keychain、目录书签协作。
+`source_storage_test.dart` 在真实应用中验证配置持久化、系统安全存储读写和本地目录书签恢复（macOS 与 iOS 保存书签），不依赖测试服务。
 
 ## iOS 模拟器与 Android 模拟器
 
-以下 7 个测试适用于移动端，可一次性运行（Android 需带上元数据后台测试的隔离数据库参数）：
-
-```sh
-TESTS="integration_test/playback_test.dart integration_test/ffmpeg_bridge_test.dart \
-  integration_test/whisper_bridge_test.dart integration_test/source_storage_test.dart \
-  integration_test/sources_test.dart integration_test/mobile_ai_playback_test.dart \
-  integration_test/metadata_background_test.dart"
-flutter test -d <iOS 模拟器 UDID> $TESTS
-flutter test -d emulator-5554 \
-  --dart-define=OPENPLAYX_METADATA_DATABASE=metadata_workmanager_test.sqlite3 $TESTS
-```
-
-`player_window_test.dart`（桌面多窗口）、`ui_screenshots_test.dart`（macOS 截图）和 `assistant_movie_flow_test.dart`（真实模型与 SMB）不适用于移动端。
+`make integration-ios` / `make integration-android` 运行适用于移动端的 7 个测试：`playback`、`ffmpeg_bridge`、`whisper_bridge`、`source_storage`、`sources`、`mobile_ai_playback`、`metadata_background`（仅 Android，带隔离数据库参数）。`player_window_test`、`ui_screenshots_test` 和 `assistant_movie_flow_test` 只在 macOS 运行。
 
 Android 的 FFmpeg 与 whisper.cpp 桥接需要先构建预编译静态库，否则 CMake 退回 stub，`ffmpeg_bridge_test` 与 `whisper_bridge_test` 会因 `available == false` 失败：
 
@@ -105,9 +101,14 @@ done
 rm -rf ../ffmpeg-package/android/.cxx ../package-whisper/android/.cxx  # 丢弃旧的 stub 配置
 ```
 
-2026-11-18 验证结果（`SOURCE_SERVICES` 未开启，SMB 等 9 个远程源按条件跳过）：
+## 验证记录
+
+2026-11-18，服务在本机测试 VM（192.168.1.107）：
 
 | 平台 | 设备 | 结果 |
 | --- | --- | --- |
-| iOS | iPhone 17 Pro 模拟器，iOS 26.5 | 6 通过，元数据后台测试仅限 Android 而跳过 |
-| Android | Medium_Phone 模拟器，API 37，arm64-v8a | 7 全部通过 |
+| macOS | Mac Studio | `sources_test` 10 项（本地 + 9 个远程源）、`player_window_test`、`assistant_movie_flow_test`（`qwen3:8b`，约 4 分钟）全部通过 |
+| iOS | iPhone 17 Pro 模拟器，iOS 26.5 | 6 通过；`metadata_background` 仅 Android 而跳过；9 个远程源失败（见下） |
+| Android | Medium_Phone 模拟器，API 37，arm64-v8a | 7 通过；9 个远程源失败（见下） |
+
+已知问题：iOS 与 Android 上 VLC 经网络（HTTP，含应用的本地网关与 Plex 等直连）播放**无声**视频时，进度停在 0.25 秒不再推进，随后结束；本地文件和 macOS 不受影响，带音轨的视频经同一 SMB 网关在 Android 上正常播放。测试素材 `test/fixtures/test_video.mp4` 无音轨，所以移动端的远程源测试全部因此失败。与 MP4 的 moov 位置无关（faststart 版本表现相同）。

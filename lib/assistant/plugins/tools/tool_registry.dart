@@ -27,8 +27,13 @@ class ToolExecution {
 }
 
 class ToolFailure implements Exception {
-  const ToolFailure(this.code);
+  const ToolFailure(this.code, [this.data = const {}]);
   final String code;
+
+  /// Returned to the model as the result's data, e.g. which arguments of an
+  /// `invalidArguments` call were missing, unknown or out of range, so it
+  /// can correct the call instead of guessing.
+  final Map<String, dynamic> data;
 }
 
 /// Deliberately small schema vocabulary, shared by declarations and validation.
@@ -138,20 +143,67 @@ class RegisteredTool {
     final schema = this.schema;
     if (schema != null) {
       if (!JsonSchemaLite.valid(schema, decoded)) {
-        throw const ToolFailure('invalidArguments');
+        final properties = schema['properties'] as Map? ?? const {};
+        throw ToolFailure(
+          'invalidArguments',
+          _problems(
+            missing: [
+              for (final k in schema['required'] as List? ?? const [])
+                if (!decoded.containsKey(k)) k as String,
+            ],
+            unknown: schema['additionalProperties'] == false
+                ? [
+                    for (final k in decoded.keys)
+                      if (!properties.containsKey(k)) k,
+                  ]
+                : const [],
+            invalid: const [],
+            expected: (k) => properties[k],
+          ),
+        );
       }
       return decoded;
     }
-    if (decoded.keys.any((k) => !fields.containsKey(k)) ||
-        fields.entries.any(
-          (f) => decoded.containsKey(f.key)
-              ? !f.value.valid(decoded[f.key])
-              : f.value.required,
-        )) {
-      throw const ToolFailure('invalidArguments');
+    final missing = [
+      for (final f in fields.entries)
+        if (f.value.required && !decoded.containsKey(f.key)) f.key,
+    ];
+    final unknown = [
+      for (final k in decoded.keys)
+        if (!fields.containsKey(k)) k,
+    ];
+    final invalid = [
+      for (final f in fields.entries)
+        if (decoded.containsKey(f.key) && !f.value.valid(decoded[f.key])) f.key,
+    ];
+    if (missing.isNotEmpty || unknown.isNotEmpty || invalid.isNotEmpty) {
+      throw ToolFailure(
+        'invalidArguments',
+        _problems(
+          missing: missing,
+          unknown: unknown,
+          invalid: invalid,
+          expected: (k) => fields[k]?.schema,
+        ),
+      );
     }
     return decoded;
   }
+
+  static Map<String, dynamic> _problems({
+    required List<String> missing,
+    required List<String> unknown,
+    required List<String> invalid,
+    required Object? Function(String) expected,
+  }) => {
+    if (missing.isNotEmpty) 'missing': missing,
+    if (unknown.isNotEmpty) 'unknown': unknown,
+    if (invalid.isNotEmpty) 'invalid': invalid,
+    if (missing.isNotEmpty || invalid.isNotEmpty)
+      'expected': {
+        for (final k in [...missing, ...invalid]) k: expected(k),
+      },
+  };
 }
 
 /// Outcome of the plugin/AI policy check for one tool. Codes are returned to
@@ -321,7 +373,7 @@ class ToolGateway {
       if (!tool.readOnly) _operations[operation] = future;
       return await future;
     } on ToolFailure catch (e) {
-      return ToolResult(call.id, 'failed', error: e.code);
+      return ToolResult(call.id, 'failed', data: e.data, error: e.code);
     } catch (_) {
       return ToolResult(call.id, 'failed', error: 'businessFailure');
     }
@@ -365,7 +417,7 @@ class ToolGateway {
     } on TimeoutException {
       return ToolResult(callId, 'failed', error: 'executionUnknown');
     } on ToolFailure catch (e) {
-      return ToolResult(callId, 'failed', error: e.code);
+      return ToolResult(callId, 'failed', data: e.data, error: e.code);
     } catch (_) {
       return ToolResult(callId, 'failed', error: 'businessFailure');
     } finally {

@@ -18,7 +18,7 @@ DEVICE ?=
 # Integration tests (integration_test/README.md): live services are required.
 IT_DEFINES := build/integration-defines.json
 # Small local model for the assistant movie flow, with room for every tool.
-OLLAMA_BASE ?= qwen3.5:4b-mlx
+OLLAMA_BASE ?= qwen3:8b
 OLLAMA_MODEL ?= openplayx-it
 OLLAMA_CTX ?= 32768
 # integration-ios / integration-android device ids.
@@ -113,7 +113,9 @@ integration-defines:
 
 # The base model with a context window that holds the App's tool schemas.
 integration-ollama:
-	printf 'FROM $(OLLAMA_BASE)\nPARAMETER num_ctx $(OLLAMA_CTX)\n' | ollama create $(OLLAMA_MODEL) -f -
+	@mkdir -p build
+	printf 'FROM $(OLLAMA_BASE)\nPARAMETER num_ctx $(OLLAMA_CTX)\n' > build/ollama-it.Modelfile
+	ollama create $(OLLAMA_MODEL) -f build/ollama-it.Modelfile
 
 integration-macos: integration-defines
 	flutter test -d macos --dart-define-from-file=$(IT_DEFINES) $(filter-out \
