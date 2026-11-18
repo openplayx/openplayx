@@ -28,7 +28,6 @@ extension _DetailSections on _MediaDetailPageState {
 
   Widget _actionColumn(String title) {
     final playable = _c.playable;
-    final watched = _c.watched;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
@@ -58,17 +57,6 @@ extension _DetailSections on _MediaDetailPageState {
                 ),
               ),
             ],
-          ),
-        ),
-        const SizedBox(height: 17),
-        _GlassButton(
-          height: _M.buttonHeight,
-          tooltip: watched ? l.markUnwatched : l.markWatched,
-          onPressed: !_c.canMarkWatched ? null : _c.toggleWatched,
-          child: Icon(
-            watched ? Icons.flag_rounded : LucideIcons.flag,
-            size: 19,
-            color: _C.text,
           ),
         ),
       ],
