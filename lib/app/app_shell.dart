@@ -75,6 +75,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final _launcher = PlaybackLauncher(_sources);
   final _revision = ValueNotifier(0);
   final _player = GlobalKey<PlayerPageState>();
+  final _playerControlsVisibility = ValueNotifier(true);
   final _branches = List.generate(
     AppDestination.values.length,
     (_) => GlobalKey<NavigatorState>(),
@@ -229,6 +230,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   @override
   void dispose() {
     WidgetsBinding.instance.removeObserver(this);
+    _playerControlsVisibility.dispose();
     unawaited(_metadataRuntime?.dispose());
     _artwork?.dispose();
     _chat?.dispose();
@@ -406,14 +408,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Widget _playerAssistantButton(BuildContext context) => Positioned(
     top: MediaQuery.paddingOf(context).top + AppSpacing.md,
     right: AppSpacing.page(context).right,
-    child: Tooltip(
-      message: l.aiAssistant,
-      child: Semantics(
-        label: l.aiAssistant,
-        button: true,
-        // Dark theme so the icon stays visible over the (black) player.
-        child: _withPlayerControls(
-          ShadTheme(data: AppTheme.dark, child: _assistantIcon()),
+    child: _withPlayerControls(
+      Tooltip(
+        message: l.aiAssistant,
+        child: Semantics(
+          label: l.aiAssistant,
+          button: true,
+          // Dark theme so the icon stays visible over the (black) player.
+          child: ShadTheme(data: AppTheme.dark, child: _assistantIcon()),
         ),
       ),
     ),
@@ -421,10 +423,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   // Over the player the button shows and hides together with its controls.
   Widget _withPlayerControls(Widget child) {
-    final visibility = _player.currentState?.controlsVisibility;
-    if (visibility == null) return child;
     return ValueListenableBuilder<bool>(
-      valueListenable: visibility,
+      valueListenable: _playerControlsVisibility,
       builder: (context, visible, child) => IgnorePointer(
         ignoring: !visible,
         child: ExcludeSemantics(
@@ -689,6 +689,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       child: PlayerPage(
                         key: _player,
                         backend: _backend,
+                        controlsVisibility: _playerControlsVisibility,
                         sourceManager: _sources,
                         libraryService: _library,
                         active: _showPlayer,

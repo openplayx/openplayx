@@ -68,6 +68,7 @@ class PlayerPage extends StatefulWidget {
     this.active = true,
     this.prefs = const PlayerPrefs(),
     this.fullscreen,
+    this.controlsVisibility,
   });
   final VoidCallback? onExit;
 
@@ -87,6 +88,10 @@ class PlayerPage extends StatefulWidget {
   final Future<Uri?> Function() pickSubtitle;
   final PlayerPrefs prefs;
   final WindowFullscreen? fullscreen;
+
+  /// Optional shared visibility for controls drawn by the host. The host owns
+  /// and disposes this notifier when supplied.
+  final ValueNotifier<bool>? controlsVisibility;
   @override
   State<PlayerPage> createState() => PlayerPageState();
 }
@@ -120,7 +125,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   /// Whether the overlay controls are shown; the shell fades the assistant
   /// button with them.
-  final controlsVisibility = ValueNotifier(true);
+  late final controlsVisibility =
+      widget.controlsVisibility ?? ValueNotifier(true);
   bool get _controlsVisible => controlsVisibility.value;
   set _controlsVisible(bool value) => controlsVisibility.value = value;
   bool _pointerDown = false;
@@ -865,7 +871,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
     if (!_mobileDisplay) _window.stopListening();
     _playerFocus.dispose();
-    controlsVisibility.dispose();
+    if (widget.controlsVisibility == null) controlsVisibility.dispose();
     _playerListeners.removeListener(_rebuild);
     _player.dispose();
     _hideTimer?.cancel();

@@ -6,12 +6,15 @@ import 'package:openplayx/app/app_navigation.dart';
 import 'dart:async';
 
 import 'package:flutter/foundation.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/app/app_shell.dart';
 import 'package:openplayx/features/player/view/player_page.dart';
+import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
+import 'package:openplayx/ui/icons/app_icons.dart';
 import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
@@ -33,6 +36,130 @@ class ShellSources extends Sources {
 }
 
 void main() {
+  for (final layout in [
+    (TargetPlatform.android, const Size(390, 844)),
+    (TargetPlatform.iOS, const Size(844, 390)),
+    (TargetPlatform.macOS, const Size(800, 600)),
+    (TargetPlatform.macOS, const Size(1200, 800)),
+  ]) {
+    testWidgets('${layout.$1.name} ${layout.$2}: AI follows player controls', (
+      tester,
+    ) async {
+      debugDefaultTargetPlatformOverride = layout.$1;
+      addTearDown(() => debugDefaultTargetPlatformOverride = null);
+      tester.view.devicePixelRatio = 1;
+      tester.view.physicalSize = layout.$2;
+      addTearDown(tester.view.reset);
+      final library = LibraryService(sqlite3.openInMemory());
+      await tester.pumpWidget(
+        TestApp(
+          home: AppShell(
+            library: library,
+            sources: ShellSources(),
+            backend: FakeBackend(),
+            pickMedia: () async => LocalMedia(
+              Uri.parse('https://example.test/video.mp4'),
+              'Video',
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final player = tester.state<PlayerPageState>(
+        find.byType(PlayerPage, skipOffstage: false),
+      );
+      await player.openFile();
+      await tester.pumpAndSettle();
+
+      final ai = find.byIcon(AppIcons.assistant);
+      Finder fadeOf(Finder control) => find
+          .ancestor(of: control, matching: find.byType(AnimatedOpacity))
+          .first;
+      void expectVisibility(bool visible) {
+        final aiFade = tester.widget<AnimatedOpacity>(fadeOf(ai));
+        final playerFade = tester.widget<AnimatedOpacity>(
+          fadeOf(find.byTooltip('返回')),
+        );
+        expect(aiFade.opacity, visible ? 1 : 0);
+        expect(aiFade.opacity, playerFade.opacity);
+        expect(aiFade.duration, playerFade.duration);
+        expect(aiFade.curve, playerFade.curve);
+        expect(ai.hitTestable(), visible ? findsOneWidget : findsNothing);
+        expect(
+          tester
+              .widget<ExcludeSemantics>(
+                find
+                    .ancestor(
+                      of: fadeOf(ai),
+                      matching: find.byType(ExcludeSemantics),
+                    )
+                    .first,
+              )
+              .excluding,
+          !visible,
+        );
+      }
+
+      Future<void> toggleControls() async {
+        if (layout.$1 == TargetPlatform.macOS) {
+          // The shell initially mounts the player offstage. Give keyboard
+          // input to its focus scope before exercising the shortcut.
+          tester
+              .widget<Focus>(
+                find
+                    .ancestor(
+                      of: find.byKey(const Key('video-gestures')),
+                      matching: find.byWidgetPredicate(
+                        (widget) =>
+                            widget is Focus &&
+                            widget.focusNode?.debugLabel == 'player-keyboard',
+                      ),
+                    )
+                    .first,
+              )
+              .focusNode!
+              .requestFocus();
+          await tester.pump();
+          // Desktop defaults to click-to-pause; I toggles its controls.
+          await tester.sendKeyEvent(LogicalKeyboardKey.keyI);
+        } else {
+          await tester.tapAt(const Offset(80, 200));
+          // A single tap waits for the double-tap recognizer to expire.
+          await tester.pump(kDoubleTapTimeout);
+        }
+        await tester.pumpAndSettle();
+      }
+
+      expectVisibility(true);
+      await toggleControls();
+      expectVisibility(false);
+      await toggleControls();
+      expectVisibility(true);
+      final delay = layout.$1 == TargetPlatform.macOS
+          ? const Duration(seconds: 2)
+          : const Duration(seconds: 4);
+      await tester.pump(delay);
+      await tester.pumpAndSettle();
+      expectVisibility(false);
+      await toggleControls();
+      expectVisibility(true);
+
+      await tester.tap(find.byTooltip('AI 助手'));
+      await tester.pumpAndSettle();
+      expect(find.byType(AiChatView), findsOneWidget);
+      await tester.pump(delay);
+      await tester.pumpAndSettle();
+      expect(player.controlsVisibility.value, isFalse);
+      expect(find.byType(AiChatView), findsOneWidget);
+      Navigator.of(tester.element(find.byType(AiChatView))).pop();
+      await tester.pumpAndSettle();
+      expectVisibility(false);
+      expect(tester.takeException(), isNull);
+      await tester.pumpWidget(const SizedBox.shrink());
+      library.close();
+    });
+  }
+
   for (final cancel in [true, false]) {
     testWidgets(
       'file selection reveals the player only after choosing a file (cancel: $cancel)',
