@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
@@ -403,8 +404,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           child: child,
         );
 
-  // The player is not a route: there the button is overlaid in the top-right
-  // corner, which the player top bar keeps free for it.
+  // Desktop keeps an overlay; mobile places the action in the player's row.
   Widget _playerAssistantButton(BuildContext context) => Positioned(
     top: MediaQuery.paddingOf(context).top + AppSpacing.md,
     right: AppSpacing.page(context).right,
@@ -444,13 +444,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     width: AppPage.headerHeight,
     height: AppPage.headerHeight,
     icon: const Icon(AppIcons.assistant),
-    onPressed: () {
-      _originPage = PageContextSource(
-        const PageContextData(pageType: 'player'),
-      );
-      _openAssistant();
-    },
+    onPressed: _openPlayerAssistant,
   );
+
+  void _openPlayerAssistant() {
+    _originPage = PageContextSource(const PageContextData(pageType: 'player'));
+    _openAssistant();
+  }
 
   Future<void> _exitPlayer() async {
     if (_exitingPlayer) return;
@@ -641,6 +641,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1, 2);
           final wide = effectiveWidth >= 840;
           final sidebar = effectiveWidth >= 600;
+          final mobilePlayer =
+              !kIsWeb &&
+              (defaultTargetPlatform == TargetPlatform.android ||
+                  defaultTargetPlatform == TargetPlatform.iOS);
           return Scaffold(
             body: Stack(
               children: [
@@ -690,6 +694,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                         key: _player,
                         backend: _backend,
                         controlsVisibility: _playerControlsVisibility,
+                        onAssistantPressed: _assistant == null
+                            ? null
+                            : _openPlayerAssistant,
                         sourceManager: _sources,
                         libraryService: _library,
                         active: _showPlayer,
@@ -700,7 +707,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                       ),
                     ),
                   ),
-                if (_assistant != null && _showPlayer)
+                if (_assistant != null && _showPlayer && !mobilePlayer)
                   _playerAssistantButton(context),
               ],
             ),

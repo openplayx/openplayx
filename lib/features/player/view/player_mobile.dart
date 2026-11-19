@@ -528,6 +528,13 @@ extension _MobilePlayer on PlayerPageState {
               size: 44,
               onPressed: _enabled ? () => _openPanel(PlayerPanel.more) : null,
             ),
+            if (widget.onAssistantPressed != null)
+              PlayerIconButton(
+                tooltip: l.aiAssistant,
+                icon: AppIcons.assistant,
+                size: 44,
+                onPressed: widget.onAssistantPressed,
+              ),
           ],
         ),
         if (_statusChips().isNotEmpty)

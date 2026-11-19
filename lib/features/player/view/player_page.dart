@@ -69,6 +69,7 @@ class PlayerPage extends StatefulWidget {
     this.prefs = const PlayerPrefs(),
     this.fullscreen,
     this.controlsVisibility,
+    this.onAssistantPressed,
   });
   final VoidCallback? onExit;
 
@@ -92,6 +93,9 @@ class PlayerPage extends StatefulWidget {
   /// Optional shared visibility for controls drawn by the host. The host owns
   /// and disposes this notifier when supplied.
   final ValueNotifier<bool>? controlsVisibility;
+
+  /// Optional assistant action in the mobile top bar, after playback settings.
+  final VoidCallback? onAssistantPressed;
   @override
   State<PlayerPage> createState() => PlayerPageState();
 }
