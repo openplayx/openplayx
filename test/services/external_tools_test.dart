@@ -322,6 +322,82 @@ void main() {
       },
     );
 
+    test('download queries bypass confirmation under their MCP alias while '
+        'writes require approval before reaching the server', () async {
+      const arguments = <String, Map<String, dynamic>>{
+        'get_download': {'task_id': 'task-1'},
+        'start_download': {'plan_ref': 'download-plan'},
+        'pause': {'task_id': 'task-1'},
+        'resume': {'task_id': 'task-1'},
+        'remove': {'task_id': 'task-1', 'plan_ref': 'remove-plan'},
+      };
+      final service = ExternalService(
+        id: 'torrent',
+        name: 'VM BitTorrent',
+        baseUrl: fake.url,
+        endpoint: fake.url,
+        serverName: 'openplayx-bittorrent',
+        available: true,
+        tools: arguments.keys.toList(),
+        toolDefs: [
+          for (final name in arguments.keys)
+            {
+              'name': name,
+              'inputSchema': {
+                'type': 'object',
+                'properties': {
+                  for (final key in arguments[name]!.keys)
+                    key: {'type': 'string'},
+                },
+                'required': arguments[name]!.keys.toList(),
+                'additionalProperties': false,
+              },
+              'annotations': {
+                'readOnlyHint': name == 'get_download',
+                'destructiveHint': name == 'remove',
+                'idempotentHint': name != 'remove',
+              },
+            },
+        ],
+      );
+      await services.save(service, token: 'good');
+      tools.sync();
+
+      final gateway = ToolGateway(registry);
+      for (final entry in arguments.entries) {
+        final alias = ExternalTools.alias(service, entry.key);
+        final readOnly = entry.key == 'get_download';
+        expect(alias, 'mcp_orrent_${entry.key}');
+        expect(registry[alias]!.readOnly, readOnly);
+        expect(registry[alias]!.confirmation, !readOnly);
+        var confirmations = 0;
+        Future<ToolResult> invoke(String turn, bool approve) => gateway.invoke(
+          turn: turn,
+          call: _call(alias, entry.value),
+          allowed: {alias},
+          active: () => true,
+          confirm: (name, args) async {
+            confirmations++;
+            expect(name, alias);
+            expect(args, entry.value);
+            return approve;
+          },
+        );
+
+        final before = fake.calls.length;
+        final denied = await invoke('deny-${entry.key}', false);
+        expect(denied.status, readOnly ? 'success' : 'cancelled');
+        expect(confirmations, readOnly ? 0 : 1);
+        expect(fake.calls.length, before + (readOnly ? 1 : 0));
+
+        final accepted = await invoke('approve-${entry.key}', true);
+        expect(accepted.status, 'success');
+        expect(confirmations, readOnly ? 0 : 2);
+        expect(fake.calls.length, before + (readOnly ? 2 : 1));
+        expect(fake.calls.last, {'name': entry.key, 'arguments': entry.value});
+      }
+    });
+
     test('removing a service withdraws its tools', () async {
       final s = await add();
       await Future<void>.delayed(Duration.zero);
