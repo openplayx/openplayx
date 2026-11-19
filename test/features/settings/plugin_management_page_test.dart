@@ -270,18 +270,23 @@ void main() {
 
   testWidgets('模型 page is the model settings form', (tester) async {
     final db = sqlite3.openInMemory();
+    final configuration = sqlite3.openInMemory();
     addTearDown(db.close);
+    addTearDown(configuration.close);
     await pump(
       tester,
-      assistant: AssistantStore(db, configuration: sqlite3.openInMemory()),
+      assistant: AssistantStore(db, configuration: configuration),
     );
     // The root shows the model state before opening it.
-    expect(find.text('未配置'), findsOneWidget);
+    expect(find.text('平台服务'), findsOneWidget);
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsNothing);
     await openGroup(tester, 'model');
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsOneWidget);
-    expect(find.byType(EditableText), findsNWidgets(3));
+    expect(find.byType(EditableText), findsNothing);
     expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
     expect(find.byKey(const ValueKey('ai-save')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+    await tester.pumpAndSettle();
+    expect(find.byType(EditableText), findsNWidgets(3));
   });
 }
