@@ -23,8 +23,15 @@ import 'scan_status.dart';
 /// CTE ([_enabledSourcesCte]).
 String _visibleMedia(String x) =>
     """(NOT EXISTS (SELECT 1 FROM resources r WHERE r.media_id=$x)
-        OR (EXISTS (SELECT 1 FROM resources r WHERE r.media_id=$x AND substr(r.name,1,1)<>'.')
-          AND EXISTS (SELECT 1 FROM media_evidence e WHERE e.media_id=$x AND e.file_source_id IN (SELECT id FROM enabled_sources))))""";
+        OR EXISTS (SELECT 1 FROM resources r JOIN evidence e ON e.resource_id=r.id
+          WHERE r.media_id=$x AND substr(r.name,1,1)<>'.' AND e.available=1
+          AND e.file_source_id IN (SELECT id FROM enabled_sources)))""";
+
+/// Browsed files have no scan evidence and can still be played directly.
+/// A scanned file is unavailable only when every observation confirms absence.
+String _availableResource(String x) =>
+    '(NOT EXISTS (SELECT 1 FROM evidence e WHERE e.resource_id=$x) '
+    'OR EXISTS (SELECT 1 FROM evidence e WHERE e.resource_id=$x AND e.available=1))';
 
 /// Binds the JSON list of enabled file source ids.
 const _enabledSourcesCte =
@@ -454,7 +461,7 @@ class LibraryRepository {
   /// Hidden dot files (macOS `._movie.mkv` sidecars kept from scans before
   /// they were filtered) are never offered for playback.
   ResultSet resources(String media) => db.select(
-    "SELECT r.id,r.media_id,l.source,l.item,r.name,r.size FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? AND substr(r.name,1,1)<>'.' ORDER BY r.id,l.source,l.item",
+    "SELECT r.id,r.media_id,l.source,l.item,r.name,r.size FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE r.media_id=? AND substr(r.name,1,1)<>'.' AND ${_availableResource('r.id')} ORDER BY r.id,l.source,l.item",
     [media],
   );
 
@@ -478,6 +485,8 @@ class LibraryRepository {
     JOIN resource_locators l ON l.resource_id=r.id
     WHERE r.media_id IN (SELECT value FROM json_each(?))
       AND substr(r.name,1,1)<>'.' AND ${_visibleMedia('r.media_id')}
+      AND EXISTS (SELECT 1 FROM evidence e WHERE e.resource_id=r.id
+        AND e.available=1 AND e.file_source_id IN (SELECT id FROM enabled_sources))
     ORDER BY r.size IS NULL,r.size DESC,r.name,r.id,l.source,l.item''',
     [jsonEncode(enabledFileSourceIds()), jsonEncode(versionGroup(media))],
   );
@@ -551,11 +560,26 @@ class LibraryRepository {
     [offset, done, fileSource, node],
   );
 
-  void markUnseenResourcesMissing(String fileSource, String batch) =>
-      db.execute(
-        'UPDATE evidence SET available=0 WHERE file_source_id=? AND seen<>?',
-        [fileSource, batch],
-      );
+  /// Reconciles only a successfully completed traversal, inside its transaction.
+  /// Keep file identities and progress so returning files reuse them, but drop
+  /// stale library associations unless another file source still observes them.
+  void markUnseenResourcesMissing(String fileSource, String batch) {
+    db.execute(
+      'UPDATE evidence SET available=0 WHERE file_source_id=? AND seen<>?',
+      [fileSource, batch],
+    );
+    final affected = fileSourceMedia(fileSource);
+    db.execute(
+      '''DELETE FROM media_evidence WHERE file_source_id=?
+      AND EXISTS (SELECT 1 FROM resources r WHERE r.media_id=media_evidence.media_id)
+      AND NOT EXISTS (SELECT 1 FROM resources r JOIN evidence e ON e.resource_id=r.id
+        WHERE r.media_id=media_evidence.media_id AND e.file_source_id=? AND e.available=1)''',
+      [fileSource, fileSource],
+    );
+    for (final row in affected) {
+      pruneUnobservedMembership(row['media_id'] as String);
+    }
+  }
 
   void removeScanTask(String fileSource) =>
       db.execute('DELETE FROM scan_tasks WHERE file_source_id=?', [fileSource]);
@@ -613,7 +637,7 @@ class LibraryRepository {
     -- One entry per version group: the version played last.
     ROW_NUMBER() OVER(PARTITION BY ${_versionGroup('m.id')} ORDER BY p.updated_at DESC,r.id) AS rank
     FROM progress p JOIN resources r ON r.id=p.resource_id JOIN media m ON m.id=r.media_id
-    WHERE ${_visibleMedia('m.id')})
+    WHERE ${_visibleMedia('m.id')} AND ${_availableResource('r.id')})
     SELECT * FROM ranked WHERE rank=1 AND position>0 AND completed=0 ORDER BY updated_at DESC,id LIMIT ?""",
     [jsonEncode(enabledFileSourceIds()), limit],
   );

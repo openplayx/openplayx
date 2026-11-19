@@ -502,7 +502,7 @@ void main() {
     await service.scan(binding, sources);
     expect(service.query().single['title'], 'User title');
   });
-  test('failed scan retains availability; completed empty scan marks unavailable without deletion', () async {
+  test('failed scan retains availability; completed empty scan removes library membership', () async {
     final binding = service.addFileSource('s');
     await service.scan(binding, sources);
     sources.fail = true;
@@ -522,7 +522,7 @@ void main() {
       service.db.select('SELECT available FROM evidence').single['available'],
       0,
     );
-    expect(service.query(), hasLength(1));
+    expect(service.query(), isEmpty);
   });
   test(
     'hiding persists across scans and removing the file source deletes it',

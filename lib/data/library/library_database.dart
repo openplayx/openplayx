@@ -144,6 +144,10 @@ abstract final class LibraryDatabase {
     db.execute(
       'CREATE INDEX IF NOT EXISTS resources_media ON resources(media_id)',
     );
+    // Library visibility and version availability look up evidence by file.
+    db.execute(
+      'CREATE INDEX IF NOT EXISTS evidence_resource ON evidence(resource_id,available,file_source_id)',
+    );
     // The composite primary key leads with another column, so the library
     // list's per-row EXISTS checks would build a temp index every query.
     db.execute(
