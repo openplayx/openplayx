@@ -6,7 +6,7 @@ import 'package:path_provider_platform_interface/path_provider_platform_interfac
 // Live services every integration test depends on. They are required: a
 // missing define or an unreachable service fails the test, it never skips.
 // `make integration-defines` writes build/integration-defines.json from
-// tool/source_services/defines.local.json and .env; pass it with
+// tool/source_services/defines.local.json and ../design/.env; pass it with
 // --dart-define-from-file (see integration_test/README.md).
 
 /// Host of the tool/source_services stack (the Mac's test VM).

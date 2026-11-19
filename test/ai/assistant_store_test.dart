@@ -7,6 +7,28 @@ import 'package:sqlite3/sqlite3.dart';
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   test(
+    'new installs use platform; legacy custom settings retain their provider',
+    () {
+      final db = sqlite3.openInMemory(), configuration = sqlite3.openInMemory();
+      addTearDown(db.close);
+      addTearDown(configuration.close);
+      final store = AssistantStore(db, configuration: configuration);
+      final fresh = store.loadConfig();
+      expect(fresh.usePlatform, true);
+      expect(fresh.configured, true);
+      expect(fresh.effectiveEndpoint, 'https://api.openplayx.com/v1/llm');
+      expect(fresh.effectiveModel, 'llm');
+      final legacy = AssistantConfig.fromJson({
+        'endpoint': 'https://example.com/v1',
+        'model': 'custom',
+        'apiKey': 'secret',
+      });
+      expect(legacy.usePlatform, false);
+      expect(legacy.effectiveEndpoint, 'https://example.com/v1');
+      expect(legacy.configured, true);
+    },
+  );
+  test(
     'credentials rotate outside SQLite and blank edit retains the existing key',
     () async {
       final db = sqlite3.openInMemory(), configuration = sqlite3.openInMemory();

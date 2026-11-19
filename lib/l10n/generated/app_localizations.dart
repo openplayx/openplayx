@@ -1903,7 +1903,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiProviderDescription.
   ///
   /// In en, this message translates to:
-  /// **'Any OpenAI-compatible API, e.g. DeepSeek. The key is stored in the system keychain.'**
+  /// **'Supports OpenAI-compatible APIs. Your API key is saved locally.'**
   String get aiProviderDescription;
 
   /// No description provided for @aiEndpoint.
@@ -7448,6 +7448,42 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Follow system orientation'**
   String get followSystemOrientation;
+
+  /// No description provided for @aiUsePlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Use platform default service'**
+  String get aiUsePlatform;
+
+  /// No description provided for @aiUsePlatformHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Ready to use. No API address, model, or key needed.'**
+  String get aiUsePlatformHint;
+
+  /// No description provided for @aiPlatformService.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform service'**
+  String get aiPlatformService;
+
+  /// No description provided for @aiPlatformPrivacy.
+  ///
+  /// In en, this message translates to:
+  /// **'Your messages are sent to the platform AI service. Daily usage limits apply.'**
+  String get aiPlatformPrivacy;
+
+  /// No description provided for @aiCustomService.
+  ///
+  /// In en, this message translates to:
+  /// **'Bring your own service'**
+  String get aiCustomService;
+
+  /// No description provided for @aiCustomServiceHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Turn off the default service to use your own API. Your settings are kept when switching.'**
+  String get aiCustomServiceHint;
 }
 
 class _AppLocalizationsDelegate

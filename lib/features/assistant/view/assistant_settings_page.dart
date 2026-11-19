@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../assistant/conversation/assistant_store.dart';
@@ -10,8 +11,8 @@ import '../controller/model_config_controller.dart';
 import 'widgets/ai_failure_message.dart';
 import '../../../ui/components/feedback/app_feedback.dart';
 
-/// Model settings form: API domain, model name and key, one connection test
-/// and save. Embedded in the AI page's 模型 tab (it is not a page itself).
+/// Platform service by default, with an optional custom provider form.
+/// Embedded in the AI page's model settings.
 class AssistantModelSettings extends StatefulWidget {
   const AssistantModelSettings({super.key, required this.store, this.onSaved});
   final AssistantStore store;
@@ -94,22 +95,40 @@ class _AssistantModelSettingsState extends State<AssistantModelSettings> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         SettingsSection(
-          footer: l.aiProviderDescription,
+          footer: _c.usePlatform ? l.aiPlatformPrivacy : l.aiCustomServiceHint,
           children: [
-            field(
-              l.aiEndpoint,
-              _c.endpoint,
-              keyboardType: TextInputType.url,
-              example: AssistantConfig.exampleEndpoint,
-            ),
-            field(l.aiModel, _c.model, example: AssistantConfig.exampleModel),
-            field(
-              l.aiApiKey,
-              _c.key,
-              example: _c.configured ? l.aiKeySaved : 'sk-…',
+            SettingsRow(
+              title: l.aiUsePlatform,
+              description: l.aiUsePlatformHint,
+              control: ShadCheckbox(
+                key: const ValueKey('ai-use-platform'),
+                value: _c.usePlatform,
+                enabled: !_busy,
+                onChanged: _c.setUsePlatform,
+              ),
+              onTap: _busy ? null : () => _c.setUsePlatform(!_c.usePlatform),
             ),
           ],
         ),
+        if (!_c.usePlatform)
+          SettingsSection(
+            title: l.aiCustomService,
+            footer: l.aiProviderDescription,
+            children: [
+              field(
+                l.aiEndpoint,
+                _c.endpoint,
+                keyboardType: TextInputType.url,
+                example: AssistantConfig.exampleEndpoint,
+              ),
+              field(l.aiModel, _c.model, example: AssistantConfig.exampleModel),
+              field(
+                l.aiApiKey,
+                _c.key,
+                example: _c.key.hasStored ? l.aiKeySaved : 'sk-…',
+              ),
+            ],
+          ),
         FormActions(
           status: switch (_c.task) {
             ModelConfigTask.testing => FormStatus.busy(l.aiCheckingConnection),

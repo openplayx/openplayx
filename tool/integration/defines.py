@@ -6,7 +6,7 @@ this script fails, naming what is missing, instead of writing partial defines.
 
 Inputs, run from the openplayx directory:
   tool/source_services/defines.local.json  written by tool/source_services/bootstrap.py
-  .env                                     SMB_USER, SMB_PASSWORD (the movie share)
+  ../design/.env                         SMB_USER, SMB_PASSWORD (the movie share)
 Optional environment overrides:
   MOVIE_SMB_ADDRESS  default smb://<SOURCE_HOST>/movie
   OLLAMA_ENDPOINT    default http://localhost:11434/v1
@@ -73,10 +73,10 @@ def main():
     host = defines.get("SOURCE_HOST")
     if not host:
         fail(f"SOURCE_HOST missing in {services_path}")
-    env = {**read_env(".env"), **os.environ}
+    env = {**read_env("../design/.env"), **os.environ}
     missing = [k for k in ("SMB_USER", "SMB_PASSWORD") if not env.get(k)]
     if missing:
-        fail(f"set {', '.join(missing)} in .env (the movie SMB share)")
+        fail(f"set {', '.join(missing)} in ../design/.env (the movie SMB share)")
     asr_dir = os.path.expanduser(
         env.get("ASR_MODEL_DIR", "~/.cache/openplayx-asr-models"))
     ensure_tiny(asr_dir)

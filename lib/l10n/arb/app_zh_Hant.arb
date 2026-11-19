@@ -399,7 +399,7 @@
   "aiInterrupted": "上次關閉時中斷，不會重播操作。",
   "aiTokenUsage": "供應商回報用量：{count} tokens",
   "aiModelSettings": "模型設定",
-  "aiProviderDescription": "支援 OpenAI 相容介面，例如 DeepSeek。Key 儲存在系統鑰匙圈中。",
+  "aiProviderDescription": "支援 OpenAI 相容介面，API Key 儲存在本機。",
   "aiEndpoint": "API 網域",
   "aiModel": "模型名稱",
   "aiApiKey": "API Key",
@@ -1352,5 +1352,11 @@
   "cloudDisconnectHelp": "清除本機憑證並停止雲端硬碟請求。還需在微軟或 Dropbox 帳號權限頁面移除此應用程式，以解除平台授權。",
   "plSwitchToLandscape": "切換到橫向",
   "plSwitchToPortrait": "切換到直向",
-  "followSystemOrientation": "螢幕方向跟隨系統"
+  "followSystemOrientation": "螢幕方向跟隨系統",
+  "aiUsePlatform": "使用平台預設服務",
+  "aiUsePlatformHint": "開箱即用，無需填寫網域、模型或 Key。",
+  "aiPlatformService": "平台服務",
+  "aiPlatformPrivacy": "對話內容將傳送至平台 AI 服務，每日使用額度有限。",
+  "aiCustomService": "自備服務",
+  "aiCustomServiceHint": "取消勾選後，可填寫自己的 API 服務。切換時會保留自備設定。"
 }

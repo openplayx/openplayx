@@ -22,9 +22,9 @@ class ProbeSources extends SourceManager {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  // Parent defaults < project .env < process environment. Never print values.
+  // Shared design/.env < process environment. Never print values.
   final env = <String, String>{
-    for (final file in [File('../.env'), File('.env')])
+    for (final file in [File('../design/.env')])
       if (file.existsSync()) ...parseEnv(file.readAsStringSync()),
     ...Platform.environment,
   };

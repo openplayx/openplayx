@@ -11,6 +11,7 @@ import '../../l10n/l10n.dart';
 
 class AssistantConfig {
   const AssistantConfig({
+    this.usePlatform = false,
     this.endpoint = exampleEndpoint,
     this.model = exampleModel,
     this.hasKey = false,
@@ -22,8 +23,16 @@ class AssistantConfig {
   });
 
   /// Shown as hints in the settings form; the user enters their own.
-  static const exampleEndpoint = 'https://api.deepseek.com';
-  static const exampleModel = 'deepseek-v4-pro';
+  static const exampleEndpoint = 'https://api.example.com/v1';
+  static const exampleModel = 'your-model';
+
+  static const platformEndpoint = 'https://api.openplayx.com/v1/llm';
+  static const platformModel = 'llm';
+
+  final bool usePlatform;
+  String get effectiveEndpoint => usePlatform ? platformEndpoint : endpoint;
+  String get effectiveModel => usePlatform ? platformModel : model;
+  int get effectiveMaxTokens => usePlatform ? 2048 : maxTokens;
 
   final String endpoint;
   final String model;
@@ -36,9 +45,10 @@ class AssistantConfig {
   final bool streamVerified;
   final int maxTokens;
 
-  /// A saved key is all the assistant needs to start.
-  bool get configured => hasKey;
+  /// Platform service is ready by default; custom providers require a key.
+  bool get configured => usePlatform || hasKey;
   Map<String, dynamic> toJson() => {
+    'usePlatform': usePlatform,
     'endpoint': endpoint,
     'model': model,
     'cloudAllowed': cloudAllowed,
@@ -49,8 +59,9 @@ class AssistantConfig {
   };
   factory AssistantConfig.fromJson(Map<String, dynamic> json) =>
       AssistantConfig(
-        endpoint: json['endpoint'] as String,
-        model: json['model'] as String,
+        usePlatform: json['usePlatform'] == true,
+        endpoint: json['endpoint'] as String? ?? exampleEndpoint,
+        model: json['model'] as String? ?? exampleModel,
         hasKey: (json['apiKey'] as String?)?.isNotEmpty == true,
         cloudAllowed: json['cloudAllowed'] == true,
         toolsSupported: json['toolsSupported'] == true,
@@ -59,15 +70,15 @@ class AssistantConfig {
         maxTokens: json['maxTokens'] as int? ?? 2048,
       );
   void validate() {
-    final uri = Uri.tryParse(endpoint);
+    final uri = Uri.tryParse(effectiveEndpoint);
     if (uri == null ||
         !(uri.scheme == 'https' || uri.scheme == 'http' && isLoopback(uri)) ||
         uri.host.isEmpty ||
         uri.userInfo.isNotEmpty ||
         uri.hasQuery ||
         uri.hasFragment ||
-        model.trim().isEmpty ||
-        model.length > 200 ||
+        effectiveModel.trim().isEmpty ||
+        effectiveModel.length > 200 ||
         maxTokens < 128 ||
         maxTokens > 16384) {
       throw FormatException(appStrings.errAssistantConfig);
@@ -156,7 +167,11 @@ class AssistantStore implements ToolJournal {
   AssistantConfig loadConfig() {
     final document = _document();
     return document == null
-        ? const AssistantConfig()
+        ? const AssistantConfig(
+            usePlatform: true,
+            cloudAllowed: true,
+            toolsSupported: true,
+          )
         : AssistantConfig.fromJson(document);
   }
 

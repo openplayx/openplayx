@@ -1,6 +1,6 @@
 # Debug 配置预加载（seed）
 
-测试时不用在 App 里逐项手填：写一份 JSON 模板，凭据放 `.env`，生成一份可直接用的 seed，App 在 debug / profile 构建启动时导入。release 构建不会读取。
+测试时不用在 App 里逐项手填：写一份 JSON 模板，凭据集中放在同级设计仓库的 `../design/.env`，生成一份可直接用的 seed，App 在 debug / profile 构建启动时导入。release 构建不会读取。
 
 ## 文件
 
@@ -8,10 +8,12 @@
 |---|---|---|
 | `tool/debug_seed.example.json` | 模板示例，覆盖所有段 | 是 |
 | `debug-seed.json` | 你的模板（从示例复制） | 否（已 gitignore） |
-| `.env` | 模板里 `${VAR}` 的取值 | 否（已 gitignore） |
+| `../design/.env` | 模板里 `${VAR}` 的取值 | 否（已 gitignore） |
 | `build/debug-seed.json` | 生成的 seed，凭据已填入 | 否 |
 
-`.env` 支持 `KEY=VALUE`、`#` 注释、`export` 前缀、单引号或双引号（双引号里可用 `\"` `\\` `\n`）。同名的系统环境变量也会被使用，`.env` 优先。缺少任何变量时 `make seed` 直接报错并列出变量名。
+`../design/.env` 支持 `KEY=VALUE`、`#` 注释、`export` 前缀、单引号或双引号（双引号里可用 `\"` `\\` `\n`）。同名的系统环境变量也会被使用，文件中的值优先。缺少任何变量时 `make seed` 直接报错并列出变量名。
+
+App 与 `design` 仓库应同级放置。使用其他凭据位置时，运行 `make seed SEED_ENV=/path/to/.env`，或直接运行 `dart run tool/debug_seed.dart build --env /path/to/.env`。
 
 ## 用法
 
@@ -20,7 +22,7 @@ cp tool/debug_seed.example.json debug-seed.json   # 首次：按需修改
 make seed                                          # 生成 build/debug-seed.json
 ```
 
-改完 seed 或 `.env` 后先检查一遍：
+改完 seed 或 `../design/.env` 后先检查一遍：
 
 ```sh
 make seed-check

@@ -22,7 +22,7 @@ import 'metadata_page_test.dart' show OfflineSources;
 import '../support/library_test_helpers.dart';
 
 /// Explicitly opted-in live validation. Secrets are read only at runtime from
-/// .env, never dart-define, assets, reports, screenshots or source-controlled data.
+/// ../design/.env, never dart-define, assets, reports, screenshots or source-controlled data.
 class _RealHttp extends HttpOverrides {}
 
 void main() {
@@ -49,7 +49,7 @@ void main() {
         await tester.runAsync(
           () => HttpOverrides.runWithHttpOverrides(() async {
             await root.create(recursive: true);
-            final env = await File('.env').readAsLines();
+            final env = await File('../design/.env').readAsLines();
             final token = env
                 .where((line) => line.startsWith('TMDB_READ_ACCESS_TOKEN='))
                 .map(

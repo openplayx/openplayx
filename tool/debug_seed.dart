@@ -1,11 +1,11 @@
 // Builds and delivers the debug configuration seed (see
 // docs/debug_seed.md). Plain Dart, run from the openplayx directory:
 //
-//   dart run tool/debug_seed.dart build  [--seed debug-seed.json] [--env .env]
+//   dart run tool/debug_seed.dart build  [--seed debug-seed.json] [--env ../design/.env]
 //   dart run tool/debug_seed.dart push   --platform macos|ios-sim|android|linux|windows
 //   dart run tool/debug_seed.dart define   # prints the --dart-define argument
 //
-// `build` fills `${VAR}` in the seed template from .env and writes
+// `build` fills `${VAR}` in the seed template from ../design/.env and writes
 // build/debug-seed.json; `push` copies that file into the installed App's
 // support directory; `define` prints it as `--dart-define` for `flutter run`.
 import 'dart:convert';
@@ -26,7 +26,10 @@ Future<void> main(List<String> args) async {
   }
   switch (args.first) {
     case 'build':
-      _build(options['seed'] ?? 'debug-seed.json', options['env'] ?? '.env');
+      _build(
+        options['seed'] ?? 'debug-seed.json',
+        options['env'] ?? '../design/.env',
+      );
     case 'push':
       await _push(options['platform'] ?? _usage());
     case 'define':

@@ -61,7 +61,7 @@ flutter test integration_test/playback_test.dart -d macos
 | 服务 | 用途 | 位置 |
 | --- | --- | --- |
 | 媒体源测试服务（SMB、WebDAV、FTP、SFTP、S3、Plex、Jellyfin、Emby、DLNA） | `sources_test`、`player_window_test` | 本机测试 VM，见 [source_services/README.md](../tool/source_services/README.md) |
-| 可读写的电影 SMB 共享（`smb://<SOURCE_HOST>/movie`） | `assistant_movie_flow_test` | 同一 VM，账号来自 `.env` 的 `SMB_USER`、`SMB_PASSWORD` |
+| 可读写的电影 SMB 共享（`smb://<SOURCE_HOST>/movie`） | `assistant_movie_flow_test` | 同一 VM，账号来自 `../design/.env` 的 `SMB_USER`、`SMB_PASSWORD` |
 | Ollama 本地模型 `openplayx-it` | `assistant_movie_flow_test` | 本机，`make integration-ollama` 由 `qwen3:14b` 派生，上下文 32K 以容纳全部工具定义 |
 | whisper.cpp `ggml-tiny.bin` | `assistant_movie_flow_test` 的本地识别 | `~/.cache/openplayx-asr-models`，缺失时自动下载并校验 |
 

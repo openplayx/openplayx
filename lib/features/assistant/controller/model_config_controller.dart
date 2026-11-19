@@ -34,17 +34,16 @@ class ModelConfigResult {
       outcome == ModelConfigOutcome.connectionOkNoTools;
 }
 
-/// The assistant's model settings: API domain, model and key, one
-/// connection test and save.
+/// Platform defaults or a custom API, with connection testing and save.
 class ModelConfigController extends ChangeNotifier {
   ModelConfigController({required this.store, this.onSaved}) {
     _saved = store.loadConfig();
-    // Before the first save the fields stay blank with example hints: the
-    // provider and model are the user's choice, not a silent default.
-    endpoint.text = _saved.configured ? _saved.endpoint : '';
-    model.text = _saved.configured ? _saved.model : '';
+    _usePlatform = _saved.usePlatform;
+    // Keep the user's custom configuration when switching service modes.
+    endpoint.text = _saved.hasKey ? _saved.endpoint : '';
+    model.text = _saved.hasKey ? _saved.model : '';
     _tools = _saved.toolsSupported;
-    if (_saved.configured) key.loadStored(() => store.key(_saved));
+    if (_saved.hasKey) key.loadStored(() => store.key(_saved));
   }
 
   final AssistantStore store;
@@ -58,6 +57,14 @@ class ModelConfigController extends ChangeNotifier {
 
   late AssistantConfig _saved;
   bool get configured => _saved.configured;
+  late bool _usePlatform;
+  bool get usePlatform => _usePlatform;
+  void setUsePlatform(bool value) {
+    if (busy || value == _usePlatform) return;
+    _usePlatform = value;
+    edited();
+  }
+
   late bool _tools;
   ModelConfigTask? _task;
   ModelConfigTask? get task => _task;
@@ -90,13 +97,18 @@ class ModelConfigController extends ChangeNotifier {
   }
 
   AssistantConfig get _draft => AssistantConfig(
-    endpoint: normalizeEndpoint(endpoint.text),
-    model: model.text.trim(),
+    usePlatform: _usePlatform,
+    endpoint: _usePlatform && endpoint.text.trim().isEmpty
+        ? _saved.endpoint
+        : normalizeEndpoint(endpoint.text),
+    model: _usePlatform && model.text.trim().isEmpty
+        ? _saved.model
+        : model.text.trim(),
     maxTokens: _saved.maxTokens,
     cloudAllowed: true,
     textVerified: true,
     streamVerified: true,
-    toolsSupported: _tools,
+    toolsSupported: _usePlatform || _tools,
   );
 
   /// Runs [action]; failures become the shown result. True when it
@@ -131,15 +143,17 @@ class ModelConfigController extends ChangeNotifier {
   /// A plain reply must work; tool calls are optional.
   Future<void> test() => _run(ModelConfigTask.testing, () async {
     final draft = _draft..validate();
-    final secret = key.text.trim().isNotEmpty
+    final secret = _usePlatform
+        ? 'platform'
+        : key.text.trim().isNotEmpty
         ? key.text.trim()
         : await store.key(_saved);
     if (secret.isEmpty) throw const ModelFailure('missingKey');
     final candidate = LangChainModel(
       apiKey: secret,
-      endpoint: draft.endpoint,
-      model: draft.model,
-      maxTokens: draft.maxTokens,
+      endpoint: draft.effectiveEndpoint,
+      model: draft.effectiveModel,
+      maxTokens: draft.effectiveMaxTokens,
     );
     if (!await ModelProbe.replies(candidate)) {
       throw const ModelFailure('protocolMismatch');
@@ -155,10 +169,10 @@ class ModelConfigController extends ChangeNotifier {
   /// Saves the settings; true when saved (the view confirms it).
   Future<bool> save() => _run(ModelConfigTask.saving, () async {
     final draft = _draft..validate();
-    if (key.text.trim().isEmpty && !_saved.configured) {
+    if (!_usePlatform && key.text.trim().isEmpty && !_saved.hasKey) {
       throw const ModelFailure('missingKey');
     }
-    await store.saveConfig(draft, key.edited);
+    await store.saveConfig(draft, key.text.trim());
     key.markSaved();
     _saved = store.loadConfig();
     await onSaved?.call();

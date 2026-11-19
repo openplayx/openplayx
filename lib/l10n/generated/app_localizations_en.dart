@@ -989,7 +989,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get aiProviderDescription =>
-      'Any OpenAI-compatible API, e.g. DeepSeek. The key is stored in the system keychain.';
+      'Supports OpenAI-compatible APIs. Your API key is saved locally.';
 
   @override
   String get aiEndpoint => 'API domain';
@@ -4170,4 +4170,25 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get followSystemOrientation => 'Follow system orientation';
+
+  @override
+  String get aiUsePlatform => 'Use platform default service';
+
+  @override
+  String get aiUsePlatformHint =>
+      'Ready to use. No API address, model, or key needed.';
+
+  @override
+  String get aiPlatformService => 'Platform service';
+
+  @override
+  String get aiPlatformPrivacy =>
+      'Your messages are sent to the platform AI service. Daily usage limits apply.';
+
+  @override
+  String get aiCustomService => 'Bring your own service';
+
+  @override
+  String get aiCustomServiceHint =>
+      'Turn off the default service to use your own API. Your settings are kept when switching.';
 }

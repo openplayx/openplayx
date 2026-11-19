@@ -7,9 +7,9 @@
 IOS_DEVICE ?=
 IOS_APP := build/ios/iphoneos/Runner.app
 
-# Debug configuration seed (docs/debug_seed.md): a JSON template plus .env.
+# Debug configuration seed (docs/debug_seed.md): credentials in ../design/.env.
 SEED ?= debug-seed.json
-SEED_ENV ?= .env
+SEED_ENV ?= ../design/.env
 # seed-push target: macos | ios-sim | android | linux | windows
 PLATFORM ?=
 # run-seeded: any `flutter run -d` device id (empty: Flutter's default).

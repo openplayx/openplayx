@@ -165,7 +165,9 @@ class PluginManagementPageState extends State<PluginManagementPage> {
     final modelValue = config == null
         ? l.statusUnavailable
         : config.configured && config.model.isNotEmpty
-        ? config.model
+        ? config.usePlatform
+              ? l.aiPlatformService
+              : config.model
         : l.statusNotConfigured;
     Widget row(
       PluginGroup group, {

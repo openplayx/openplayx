@@ -139,13 +139,13 @@ class AssistantModule {
   Future<TextModelCapability> _configuredModel() async {
     final config = store.loadConfig();
     config.validate();
-    final key = await store.key(config);
+    final key = config.usePlatform ? 'platform' : await store.key(config);
     if (key.isEmpty) throw const ModelFailure('configurationRequired');
     return LangChainModel(
       apiKey: key,
-      endpoint: config.endpoint,
-      model: config.model,
-      maxTokens: config.maxTokens,
+      endpoint: config.effectiveEndpoint,
+      model: config.effectiveModel,
+      maxTokens: config.effectiveMaxTokens,
       streaming: config.streamVerified || !config.textVerified,
     );
   }

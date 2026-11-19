@@ -73,7 +73,7 @@ TMDB 原始文档：[查询](https://developer.themoviedb.org/docs/search-and-qu
 
 ## 2026-11-10 真实 TMDB 联调
 
-新增显式启用的 `test/metadata/tmdb_live_test.dart`：运行时读取本地 `.env` 的 `TMDB_READ_ACCESS_TOKEN`，使用生产 `TmdbTransport`、`MetadataService` 和 `ArtworkService`，验证搜索、确认、文字信息、真实 CDN 图片解码、季集层级与锁定后刷新。令牌不进入 dart-define、应用资源、数据库、报告或截图；普通 `flutter test` 跳过该联网测试。
+新增显式启用的 `test/metadata/tmdb_live_test.dart`：运行时读取本地 `../design/.env` 的 `TMDB_READ_ACCESS_TOKEN`，使用生产 `TmdbTransport`、`MetadataService` 和 `ArtworkService`，验证搜索、确认、文字信息、真实 CDN 图片解码、季集层级与锁定后刷新。令牌不进入 dart-define、应用资源、数据库、报告或截图；普通 `flutter test` 跳过该联网测试。
 
 ```sh
 flutter test --no-pub test/metadata/tmdb_live_test.dart \

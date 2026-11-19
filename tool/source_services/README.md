@@ -58,8 +58,8 @@ flutter test integration_test/sources_test.dart -d macos \
 ## SMB 自动封面诊断
 
 `cover_probe_test.dart` 验证 SMB 视频探测与自动封面生成，需要真实 SMB 服务及本机 FFmpeg 动态库。
-将 [示例配置](cover_probe.env.example) 中需要的变量**追加**到工程根目录 `.env`，填写自己的地址、账号、密码和媒体路径。
-不要直接覆盖已有 `.env`。脚本按 `../.env` → `.env` → 进程环境变量的顺序读取，后者覆盖前者；空账号和密码表示访客访问。
+将 [示例配置](cover_probe.env.example) 中需要的变量**追加**到同级设计仓库的 `../design/.env`（相对于 App 工程目录），填写自己的地址、账号、密码和媒体路径。
+不要直接覆盖已有 `.env`。脚本按 `../design/.env` → 进程环境变量的顺序读取，后者覆盖前者；空账号和密码表示访客访问。
 
 ```sh
 # 先准备本机 FFmpeg 动态库（或配置 COVER_PROBE_FFMPEG_LIBRARY）
@@ -71,4 +71,4 @@ flutter test tool/source_services/cover_probe_test.dart
 仅列出缺失变量名，在加载 FFmpeg 或访问 SMB 之前终止。依赖缺失、连接失败或生成失败也会导致测试失败。
 两组配置均必需；每组独立配置凭据，不从别组借用。默认图片输出在系统临时目录的
 `opx-cover-probe/case_1.jpg`、`case_2.jpg`，可用 `COVER_PROBE_OUTPUT_DIR` 修改。
-测试日志不输出配置、媒体路径或完整异常。`.env` 已被 Git 忽略，仅提交测试脚本与无真实数据的示例配置。
+测试日志不输出配置、媒体路径或完整异常。`design/.env` 已被 Git 忽略，仅提交测试脚本与无真实数据的示例配置。

@@ -427,7 +427,7 @@
   "aiInterrupted": "Interrupted on shutdown; actions will not be replayed.",
   "aiTokenUsage": "Reported tokens: {count}",
   "aiModelSettings": "Model settings",
-  "aiProviderDescription": "Any OpenAI-compatible API, e.g. DeepSeek. The key is stored in the system keychain.",
+  "aiProviderDescription": "Supports OpenAI-compatible APIs. Your API key is saved locally.",
   "aiEndpoint": "API domain",
   "aiModel": "Model name",
   "aiApiKey": "API key",
@@ -1529,5 +1529,11 @@
   "cloudDisconnectHelp": "Clears local credentials and stops cloud requests. Also remove this app in your Microsoft or Dropbox account permissions to revoke the platform grant.",
   "plSwitchToLandscape": "Switch to landscape",
   "plSwitchToPortrait": "Switch to portrait",
-  "followSystemOrientation": "Follow system orientation"
+  "followSystemOrientation": "Follow system orientation",
+  "aiUsePlatform": "Use platform default service",
+  "aiUsePlatformHint": "Ready to use. No API address, model, or key needed.",
+  "aiPlatformService": "Platform service",
+  "aiPlatformPrivacy": "Your messages are sent to the platform AI service. Daily usage limits apply.",
+  "aiCustomService": "Bring your own service",
+  "aiCustomServiceHint": "Turn off the default service to use your own API. Your settings are kept when switching."
 }

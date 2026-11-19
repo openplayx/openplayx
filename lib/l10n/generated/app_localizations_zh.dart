@@ -946,8 +946,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiModelSettings => '模型设置';
 
   @override
-  String get aiProviderDescription =>
-      '支持 OpenAI 兼容接口，例如 DeepSeek。Key 保存在系统钥匙串中。';
+  String get aiProviderDescription => '支持 OpenAI 兼容接口，API Key 保存在本机。';
 
   @override
   String get aiEndpoint => 'API 域名';
@@ -3906,6 +3905,24 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get followSystemOrientation => '横竖屏跟随系统';
+
+  @override
+  String get aiUsePlatform => '使用平台默认服务';
+
+  @override
+  String get aiUsePlatformHint => '开箱即用，无需填写域名、模型或 Key。';
+
+  @override
+  String get aiPlatformService => '平台服务';
+
+  @override
+  String get aiPlatformPrivacy => '对话内容将发送至平台 AI 服务，每日使用额度有限。';
+
+  @override
+  String get aiCustomService => '自带服务';
+
+  @override
+  String get aiCustomServiceHint => '取消勾选后，可填写自己的 API 服务。切换时会保留自带配置。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -4849,8 +4866,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiModelSettings => '模型设置';
 
   @override
-  String get aiProviderDescription =>
-      '支持 OpenAI 兼容接口，例如 DeepSeek。Key 保存在系统钥匙串中。';
+  String get aiProviderDescription => '支持 OpenAI 兼容接口，API Key 保存在本机。';
 
   @override
   String get aiEndpoint => 'API 域名';
@@ -7809,6 +7825,24 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get followSystemOrientation => '横竖屏跟随系统';
+
+  @override
+  String get aiUsePlatform => '使用平台默认服务';
+
+  @override
+  String get aiUsePlatformHint => '开箱即用，无需填写域名、模型或 Key。';
+
+  @override
+  String get aiPlatformService => '平台服务';
+
+  @override
+  String get aiPlatformPrivacy => '对话内容将发送至平台 AI 服务，每日使用额度有限。';
+
+  @override
+  String get aiCustomService => '自带服务';
+
+  @override
+  String get aiCustomServiceHint => '取消勾选后，可填写自己的 API 服务。切换时会保留自带配置。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -8752,8 +8786,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiModelSettings => '模型設定';
 
   @override
-  String get aiProviderDescription =>
-      '支援 OpenAI 相容介面，例如 DeepSeek。Key 儲存在系統鑰匙圈中。';
+  String get aiProviderDescription => '支援 OpenAI 相容介面，API Key 儲存在本機。';
 
   @override
   String get aiEndpoint => 'API 網域';
@@ -11712,4 +11745,22 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get followSystemOrientation => '螢幕方向跟隨系統';
+
+  @override
+  String get aiUsePlatform => '使用平台預設服務';
+
+  @override
+  String get aiUsePlatformHint => '開箱即用，無需填寫網域、模型或 Key。';
+
+  @override
+  String get aiPlatformService => '平台服務';
+
+  @override
+  String get aiPlatformPrivacy => '對話內容將傳送至平台 AI 服務，每日使用額度有限。';
+
+  @override
+  String get aiCustomService => '自備服務';
+
+  @override
+  String get aiCustomServiceHint => '取消勾選後，可填寫自己的 API 服務。切換時會保留自備設定。';
 }

@@ -129,6 +129,9 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
+        expect(find.byType(EditableText), findsNothing);
+        await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+        await tester.pumpAndSettle();
         final inputs = tester
             .widgetList<EditableText>(find.byType(EditableText))
             .toList();
@@ -141,7 +144,7 @@ void main() {
     );
   }
   testWidgets(
-    'settings are three fields and one test; key alone enables chat',
+    'platform is default; custom fields require a key and survive switching',
     (tester) async {
       final db = sqlite3.openInMemory();
       final store = AssistantStore(db, configuration: sqlite3.openInMemory());
@@ -150,13 +153,18 @@ void main() {
       expect(find.byType(ShadSwitch), findsNothing);
       expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
       final fields = find.byType(EditableText);
+      expect(fields, findsNothing);
+      expect(store.loadConfig().usePlatform, true);
+      expect(store.loadConfig().configured, true);
+      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.pumpAndSettle();
       expect(fields, findsNWidgets(3));
       await tester.enterText(fields.at(0), 'https://api.deepseek.com/');
       await tester.enterText(fields.at(1), 'deepseek-chat');
       // No key yet: saving asks for one and keeps nothing.
       await tester.tap(find.byKey(const ValueKey('ai-save')));
       await tester.pumpAndSettle();
-      expect(store.loadConfig().configured, false);
+      expect(store.loadConfig().usePlatform, true);
       await tester.enterText(fields.at(2), 'sk-test');
       await tester.tap(find.byKey(const ValueKey('ai-save')));
       await tester.pumpAndSettle();
@@ -164,6 +172,27 @@ void main() {
       expect(saved.endpoint, 'https://api.deepseek.com');
       expect(saved.configured, true);
       expect(await store.key(saved), 'sk-test');
+      expect(saved.usePlatform, false);
+      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.pumpAndSettle();
+      expect(fields, findsNothing);
+      await tester.tap(find.byKey(const ValueKey('ai-save')));
+      await tester.pumpAndSettle();
+      expect(store.loadConfig().usePlatform, true);
+      expect(
+        store.loadConfig().effectiveEndpoint,
+        AssistantConfig.platformEndpoint,
+      );
+      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.pumpAndSettle();
+      expect(
+        tester.widget<EditableText>(fields.at(0)).controller.text,
+        'https://api.deepseek.com/',
+      );
+      expect(
+        tester.widget<EditableText>(fields.at(2)).controller.text,
+        'sk-test',
+      );
       await tester.pumpWidget(const SizedBox());
       db.close();
     },

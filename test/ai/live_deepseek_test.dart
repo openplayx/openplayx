@@ -1,4 +1,4 @@
-// Live end-to-end check against a real model. Skipped unless .env has
+// Live end-to-end check against a real model. Skipped unless ../design/.env has
 // DEEPSEK_API_KEY. Run: flutter test test/ai/live_deepseek_test.dart
 import 'dart:io';
 
@@ -24,7 +24,7 @@ class NoSources extends SourceManager {
 }
 
 String? _key() {
-  final file = File('.env');
+  final file = File('../design/.env');
   if (!file.existsSync()) return null;
   for (final line in file.readAsLinesSync()) {
     if (line.startsWith('DEEPSEK_API_KEY=')) {
@@ -106,7 +106,7 @@ void main() {
       expect(turn.status, 'completed', reason: '${turn.error}');
       expect(opened, hasLength(1));
     },
-    skip: key == null ? 'DEEPSEK_API_KEY not set in .env' : false,
+    skip: key == null ? 'DEEPSEK_API_KEY not set in ../design/.env' : false,
     timeout: const Timeout(Duration(minutes: 5)),
   );
 }

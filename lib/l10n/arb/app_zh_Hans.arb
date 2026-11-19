@@ -399,7 +399,7 @@
   "aiInterrupted": "上次关闭时中断，不会重放操作。",
   "aiTokenUsage": "供应商报告用量：{count} tokens",
   "aiModelSettings": "模型设置",
-  "aiProviderDescription": "支持 OpenAI 兼容接口，例如 DeepSeek。Key 保存在系统钥匙串中。",
+  "aiProviderDescription": "支持 OpenAI 兼容接口，API Key 保存在本机。",
   "aiEndpoint": "API 域名",
   "aiModel": "模型名",
   "aiApiKey": "API Key",
@@ -1352,5 +1352,11 @@
   "cloudDisconnectHelp": "清除本地凭据并停止云盘请求。还需在微软或 Dropbox 账号权限页面移除此应用，以解除平台授权。",
   "plSwitchToLandscape": "切换到横屏",
   "plSwitchToPortrait": "切换到竖屏",
-  "followSystemOrientation": "横竖屏跟随系统"
+  "followSystemOrientation": "横竖屏跟随系统",
+  "aiUsePlatform": "使用平台默认服务",
+  "aiUsePlatformHint": "开箱即用，无需填写域名、模型或 Key。",
+  "aiPlatformService": "平台服务",
+  "aiPlatformPrivacy": "对话内容将发送至平台 AI 服务，每日使用额度有限。",
+  "aiCustomService": "自带服务",
+  "aiCustomServiceHint": "取消勾选后，可填写自己的 API 服务。切换时会保留自带配置。"
 }
