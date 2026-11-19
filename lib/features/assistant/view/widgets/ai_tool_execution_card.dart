@@ -437,7 +437,7 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
         : Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              ShadButton.secondary(
+              ShadButton(
                 height: 26,
                 padding: const EdgeInsets.symmetric(horizontal: 10),
                 textStyle: theme.textTheme.small.copyWith(fontSize: 12),

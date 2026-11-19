@@ -10,6 +10,7 @@ import 'package:openplayx/features/assistant/controller/ai_chat_controller.dart'
 import 'package:openplayx/features/assistant/view/ai_chat_view.dart';
 import 'package:openplayx/features/assistant/adapters/flyer_chat_adapter.dart';
 import 'package:openplayx/features/assistant/view/widgets/ai_text_message.dart';
+import 'package:openplayx/features/assistant/view/widgets/ai_tool_execution_card.dart';
 import 'package:openplayx/l10n/generated/app_localizations.dart';
 import 'package:openplayx/assistant/plugins/tools/tool_registry.dart';
 import 'package:openplayx/ui/icons/app_icons.dart';
@@ -481,6 +482,100 @@ void main() {
       c.dispose();
     },
   );
+  for (final mode in [ThemeMode.light, ThemeMode.dark]) {
+    for (final accepted in [true, false]) {
+      testWidgets(
+        'confirmation uses themed primary approval and disables after ${accepted ? 'approval' : 'cancellation'} in $mode',
+        (tester) async {
+          var writes = 0, round = 0;
+          registry.register(
+            RegisteredTool(
+              'change',
+              'Change selected item',
+              {},
+              (_) async => {'changed': ++writes},
+              readOnly: false,
+              confirmation: true,
+            ),
+          );
+          final c = coordinator(
+            FakeModel((_) async* {
+              if (round++ == 0) {
+                yield const ModelToolDelta(
+                  ModelToolCall('change-1', 'change', '{}'),
+                );
+                yield const ModelCompleted('toolCalls');
+              } else {
+                yield const ModelCompleted('stop');
+              }
+            }),
+          );
+          final sending = c.send('change', toolsEnabled: true);
+          await tester.pumpWidget(host(view(c), mode: mode));
+          await tester.pumpAndSettle();
+          final confirmation = c.confirmation!;
+          final part = tester
+              .widget<AiToolExecutionCard>(find.byType(AiToolExecutionCard))
+              .part;
+          // Keep the original confirmation card mounted to cover a stale card
+          // while the coordinator continues the invocation.
+          await tester.pumpWidget(
+            host(
+              AiToolExecutionCard(part: part, coordinator: c),
+              mode: mode,
+            ),
+          );
+          await tester.pumpAndSettle();
+          final approve = find.widgetWithText(ShadButton, 'Approve');
+          final cancel = find.widgetWithText(ShadButton, 'Cancel');
+          expect(
+            tester.widget<ShadButton>(approve).variant,
+            ShadButtonVariant.primary,
+          );
+          expect(
+            tester.widget<ShadButton>(cancel).variant,
+            ShadButtonVariant.ghost,
+          );
+          expect(tester.widget<ShadButton>(approve).enabled, isTrue);
+          expect(tester.widget<ShadButton>(cancel).enabled, isTrue);
+          final colors = ShadTheme.of(tester.element(approve)).colorScheme;
+          expect(
+            find.descendant(
+              of: approve,
+              matching: find.byWidgetPredicate(
+                (widget) =>
+                    widget is DecoratedBox &&
+                    widget.decoration is BoxDecoration &&
+                    (widget.decoration as BoxDecoration).color ==
+                        colors.primary,
+              ),
+            ),
+            findsWidgets,
+          );
+          expect(
+            DefaultTextStyle.of(tester.element(find.text('Approve')))
+                .style
+                .color,
+            colors.primaryForeground,
+          );
+          expect(writes, 0);
+          await tester.tap(accepted ? approve : cancel);
+          await tester.pumpAndSettle();
+          expect(await confirmation.decision.future, accepted);
+          await sending;
+          expect(writes, accepted ? 1 : 0);
+          expect(tester.widget<ShadButton>(approve).enabled, isFalse);
+          expect(tester.widget<ShadButton>(cancel).enabled, isFalse);
+          await tester.tap(approve, warnIfMissed: false);
+          await tester.tap(cancel, warnIfMissed: false);
+          await tester.pumpAndSettle();
+          expect(writes, accepted ? 1 : 0);
+          await tester.pumpWidget(const SizedBox());
+          c.dispose();
+        },
+      );
+    }
+  }
   testWidgets(
     'Markdown does not load remote images and large text fits narrow themes',
     (tester) async {
