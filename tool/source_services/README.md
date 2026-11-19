@@ -67,7 +67,8 @@ flutter test integration_test/sources_test.dart -d macos \
 COVER_PROBE=1 flutter test tool/source_services/cover_probe_test.dart
 ```
 
-未显式设置进程环境变量 `COVER_PROBE=1`，或缺少必需地址/路径时，测试会跳过，不访问 SMB。
+未显式设置进程环境变量 `COVER_PROBE=1` 时，测试会跳过。显式启用后，缺少必需地址/路径会立即报错，
+仅列出缺失变量名，在加载 FFmpeg 或访问 SMB 之前终止。
 第一组配置必需，第二组可选；每组独立配置凭据，不从别组借用。默认图片输出在系统临时目录的
 `opx-cover-probe/case_1.jpg`、`case_2.jpg`，可用 `COVER_PROBE_OUTPUT_DIR` 修改。
 测试日志不输出配置、媒体路径或完整异常。`.env` 已被 Git 忽略，仅提交测试脚本与无真实数据的示例配置。

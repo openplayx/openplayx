@@ -41,13 +41,17 @@ void main() {
   ];
   final skip = Platform.environment['COVER_PROBE'] != '1'
       ? 'Set COVER_PROBE=1 to enable this live SMB diagnostic.'
-      : missing.isNotEmpty
-      ? 'Missing configuration: ${missing.join(', ')}. See cover_probe.env.example.'
       : false;
 
   test(
     'SMB automatic cover diagnostic',
     () async {
+      if (missing.isNotEmpty) {
+        fail(
+          'Missing configuration: ${missing.join(', ')}. '
+          'See tool/source_services/cover_probe.env.example.',
+        );
+      }
       final defaultLibrary = Platform.isMacOS
           ? '../ffmpeg-package/build/host/libopenplayx_ffmpeg.dylib'
           : Platform.isWindows
