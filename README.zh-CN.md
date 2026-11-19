@@ -34,12 +34,12 @@
 
 依赖：Dart 满足 `^3.13.7` 的 Flutter、平台开发工具（macOS/iOS 需要 Xcode、CocoaPods），以及原生组件所需的 Go/C 工具链。另见 [播放原生依赖](docs/implement/libvlc_basic_player.md) 和 [远程访问实现](docs/implement/remote_access_singbox_frp.md)。
 
-当前需要同级目录中的 `ffmpeg-package`、`package-whisper` 和 `smb_connect`。其中 FFmpeg 包及 SMB 分支是私有依赖，仅克隆公开主仓无法复现当前构建。已有访问权限的贡献者可准备：
+当前需要同级目录中的 `ffmpeg-package`、`package-whisper` 和 `smb_connect`。FFmpeg 仓库已公开为 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg)，本地目录仍保留 `ffmpeg-package`，以兼容 pubspec path 和 CI checkout name。SMB 分支仍为私有依赖，仅克隆公开主仓无法复现当前构建。已有 SMB 访问权限的贡献者可准备：
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
 git clone https://github.com/openplayx/package-whisper.git
-git clone git@github.com:openplayx/ffmpeg-package.git
+git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
 git clone git@github.com:openplayx/smb_connect.git
 cd openplayx
 flutter doctor

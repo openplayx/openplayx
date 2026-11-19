@@ -49,14 +49,17 @@ components. See [native playback notes](docs/implement/libvlc_basic_player.md)
 and [remote access notes](docs/implement/remote_access_singbox_frp.md).
 
 The app currently needs sibling checkouts named `ffmpeg-package`,
-`package-whisper` and `smb_connect`. `ffmpeg-package` and the SMB fork are
-private dependencies, so cloning this public repository alone is insufficient
-to reproduce the current build. Contributors with access can prepare them:
+`package-whisper` and `smb_connect`. The FFmpeg repository is public at
+[openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg); keep its
+local directory named `ffmpeg-package` for the pubspec path and CI checkout name.
+The SMB fork remains a private dependency, so cloning this public repository
+alone is insufficient to reproduce the current build. Contributors with SMB
+access can prepare them:
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
 git clone https://github.com/openplayx/package-whisper.git
-git clone git@github.com:openplayx/ffmpeg-package.git
+git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
 git clone git@github.com:openplayx/smb_connect.git
 cd openplayx
 flutter doctor
