@@ -208,6 +208,12 @@ class _SourcePageState extends State<SourcePage> {
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          Text(
+            l.sourcesDescription,
+            style: ShadTheme.of(context).textTheme.muted,
+            textAlign: TextAlign.center,
+          ),
+          const SizedBox(height: AppSpacing.lg),
           ShadButton(
             key: const ValueKey('add-source-empty'),
             onPressed: _busy ? null : _openAddSource,
@@ -463,15 +469,6 @@ class _SourcePageState extends State<SourcePage> {
                         : ListView(
                             padding: AppSpacing.page(context),
                             children: [
-                              Padding(
-                                padding: const EdgeInsets.only(
-                                  bottom: AppSpacing.lg,
-                                ),
-                                child: Text(
-                                  l.sourcesDescription,
-                                  style: ShadTheme.of(context).textTheme.muted,
-                                ),
-                              ),
                               for (
                                 var i = 0;
                                 i < widget.manager.configs.length;
