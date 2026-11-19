@@ -54,3 +54,20 @@ flutter test integration_test/sources_test.dart -d macos \
 `bootstrap.py` 创建 Jellyfin 和 Emby 测试账号，初始化 Jellyfin、Plex、Emby 的视频库并等待扫描完成，生成被 git 忽略的 `defines.local.json`。此文件包含临时令牌，不要提交。
 
 `probe_test.dart` 是不依赖 Flutter UI 的协议验证（源插件引用了 `package:flutter/services.dart`，所以用 `flutter test` 运行，不能用 `dart run`）：逐个服务浏览到测试视频，比较完整视频和非零偏移 Range 的字节内容，并列出媒体服务器的“最近添加”。原生集成测试另外验证 libVLC 视频尺寸、播放进度、暂停和 Seek。集成测试把这些服务当作必需依赖：缺少 `SOURCE_HOST` 或服务连不上时直接失败（见 [integration_test/README.md](../../integration_test/README.md)）。服务配置与 probe 共用 `integration_test/support/source_services.dart`。
+
+## SMB 自动封面诊断
+
+`cover_probe_test.dart` 验证 SMB 视频探测与自动封面生成，需要真实 SMB 服务及本机 FFmpeg 动态库。
+将 [示例配置](cover_probe.env.example) 中需要的变量**追加**到工程根目录 `.env`，填写自己的地址、账号、密码和媒体路径。
+不要直接覆盖已有 `.env`。脚本按 `../.env` → `.env` → 进程环境变量的顺序读取，后者覆盖前者；空账号和密码表示访客访问。
+
+```sh
+# 先准备本机 FFmpeg 动态库（或配置 COVER_PROBE_FFMPEG_LIBRARY）
+(cd ../ffmpeg-package && tool/build_host_lib.sh)
+COVER_PROBE=1 flutter test tool/source_services/cover_probe_test.dart
+```
+
+未显式设置进程环境变量 `COVER_PROBE=1`，或缺少必需地址/路径时，测试会跳过，不访问 SMB。
+第一组配置必需，第二组可选；每组独立配置凭据，不从别组借用。默认图片输出在系统临时目录的
+`opx-cover-probe/case_1.jpg`、`case_2.jpg`，可用 `COVER_PROBE_OUTPUT_DIR` 修改。
+测试日志不输出配置、媒体路径或完整异常。`.env` 已被 Git 忽略，仅提交测试脚本与无真实数据的示例配置。
