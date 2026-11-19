@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import '../../data/analytics/analytics_service.dart';
+
 import 'dart:io';
 import 'dart:math';
 
@@ -481,6 +484,7 @@ class LibraryService {
   /// successful traversal marks old observations unavailable; failures retain data.
   Future<void> scan(String fileSource, SourceManager sources) async {
     if (!_running.add(fileSource)) throw StateError(appStrings.errScanRunning);
+    var analyticsSuccess = false;
     var batch = _id();
     try {
       final b = repository.fileSource(fileSource);
@@ -583,6 +587,7 @@ class LibraryService {
         repository.removeScanTask(fileSource);
         repository.markScanComplete(fileSource);
       });
+      analyticsSuccess = true;
     } catch (error) {
       repository.markScanFailed(
         error is PluginException ? error.message : appStrings.errScanIncomplete,
@@ -591,6 +596,11 @@ class LibraryService {
       rethrow;
     } finally {
       _running.remove(fileSource);
+      unawaited(
+        AnalyticsService.instance.capture('library_scan_completed', {
+          'success': analyticsSuccess,
+        }),
+      );
       if (_closeRequested && _running.isEmpty) _closeDatabase();
     }
   }

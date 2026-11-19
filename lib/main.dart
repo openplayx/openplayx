@@ -1,4 +1,5 @@
 import 'data/diagnostics/diagnostics_bootstrap.dart';
+import 'data/analytics/analytics_service.dart';
 
 import 'package:flutter/widgets.dart';
 
@@ -22,6 +23,8 @@ Future<void> main(List<String> args) async {
     await DebugSeed.applyAtStartup();
     final appearance = AppThemeController();
     await appearance.load();
+    await AnalyticsService.instance.load();
+    await initializeAnalyticsWindowBridge();
     runApp(OpenPlayXApp(appearance: appearance));
   });
 }

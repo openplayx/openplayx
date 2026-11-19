@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../../../data/analytics/analytics_service.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:openplayx_playback/playback.dart';
 
@@ -103,6 +105,7 @@ class PlayerController extends ChangeNotifier {
   // The remembered subtitle is applied once per media, when it plays and
   // its library record is known.
   bool _tracked = false, _played = false, _restored = false;
+  bool _analyticsFailed = false;
 
   void _restoreSubtitle() {
     if (_restored || !_tracked || !_played || _disposed) return;
@@ -170,6 +173,8 @@ class PlayerController extends ChangeNotifier {
   /// one, clears the error and every per-media state.
   void beginMedia(String name) {
     _tracked = _played = _restored = false;
+    _analyticsFailed = false;
+    unawaited(AnalyticsService.instance.capture('playback_requested'));
     history.finish();
     _resetFeatures();
     _set(_state.copyWith(name: () => name, error: () => null));
@@ -249,6 +254,14 @@ class PlayerController extends ChangeNotifier {
   /// the media, boost and background pause.
   void onPlayback() {
     final snapshot = backend.value;
+    if (!_analyticsFailed && snapshot.status == PlaybackStatus.error) {
+      _analyticsFailed = true;
+      unawaited(
+        AnalyticsService.instance.capture('playback_failed', {
+          'error_category': 'playback',
+        }),
+      );
+    }
     if (history.onPlayback(snapshot)) return;
     tools.onPlayback(snapshot);
     if (_lastStatus != snapshot.status) {
@@ -262,6 +275,7 @@ class PlayerController extends ChangeNotifier {
     }
     if (!_played && snapshot.status == PlaybackStatus.playing) {
       _played = true;
+      unawaited(AnalyticsService.instance.capture('playback_started'));
       _restoreSubtitle();
     }
     if (tools.state.boosting && snapshot.status != PlaybackStatus.playing) {

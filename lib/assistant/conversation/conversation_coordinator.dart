@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import '../../data/analytics/analytics_service.dart';
+
 import 'dart:convert';
 
 import 'package:flutter/foundation.dart';
@@ -518,6 +521,16 @@ class ConversationCoordinator extends ChangeNotifier {
       }
     } finally {
       deadline.cancel();
+      unawaited(
+        AnalyticsService.instance.capture('ai_task_completed', {
+          'task_type': 'agent',
+          'status': turn.status == 'cancelled'
+              ? 'cancelled'
+              : turn.status == 'failed'
+              ? 'failed'
+              : 'success',
+        }),
+      );
       _streamRefresh?.cancel();
       _streamRefresh = null;
       // Dispose can close the database while a cancelled transport unwinds.

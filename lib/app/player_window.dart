@@ -13,12 +13,39 @@ import '../capabilities/sources/source_manager.dart';
 import '../features/player/view/player_page.dart';
 import 'app.dart';
 import '../features/settings/app_theme_controller.dart';
+import '../data/analytics/analytics_service.dart';
 
 /// First dart-entrypoint argument desktop_multi_window gives to a sub-window.
 const playerWindowEntryArgument = 'multi_window';
 
 /// Native bridge registered by the macOS runner for every sub-window.
 const _nativeChannel = MethodChannel('openplayx/player_window');
+
+String? _analyticsOwner;
+Future<void> initializeAnalyticsWindowBridge() async {
+  if (!supportsPlayerWindow) return;
+  try {
+    final owner = await WindowController.fromCurrentEngine();
+    _analyticsOwner = owner.windowId;
+    await owner.setWindowMethodHandler((call) async {
+      if (call.method != 'analytics_event') throw MissingPluginException();
+      final data = Map<String, dynamic>.from(call.arguments as Map);
+      final properties = <String, Object>{};
+      for (final entry in (data['properties'] as Map).entries) {
+        if (entry.value is String || entry.value is bool) {
+          properties[entry.key as String] = entry.value as Object;
+        }
+      }
+      await AnalyticsService.instance.capture(
+        data['event'] as String,
+        properties,
+      );
+      return null;
+    });
+  } catch (_) {
+    /* Secondary-engine telemetry is best effort. */
+  }
+}
 
 /// Each desktop runner registers the plugins and the close bridge for these.
 bool get supportsPlayerWindow =>
@@ -31,6 +58,15 @@ Future<bool> runPlayerWindowIfRequested(List<String> args) async {
   if (args.isEmpty || args.first != playerWindowEntryArgument) return false;
   WidgetsFlutterBinding.ensureInitialized();
   final request = jsonDecode(args.length > 2 ? args[2] : '{}');
+  final ownerId = request['analyticsOwner'] as String?;
+  if (ownerId != null) {
+    AnalyticsService.instance.forwardTo((event, properties) async {
+      await WindowController.fromWindowId(ownerId).invokeMethod<void>(
+        'analytics_event',
+        {'event': event, 'properties': properties},
+      );
+    });
+  }
   final appearance = AppThemeController();
   await appearance.load();
   runApp(
@@ -119,6 +155,7 @@ class PlayerWindows {
         WindowConfiguration(
           hiddenAtLaunch: true,
           arguments: jsonEncode({
+            if (_analyticsOwner != null) 'analyticsOwner': _analyticsOwner,
             'uri': selection.stream.uri.toString(),
             'name': selection.name,
             if (selection.ref != null)

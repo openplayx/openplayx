@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import '../../data/analytics/analytics_service.dart';
+
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
@@ -887,10 +890,38 @@ class SourceManager {
   void networkChanged() => RemoteTransport.selector.networkChanged();
 
   Future<void> testConnection(String id) async {
-    await browse(id, const BrowseRequest(limit: 1));
+    var success = false;
+    final sourceType =
+        configs.where((c) => c.id == id).firstOrNull?.kind.name ?? 'unknown';
+    try {
+      await browse(id, const BrowseRequest(limit: 1));
+      success = true;
+    } finally {
+      unawaited(
+        AnalyticsService.instance.capture('source_connection_completed', {
+          'source_type': sourceType,
+          'success': success,
+        }),
+      );
+    }
   }
 
   Future<void> testDraft(SourceConfig draft, String secret) async {
+    var success = false;
+    try {
+      await _testDraft(draft, secret);
+      success = true;
+    } finally {
+      unawaited(
+        AnalyticsService.instance.capture('source_connection_completed', {
+          'source_type': draft.kind.name,
+          'success': success,
+        }),
+      );
+    }
+  }
+
+  Future<void> _testDraft(SourceConfig draft, String secret) async {
     SourceSchemas.validate(draft);
     final existing = configs.where((c) => c.id == draft.id).firstOrNull;
     if (existing != null && draft.revision != existing.revision) {

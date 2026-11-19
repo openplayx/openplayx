@@ -1,4 +1,7 @@
 import 'dart:async';
+
+import '../../data/analytics/analytics_service.dart';
+
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
@@ -717,6 +720,15 @@ class SubtitleGenerationService {
     SubtitleRunStatus status,
   ) {
     stageMs[stage.name] = (stageMs[stage.name] ?? 0) + _now - stageStart;
+    unawaited(
+      AnalyticsService.instance.capture('subtitle_generation_completed', {
+        'status': status.name == 'completed' || status.name == 'succeeded'
+            ? 'success'
+            : status.name == 'cancelled'
+            ? 'cancelled'
+            : 'failed',
+      }),
+    );
     _update(run.taskId, {
       'state': status.name,
       'stage_ms': jsonEncode(stageMs),
