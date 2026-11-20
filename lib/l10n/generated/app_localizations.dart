@@ -7485,101 +7485,66 @@ abstract class AppLocalizations {
   /// **'Turn off the default service to use your own API. Your settings are kept when switching.'**
   String get aiCustomServiceHint;
 
+  /// No description provided for @detailVideoFile.
+  ///
+  /// In en, this message translates to:
+  /// **'Video file'**
+  String get detailVideoFile;
+
+  /// No description provided for @detailNoCatalogInfo.
+  ///
+  /// In en, this message translates to:
+  /// **'No movie or TV details yet. This video can be played directly.'**
+  String get detailNoCatalogInfo;
+
+  /// No description provided for @detailPlaybackProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Playback progress'**
+  String get detailPlaybackProgress;
+
+  /// No description provided for @detailFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Video files'**
+  String get detailFiles;
+
   /// No description provided for @baiduPermissionDenied.
   ///
   /// In en, this message translates to:
   /// **'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.'**
   String get baiduPermissionDenied;
 
-  /// No description provided for @baiduAllFiles.
-  ///
-  /// In en, this message translates to:
-  /// **'Select all files'**
+  /// Select the Baidu account root.
   String get baiduAllFiles;
-
-  /// No description provided for @voiceSettings.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice transcription'**
   String get voiceSettings;
 
-  /// No description provided for @voiceSettingsHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.'**
   String get voiceSettingsHint;
 
-  /// No description provided for @voiceSettingsError.
-  ///
-  /// In en, this message translates to:
-  /// **'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.'**
   String get voiceSettingsError;
 
-  /// No description provided for @voiceStart.
-  ///
-  /// In en, this message translates to:
-  /// **'Start voice input'**
   String get voiceStart;
 
-  /// No description provided for @voiceStop.
-  ///
-  /// In en, this message translates to:
-  /// **'Stop and transcribe'**
   String get voiceStop;
 
-  /// No description provided for @voiceRecording.
-  ///
-  /// In en, this message translates to:
-  /// **'Recording… Click stop to transcribe, or cancel to discard.'**
   String get voiceRecording;
 
-  /// No description provided for @voiceTranscribing.
-  ///
-  /// In en, this message translates to:
-  /// **'Transcribing…'**
   String get voiceTranscribing;
 
-  /// No description provided for @voicePreparing.
-  ///
-  /// In en, this message translates to:
-  /// **'Preparing microphone…'**
   String get voicePreparing;
 
-  /// No description provided for @voiceUnsupported.
-  ///
-  /// In en, this message translates to:
-  /// **'Voice recording is not supported on this platform or device.'**
   String get voiceUnsupported;
 
-  /// No description provided for @voicePermission.
-  ///
-  /// In en, this message translates to:
-  /// **'Microphone permission denied. Allow microphone access in system settings and try again.'**
   String get voicePermission;
 
-  /// No description provided for @voiceEmpty.
-  ///
-  /// In en, this message translates to:
-  /// **'No speech was recognized. Please try again.'**
   String get voiceEmpty;
 
-  /// No description provided for @voiceTooLarge.
-  ///
-  /// In en, this message translates to:
-  /// **'The recording is too large. Please record a shorter message.'**
   String get voiceTooLarge;
 
-  /// No description provided for @voiceRecordingError.
-  ///
-  /// In en, this message translates to:
-  /// **'Could not record audio. Check your microphone and try again.'**
   String get voiceRecordingError;
 
-  /// No description provided for @voiceTranscriptionError.
-  ///
-  /// In en, this message translates to:
-  /// **'Transcription failed. Check your network and transcription settings, then try again.'**
   String get voiceTranscriptionError;
+
 }
 
 class _AppLocalizationsDelegate
@@ -7628,4 +7593,5 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
     'that was used.',
   );
+
 }

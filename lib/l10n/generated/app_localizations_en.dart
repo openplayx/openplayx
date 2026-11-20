@@ -4193,22 +4193,32 @@ class AppLocalizationsEn extends AppLocalizations {
       'Turn off the default service to use your own API. Your settings are kept when switching.';
 
   @override
-  String get baiduPermissionDenied =>
-      'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.';
+  String get detailVideoFile => 'Video file';
+
+  @override
+  String get detailNoCatalogInfo =>
+      'No movie or TV details yet. This video can be played directly.';
+
+  @override
+  String get detailPlaybackProgress => 'Playback progress';
+
+  @override
+  String get detailFiles => 'Video files';
 
   @override
   String get baiduAllFiles => 'Select all files';
 
   @override
+  String get baiduPermissionDenied =>
+      'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.';
+  @override
   String get voiceSettings => 'Voice transcription';
 
   @override
-  String get voiceSettingsHint =>
-      'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
+  String get voiceSettingsHint => 'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
 
   @override
-  String get voiceSettingsError =>
-      'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.';
+  String get voiceSettingsError => 'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.';
 
   @override
   String get voiceStart => 'Start voice input';
@@ -4217,8 +4227,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceStop => 'Stop and transcribe';
 
   @override
-  String get voiceRecording =>
-      'Recording… Click stop to transcribe, or cancel to discard.';
+  String get voiceRecording => 'Recording… Click stop to transcribe, or cancel to discard.';
 
   @override
   String get voiceTranscribing => 'Transcribing…';
@@ -4227,25 +4236,21 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voicePreparing => 'Preparing microphone…';
 
   @override
-  String get voiceUnsupported =>
-      'Voice recording is not supported on this platform or device.';
+  String get voiceUnsupported => 'Voice recording is not supported on this platform or device.';
 
   @override
-  String get voicePermission =>
-      'Microphone permission denied. Allow microphone access in system settings and try again.';
+  String get voicePermission => 'Microphone permission denied. Allow microphone access in system settings and try again.';
 
   @override
   String get voiceEmpty => 'No speech was recognized. Please try again.';
 
   @override
-  String get voiceTooLarge =>
-      'The recording is too large. Please record a shorter message.';
+  String get voiceTooLarge => 'The recording is too large. Please record a shorter message.';
 
   @override
-  String get voiceRecordingError =>
-      'Could not record audio. Check your microphone and try again.';
+  String get voiceRecordingError => 'Could not record audio. Check your microphone and try again.';
 
   @override
-  String get voiceTranscriptionError =>
-      'Transcription failed. Check your network and transcription settings, then try again.';
+  String get voiceTranscriptionError => 'Transcription failed. Check your network and transcription settings, then try again.';
+
 }

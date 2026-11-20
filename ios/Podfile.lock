@@ -36,7 +36,7 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
   MobileVLCKit: 73d7ddb52238b6885b70b0f281cae75a0a6e3ac0
-  openplayx_ffmpeg: cdd43202f5deaceb7c57f97caae51a19f1520eb2
+  openplayx_ffmpeg: c04b637dca2a29e6360ba1457743f9011762340d
   openplayx_whisper: 3eb0edb322490fa74e506d8a7355b3be0acaea50
   OpenPlayXRemote: c83c9371562b585271307a71acf990f70034df47
   vlc_player: 54e1b3c297a42efdeaa13e912d2ed27f6a7d4e0f

@@ -29,6 +29,7 @@ import '../../../core/format/byte_size.dart';
 
 part 'media_detail_sections.dart';
 part 'media_detail_widgets.dart';
+part 'media_file_detail.dart';
 
 /// Plays one resource of a media item; supplied by the library page.
 typedef PlayResource = Future<void> Function(
@@ -324,6 +325,9 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                 builder: (context, box) {
                   final width = box.maxWidth;
                   final wide = width >= 640;
+                  if (_c.usesFileDetails) {
+                    return _fileDetails(title, backdrop ?? poster, top, wide);
+                  }
                   final heroHeight = backdrop == null
                       ? (wide ? 420.0 : 300.0)
                       : (width * 9 / 16).clamp(260.0, box.maxHeight * 0.85);

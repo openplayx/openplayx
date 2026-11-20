@@ -467,7 +467,38 @@ void main() {
     );
 
     final artwork = PreviewArtwork(sources, files);
+    final fileId = library.register(
+      const SourceEntry(
+        ResourceRef('s', '/history.mp4'),
+        '明清之變｜崇禎為什麼一定要殺袁崇煥？袁崇煥死的到底冤不冤',
+        isFolder: false,
+        size: 1073741824,
+      ),
+    );
+    addToLibrary(library, fileId);
+    library.transaction(
+      () => library.metadata.apply(
+        fileId,
+        const MetadataRecord(
+          ref: MetadataRef('video-cover', MediaKind.movie, 'history'),
+          fields: {},
+          artwork: [ArtworkDescriptor(id: 'backdrop', type: 'poster')],
+        ),
+        sourceKey: 'video-cover',
+        authority: 1,
+        expectedRevision: 0,
+        operationId: 'preview-file-cover',
+      ),
+    );
+    final fileResource = library.versionList(fileId).single;
+    library.saveProgress(
+      fileResource.id,
+      library.beginSession(fileResource.id),
+      const Duration(minutes: 12),
+      const Duration(minutes: 48),
+    );
     final targets = {
+      'file': {'id': fileId, 'title': '明清之變'},
       'movie': library
           .query(search: '雨夜行动')
           .firstWhere((m) => m['id'] == movieId),
@@ -495,7 +526,7 @@ void main() {
                   artwork: artwork,
                   media: media,
                   play: (_, _) async {},
-                  resourceLabel: (_) => '',
+                  resourceLabel: (_) => '家庭 NAS',
                 ),
               ),
             ),

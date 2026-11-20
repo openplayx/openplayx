@@ -214,8 +214,14 @@ void main() {
     String lang(Locale l) => MetadataRepository.tmdbLanguageFor(l);
     expect(lang(const Locale('en')), 'en-US');
     expect(lang(const Locale('fr', 'FR')), 'en-US');
-    expect(lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans')), 'zh-CN');
-    expect(lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')), 'zh-TW');
+    expect(
+      lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hans')),
+      'zh-CN',
+    );
+    expect(
+      lang(const Locale.fromSubtags(languageCode: 'zh', scriptCode: 'Hant')),
+      'zh-TW',
+    );
     expect(lang(const Locale('zh', 'HK')), 'zh-TW');
     library.metadata.followUiLanguage(const Locale('en'));
     expect(library.metadata.language, 'en-US');
@@ -252,7 +258,10 @@ void main() {
       await worker.reconcile();
       await worker.runBatch();
       expect(provider.calls, greaterThan(calls));
-      expect(provider.languages.skip(provider.languages.length - 1).single, 'en-US');
+      expect(
+        provider.languages.skip(provider.languages.length - 1).single,
+        'en-US',
+      );
     } finally {
       await worker.dispose();
     }
@@ -267,7 +276,8 @@ void main() {
       expect(worker.queue.item(media)!['state'], 'awaitingSelection');
       expect(library.metadata.association(media), isNull);
       expect(library.metadata.latestJob(media)!['stage'], 'awaitingSelection');
-      expect(artwork.fetched, isEmpty);
+      expect(artwork.fetched, [startsWith(ArtworkService.videoCoverPrefix)]);
+      expect(library.metadata.selectedArtwork(media), isNotNull);
     } finally {
       await worker.dispose();
     }
@@ -292,7 +302,10 @@ void main() {
       expect(worker.queue.item(media)!['state'], 'completed');
       expect(library.metadata.association(media)!.id, '2');
       expect(library.metadata.confirmed(media), isTrue);
-      expect(artwork.fetched, ['poster']);
+      expect(artwork.fetched, [
+        startsWith(ArtworkService.videoCoverPrefix),
+        'poster',
+      ]);
     } finally {
       await manual.dispose();
       await worker.dispose();

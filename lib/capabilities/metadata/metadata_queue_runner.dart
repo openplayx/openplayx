@@ -90,7 +90,7 @@ class MetadataQueueRunner {
     // A new name rule can match items the previous one could not: give every
     // automatic miss one more try (user-confirmed matches are untouched).
     final rule =
-        '${MediaNameEvidence.ruleVersion}/$matchRule/cover-one-fifth-v1';
+        '${MediaNameEvidence.ruleVersion}/$matchRule/cover-one-fifth-v2';
     if (library.metadata.setting('nameRule') != rule) {
       library.db.execute(
         '''UPDATE metadata_queue SET state='queued',phase=0,attempts=0,next_at=0,error_code=NULL,
@@ -231,7 +231,11 @@ class MetadataQueueRunner {
   bool _valid(String media, String owner) =>
       !_stopped && !library.isClosing && queue.owns(media, owner);
 
-  Future<void> _fallbackCover(String media, String owner) async {
+  Future<void> _fallbackCover(
+    String media,
+    String owner, {
+    String? pendingJob,
+  }) async {
     final metadata = library.metadata;
     if (metadata.displayArtwork(media) != null ||
         metadata.association(media) != null) {
@@ -255,8 +259,8 @@ class MetadataQueueRunner {
       return;
     }
     if (!_valid(media, owner) || metadata.revision(media) != revision) return;
-    library.transaction(
-      () => metadata.apply(
+    library.transaction(() {
+      final applied = metadata.apply(
         media,
         MetadataRecord(
           ref: MetadataRef('video-cover', MediaKind.movie, media),
@@ -267,8 +271,17 @@ class MetadataQueueRunner {
         authority: 0,
         expectedRevision: revision,
         operationId: 'video-cover:$media:$revision',
-      ),
-    );
+      );
+      if (applied && pendingJob != null) {
+        // Artwork alone does not invalidate the candidates we just fetched.
+        // Rebase only this job from the exact revision used for our cover;
+        // concurrent user edits must still make a candidate job stale.
+        library.db.execute(
+          'UPDATE metadata_jobs SET revision=? WHERE id=? AND revision=?',
+          [metadata.revision(media), pendingJob, revision],
+        );
+      }
+    });
   }
 
   Future<void> _images(String media, String owner) async {
@@ -418,13 +431,16 @@ class MetadataQueueRunner {
       await service.importSidecars(media);
       if (!_valid(media, owner)) return;
       final local = library.metadata.latestJob(media);
-      if (local?['stage'] == 'awaitingSelection') {
+      if (local?['stage'] == 'awaitingSelection' &&
+          (jsonDecode(local!['input'] as String) as Map).containsKey(
+            'sidecars',
+          )) {
         queue.finish(
           media,
           owner,
           'awaitingSelection',
-          error: local?['error_code'] as String?,
-          job: local?['id'] as String?,
+          error: local['error_code'] as String?,
+          job: local['id'] as String?,
         );
         return;
       }
@@ -538,7 +554,9 @@ class MetadataQueueRunner {
     if (match == null) {
       final noResults =
           _candidates(job).isEmpty && jobInput['nextPage'] == null;
-      if (noResults) await _fallbackCover(media, owner);
+      // An ambiguous catalog title still needs a local video cover. Keep
+      // candidates and awaitingSelection while supplying the artwork.
+      await _fallbackCover(media, owner, pendingJob: job);
       if (!_valid(media, owner)) return;
       queue.finish(
         media,

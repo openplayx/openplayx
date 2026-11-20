@@ -6,6 +6,7 @@ import 'package:openplayx/core/capabilities/metadata_capability.dart';
 import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:openplayx/capabilities/metadata/metadata_queue_runner.dart';
+import 'package:openplayx/capabilities/metadata/metadata_service.dart';
 
 import 'metadata_background_test.dart' show TestArtwork, TestMetadataProvider;
 import 'metadata_page_test.dart' show OfflineSources;
@@ -13,13 +14,17 @@ import '../support/library_test_helpers.dart';
 
 class EmptyCatalog extends TestMetadataProvider {
   int? nextPage;
+  List<MetadataRecord> records = [];
   @override
   Future<MetadataResult> lookup(
     MetadataRequest request,
     CallContext context,
   ) async {
     if (failure != null) throw failure!;
-    return MetadataResult([], nextPage: nextPage);
+    if (request.action != MetadataAction.search) {
+      return super.lookup(request, context);
+    }
+    return MetadataResult(records, nextPage: nextPage);
   }
 }
 
@@ -94,14 +99,39 @@ void main() {
   );
 
   test(
-    'an incomplete empty page awaits selection without extracting a cover',
+    'an incomplete empty page gets a cover while awaiting selection',
     () async {
       catalog.nextPage = 2;
       await run();
-      expect(artwork.fetched, isEmpty);
+      expect(artwork.fetched, hasLength(1));
+      expect(library.metadata.selectedArtwork(media), isNotNull);
       expect(worker.queue.item(media)!['state'], 'awaitingSelection');
     },
   );
+
+  test('ambiguous candidates get a cover and remain confirmable', () async {
+    catalog.records = [catalog.movie('1'), catalog.movie('2')];
+    await run();
+    expect(worker.queue.item(media)!['state'], 'awaitingSelection');
+    expect(library.metadata.association(media), isNull);
+    expect(library.metadata.selectedArtwork(media), isNotNull);
+    final job = library.metadata.latestJob(media)!;
+    expect(job['stage'], 'awaitingSelection');
+    expect(job['revision'], library.metadata.revision(media));
+    final service = MetadataService(
+      library,
+      artwork.sources,
+      registry: MetadataRegistry()..register('tmdb', catalog),
+    );
+    try {
+      await service.confirm(job['id'] as String, catalog.records.first.ref);
+      expect(library.metadata.confirmed(media), isTrue);
+      expect(library.metadata.association(media)?.id, '1');
+      expect(library.metadata.selectedArtwork(media)?.id, 'poster');
+    } finally {
+      await service.dispose();
+    }
+  });
 
   test('network failure never triggers a fallback', () async {
     catalog.failure = PluginException(
@@ -113,6 +143,20 @@ void main() {
     expect(artwork.fetched, isEmpty);
     expect(library.metadata.selectedArtwork(media), isNull);
     expect(worker.queue.item(media)!['state'], 'queued');
+  });
+
+  test('old waiting items are retried after the cover rule upgrade', () async {
+    catalog.records = [catalog.movie('1'), catalog.movie('2')];
+    artwork.fail = true;
+    await run();
+    expect(worker.queue.item(media)!['state'], 'awaitingSelection');
+    expect(library.metadata.selectedArtwork(media), isNull);
+    artwork.fail = false;
+    library.metadata.setSetting('nameRule', 'old-cover-rule');
+    await run();
+    expect(worker.queue.item(media)!['state'], 'awaitingSelection');
+    expect(library.metadata.selectedArtwork(media), isNotNull);
+    expect(library.metadata.association(media), isNull);
   });
 
   test(

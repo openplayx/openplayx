@@ -7,6 +7,9 @@ import 'app_localizations.dart';
 
 /// The translations for Chinese (`zh`).
 class AppLocalizationsZh extends AppLocalizations {
+  @override
+  String get baiduAllFiles => '选择全部文件';
+
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
@@ -3924,17 +3927,24 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiCustomServiceHint => '取消勾选后，可填写自己的 API 服务。切换时会保留自带配置。';
 
   @override
-  String get baiduPermissionDenied => '百度网盘限制了播放或文件访问，请检查账号权限、下载权益及应用获批权限。';
+  String get detailVideoFile => '视频文件';
 
   @override
-  String get baiduAllFiles => '选择全部文件';
+  String get detailNoCatalogInfo => '暂无影片资料，可直接播放视频。';
 
+  @override
+  String get detailPlaybackProgress => '播放进度';
+
+  @override
+  String get detailFiles => '视频文件';
+
+  @override
+  String get baiduPermissionDenied => '百度网盘限制了播放或文件访问，请检查账号权限、下载权益及应用获批权限。';
   @override
   String get voiceSettings => '语音转写';
 
   @override
-  String get voiceSettingsHint =>
-      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
+  String get voiceSettingsHint => '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
 
   @override
   String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
@@ -3971,10 +3981,14 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceTranscriptionError => '转写失败，请检查网络和独立转写配置后重试。';
+
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
 class AppLocalizationsZhHans extends AppLocalizationsZh {
+  @override
+  String get baiduAllFiles => '选择全部文件';
+
   AppLocalizationsZhHans() : super('zh_Hans');
 
   @override
@@ -7892,57 +7906,26 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiCustomServiceHint => '取消勾选后，可填写自己的 API 服务。切换时会保留自带配置。';
 
   @override
+  String get detailVideoFile => '视频文件';
+
+  @override
+  String get detailNoCatalogInfo => '暂无影片资料，可直接播放视频。';
+
+  @override
+  String get detailPlaybackProgress => '播放进度';
+
+  @override
+  String get detailFiles => '视频文件';
+
+  @override
   String get baiduPermissionDenied => '百度网盘限制了播放或文件访问，请检查账号权限、下载权益及应用获批权限。';
-
-  @override
-  String get baiduAllFiles => '选择全部文件';
-
-  @override
-  String get voiceSettings => '语音转写';
-
-  @override
-  String get voiceSettingsHint =>
-      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
-
-  @override
-  String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
-
-  @override
-  String get voiceStart => '开始语音输入';
-
-  @override
-  String get voiceStop => '停止并转写';
-
-  @override
-  String get voiceRecording => '正在录音…点击停止进行转写，或取消以丢弃录音。';
-
-  @override
-  String get voiceTranscribing => '正在转写…';
-
-  @override
-  String get voicePreparing => '正在准备麦克风…';
-
-  @override
-  String get voiceUnsupported => '当前平台或设备不支持语音录入。';
-
-  @override
-  String get voicePermission => '麦克风权限被拒绝，请在系统设置中允许访问麦克风后重试。';
-
-  @override
-  String get voiceEmpty => '未识别到语音，请重试。';
-
-  @override
-  String get voiceTooLarge => '录音过大，请缩短录音后重试。';
-
-  @override
-  String get voiceRecordingError => '录音失败，请检查麦克风后重试。';
-
-  @override
-  String get voiceTranscriptionError => '转写失败，请检查网络和独立转写配置后重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
+  @override
+  String get baiduAllFiles => '選擇全部檔案';
+
   AppLocalizationsZhHant() : super('zh_Hant');
 
   @override
@@ -11860,17 +11843,24 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiCustomServiceHint => '取消勾選後，可填寫自己的 API 服務。切換時會保留自備設定。';
 
   @override
-  String get baiduPermissionDenied => '百度網盤限制了播放或檔案存取，請檢查帳號權限、下載權益及應用程式獲批權限。';
+  String get detailVideoFile => '影片檔案';
 
   @override
-  String get baiduAllFiles => '選擇全部檔案';
+  String get detailNoCatalogInfo => '暫無影視資料，可直接播放影片。';
 
+  @override
+  String get detailPlaybackProgress => '播放進度';
+
+  @override
+  String get detailFiles => '影片檔案';
+
+  @override
+  String get baiduPermissionDenied => '百度網盤限制了播放或檔案存取，請檢查帳號權限、下載權益及應用程式獲批權限。';
   @override
   String get voiceSettings => '語音轉寫';
 
   @override
-  String get voiceSettingsHint =>
-      '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，文字可編輯並需手動傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
+  String get voiceSettingsHint => '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，文字可編輯並需手動傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
 
   @override
   String get voiceSettingsError => '請在設定中檢查轉寫位址、模型和 API Key，金鑰須成功儲存至本機安全儲存空間。';
@@ -11907,4 +11897,5 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get voiceTranscriptionError => '轉寫失敗，請檢查網路和獨立轉寫設定後重試。';
+
 }

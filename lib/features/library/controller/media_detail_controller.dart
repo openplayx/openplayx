@@ -43,6 +43,20 @@ class MediaDetailController extends ChangeNotifier {
 
   /// Scraped metadata (free-form JSON fields).
   Map<String, dynamic> get fields => service.metadata.fields(id);
+
+  /// File-derived titles and generated covers do not constitute catalog data.
+  /// Re-evaluated as background metadata arrives while the page is open.
+  bool get usesFileDetails {
+    if (series || service.metadata.association(id) != null) return false;
+    final data = fields;
+    return !['overview', 'ratings', 'genres', 'cast', 'directors'].any((key) {
+      final value = data[key];
+      return value is String && value.trim().isNotEmpty ||
+          value is Iterable && value.isNotEmpty ||
+          value is Map && value.isNotEmpty;
+    });
+  }
+
   String get title => (fields['title'] ?? item.title).toString();
 
   // ---- Seasons, episodes, extras ----------------------------------------------
