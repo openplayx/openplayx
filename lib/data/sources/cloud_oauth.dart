@@ -13,16 +13,23 @@ import 'source_config.dart';
 
 /// Public application IDs are supplied by the publisher, never by end users.
 class CloudOAuthApp {
-  CloudOAuthApp(this.kind, {String? clientId, Uri? redirect})
-    : clientId =
+  CloudOAuthApp(this.kind, {String? clientId, Uri? redirect, Uri? broker})
+    : broker =
+          broker ??
+          Uri.tryParse(const String.fromEnvironment('BAIDU_OAUTH_BROKER')),
+      clientId =
           clientId ??
-          (kind == SourceKind.onedrive
+          (kind == SourceKind.baidu
+              ? const String.fromEnvironment('BAIDU_CLIENT_ID')
+              : kind == SourceKind.onedrive
               ? const String.fromEnvironment('ONEDRIVE_CLIENT_ID')
               : const String.fromEnvironment('DROPBOX_CLIENT_ID')),
       redirect =
           redirect ??
           Uri.parse(
-            kind == SourceKind.onedrive
+            kind == SourceKind.baidu
+                ? 'com.openplayx.app://oauth/baidu'
+                : kind == SourceKind.onedrive
                 ? const String.fromEnvironment(
                     'ONEDRIVE_REDIRECT_URI',
                     defaultValue: 'com.openplayx.app://oauth/onedrive',
@@ -32,20 +39,40 @@ class CloudOAuthApp {
                     defaultValue: 'com.openplayx.app://oauth/dropbox',
                   ),
           );
+  final Uri? broker;
+  bool get configured =>
+      clientId.isNotEmpty &&
+      (kind != SourceKind.baidu ||
+          (broker != null &&
+              broker!.scheme == 'https' &&
+              broker!.host.isNotEmpty &&
+              broker!.userInfo.isEmpty &&
+              !broker!.hasQuery &&
+              !broker!.hasFragment));
   final SourceKind kind;
   final String clientId;
   final Uri redirect;
-  Uri get authorize => Uri.parse(
-    kind == SourceKind.onedrive
-        ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize'
-        : 'https://www.dropbox.com/oauth2/authorize',
-  );
-  Uri get token => Uri.parse(
-    kind == SourceKind.onedrive
-        ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token'
-        : 'https://api.dropboxapi.com/oauth2/token',
-  );
-  String get scope => kind == SourceKind.onedrive
+  Uri get authorize => kind == SourceKind.baidu
+      ? broker!.resolve(
+          '${broker!.path.replaceFirst(RegExp(r"/+$"), "")}/authorize',
+        )
+      : Uri.parse(
+          kind == SourceKind.onedrive
+              ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/authorize'
+              : 'https://www.dropbox.com/oauth2/authorize',
+        );
+  Uri get token => kind == SourceKind.baidu
+      ? broker!.resolve(
+          '${broker!.path.replaceFirst(RegExp(r"/+$"), "")}/token',
+        )
+      : Uri.parse(
+          kind == SourceKind.onedrive
+              ? 'https://login.microsoftonline.com/consumers/oauth2/v2.0/token'
+              : 'https://api.dropboxapi.com/oauth2/token',
+        );
+  String get scope => kind == SourceKind.baidu
+      ? 'basic,netdisk'
+      : kind == SourceKind.onedrive
       ? 'Files.Read offline_access'
       : 'files.metadata.read files.content.read';
 }
@@ -127,7 +154,7 @@ class CloudOAuth {
     if (!Platform.isMacOS && !Platform.isIOS && !Platform.isAndroid) {
       throw PluginException('unsupported', appStrings.cloudNotConfigured);
     }
-    if (app.clientId.isEmpty) {
+    if (!app.configured) {
       throw PluginException('unsupported', appStrings.cloudNotConfigured);
     }
     final attempt = CloudOAuthAttempt(app);
@@ -168,7 +195,12 @@ class CloudOAuth {
     final client = HttpClient()
       ..connectionTimeout = const Duration(seconds: 30);
     try {
-      final request = await client.postUrl(app.token);
+      if (!app.configured) {
+        throw PluginException('unsupported', appStrings.cloudNotConfigured);
+      }
+      final request = await client
+          .postUrl(app.token)
+          .timeout(const Duration(seconds: 30));
       request.followRedirects = false;
       request.headers.contentType = ContentType(
         'application',
@@ -188,6 +220,16 @@ class CloudOAuth {
       );
       if (response.statusCode != 200) {
         await response.drain<void>();
+        if (response.statusCode == 503 && app.kind == SourceKind.baidu) {
+          throw PluginException('unsupported', appStrings.cloudNotConfigured);
+        }
+        if (response.statusCode == 429 || response.statusCode >= 500) {
+          throw PluginException(
+            'networkUnavailable',
+            appStrings.errSourceUnreachable,
+            retryable: true,
+          );
+        }
         throw PluginException('authRequired', appStrings.cloudReauthorize);
       }
       final body = await utf8.decoder
@@ -195,16 +237,37 @@ class CloudOAuth {
           .join()
           .timeout(const Duration(seconds: 30));
       final j = jsonDecode(body) as Map<String, dynamic>;
-      final access = j['access_token'] as String;
+      final access = j['access_token'] as String? ?? '';
       final refresh =
           j['refresh_token'] as String? ?? previous?.refreshToken ?? '';
-      if (access.isEmpty || refresh.isEmpty || (j['expires_in'] as num) <= 0) {
+      if (access.isEmpty ||
+          refresh.isEmpty ||
+          j['expires_in'] is! num ||
+          (j['expires_in'] as num) <= 0) {
         throw PluginException('authRequired', appStrings.cloudReauthorize);
       }
       return CloudTokens(
         access,
         refresh,
         DateTime.now().add(Duration(seconds: (j['expires_in'] as num).toInt())),
+      );
+    } on SocketException {
+      throw PluginException(
+        'networkUnavailable',
+        appStrings.errSourceUnreachable,
+        retryable: true,
+      );
+    } on TimeoutException {
+      throw PluginException(
+        'networkUnavailable',
+        appStrings.errConnectTimeout,
+        retryable: true,
+      );
+    } on FormatException {
+      throw PluginException(
+        'networkUnavailable',
+        appStrings.errSourceUnreachable,
+        retryable: true,
       );
     } finally {
       client.close(force: true);

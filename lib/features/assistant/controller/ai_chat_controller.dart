@@ -1,4 +1,10 @@
+import 'dart:async';
+
 import 'package:flutter/widgets.dart';
+
+import '../../../assistant/voice/voice_settings.dart';
+import '../../../assistant/voice/voice_service.dart';
+import 'voice_input_controller.dart';
 
 import '../../../assistant/conversation/conversation_coordinator.dart';
 
@@ -11,7 +17,20 @@ class AiChatAnchor {
 
 /// Local presentation state shared by the home view and its transient panels.
 class AiChatController extends ChangeNotifier {
-  AiChatController(this.coordinator) {
+  AiChatController(
+    this.coordinator, {
+    VoiceRecorder? voiceRecorder,
+    VoiceTranscriber? voiceTranscriber,
+    VoiceSettings? voiceSettings,
+  }) {
+    voice = VoiceInputController(
+      settings: voiceSettings ?? VoiceSettings(coordinator.store.configuration),
+      recorder: voiceRecorder,
+      transcriber: voiceTranscriber,
+      draft: draft,
+      conversationId: () => coordinator.conversationId,
+    );
+    voice.addListener(_voiceChanged);
     _conversationId = coordinator.conversationId;
     draft.text = coordinator.draft;
     draft.addListener(_saveDraft);
@@ -19,6 +38,8 @@ class AiChatController extends ChangeNotifier {
   }
   final ConversationCoordinator coordinator;
   final draft = TextEditingController();
+  late final VoiceInputController voice;
+  void _voiceChanged() => notifyListeners();
   late String _conversationId;
   bool showConversation = false;
   String? sendError;
@@ -50,6 +71,7 @@ class AiChatController extends ChangeNotifier {
   void _saveDraft() => coordinator.saveDraft(draft.text);
   void _changed() {
     if (_conversationId != coordinator.conversationId) {
+      unawaited(voice.cancel());
       _conversationId = coordinator.conversationId;
       draft.text = coordinator.draft;
       sendError = null;
@@ -75,7 +97,7 @@ class AiChatController extends ChangeNotifier {
 
   Future<void> send({required bool toolsEnabled}) async {
     final text = draft.text;
-    if (text.trim().isEmpty || coordinator.busy) return;
+    if (text.trim().isEmpty || coordinator.busy || voice.busy) return;
     try {
       final pending = coordinator.send(text, toolsEnabled: toolsEnabled);
       // A failed local save leaves no accepted user turn: keep its draft.
@@ -100,6 +122,8 @@ class AiChatController extends ChangeNotifier {
     _disposed = true;
     coordinator.removeListener(_changed);
     draft.removeListener(_saveDraft);
+    voice.removeListener(_voiceChanged);
+    voice.dispose();
     draft.dispose();
     super.dispose();
   }

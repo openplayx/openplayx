@@ -6,6 +6,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../ui/icons/app_icons.dart';
 import '../../controller/ai_chat_controller.dart';
+import '../../controller/voice_input_controller.dart';
 
 class AiComposer extends StatelessWidget {
   const AiComposer({
@@ -29,7 +30,22 @@ class AiComposer extends StatelessWidget {
     return ListenableBuilder(
       listenable: Listenable.merge([controller, controller.draft]),
       builder: (context, _) {
-        final canSend = controller.draft.text.trim().isNotEmpty;
+        final voice = controller.voice;
+        final canSend = controller.draft.text.trim().isNotEmpty && !voice.busy;
+        final voiceMessage = voice.error == null
+            ? null
+            : switch (voice.error) {
+                'unsupported' => l.voiceUnsupported,
+                'permission' => l.voicePermission,
+                'authentication' => l.aiAuthenticationFailed,
+                'rateLimited' => l.aiRateLimited,
+                'timeout' => l.aiTimeout,
+                'settings' => l.voiceSettingsError,
+                'empty' => l.voiceEmpty,
+                'tooLarge' => l.voiceTooLarge,
+                'recording' => l.voiceRecordingError,
+                _ => l.voiceTranscriptionError,
+              };
         // Round filled button inside the pill: arrow to send, square to stop.
         Widget round(String label, IconData icon, VoidCallback? onPressed) =>
             Tooltip(
@@ -97,6 +113,25 @@ class AiComposer extends StatelessWidget {
                         ),
                       ),
                     ),
+                  if (voice.busy || voiceMessage != null)
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 8),
+                      child: Text(
+                        voiceMessage ??
+                            switch (voice.state) {
+                              VoiceInputState.recording => l.voiceRecording,
+                              VoiceInputState.transcribing =>
+                                l.voiceTranscribing,
+                              _ => l.voicePreparing,
+                            },
+                        textAlign: TextAlign.center,
+                        style: theme.textTheme.small.copyWith(
+                          color: voiceMessage == null
+                              ? colors.mutedForeground
+                              : colors.destructive,
+                        ),
+                      ),
+                    ),
                   Focus(
                     onKeyEvent: (_, event) {
                       if (!desktop ||
@@ -151,13 +186,38 @@ class AiComposer extends StatelessWidget {
                           border: ShadBorder.none,
                           focusedBorder: ShadBorder.none,
                         ),
-                        trailing: c.busy
-                            ? round(l.aiStop, AppIcons.stop, c.stop)
-                            : round(
-                                l.aiSend,
-                                AppIcons.sendUp,
-                                canSend ? _send : null,
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            round(
+                              voice.state == VoiceInputState.recording
+                                  ? l.voiceStop
+                                  : l.voiceStart,
+                              voice.state == VoiceInputState.recording
+                                  ? Icons.stop_circle_outlined
+                                  : Icons.mic_none,
+                              voice.state == VoiceInputState.idle ||
+                                      voice.state == VoiceInputState.recording
+                                  ? voice.toggle
+                                  : null,
+                            ),
+                            if (voice.busy)
+                              round(
+                                l.cancel,
+                                Icons.close,
+                                voice.state == VoiceInputState.cancelling
+                                    ? null
+                                    : voice.cancel,
                               ),
+                            c.busy
+                                ? round(l.aiStop, AppIcons.stop, c.stop)
+                                : round(
+                                    l.aiSend,
+                                    AppIcons.sendUp,
+                                    canSend ? _send : null,
+                                  ),
+                          ],
+                        ),
                       ),
                     ),
                   ),

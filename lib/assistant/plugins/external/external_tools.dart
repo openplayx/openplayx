@@ -199,7 +199,7 @@ class ExternalTools {
     final data = structured is Map
         ? Map<String, dynamic>.from(structured)
         : <String, dynamic>{'text': text};
-    return fit(data);
+    return {...fit(data), 'service_id': serviceId};
   }
 
   /// Keeps a result within the gateway's size limit by trimming its longest

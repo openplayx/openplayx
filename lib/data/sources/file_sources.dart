@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:math';
 import 'dart:io';
 
@@ -312,30 +313,72 @@ class SmbPlugin
     });
   }
 
-  static final _fileName = RegExp(r'^[^/\\:*?"<>|\x00-\x1f]{1,180}$');
-
   @override
   Future<SourceEntry> writeNewFile(
     ResourceRef near,
     String name,
     File source,
-    CallContext context,
-  ) async {
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  }) async {
     checkOwnership(config.id, near, context);
     final nearPath = _path(near.id);
-    if (!_fileName.hasMatch(name) || name.startsWith('.')) {
-      throw PluginException('invalidInput', appStrings.errInvalidFileName);
-    }
     final segments = nearPath.split('/').where((s) => s.isNotEmpty).toList();
     if (segments.isEmpty) {
-      throw PluginException('invalidInput', appStrings.errUnknownWriteShare);
+      throw const PluginException('invalidInput', 'Select an SMB share first.');
     }
-    // Same share as the source media; the folder is fixed by the host.
     final share = _root == '/' ? '/${segments.first}' : _root;
-    final folderPath = '$share/${SourceWriteCapability.folderName}';
+    return _write(
+      source.openRead(),
+      await source.length(),
+      name,
+      context,
+      share,
+      folder ?? SourceWriteCapability.folderName,
+      cancellation,
+    );
+  }
+
+  @override
+  Future<SourceEntry> writeNewStream(
+    Stream<List<int>> stream,
+    int length,
+    String name,
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  }) => _write(
+    stream,
+    length,
+    name,
+    context,
+    _root,
+    folder ?? 'OpenPlayX/Downloads',
+    cancellation,
+  );
+
+  Future<SourceEntry> _write(
+    Stream<List<int>> stream,
+    int length,
+    String name,
+    CallContext context,
+    String root,
+    String folder,
+    SourceWriteCancellation? cancellation,
+  ) async {
+    cancellation?.check();
+    checkOwnership(config.id, null, context);
+    if (root == '/') {
+      throw const PluginException(
+        'invalidInput',
+        'Configure a target SMB share.',
+      );
+    }
+    validateWriteName(name);
+    final folderPath = writeFolder(root, folder);
     _path(folderPath, directory: true);
     _path('$folderPath/$name');
-    final length = await source.length();
     final dot = name.lastIndexOf('.');
     final stem = dot > 0 ? name.substring(0, dot) : name;
     final ext = dot > 0 ? name.substring(dot) : '';
@@ -345,15 +388,20 @@ class SmbPlugin
     ).join();
     final tmpPath = '$folderPath/.openplayx-$token.part';
     return _access.run((c) async {
+      final stop = cancellation?.listen(() {
+        unawaited(c.close());
+      });
       try {
-        final folder = await c.file(folderPath);
-        if (!folder.isExists) {
-          await c.createFolder(folderPath);
-        } else if (!folder.isDirectory()) {
-          throw PluginException(
-            'conflict',
-            appStrings.errOpenPlayXFolderBlocked,
-          );
+        cancellation?.check();
+        var parent = root;
+        for (final segment in folder.split('/').where((s) => s.isNotEmpty)) {
+          parent = '$parent/$segment';
+          final dir = await c.file(parent);
+          if (!dir.isExists) {
+            await c.createFolder(parent);
+          } else if (!dir.isDirectory()) {
+            throw const PluginException('conflict', 'Target folder is a file.');
+          }
         }
         var target = name;
         for (var n = 2; (await c.file('$folderPath/$target')).isExists; n++) {
@@ -367,11 +415,66 @@ class SmbPlugin
         }
         final tmp = await c.createFile(tmpPath);
         try {
-          final sink = await c.openWrite(tmp);
+          var sink = await c.openWrite(tmp);
+          var offset = 0;
           try {
-            await sink.addStream(source.openRead());
+            await for (final chunk in checkedWriteStream(
+              stream,
+              length,
+              cancellation: cancellation,
+            )) {
+              var skip = 0;
+              var failures = 0;
+              while (skip < chunk.length) {
+                cancellation?.check();
+                try {
+                  await sink.addStream(Stream.value(chunk.sublist(skip)));
+                  // addStream completes only after the SMB consumer has
+                  // acknowledged these bytes, keeping at most one chunk.
+                  skip = chunk.length;
+                } catch (error) {
+                  cancellation?.check();
+                  if (!(c.transport.isClosed ||
+                          error is SocketException ||
+                          error is TimeoutException) ||
+                      ++failures > 30) {
+                    rethrow;
+                  }
+                  try {
+                    await sink.close();
+                  } catch (_) {}
+                  _access._discard(c);
+                  await Future<void>.delayed(const Duration(seconds: 2));
+                  cancellation?.check();
+                  while (true) {
+                    cancellation?.check();
+                    try {
+                      c = await _access._connect();
+                      break;
+                    } catch (_) {
+                      if (++failures > 30) rethrow;
+                      await Future<void>.delayed(const Duration(seconds: 2));
+                    }
+                  }
+                  final partial = await c.file(tmpPath);
+                  if (!partial.isExists ||
+                      partial.size < offset ||
+                      partial.size > offset + chunk.length) {
+                    throw const PluginException(
+                      'resumeConflict',
+                      'Partial destination changed.',
+                    );
+                  }
+                  skip = partial.size - offset;
+                  sink = await c.openWrite(partial, append: true);
+                }
+              }
+              offset += chunk.length;
+            }
           } finally {
-            await sink.close();
+            try {
+              await sink.close();
+            } catch (_) {}
           }
           final written = await c.file(tmpPath);
           if (written.size != length) {
@@ -382,6 +485,7 @@ class SmbPlugin
           }
           // Server-side rename without replace: never overwrites a file
           // that appeared meanwhile.
+          cancellation?.check();
           await c.rename(written, '$folderPath/$target');
         } catch (_) {
           try {
@@ -405,6 +509,8 @@ class SmbPlugin
           appStrings.errSmbWrite,
           retryable: true,
         );
+      } finally {
+        stop?.call();
       }
     });
   }
@@ -572,4 +678,70 @@ void validateAttachment(ResourceRef ref, int maxBytes) {
       ).hasMatch(ref.id)) {
     throw PluginException('invalidInput', appStrings.errAttachmentTypeOrLimit);
   }
+}
+
+/// Validate model and remote supplied names before any network operation.
+void validateWriteName(String name) {
+  if (!RegExp(r'^[^/\\:*?"<>|\x00-\x1f]{1,180}$').hasMatch(name) ||
+      name.startsWith('.') ||
+      name.trim() != name) {
+    throw const PluginException(
+      'invalidInput',
+      'Invalid destination filename.',
+    );
+  }
+}
+
+String writeFolder(String root, String? folder) {
+  folder ??= 'OpenPlayX/Downloads';
+  if (folder.startsWith('/') ||
+      folder.contains('\\') ||
+      folder
+          .split('/')
+          .any(
+            (s) => s == '.' || s == '..' || RegExp(r'[\x00-\x1f]').hasMatch(s),
+          )) {
+    throw const PluginException(
+      'invalidInput',
+      'Folder must be relative to the source root.',
+    );
+  }
+  final parts = folder.split('/').where((s) => s.isNotEmpty);
+  final suffix = parts.join('/');
+  return suffix.isEmpty ? root : '${root == '/' ? '' : root}/$suffix';
+}
+
+Stream<List<int>> checkedWriteStream(
+  Stream<List<int>> stream,
+  int length, {
+  SourceWriteCancellation? cancellation,
+}) async* {
+  cancellation?.check();
+  var written = 0;
+  await for (final chunk in stream) {
+    cancellation?.check();
+    written += chunk.length;
+    if (written > length) {
+      throw const PluginException(
+        'lengthMismatch',
+        'File is larger than expected.',
+      );
+    }
+    yield chunk;
+  }
+  cancellation?.check();
+  if (written != length) {
+    throw const PluginException(
+      'lengthMismatch',
+      'File transfer was incomplete.',
+    );
+  }
+}
+
+String numberedWriteName(String name, int n) {
+  if (n == 1) return name;
+  final dot = name.lastIndexOf('.');
+  return dot > 0
+      ? '${name.substring(0, dot)} ($n)${name.substring(dot)}'
+      : '$name ($n)';
 }

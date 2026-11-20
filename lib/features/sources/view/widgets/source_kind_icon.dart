@@ -38,6 +38,7 @@ class SourceKindIcon extends StatelessWidget {
       SourceKind.local => glyph(AppIcons.folder, const Color(0xFFF59E0B)),
       SourceKind.webdav => glyph(LucideIcons.globe, const Color(0xFF0EA5E9)),
       SourceKind.onedrive => glyph(LucideIcons.cloud, const Color(0xFF0078D4)),
+      SourceKind.baidu => glyph(LucideIcons.cloud, const Color(0xFF2878FF)),
       SourceKind.dropbox => glyph(LucideIcons.cloud, const Color(0xFF0061FF)),
       SourceKind.ftp => glyph(LucideIcons.hardDrive, const Color(0xFF8B5CF6)),
       SourceKind.sftp => glyph(LucideIcons.terminal, const Color(0xFF10B981)),

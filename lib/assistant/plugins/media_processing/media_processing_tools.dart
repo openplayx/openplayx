@@ -1,6 +1,8 @@
 import 'dart:io';
 import 'dart:math';
 
+import '../external/external_file_transfer.dart';
+
 import '../../../core/capabilities/source_capability.dart';
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../capabilities/library/library_service.dart';
@@ -23,11 +25,13 @@ class MediaProcessingTools {
     this.issueReference,
     this.canExecute,
     this.access,
+    this.transfers,
   }) {
     _register();
   }
 
   final ToolRegistry registry;
+  final ExternalFileTransfers? transfers;
 
   /// Plugin AI permissions; null (tests) allows everything.
   final PluginAccess? access;
@@ -198,8 +202,12 @@ class MediaProcessingTools {
   Future<Map<String, dynamic>> _wait(Map<String, dynamic> task, Object? s) =>
       TaskWait.until(
         taskId: task['task_id'] as String,
-        read: () => service.task(task['task_id'] as String),
-        changes: service.changes,
+        read: () =>
+            transfers?.task(task['task_id'] as String) ??
+            service.task(task['task_id'] as String),
+        changes: (task['task_id'] as String).startsWith('transfer-')
+            ? transfers!.changes
+            : service.changes,
         seconds: s as int? ?? TaskWait.defaultSeconds,
       );
 
@@ -386,17 +394,20 @@ class MediaProcessingTools {
     );
     _add(
       'task_get',
-      'Get a media processing task: status, progress, error and artifact_ref. wait_seconds (max 120) waits for it to finish; the task keeps running if the wait ends first.',
+      'Get a media processing or external file transfer task: status, progress, error and artifact_ref. wait_seconds (max 120) waits for it to finish; the task keeps running if the wait ends first.',
       {
         'task_id': const ToolField('string', required: true, maxLength: 64),
         'wait_seconds': TaskWait.field,
       },
       (a) async {
-        final t = service.task(a['task_id'] as String);
+        final t =
+            transfers?.task(a['task_id'] as String) ??
+            service.task(a['task_id'] as String);
         if (t == null) throw const ToolFailure('notFound');
         return _wait(t, a['wait_seconds'] ?? 0);
       },
       timeout: TaskWait.toolTimeout,
+      always: true,
     );
     _add(
       'media_save_to_source',
@@ -449,7 +460,7 @@ class MediaProcessingTools {
     );
     _add(
       'task_list',
-      'List recent media processing tasks.',
+      'List recent media processing and external file transfer tasks.',
       {
         'offset': const ToolField('integer', minimum: 0, maximum: 10000),
         'limit': const ToolField('integer', minimum: 1, maximum: 20),
@@ -457,29 +468,40 @@ class MediaProcessingTools {
       (a) async {
         final offset = a['offset'] as int? ?? 0;
         final limit = a['limit'] as int? ?? 10;
-        final rows = service.tasks(offset: offset, limit: limit);
+        final all = [
+          ...?transfers?.tasks(),
+          ...service.tasks(offset: 0, limit: 10000),
+        ];
+        final rows = all.skip(offset).take(limit).toList();
         return {
           'tasks': rows,
           'next_offset': rows.length == limit ? offset + limit : null,
         };
       },
+      always: true,
     );
     _add(
       'task_cancel',
-      'Request cancellation of a media processing task; it reports cancelling until processing has really stopped.',
+      'Request cancellation of a media processing or external file transfer task; it reports cancelling until processing has really stopped.',
       {'task_id': const ToolField('string', required: true, maxLength: 64)},
-      (a) async => service.cancel(a['task_id'] as String),
+      (a) async => (a['task_id'] as String).startsWith('transfer-')
+          ? transfers!.cancel(a['task_id'] as String)
+          : service.cancel(a['task_id'] as String),
       readOnly: false,
+      always: true,
     );
     _add(
       'task_retry',
-      'Retry a failed, cancelled or interrupted task as a new attempt after re-checking resource, preset and device capability.',
+      'Retry a failed, cancelled or interrupted task after re-checking permissions and availability. External cached downloads resume with Range; media processing creates a new attempt.',
       {'task_id': const ToolField('string', required: true, maxLength: 64)},
       (a) async {
         if (!_active) throw const ToolFailure('cancelled');
-        return service.retry(a['task_id'] as String);
+        return (a['task_id'] as String).startsWith('transfer-')
+            ? transfers!.retry(a['task_id'] as String)
+            : service.retry(a['task_id'] as String);
       },
       readOnly: false,
+      always: true,
     );
   }
 }

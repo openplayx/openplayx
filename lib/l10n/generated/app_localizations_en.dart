@@ -3530,7 +3530,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get catSourceWriteDesc =>
-      'Write clips the App makes to the OpenPlayX folder of the same share; never overwrites or deletes, and asks every time';
+      'Save App clips and external downloads as new files in a source folder; never overwrites existing files and requires confirmation';
 
   @override
   String get catSummaryLocal => 'Folders on this device or mounted';
@@ -4191,4 +4191,61 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get aiCustomServiceHint =>
       'Turn off the default service to use your own API. Your settings are kept when switching.';
+
+  @override
+  String get baiduPermissionDenied =>
+      'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.';
+
+  @override
+  String get baiduAllFiles => 'Select all files';
+
+  @override
+  String get voiceSettings => 'Voice transcription';
+
+  @override
+  String get voiceSettingsHint =>
+      'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
+
+  @override
+  String get voiceSettingsError =>
+      'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.';
+
+  @override
+  String get voiceStart => 'Start voice input';
+
+  @override
+  String get voiceStop => 'Stop and transcribe';
+
+  @override
+  String get voiceRecording =>
+      'Recording… Click stop to transcribe, or cancel to discard.';
+
+  @override
+  String get voiceTranscribing => 'Transcribing…';
+
+  @override
+  String get voicePreparing => 'Preparing microphone…';
+
+  @override
+  String get voiceUnsupported =>
+      'Voice recording is not supported on this platform or device.';
+
+  @override
+  String get voicePermission =>
+      'Microphone permission denied. Allow microphone access in system settings and try again.';
+
+  @override
+  String get voiceEmpty => 'No speech was recognized. Please try again.';
+
+  @override
+  String get voiceTooLarge =>
+      'The recording is too large. Please record a shorter message.';
+
+  @override
+  String get voiceRecordingError =>
+      'Could not record audio. Check your microphone and try again.';
+
+  @override
+  String get voiceTranscriptionError =>
+      'Transcription failed. Check your network and transcription settings, then try again.';
 }

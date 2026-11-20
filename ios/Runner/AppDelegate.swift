@@ -29,6 +29,16 @@ import Network
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXSourceAccess") {
       sourceAccess = SourceAccess(messenger: registrar.messenger())
     }
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXTransferStorage") {
+      FlutterMethodChannel(name: "openplayx/transfer_storage", binaryMessenger: registrar.messenger())
+        .setMethodCallHandler { call, result in
+          guard call.method == "availableBytes" else { result(FlutterMethodNotImplemented); return }
+          do {
+            let attrs = try FileManager.default.attributesOfFileSystem(forPath: NSTemporaryDirectory())
+            result((attrs[.systemFreeSize] as? NSNumber)?.int64Value)
+          } catch { result(FlutterError(code: "storage_unavailable", message: "Unable to check cache space", details: nil)) }
+        }
+    }
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXNetworkPolicy") {
       let channel = FlutterMethodChannel(name: "openplayx/network_policy", binaryMessenger: registrar.messenger())
       networkChannel = channel

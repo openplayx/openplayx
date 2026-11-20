@@ -119,14 +119,23 @@ void main() {
 
   group('policy', () {
     test(
-      'AI may call every capability of enabled plugins and instances',
+      'enabled capabilities stay available while source writes require opt-in',
       () async {
         final sources = FakeSources();
         final store = MemorySwitchStore();
         var manager = await _manager(sources: sources, store: store);
         expect(manager.aiAllows('source.smb', instanceId: 'home'), isTrue);
         expect(manager.aiAllows('source.smb', instanceId: 'office'), isTrue);
-        // Writing files needs no separate grant either.
+        // Source writes are explicitly opted in per instance.
+        expect(
+          manager.aiAllows(
+            'source.smb',
+            instanceId: 'home',
+            capability: 'source.write',
+          ),
+          isFalse,
+        );
+        manager.setSourceWrite('home', true);
         expect(
           manager.aiAllows(
             'source.smb',
@@ -134,6 +143,14 @@ void main() {
             capability: 'source.write',
           ),
           isTrue,
+        );
+        expect(
+          manager.aiAllows(
+            'source.smb',
+            instanceId: 'office',
+            capability: 'source.write',
+          ),
+          isFalse,
         );
         // New instances are usable at once.
         sources.list.add(
@@ -146,6 +163,22 @@ void main() {
         );
         manager = await _manager(sources: sources, store: store);
         expect(manager.aiAllows('source.smb', instanceId: 'new'), isTrue);
+        expect(
+          manager.aiAllows(
+            'source.smb',
+            instanceId: 'home',
+            capability: 'source.write',
+          ),
+          isTrue,
+        );
+        expect(
+          manager.aiAllows(
+            'source.smb',
+            instanceId: 'new',
+            capability: 'source.write',
+          ),
+          isFalse,
+        );
         // Only the capability and instance switches narrow it; the switch
         // is App-wide, not just for the AI.
         manager.setPluginEnabled('source.smb', false);
@@ -338,7 +371,8 @@ void main() {
   });
 
   test('switch document round-trips and ignores old AI grants', () {
-    final state = const CapabilitySwitchState().withSwitch('source.smb', false);
+    final state = const CapabilitySwitchState(sourceWriteGrants: {'home'})
+        .withSwitch('source.smb', false);
     final json = jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
     expect(json.containsKey('ai'), isFalse);
     final back = CapabilitySwitchState.fromJson({
@@ -350,6 +384,8 @@ void main() {
     expect(back.isOn('source.smb'), isFalse);
     expect(back.isOn('source.ftp'), isTrue);
     expect(back.revision, 3);
+    expect(back.sourceWriteGrants, {'home'});
+    expect(CapabilitySwitchState.fromJson({}, 0).sourceWriteGrants, isEmpty);
   });
 
   test('a provider whose dependency is off takes no work', () {

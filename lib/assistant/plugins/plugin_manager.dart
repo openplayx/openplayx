@@ -4,6 +4,7 @@ import 'dart:convert';
 import 'package:flutter/foundation.dart';
 
 import '../../capabilities/capability_switches.dart';
+import '../../core/capabilities/source_capability.dart';
 import '../../data/configuration/source_credential_broker.dart';
 import '../../data/sources/source_config.dart';
 import '../../capabilities/sources/source_manager.dart';
@@ -349,6 +350,9 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     List<PluginInstanceView> instances,
   ) {
     if (!pluginEnabled(d.id)) return false;
+    if (capability == 'source.write') {
+      return instances.any((i) => i.enabled && sourceWriteGranted(i.id));
+    }
     if (!d.multiInstance) return true;
     return instances.any(
       (i) => i.enabled && i.state != PluginRuntimeState.blocked,
@@ -566,12 +570,21 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
     return d.dependsOn.every((dep) => _pluginEnabled(dep, depth + 1));
   }
 
-  /// Every capability of an enabled plugin (and enabled instance) is
-  /// AI-callable: there are no separate AI grants.
+  /// Enabled capabilities are AI-callable. Writing new files additionally
+  /// requires explicit opt-in for the selected source instance.
   @override
   bool aiAllows(String pluginId, {String? instanceId, String? capability}) {
     if (!pluginEnabled(pluginId)) return false;
     if (catalog[pluginId]?.deprecated ?? true) return false;
+    if (capability == 'source.write') {
+      if (catalog[pluginId]?.capability('source.write') == null) return false;
+      if (instanceId == null) {
+        return snapshot(pluginId)?.instances
+                .any((i) => i.enabled && sourceWriteGranted(i.id)) ??
+            false;
+      }
+      if (!sourceWriteGranted(instanceId)) return false;
+    }
     if (instanceId == null) return true;
     final instance = snapshot(pluginId)?.instances
         .where((i) => i.id == instanceId)
@@ -607,6 +620,23 @@ class PluginManager extends ChangeNotifier implements PluginAccess, ToolPolicy {
   // ---- Mutations (trusted settings pages only; never exposed as AI tools) --
 
   /// Re-reads the stored switches (another window may have saved).
+  bool sourceWriteGranted(String instanceId) =>
+      switches.state.sourceWriteGrants.contains(instanceId);
+
+  void setSourceWrite(String instanceId, bool allowed) {
+    final source = sources?.configs
+        .where((c) => c.id == instanceId)
+        .firstOrNull;
+    if (source == null ||
+        catalog[source.providerId]?.capability('source.write') == null) {
+      throw const PluginException(
+        'sourceNotWritable',
+        'Target source is not writable.',
+      );
+    }
+    switches.setSourceWrite(instanceId, allowed);
+  }
+
   void reloadPolicy() => switches.reload();
 
   /// The capability switch of [pluginId] (App-wide). Instance switches are

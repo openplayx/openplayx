@@ -33,6 +33,7 @@ abstract final class AiToolLabels {
       'media_transcode' => l.aiToolMediaTranscode,
       'media_extract_audio' => l.aiToolMediaExtractAudio,
       'media_snapshot' => l.aiToolMediaSnapshot,
+      'external_file_save_to_source' => l.aiToolMediaSaveToSource,
       'media_save_to_source' => l.aiToolMediaSaveToSource,
       'task_get' => l.aiToolTaskGet,
       'task_list' => l.aiToolTaskList,

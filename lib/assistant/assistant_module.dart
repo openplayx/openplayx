@@ -12,6 +12,7 @@ import 'conversation/conversation_coordinator.dart';
 import 'model/langchain_model.dart';
 import 'playback_port.dart';
 import 'plugins/external/external_presets.dart';
+import 'plugins/external/external_file_transfer.dart';
 import 'plugins/external/external_service_registry.dart';
 import 'plugins/external/external_service_setup.dart';
 import 'plugins/plugin_manager.dart';
@@ -54,6 +55,56 @@ class AssistantModule {
           ? null
           : (entry) => _open(playback, launcher, entry, accepting),
     );
+    final externalRegistry = ExternalServiceRegistry.forDb(
+      library.configuration,
+    );
+    transfers = ExternalFileTransfers(
+      db: library.db,
+      services: externalRegistry,
+      sources: sources,
+      access: plugins,
+      issueReference: tools.issueReference,
+    );
+    tools.registry.register(
+      RegisteredTool(
+        'external_file_save_to_source',
+        'Save a completed external download to a writable source after user confirmation. '
+            'Use service_id from the external tool result, job_id and zero-based file_index. '
+            'Target needs source.write enabled in plugin management. folder is relative to '
+            'the source root (empty string means root; default OpenPlayX/Downloads). '
+            'Never overwrites. transfer_mode stream (default) writes directly without local '
+            'disk space; cache downloads to temporary App storage first and checks space. '
+            'Returns a background task immediately. Use task_get to wait and task_cancel to cancel. '
+            'Data passes through this device; do not claim success until status succeeded.',
+        {
+          'service_id': const ToolField(
+            'string',
+            required: true,
+            maxLength: 128,
+          ),
+          'job_id': const ToolField('string', required: true, maxLength: 64),
+          'file_index': const ToolField('integer', required: true, minimum: 0),
+          'target_instance_id': const ToolField(
+            'string',
+            required: true,
+            maxLength: 128,
+          ),
+          'folder': const ToolField('string', minLength: 0, maxLength: 1024),
+          'transfer_mode': const ToolField(
+            'string',
+            values: ['stream', 'cache'],
+          ),
+        },
+        (a) async {
+          if (!ToolExecution.active || !accepting()) {
+            throw const ToolFailure('cancelled');
+          }
+          return transfers.submit(a);
+        },
+        readOnly: false,
+        confirmation: true,
+      ),
+    );
     if (media != null) {
       final mediaProcessing = MediaProcessingTools(
         registry: tools.registry,
@@ -64,6 +115,7 @@ class AssistantModule {
         issueReference: tools.issueReference,
         canExecute: accepting,
         access: plugins,
+        transfers: transfers,
       );
       if (subtitles != null) {
         SubtitleTools(
@@ -75,14 +127,12 @@ class AssistantModule {
         );
       }
     }
+    transfers.registerFallbackTaskTools(tools.registry, accepting);
     // Built-in reading of public web pages (private and local addresses are
     // refused). Web search is the preset 联网搜索 service below.
     WebTools(registry: tools.registry, canExecute: accepting);
     // External capabilities (AI → 外部能力): tools of MCP services, the
     // user's and the App's presets (联网搜索 / mcp-tavily).
-    final externalRegistry = ExternalServiceRegistry.forDb(
-      library.configuration,
-    );
     final external = externalTools = ExternalTools(
       registry: tools.registry,
       setup: ExternalServiceSetup(registry: externalRegistry),
@@ -101,6 +151,7 @@ class AssistantModule {
       plugins.externalSummary = () => [
         for (final s in external.services.services)
           {
+            'service_id': s.id,
             'name': s.name,
             'service': s.label,
             'available': s.available,
@@ -117,9 +168,16 @@ class AssistantModule {
       store: store,
       gateway: ToolGateway(tools.registry, journal: store),
       context: context,
+      transfers: transfers,
       confirmationTarget: (tool, arguments) {
         final described = external.describe(tool);
         if (described != null) return described;
+        if (tool == 'external_file_save_to_source') {
+          final target = sources.configs
+              .where((c) => c.id == arguments['target_instance_id'])
+              .firstOrNull;
+          return '${target?.name ?? arguments['target_instance_id']} · ${arguments['folder'] ?? 'OpenPlayX/Downloads'}';
+        }
         final id = arguments['media_id'];
         if (id is! String) return null;
         final title = library.mediaTitle(id);
@@ -132,6 +190,7 @@ class AssistantModule {
   late final AssistantStore store;
   late final MediaTools mediaTools;
   late final ExternalTools externalTools;
+  late final ExternalFileTransfers transfers;
   late final ConversationCoordinator coordinator;
   ConversationCoordinator? _coordinator;
 
@@ -206,5 +265,6 @@ class AssistantModule {
     coordinator.dispose();
     store.close();
     externalTools.dispose();
+    unawaited(transfers.dispose());
   }
 }

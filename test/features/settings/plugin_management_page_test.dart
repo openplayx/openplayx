@@ -189,6 +189,47 @@ void main() {
     expect(find.text('添加实例'), findsNothing);
   });
 
+  testWidgets('source write requires an explicit per-instance opt-in', (
+    tester,
+  ) async {
+    final manager = await pump(tester, size: const Size(1400, 1000));
+    await openGroup(tester, 'builtIn');
+    await tester.tap(find.byKey(const ValueKey('plugin-row-source.smb')));
+    await tester.pumpAndSettle();
+    const key = ValueKey('source-write-switch-home');
+    await tester.scrollUntilVisible(
+      find.byKey(key),
+      200,
+      scrollable: find.byType(Scrollable).first,
+    );
+    expect(
+      manager.aiAllows(
+        'source.smb',
+        instanceId: 'home',
+        capability: 'source.write',
+      ),
+      isFalse,
+    );
+    await tester.tap(find.byKey(key));
+    await tester.pumpAndSettle();
+    expect(
+      manager.aiAllows(
+        'source.smb',
+        instanceId: 'home',
+        capability: 'source.write',
+      ),
+      isTrue,
+    );
+    expect(
+      manager.aiAllows(
+        'source.smb',
+        instanceId: 'office',
+        capability: 'source.write',
+      ),
+      isFalse,
+    );
+  });
+
   testWidgets('the capability switch lives in Settings: the plugin shows '
       'it and opens it; switching off during playback asks first', (
     tester,
@@ -197,7 +238,11 @@ void main() {
     await openGroup(tester, 'builtIn');
     await tester.tap(find.byKey(const ValueKey('plugin-row-source.smb')));
     await tester.pumpAndSettle();
-    expect(find.byType(ShadSwitch), findsNothing); // no toggle on the plugin
+    // Only per-source write opt-ins live here; the App-wide capability switch remains in Settings.
+    expect(
+      find.byKey(const ValueKey('capability-switch-source.smb')),
+      findsNothing,
+    );
     final row = find.byKey(const ValueKey('plugin-capability-switch'));
     expect(
       find.descendant(of: row, matching: find.textContaining('已开启')),
@@ -282,11 +327,23 @@ void main() {
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsNothing);
     await openGroup(tester, 'model');
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsOneWidget);
-    expect(find.byType(EditableText), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('ai-model-fields')),
+        matching: find.byType(EditableText),
+      ),
+      findsNothing,
+    );
     expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
     expect(find.byKey(const ValueKey('ai-save')), findsOneWidget);
     await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
     await tester.pumpAndSettle();
-    expect(find.byType(EditableText), findsNWidgets(3));
+    expect(
+      find.descendant(
+        of: find.byKey(const ValueKey('ai-model-fields')),
+        matching: find.byType(EditableText),
+      ),
+      findsNWidgets(3),
+    );
   });
 }

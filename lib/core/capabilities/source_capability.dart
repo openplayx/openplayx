@@ -147,9 +147,38 @@ abstract interface class SourceAttachmentCapability {
   });
 }
 
-/// Writes a new file next to the user's media. The host decides the target
-/// folder (a fixed `OpenPlayX` folder in the share of [near]); a plugin never
-/// overwrites, uploads to a temporary name first and renames without replace.
+/// Cooperative cancellation also aborts an in-flight destination socket.
+class SourceWriteCancellation {
+  bool _cancelled = false;
+  final _listeners = <void Function()>{};
+  void check() {
+    if (_cancelled) {
+      throw const PluginException('cancelled', 'Transfer cancelled.');
+    }
+  }
+
+  void Function() listen(void Function() listener) {
+    if (_cancelled) {
+      listener();
+    } else {
+      _listeners.add(listener);
+    }
+    return () => _listeners.remove(listener);
+  }
+
+  void cancel() {
+    if (_cancelled) return;
+    _cancelled = true;
+    for (final listener in _listeners.toList()) {
+      listener();
+    }
+    _listeners.clear();
+  }
+}
+
+/// Writes only new files, without replacing an existing destination. Legacy
+/// SMB callers use the OpenPlayX folder in the reference file's share. New
+/// callers can select a source-relative folder without an existing file.
 abstract interface class SourceWriteCapability {
   static const folderName = 'OpenPlayX';
 
@@ -157,8 +186,22 @@ abstract interface class SourceWriteCapability {
     ResourceRef near,
     String name,
     File source,
-    CallContext context,
-  );
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  });
+
+  /// Writes into a folder relative to the configured source root. An empty
+  /// folder selects the root; null selects OpenPlayX/Downloads.
+  /// Consumers must apply backpressure and reject a mismatched length.
+  Future<SourceEntry> writeNewStream(
+    Stream<List<int>> stream,
+    int length,
+    String name,
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  });
 }
 
 /// Newest additions on a media server, for its shelf in the library.

@@ -45,6 +45,11 @@ class MainActivity : FlutterActivity() {
                     orientationListener = null
                 }
             })
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/transfer_storage")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "availableBytes") result.notImplemented()
+                else result.success(android.os.StatFs(cacheDir.absolutePath).availableBytes)
+            }
         MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/network_policy")
             .setMethodCallHandler { call, result ->
                 if (call.method != "usingCellular") { result.notImplemented() }

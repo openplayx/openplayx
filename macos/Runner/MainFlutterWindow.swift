@@ -99,6 +99,14 @@ class MainFlutterWindow: NSWindow {
 
   override func awakeFromNib() {
     let flutterViewController = FlutterViewController()
+    FlutterMethodChannel(name: "openplayx/transfer_storage", binaryMessenger: flutterViewController.engine.binaryMessenger)
+      .setMethodCallHandler { call, result in
+        guard call.method == "availableBytes" else { result(FlutterMethodNotImplemented); return }
+        do {
+          let attrs = try FileManager.default.attributesOfFileSystem(forPath: NSTemporaryDirectory())
+          result((attrs[.systemFreeSize] as? NSNumber)?.int64Value)
+        } catch { result(FlutterError(code: "storage_unavailable", message: "Unable to check cache space", details: nil)) }
+      }
     let windowFrame = self.frame
     self.contentViewController = flutterViewController
     self.setFrame(windowFrame, display: true)

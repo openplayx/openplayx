@@ -312,6 +312,12 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             description: _c.cloudFolderName,
             onTap: _c.busy ? null : () => _c.browseCloudFolder(),
           ),
+          if (_c.kind == SourceKind.baidu)
+            SettingsRow(
+              title: l.baiduAllFiles,
+              icon: AppIcons.folder,
+              onTap: _c.busy ? null : _c.selectAllCloudFiles,
+            ),
           if (_c.cloudCanBack)
             SettingsRow(
               title: l.backToParent,
@@ -549,7 +555,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                   ],
                 ),
                 ...switch (_c.kind) {
-                  SourceKind.onedrive || SourceKind.dropbox => _cloudSections(),
+                  SourceKind.onedrive ||
+                  SourceKind.dropbox ||
+                  SourceKind.baidu => _cloudSections(),
                   SourceKind.local => _localSections(),
                   SourceKind.plex => _plexSections(),
                   SourceKind.dlna => _dlnaSections(),

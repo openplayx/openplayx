@@ -7,6 +7,7 @@ enum SourceKind {
   webdav('WebDAV', files: true, scheme: 'http'),
   onedrive('OneDrive', files: true),
   dropbox('Dropbox', files: true),
+  baidu('百度网盘', files: true),
   ftp('FTP', files: true, scheme: 'ftp', standardPort: 21),
   sftp('SFTP', files: true, scheme: 'sftp', standardPort: 22),
   s3('S3', files: true, scheme: 'http'),
@@ -43,7 +44,7 @@ enum SourceKind {
   bool get isHttp => scheme == 'http';
 
   /// Media servers that only work with a sign-in token.
-  bool get oauth => this == onedrive || this == dropbox;
+  bool get oauth => this == onedrive || this == dropbox || this == baidu;
 
   bool get requiresSecret =>
       oauth || this == plex || this == jellyfin || this == emby;

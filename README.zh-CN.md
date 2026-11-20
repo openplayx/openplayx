@@ -90,3 +90,28 @@ flutter test
 OpenPlayX 原创应用代码与文档采用 **MIT**，完整条款及版权见 [LICENSE](LICENSE) 和 [NOTICE.md](NOTICE.md)。应用链接 sing-box，并保留其 GPL 与命名声明；原创代码的 MIT 授权不替代组合构建适用的 GPL 条款。第三方代码仍适用各自条款，许可清单及二进制发布所需源码材料见 [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md)。私有构建依赖仍需单独授权访问，主项目许可不会使这些仓库自动公开。
 
 感谢 Flutter、VideoLAN/libVLC、vlc_player、shadcn_ui、Lucide、whisper.cpp、FFmpeg 等项目。依赖仍适用各自的许可和分发义务，见对应包及 [`native/remote_access/LICENSE`](native/remote_access/LICENSE)。
+
+### 把外部下载文件保存到数据源
+
+外部 MCP 服务下载完成后，助手可调用
+`external_file_save_to_source(service_id, job_id, file_index, target_instance_id,
+folder?, transfer_mode?)`。在插件管理里为目标源开启 **source.write**，并在对话中确认。
+SMB、WebDAV、SFTP 支持写入新文件；同名时加数字后缀，永不替换已有文件。
+`folder` 相对于配置的源根目录：省略时为 `OpenPlayX/Downloads`，空字符串为根目录。
+SMB 目标地址须包含共享名。
+
+默认 `transfer_mode: "stream"` 边收边写，以背压控制内存，不使用本机文件空间。
+`"cache"` 先下载到 App 私有临时目录，检查剩余空间并保留 64 MiB 余量，再上传本地文件。
+成功或取消后删除缓存；失败或中断缓存留作续传，超过 24 小时后在下次缓存任务中清理。
+数据均经过 App，需承担下载服务 → 设备 → 数据源两段流量。
+
+任务立即返回，聊天卡片显示进度并支持取消；可用 `task_get(wait_seconds)` 等待，
+`task_list` 查询，`task_cancel` 取消，`task_retry` 重试。下载地址由 App 根据服务配置和
+任务索引生成，仅请求服务根地址下的 `/files/{job_id}/{file_index}`，保留反向代理前缀，
+拒绝重定向。token 和文件内容不会发送给模型。通过 HEAD、强 ETag、精确长度、Range
+和 If-Range 校验续传，避免拼接不同版本文件。
+
+HTTP 下载中断时自动从已传输字节续传；缓存下载在 App 重启后也可通过 `task_retry`
+恢复，并重新检查服务地址及写入权限。SMB/SFTP 在任务运行期间可重连目标并继续写入；进程退出后直接写入任务需重新独占创建。
+WebDAV 目标连接断开时须重新上传，通用 WebDAV PUT 没有追加写入约定。SFTP 使用独占创建，写入时可能看到未完成文件，
+失败或取消会尝试删除。系统挂起 App 时任务暂停，待 App 恢复运行后继续处理。

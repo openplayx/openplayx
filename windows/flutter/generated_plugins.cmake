@@ -7,6 +7,7 @@ list(APPEND FLUTTER_PLUGIN_LIST
   desktop_webview_window
   file_selector_windows
   flutter_secure_storage_windows
+  record_windows
   sentry_flutter
   url_launcher_windows
   vlc_player

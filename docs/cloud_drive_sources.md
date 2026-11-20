@@ -16,6 +16,8 @@ source adapters, accessed through the existing source/library AI tools.
 - **OneDrive**: Sources → Add → OneDrive → Sign in with browser. This build
   supports personal Microsoft accounts only. The publisher must configure its
   public OAuth app first; users do not supply developer keys.
+- **百度网盘 / Baidu Netdisk**: 浏览器登录、选择全部文件或目录、扫描和播放；
+  发布方需要自己的获批应用及服务端授权桥接。参见[配置和验收](baidu_netdisk_source.md)。
 - **Dropbox**: Sources → Add → Dropbox → Sign in with browser. The publisher
   must configure a Scoped App with Full Dropbox content access first.
 

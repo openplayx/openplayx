@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../settings/app_theme_controller.dart';
 import '../../../../core/capabilities/source_capability.dart';
@@ -15,8 +16,8 @@ import '../../../../ui/components/feedback/app_feedback.dart';
 import '../../../../l10n/l10n.dart';
 
 /// One plugin: overview & capabilities, instances and runtime diagnostics.
-/// Every capability of an enabled plugin is AI-callable, so there is no
-/// separate AI or permission section. Instances are only listed here.
+/// Enabled capabilities are AI-callable. Source writes have an explicit
+/// per-instance opt-in because they change remote storage.
 class PluginDetailView extends StatefulWidget {
   const PluginDetailView({
     super.key,
@@ -215,6 +216,28 @@ class _PluginDetailViewState extends State<PluginDetailView> {
     );
   }
 
+  Widget _writeSection(PluginSnapshot s) => SettingsSection(
+    key: const ValueKey('plugin-source-write'),
+    title: appStrings.catSourceWrite,
+    children: [
+      for (final instance in s.instances)
+        SettingsRow(
+          key: ValueKey('plugin-source-write-${instance.id}'),
+          title: instance.name,
+          description: appStrings.catSourceWriteDesc,
+          control: ShadSwitch(
+            key: ValueKey('source-write-switch-${instance.id}'),
+            value: manager.sourceWriteGranted(instance.id),
+            onChanged: _busy
+                ? null
+                : (value) => _run(() async {
+                    manager.setSourceWrite(instance.id, value);
+                  }),
+          ),
+        ),
+    ],
+  );
+
   Widget _runtimeSection(PluginSnapshot s) {
     final developer = AppAppearance.of(context).developerMode;
     return SettingsSection(
@@ -278,6 +301,7 @@ class _PluginDetailViewState extends State<PluginDetailView> {
         _overview(s),
         _capabilitiesSection(s),
         _instancesSection(s),
+        if (s.definition.capability('source.write') != null) _writeSection(s),
         _runtimeSection(s),
       ],
     );

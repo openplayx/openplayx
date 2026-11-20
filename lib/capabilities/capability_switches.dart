@@ -13,21 +13,32 @@ const capabilityDependencies = {'asr.whisper': asrWhisperDependencies};
 /// recognition…) the user switched off.
 @immutable
 class CapabilitySwitchState {
-  const CapabilitySwitchState({this.off = const {}, this.revision = 0});
+  const CapabilitySwitchState({
+    this.off = const {},
+    this.sourceWriteGrants = const {},
+    this.revision = 0,
+  });
 
   /// Providers switched off.
   final Set<String> off;
+
+  /// Explicit opt-in for writing new files, per source instance.
+  final Set<String> sourceWriteGrants;
 
   /// Storage revision, for compare-and-set writes.
   final int revision;
 
   bool isOn(String id) => !off.contains(id);
 
-  CapabilitySwitchState copyWith({Set<String>? off, int? revision}) =>
-      CapabilitySwitchState(
-        off: off ?? this.off,
-        revision: revision ?? this.revision,
-      );
+  CapabilitySwitchState copyWith({
+    Set<String>? off,
+    Set<String>? sourceWriteGrants,
+    int? revision,
+  }) => CapabilitySwitchState(
+    off: off ?? this.off,
+    sourceWriteGrants: sourceWriteGrants ?? this.sourceWriteGrants,
+    revision: revision ?? this.revision,
+  );
 
   CapabilitySwitchState withSwitch(String id, bool on) =>
       copyWith(off: on ? (off.toSet()..remove(id)) : {...off, id});
@@ -37,6 +48,7 @@ class CapabilitySwitchState {
   Map<String, dynamic> toJson() => {
     'version': 1,
     'disabledPlugins': (off.toList()..sort()),
+    'sourceWriteGrants': (sourceWriteGrants.toList()..sort()),
   };
 
   factory CapabilitySwitchState.fromJson(
@@ -44,6 +56,9 @@ class CapabilitySwitchState {
     int revision,
   ) => CapabilitySwitchState(
     off: {...(json['disabledPlugins'] as List? ?? const []).cast<String>()},
+    sourceWriteGrants: {
+      ...(json['sourceWriteGrants'] as List? ?? const []).cast<String>(),
+    },
     revision: revision,
   );
 }
@@ -149,6 +164,18 @@ class CapabilitySwitches extends ChangeNotifier {
   void set(String id, bool on) {
     final store = _ensure() ?? (_store = MemorySwitchStore());
     _state = store.write(state.withSwitch(id, on));
+    notifyListeners();
+  }
+
+  void setSourceWrite(String instanceId, bool allowed) {
+    final store = _ensure() ?? (_store = MemorySwitchStore());
+    final grants = state.sourceWriteGrants.toSet();
+    if (allowed) {
+      grants.add(instanceId);
+    } else {
+      grants.remove(instanceId);
+    }
+    _state = store.write(state.copyWith(sourceWriteGrants: grants));
     notifyListeners();
   }
 

@@ -367,16 +367,54 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
           ),
         ),
       if (p.data['task_id'] is String)
-        Padding(
-          padding: const EdgeInsets.only(top: 4),
-          child: Text(
-            p.data['wait_timed_out'] == true
-                ? '${AiToolLabels.stillRunning(context)} · ${AiToolLabels.progress(context, p.data)}'
-                : p.data['status'] is String
-                ? AiToolLabels.progress(context, p.data)
-                : l.aiTaskSubmitted,
-            style: small,
-          ),
+        StreamBuilder<String>(
+          stream: widget.coordinator.transfers?.changes,
+          builder: (context, snapshot) {
+            final id = p.data['task_id'] as String;
+            final transfers = widget.coordinator.transfers;
+            final live = transfers?.task(id);
+            final data = live ?? p.data;
+            final running =
+                live != null &&
+                !{
+                  'succeeded',
+                  'failed',
+                  'cancelled',
+                  'interrupted',
+                }.contains(data['status']);
+            return Padding(
+              padding: const EdgeInsets.only(top: 4),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    data['status'] is String
+                        ? AiToolLabels.progress(context, data)
+                        : l.aiTaskSubmitted,
+                    style: small,
+                  ),
+                  if (live != null && data['total_bytes'] is num)
+                    Text(
+                      '${data['transferred_bytes'] ?? 0} / ${data['total_bytes']} bytes',
+                      style: small,
+                    ),
+                  if (live != null && data['status'] == 'failed')
+                    Text(_safe(data['error']), style: small),
+                  if (running)
+                    ShadButton.outline(
+                      size: ShadButtonSize.sm,
+                      height: 30,
+                      onPressed: data['status'] == 'cancelling'
+                          ? null
+                          : () {
+                              transfers!.cancel(id);
+                            },
+                      child: Text(l.cancel),
+                    ),
+                ],
+              ),
+            );
+          },
         ),
       if (p.tool == 'media_save_to_source' && p.data['name'] is String)
         Padding(

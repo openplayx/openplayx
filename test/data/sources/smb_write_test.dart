@@ -29,6 +29,11 @@ class _Sink implements StreamConsumer<List<int>> {
   Future addStream(Stream<List<int>> stream) async {
     await for (final chunk in stream) {
       if (fs.failWrites) throw StateError('NT_STATUS_ACCESS_DENIED');
+      if (fs.failOnceNetwork) {
+        fs.failOnceNetwork = false;
+        fs.files[path] = Uint8List.fromList([...fs.files[path]!, chunk.first]);
+        throw const SocketException('network changed');
+      }
       fs.files[path] = Uint8List.fromList([...fs.files[path]!, ...chunk]);
     }
   }
@@ -42,6 +47,7 @@ class _MemorySmb implements SmbConnect {
   final files = <String, Uint8List>{};
   final folders = <String>{'/movie', '/movie/Film'};
   bool failWrites = false;
+  bool failOnceNetwork = false;
   final renames = <(String, String)>[];
 
   @override
@@ -166,4 +172,122 @@ void main() {
     }
     expect(fs.files, isEmpty);
   });
+  test(
+    'streaming writes target the configured root or relative folder',
+    () async {
+      const target = SourceConfig(
+        id: 'smb-1',
+        kind: SourceKind.smb,
+        name: 'NAS',
+        address: 'smb://nas.test/movie',
+      );
+      plugin = SmbPlugin.withAccess(
+        target,
+        SmbAccess(target, 'pw', connector: (_) async => fs),
+      );
+      final context = CallContext.forInstance('smb-1');
+      final first = await plugin.writeNewStream(
+        Stream.value([1, 2, 3]),
+        3,
+        'a.mp4',
+        context,
+      );
+      expect(first.ref.id, '/movie/OpenPlayX/Downloads/a.mp4');
+      final root = await plugin.writeNewStream(
+        Stream.value([4]),
+        1,
+        'a.mp4',
+        context,
+        folder: '',
+      );
+      expect(root.ref.id, '/movie/a.mp4');
+      final renamed = await plugin.writeNewStream(
+        Stream.value([5]),
+        1,
+        'a.mp4',
+        context,
+        folder: '',
+      );
+      expect(renamed.ref.id, '/movie/a (2).mp4');
+      expect(fs.files['/movie/a.mp4'], [4]);
+      expect(fs.files.keys.where((p) => p.endsWith('.part')), isEmpty);
+    },
+  );
+
+  test('stream rejects traversal, wrong length and cancellation without publishing', () async {
+    const target = SourceConfig(
+      id: 'smb-1',
+      kind: SourceKind.smb,
+      name: 'NAS',
+      address: 'smb://nas.test/movie',
+    );
+    plugin = SmbPlugin.withAccess(
+      target,
+      SmbAccess(target, 'pw', connector: (_) async => fs),
+    );
+    final context = CallContext.forInstance('smb-1');
+    for (final folder in ['../other', '/other', 'a/../other', r'a\other']) {
+      await expectLater(
+        plugin.writeNewStream(
+          Stream.value([1]),
+          1,
+          'a.mp4',
+          context,
+          folder: folder,
+        ),
+        throwsA(isA<PluginException>()),
+      );
+    }
+    await expectLater(
+      plugin.writeNewStream(Stream.value([1]), 2, 'a.mp4', context),
+      throwsA(isA<PluginException>()),
+    );
+    final cancellation = SourceWriteCancellation()..cancel();
+    await expectLater(
+      plugin.writeNewStream(
+        Stream.value([1]),
+        1,
+        'a.mp4',
+        context,
+        cancellation: cancellation,
+      ),
+      throwsA(isA<PluginException>()),
+    );
+    expect(fs.renames, isEmpty);
+    expect(fs.files, isEmpty);
+  });
+  test(
+    'SMB reconnects and appends after a partially acknowledged chunk',
+    () async {
+      const target = SourceConfig(
+        id: 'smb-1',
+        kind: SourceKind.smb,
+        name: 'NAS',
+        address: 'smb://nas.test/movie',
+      );
+      fs.failOnceNetwork = true;
+      plugin = SmbPlugin.withAccess(
+        target,
+        SmbAccess(
+          target,
+          'pw',
+          connector: (_) async {
+            fs.transport.isClosed = false;
+            return fs;
+          },
+        ),
+      );
+      final saved = await plugin.writeNewStream(
+        Stream.fromIterable([
+          [1, 2],
+          [3, 4],
+        ]),
+        4,
+        'a.mp4',
+        CallContext.forInstance('smb-1'),
+      );
+      expect(fs.files[saved.ref.id], [1, 2, 3, 4]);
+      expect(fs.files.keys.where((p) => p.endsWith('.part')), isEmpty);
+    },
+  );
 }

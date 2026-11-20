@@ -42,9 +42,8 @@ Future<void> _probe() async {
     final secret = sourceServiceSecret(kind, defines);
     // Same construction as SourceManager, which can't load under plain Dart.
     final SourceCapability source = switch (kind) {
-      SourceKind.onedrive || SourceKind.dropbox => throw UnsupportedError(
-        'Cloud sources require real OAuth accounts',
-      ),
+      SourceKind.onedrive || SourceKind.dropbox || SourceKind.baidu =>
+        throw UnsupportedError('Cloud sources require real OAuth accounts'),
       SourceKind.local => LocalFolderPlugin(config),
       SourceKind.smb => SmbPlugin(config, secret),
       SourceKind.webdav => WebDavPlugin(config, secret),

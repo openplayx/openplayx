@@ -32,7 +32,7 @@ cross-device sync, live TV/IPTV/EPG and TV remote interfaces are not provided.
 The Flutter Web player is not supported; [openplayx.com](https://openplayx.com)
 is the separate project website.
 
-Cloud sources include Jianguoyun/123 WebDAV presets and read-only OneDrive/Dropbox adapters. OAuth requires publisher app registration; real-account acceptance is pending. See [setup and validation](docs/cloud_drive_sources.md).
+Cloud sources include Jianguoyun/123 WebDAV presets and read-only OneDrive/Dropbox/Baidu Netdisk adapters. OAuth requires publisher app registration; real-account acceptance is pending. See [setup and validation](docs/cloud_drive_sources.md).
 
 ## Download
 
@@ -152,3 +152,38 @@ Thanks to Flutter, VideoLAN/libVLC, vlc_player, shadcn_ui, Lucide,
 whisper.cpp, FFmpeg and the other dependencies. Their own licenses and
 redistribution obligations continue to apply; see the relevant packages
 and [`native/remote_access/LICENSE`](native/remote_access/LICENSE).
+
+### Save external downloads to a source
+
+After a download completes on a configured MCP service, the assistant can use
+`external_file_save_to_source(service_id, job_id, file_index, target_instance_id,
+folder?, transfer_mode?)`. Enable **source.write** for the target in plugin
+management and approve the confirmation card. SMB, WebDAV and SFTP support new
+files; existing names get a numeric suffix and are never replaced. `folder` is
+relative to the configured source root: omitted means `OpenPlayX/Downloads`,
+`""` means the root. Configure an SMB share, rather than only its server.
+
+`transfer_mode: "stream"` (default) passes bytes directly to the source with
+backpressure. `"cache"` first downloads to private temporary App storage, checks
+available space with a 64 MiB reserve, then uploads the local file. Successful
+or cancelled cache jobs delete their temporary files; failed/interrupted cache
+files are retained for retry and expire after 24 hours on the next cache job.
+The stream mode requires no local file storage. Traffic passes through the App.
+
+Jobs return immediately and expose progress in the chat card. Use `task_get`
+with `wait_seconds`, `task_list`, `task_cancel` or `task_retry`. Download requests
+use only host-constructed `/files/{job_id}/{file_index}` paths under the configured
+service root, preserve reverse-proxy prefixes, and refuse redirects. No token or
+file content is passed to the model. `HEAD`, strong ETags, exact byte counts,
+`Range` and `If-Range` protect resumed downloads against changed content.
+
+HTTP read interruptions retry from the last delivered byte. Cached downloads
+also survive an App restart through `task_retry`; restarted jobs recheck the
+service address and source permission. SMB and SFTP reconnect and resume writes within a running task. After process
+termination, direct writes start a fresh exclusive destination on retry. WebDAV
+destination connection loss requires a fresh upload because portable WebDAV
+PUT does not provide an append contract. SFTP uses exclusive destination
+creation (a partial file can be visible while writing); errors/cancellation
+attempt to remove it. OS suspension pauses App work until the App runs again.
+
+Baidu Netdisk browser authorization, publisher setup and acceptance: [guide](docs/baidu_netdisk_source.md).

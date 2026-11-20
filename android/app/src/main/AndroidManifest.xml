@@ -5,6 +5,7 @@
          TV devices (and Google Play for TV) do not filter the app out. -->
     <uses-feature android:name="android.software.leanback" android:required="false"/>
     <uses-feature android:name="android.hardware.touchscreen" android:required="false"/>
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
     <application
         android:label="OpenPlayX"
         android:usesCleartextTraffic="true"

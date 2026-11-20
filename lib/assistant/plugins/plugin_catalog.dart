@@ -193,7 +193,7 @@ const _sourceCapabilities = {
     'source.write',
     'catSourceWrite',
     'catSourceWriteDesc',
-    routedTools: ['media_save_to_source'],
+    routedTools: ['media_save_to_source', 'external_file_save_to_source'],
     writes: true,
   ),
 };
@@ -202,7 +202,9 @@ String _sourceSummary(SourceKind kind) => switch (kind) {
   SourceKind.local => 'catSummaryLocal',
   SourceKind.smb => 'catSummarySmb',
   SourceKind.webdav => 'catSummaryWebdav',
-  SourceKind.onedrive || SourceKind.dropbox => 'catSummaryCloudDrive',
+  SourceKind.onedrive ||
+  SourceKind.dropbox ||
+  SourceKind.baidu => 'catSummaryCloudDrive',
   SourceKind.ftp => 'catSummaryFtp',
   SourceKind.sftp => 'catSummarySftp',
   SourceKind.s3 => 'catSummaryS3',

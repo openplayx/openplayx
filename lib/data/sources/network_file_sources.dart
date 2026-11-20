@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
+import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:dartssh2/dartssh2.dart';
@@ -169,7 +171,7 @@ PluginException _httpFailure(int status, String service) => PluginException(
 
 // ---------------------------------------------------------------- WebDAV --
 
-class WebDavPlugin extends RemoteFilePlugin {
+class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
   WebDavPlugin(super.config, this._password) {
     _client.authenticate = (uri, scheme, realm) async {
       if (config.username.isEmpty || !_sameOrigin(uri)) return false;
@@ -305,6 +307,100 @@ class WebDavPlugin extends RemoteFilePlugin {
       throw _httpFailure(response.statusCode, 'WebDAV');
     }
     return readCapped(response, maxBytes);
+  }
+
+  @override
+  Future<SourceEntry> writeNewStream(
+    Stream<List<int>> stream,
+    int length,
+    String name,
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    checkOwnership(config.id, null, context);
+    validateWriteName(name);
+    final dir = paths.check(writeFolder(paths.root, folder), directory: true);
+    paths.check(RemotePaths.join(dir, name));
+    var parent = paths.root;
+    for (final segment
+        in paths.relative(dir).split('/').where((s) => s.isNotEmpty)) {
+      parent = RemotePaths.join(parent, segment);
+      final response = await _send('MKCOL', _uri(parent, folder: true));
+      await response.drain<void>();
+      if (response.statusCode != 201 && response.statusCode != 405) {
+        throw _httpFailure(response.statusCode, 'WebDAV');
+      }
+    }
+    final tmp = RemotePaths.join(dir, '.openplayx-${writeToken()}.part');
+    var owned = false;
+    var collision = false;
+    void Function()? stop;
+    try {
+      final request = await _client.putUrl(_uri(tmp));
+      request.followRedirects = false;
+      stop = cancellation?.listen(() {
+        request.abort();
+      });
+      _headers.forEach(request.headers.set);
+      request.headers.set('If-None-Match', '*');
+      request.contentLength = length;
+      try {
+        await request.addStream(
+          checkedWriteStream(stream, length, cancellation: cancellation),
+        );
+        final response = await request.close();
+        await response.drain<void>();
+        collision = response.statusCode == 412;
+        if (response.statusCode != 201) {
+          // A successful conditional creation must report Created; 204
+          // would mean an existing temporary object may have been replaced.
+          throw _httpFailure(response.statusCode, 'WebDAV');
+        }
+        owned = true;
+      } catch (_) {
+        request.abort();
+        // The random exclusive upload path belongs to this attempt, even
+        // when a broken connection prevented reading the PUT response.
+        owned = !collision;
+        rethrow;
+      }
+      for (var n = 1; n <= 99; n++) {
+        cancellation?.check();
+        final target = paths.check(
+          RemotePaths.join(dir, numberedWriteName(name, n)),
+        );
+        final response = await _send(
+          'MOVE',
+          _uri(tmp),
+          headers: {'Destination': _uri(target).toString(), 'Overwrite': 'F'},
+        );
+        await response.drain<void>();
+        if (response.statusCode == 412) continue;
+        if (response.statusCode != 201 && response.statusCode != 204) {
+          throw _httpFailure(response.statusCode, 'WebDAV');
+        }
+        owned = false;
+        return SourceEntry(
+          ResourceRef(config.id, target),
+          RemotePaths.name(target),
+          isFolder: false,
+          size: length,
+        );
+      }
+      throw const PluginException(
+        'conflict',
+        'Too many files with the same name.',
+      );
+    } finally {
+      stop?.call();
+      if (owned) {
+        try {
+          await (await _send('DELETE', _uri(tmp))).drain<void>();
+        } catch (_) {}
+      }
+    }
   }
 
   @override
@@ -650,8 +746,9 @@ class FtpPlugin extends RemoteFilePlugin {
 
 // ------------------------------------------------------------------ SFTP --
 
-class SftpPlugin extends RemoteFilePlugin {
-  SftpPlugin(super.config, this._password);
+class SftpPlugin extends RemoteFilePlugin with RemoteWriteFiles {
+  SftpPlugin(super.config, this._password, {this.connector});
+  final Future<(SSHClient, SftpClient)> Function()? connector;
   final String _password;
   Future<(SSHClient, SftpClient)>? _session;
 
@@ -664,6 +761,7 @@ class SftpPlugin extends RemoteFilePlugin {
   }
 
   Future<(SSHClient, SftpClient)> _connect() async {
+    if (connector != null) return connector!();
     final uri = Uri.parse(config.address);
     final socket = await SSHSocket.connect(
       uri.host,
@@ -779,6 +877,160 @@ class SftpPlugin extends RemoteFilePlugin {
       }
     } catch (error) {
       throw _failure(error);
+    }
+  }
+
+  @override
+  Future<SourceEntry> writeNewStream(
+    Stream<List<int>> stream,
+    int length,
+    String name,
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  }) async {
+    cancellation?.check();
+    checkOwnership(config.id, null, context);
+    validateWriteName(name);
+    final dir = paths.check(writeFolder(paths.root, folder), directory: true);
+    paths.check(RemotePaths.join(dir, name));
+    // A dedicated connection lets cancellation/error cleanup close this
+    // transfer without affecting playback or browse sessions.
+    var (ssh, sftp) = await _connect();
+    String? owned;
+    final stop = cancellation?.listen(() {
+      ssh.close();
+    });
+    try {
+      var parent = paths.root;
+      for (final segment
+          in paths.relative(dir).split('/').where((s) => s.isNotEmpty)) {
+        parent = RemotePaths.join(parent, segment);
+        try {
+          final attr = await sftp.stat(parent, followLink: false);
+          if (!attr.isDirectory || attr.isSymbolicLink) {
+            throw const PluginException(
+              'permissionDenied',
+              'Destination is not a directory.',
+            );
+          }
+        } on SftpStatusError catch (e) {
+          if (e.code != SftpStatusCode.noSuchFile) rethrow;
+          await sftp.mkdir(parent);
+        }
+      }
+      for (var n = 1; n <= 99; n++) {
+        final target = paths.check(
+          RemotePaths.join(dir, numberedWriteName(name, n)),
+        );
+        SftpFile file;
+        try {
+          // EXCL is enforced by the server; stat-then-rename can overwrite
+          // on servers with the OpenSSH POSIX rename extension.
+          file = await sftp.open(
+            target,
+            mode:
+                SftpFileOpenMode.write |
+                SftpFileOpenMode.create |
+                SftpFileOpenMode.exclusive,
+          );
+        } on SftpStatusError catch (error) {
+          if (error.code == SftpStatusCode.permissionDenied) {
+            throw _failure(error);
+          }
+          try {
+            await sftp.stat(target, followLink: false);
+          } catch (_) {
+            throw _failure(error);
+          }
+          continue;
+        }
+        owned = target;
+        try {
+          var offset = 0;
+          await for (final chunk in checkedWriteStream(
+            stream,
+            length,
+            cancellation: cancellation,
+          )) {
+            var failures = 0;
+            while (true) {
+              cancellation?.check();
+              try {
+                await file
+                    .writeBytes(Uint8List.fromList(chunk), offset: offset)
+                    .timeout(timeout);
+                break;
+              } catch (error) {
+                cancellation?.check();
+                if (!(error is SocketException ||
+                        error is TimeoutException ||
+                        error is SSHSocketError ||
+                        error is SSHStateError) ||
+                    ++failures > 30) {
+                  rethrow;
+                }
+                ssh.close();
+                await Future<void>.delayed(const Duration(seconds: 2));
+                cancellation?.check();
+                while (true) {
+                  cancellation?.check();
+                  try {
+                    (ssh, sftp) = await _connect();
+                    break;
+                  } catch (_) {
+                    if (++failures > 30) rethrow;
+                    await Future<void>.delayed(const Duration(seconds: 2));
+                  }
+                }
+                final attr = await sftp.stat(target, followLink: false);
+                if (!attr.isFile ||
+                    attr.size == null ||
+                    attr.size! < offset ||
+                    attr.size! > offset + chunk.length) {
+                  throw const PluginException(
+                    'resumeConflict',
+                    'Partial destination changed.',
+                  );
+                }
+                // Rewriting the current chunk at its own offset is
+                // idempotent even if the previous acknowledgement was lost.
+                file = await sftp.open(target, mode: SftpFileOpenMode.write);
+              }
+            }
+            offset += chunk.length;
+          }
+        } finally {
+          try {
+            await file.close();
+          } catch (_) {}
+        }
+        if ((await sftp.stat(target)).size != length) {
+          throw const PluginException(
+            'lengthMismatch',
+            'Destination transfer incomplete.',
+          );
+        }
+        owned = null;
+        return SourceEntry(
+          ResourceRef(config.id, target),
+          RemotePaths.name(target),
+          isFolder: false,
+          size: length,
+        );
+      }
+      throw const PluginException(
+        'conflict',
+        'Too many files with the same name.',
+      );
+    } finally {
+      stop?.call();
+      if (owned != null) {
+        try {
+          await sftp.remove(owned);
+        } catch (_) {}
+      }
+      ssh.close();
     }
   }
 
@@ -1056,4 +1308,32 @@ class S3Plugin extends RemoteFilePlugin {
 
   @override
   Future<void> dispose() async => _client.close(force: true);
+}
+
+String writeToken() => List.generate(
+  24,
+  (_) => Random.secure().nextInt(16).toRadixString(16),
+).join();
+
+/// Cache mode and streaming mode share the same destination policy.
+mixin RemoteWriteFiles on RemoteFilePlugin implements SourceWriteCapability {
+  @override
+  Future<SourceEntry> writeNewFile(
+    ResourceRef near,
+    String name,
+    File source,
+    CallContext context, {
+    String? folder,
+    SourceWriteCancellation? cancellation,
+  }) async {
+    checkOwnership(config.id, near, context);
+    return writeNewStream(
+      source.openRead(),
+      await source.length(),
+      name,
+      context,
+      folder: folder,
+      cancellation: cancellation,
+    );
+  }
 }

@@ -12,7 +12,8 @@ class SourceSchemas {
       'source.browse',
       'source.resolve',
       if (kind != SourceKind.dlna) 'source.attachments',
-      if (kind == SourceKind.smb) 'source.write',
+      if ({SourceKind.smb, SourceKind.webdav, SourceKind.sftp}.contains(kind))
+        'source.write',
       if (kind.mediaBrowser || kind == SourceKind.plex) ...[
         'metadata.lookup',
         'search.media',
@@ -21,7 +22,7 @@ class SourceSchemas {
     configSchema: PluginConfigSchema(
       version: 2,
       fields: switch (kind) {
-        SourceKind.onedrive || SourceKind.dropbox => [],
+        SourceKind.onedrive || SourceKind.dropbox || SourceKind.baidu => [],
         SourceKind.local => [
           ConfigField(
             'address',

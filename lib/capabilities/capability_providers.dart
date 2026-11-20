@@ -37,7 +37,8 @@ class CapabilityProvider {
     SourceKind.smb => appStrings.catSummarySmb,
     SourceKind.webdav => appStrings.catSummaryWebdav,
     SourceKind.onedrive ||
-    SourceKind.dropbox => appStrings.catSummaryCloudDrive,
+    SourceKind.dropbox ||
+    SourceKind.baidu => appStrings.catSummaryCloudDrive,
     SourceKind.ftp => appStrings.catSummaryFtp,
     SourceKind.sftp => appStrings.catSummarySftp,
     SourceKind.s3 => appStrings.catSummaryS3,

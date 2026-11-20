@@ -51,6 +51,7 @@ class AnalyticsService with WidgetsBindingObserver {
       'dlna',
       'onedrive',
       'dropbox',
+      'baidu',
       'unknown',
     },
     'status': {'success', 'failed', 'cancelled'},

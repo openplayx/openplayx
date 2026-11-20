@@ -513,6 +513,30 @@ class SourceFormController extends ChangeNotifier {
     }
   }
 
+  Future<void> selectAllCloudFiles() async {
+    final previous = (_cloudRootId, _cloudFolderName);
+    _busy = true;
+    _notify();
+    try {
+      _cloudRootId = '';
+      await _loadCloudFolders();
+      _cloudParents.clear();
+    } catch (error) {
+      _cloudRootId = previous.$1;
+      _cloudFolderName = previous.$2;
+      if (!_disposed) {
+        onFailure(
+          error is PluginException
+              ? error.message
+              : appStrings.cloudSignInFailed,
+        );
+      }
+    } finally {
+      _busy = false;
+      _notify();
+    }
+  }
+
   Future<void> browseCloudFolder([
     SourceEntry? folder,
     bool back = false,
@@ -588,7 +612,7 @@ class SourceFormController extends ChangeNotifier {
       if (_kind.oauth) await _loadCloudFolders();
       var draft = _draft();
       switch (_kind) {
-        case SourceKind.onedrive || SourceKind.dropbox:
+        case SourceKind.onedrive || SourceKind.dropbox || SourceKind.baidu:
           secret = _cloudTokens?.encode() ?? '';
           await manager.testDraft(draft, secret);
         case SourceKind.local || SourceKind.dlna:

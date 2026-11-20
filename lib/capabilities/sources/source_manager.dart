@@ -19,6 +19,7 @@ import '../../data/sources/cloud_oauth.dart';
 import '../../data/sources/cloud_file_source.dart';
 import '../../data/sources/onedrive_source.dart';
 import '../../data/sources/dropbox_source.dart';
+import '../../data/sources/baidu_source.dart';
 import '../../data/library/library_database.dart';
 import '../../data/sources/source_state_store.dart';
 import '../../data/sources/file_sources.dart';
@@ -53,6 +54,16 @@ SourceCapability createSourceProvider(
     ownsSession: ownsCloudSession,
   ),
   SourceKind.dropbox => DropboxSource(
+    config,
+    cloudSession ??
+        CloudTokenSession(
+          config.kind,
+          CloudTokens.decode(secret),
+          persist: (_) async {},
+        ),
+    ownsSession: ownsCloudSession,
+  ),
+  SourceKind.baidu => BaiduSource(
     config,
     cloudSession ??
         CloudTokenSession(
@@ -830,6 +841,47 @@ class SourceManager {
       _markApplication(config, 'ready');
     }
     return entry;
+  }
+
+  /// Root/folder writes do not need a reference to existing media.
+  Future<SourceEntry> writeNewStream(
+    String instanceId,
+    String name,
+    Stream<List<int>> stream,
+    int length, {
+    String? folder,
+    File? cachedFile,
+    SourceWriteCancellation? cancellation,
+  }) async {
+    await load();
+    final config = _config(instanceId);
+    final runtime = await _runtime(instanceId);
+    final provider = runtime.provider;
+    if (!config.enabled || provider is! SourceWriteCapability) {
+      throw const PluginException(
+        'sourceNotWritable',
+        'Target source is not writable.',
+      );
+    }
+    return runtime.run(
+      () => cachedFile == null
+          ? (provider as SourceWriteCapability).writeNewStream(
+              stream,
+              length,
+              name,
+              CallContext.forInstance(instanceId),
+              folder: folder,
+              cancellation: cancellation,
+            )
+          : (provider as SourceWriteCapability).writeNewFile(
+              ResourceRef(instanceId, config.rootPath),
+              name,
+              cachedFile,
+              CallContext.forInstance(instanceId),
+              folder: folder ?? 'OpenPlayX/Downloads',
+              cancellation: cancellation,
+            ),
+    );
   }
 
   /// The App-wide Relay connection (sing-box outbound + frpc proxies).

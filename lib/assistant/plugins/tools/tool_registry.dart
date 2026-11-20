@@ -45,6 +45,7 @@ class ToolField {
     this.minimum,
     this.maximum,
     this.maxLength = 200,
+    this.minLength = 1,
     this.values,
   });
   final String type;
@@ -52,10 +53,11 @@ class ToolField {
   final num? minimum;
   final num? maximum;
   final int maxLength;
+  final int minLength;
   final List<String>? values;
   Map<String, dynamic> get schema => {
     'type': type,
-    if (type == 'string') ...{'minLength': 1, 'maxLength': maxLength},
+    if (type == 'string') ...{'minLength': minLength, 'maxLength': maxLength},
     if (minimum != null) 'minimum': minimum,
     if (maximum != null) 'maximum': maximum,
     if (values != null) 'enum': values,
@@ -63,7 +65,7 @@ class ToolField {
   bool valid(Object? value) {
     if (type == 'string') {
       return value is String &&
-          value.isNotEmpty &&
+          value.length >= minLength &&
           value.length <= maxLength &&
           (values == null || values!.contains(value));
     }

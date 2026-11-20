@@ -126,16 +126,29 @@ class MediaTools {
             for (final s in sources.configs.where(
               (c) =>
                   c.enabled &&
-                  _ai(
-                    c.providerId,
-                    instanceId: c.id,
-                    capability: 'source.browse',
-                  ),
+                  (_ai(
+                        c.providerId,
+                        instanceId: c.id,
+                        capability: 'source.browse',
+                      ) ||
+                      _ai(
+                        c.providerId,
+                        instanceId: c.id,
+                        capability: 'source.write',
+                      )),
             ))
               {
                 'source_id': s.id,
                 'name': safeText(s.name),
                 'kind': s.kind.name,
+                'writable':
+                    SourceSchemas.forKind(s.kind).capabilities
+                        .contains('source.write') &&
+                    _ai(
+                      s.providerId,
+                      instanceId: s.id,
+                      capability: 'source.write',
+                    ),
                 'searchable': SourceSchemas.forKind(s.kind).capabilities
                     .contains('search.media'),
               },

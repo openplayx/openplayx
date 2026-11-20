@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
+import '../../../assistant/voice/voice_settings.dart';
+import 'voice_settings_section.dart';
+
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../assistant/conversation/assistant_store.dart';
 import '../../../ui/components/forms/form_actions.dart';
@@ -112,6 +115,7 @@ class _AssistantModelSettingsState extends State<AssistantModelSettings> {
         ),
         if (!_c.usePlatform)
           SettingsSection(
+            key: const ValueKey('ai-model-fields'),
             title: l.aiCustomService,
             footer: l.aiProviderDescription,
             children: [
@@ -150,6 +154,9 @@ class _AssistantModelSettingsState extends State<AssistantModelSettings> {
               key: const ValueKey('ai-save'),
             ),
           ],
+        ),
+        VoiceSettingsSection(
+          settings: VoiceSettings(widget.store.configuration),
         ),
       ],
     );

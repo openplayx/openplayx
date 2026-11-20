@@ -129,11 +129,22 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        expect(find.byType(EditableText), findsNothing);
+        expect(
+          find.descendant(
+            of: find.byKey(const ValueKey('ai-model-fields')),
+            matching: find.byType(EditableText),
+          ),
+          findsNothing,
+        );
         await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
         await tester.pumpAndSettle();
         final inputs = tester
-            .widgetList<EditableText>(find.byType(EditableText))
+            .widgetList<EditableText>(
+              find.descendant(
+                of: find.byKey(const ValueKey('ai-model-fields')),
+                matching: find.byType(EditableText),
+              ),
+            )
             .toList();
         expect(inputs.length, 3);
         expect(inputs[2].obscureText, true);
@@ -152,7 +163,10 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.byType(ShadSwitch), findsNothing);
       expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
-      final fields = find.byType(EditableText);
+      final fields = find.descendant(
+        of: find.byKey(const ValueKey('ai-model-fields')),
+        matching: find.byType(EditableText),
+      );
       expect(fields, findsNothing);
       expect(store.loadConfig().usePlatform, true);
       expect(store.loadConfig().configured, true);
