@@ -47,7 +47,7 @@ class MetadataQueueRunner {
   bool _stopped = false;
   String? _owner;
   String? _activeMedia;
-  static const matchRule = 'title-alias-year-v3';
+  static const matchRule = 'original-title-alias-year-v4';
 
   Future<int> reconcile() async {
     await sources.load();
@@ -337,6 +337,21 @@ class MetadataQueueRunner {
   }) {
     final names = _wanted(evidence);
     if (!completePage || names.isEmpty) return null;
+    // Translated display titles can collide even when the original titles
+    // identify different works. Prefer the file's exact original-title match
+    // so switching the UI language cannot introduce that ambiguity.
+    final originals = candidates
+        .where(
+          (c) =>
+              names.contains(
+                _name(c.fields['originalTitle'] as String? ?? ''),
+              ) &&
+              _sameYear(evidence, c),
+        )
+        .toList();
+    if (originals.isNotEmpty) {
+      return originals.length == 1 ? originals.single : null;
+    }
     final matches = candidates
         .where(
           (c) =>

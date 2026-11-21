@@ -513,6 +513,7 @@ class SettingsChoiceRow<T> extends StatelessWidget with SettingsRowContent {
           onTap: () async {
             final picked = await Navigator.of(context).push<T>(
               MaterialPageRoute(
+                settings: const RouteSettings(name: 'SettingsChoicePage'),
                 builder: (_) => SettingsChoicePage<T>(
                   title: title,
                   value: value,
@@ -555,6 +556,7 @@ Future<String?> showSettingsInputDialog(
   if (isCompactSettings(context)) {
     return Navigator.of(context).push<String>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'SettingsInputPage'),
         builder: (_) => SettingsInputPage(
           title: title,
           initial: initial,

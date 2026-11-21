@@ -7515,36 +7515,305 @@ abstract class AppLocalizations {
   /// **'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.'**
   String get baiduPermissionDenied;
 
-  /// Select the Baidu account root.
+  /// No description provided for @baiduAllFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all files'**
   String get baiduAllFiles;
+
+  /// No description provided for @voiceSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice transcription'**
   String get voiceSettings;
 
+  /// No description provided for @voiceSettingsHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.'**
   String get voiceSettingsHint;
 
+  /// No description provided for @voiceSettingsError.
+  ///
+  /// In en, this message translates to:
+  /// **'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.'**
   String get voiceSettingsError;
 
+  /// No description provided for @voiceStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start voice input'**
   String get voiceStart;
 
+  /// No description provided for @voiceStop.
+  ///
+  /// In en, this message translates to:
+  /// **'Stop and transcribe'**
   String get voiceStop;
 
+  /// No description provided for @voiceRecording.
+  ///
+  /// In en, this message translates to:
+  /// **'Recording… Click stop to transcribe, or cancel to discard.'**
   String get voiceRecording;
 
+  /// No description provided for @voiceTranscribing.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribing…'**
   String get voiceTranscribing;
 
+  /// No description provided for @voicePreparing.
+  ///
+  /// In en, this message translates to:
+  /// **'Preparing microphone…'**
   String get voicePreparing;
 
+  /// No description provided for @voiceUnsupported.
+  ///
+  /// In en, this message translates to:
+  /// **'Voice recording is not supported on this platform or device.'**
   String get voiceUnsupported;
 
+  /// No description provided for @voicePermission.
+  ///
+  /// In en, this message translates to:
+  /// **'Microphone permission denied. Allow microphone access in system settings and try again.'**
   String get voicePermission;
 
+  /// No description provided for @voiceEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No speech was recognized. Please try again.'**
   String get voiceEmpty;
 
+  /// No description provided for @voiceTooLarge.
+  ///
+  /// In en, this message translates to:
+  /// **'The recording is too large. Please record a shorter message.'**
   String get voiceTooLarge;
 
+  /// No description provided for @voiceRecordingError.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not record audio. Check your microphone and try again.'**
   String get voiceRecordingError;
 
+  /// No description provided for @voiceTranscriptionError.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcription failed. Check your network and transcription settings, then try again.'**
   String get voiceTranscriptionError;
 
+  /// No description provided for @addVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Add videos'**
+  String get addVideo;
+
+  /// No description provided for @addAndShowHome.
+  ///
+  /// In en, this message translates to:
+  /// **'Add and show on Home'**
+  String get addAndShowHome;
+
+  /// No description provided for @homeScanScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Video folder or library'**
+  String get homeScanScope;
+
+  /// No description provided for @homeScanScopeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Videos in this scope and its subfolders will appear on Home. Choose a share, bucket or library next if needed.'**
+  String get homeScanScopeHelp;
+
+  /// No description provided for @homeSavedConnections.
+  ///
+  /// In en, this message translates to:
+  /// **'Saved connections'**
+  String get homeSavedConnections;
+
+  /// No description provided for @homeBindingFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection saved, but videos have not been added to Home. Retry here or choose the saved connection from Add videos.'**
+  String get homeBindingFailed;
+
+  /// No description provided for @homeFindingVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'Finding videos · {count} found'**
+  String homeFindingVideos(int count);
+
+  /// No description provided for @homeScanInterrupted.
+  ///
+  /// In en, this message translates to:
+  /// **'Scan interrupted. Videos already found are available.'**
+  String get homeScanInterrupted;
+
+  /// No description provided for @homeNoVideos.
+  ///
+  /// In en, this message translates to:
+  /// **'No videos found in this scope.'**
+  String get homeNoVideos;
+
+  /// No description provided for @homeAdjustScope.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose another folder'**
+  String get homeAdjustScope;
+
+  /// No description provided for @remotePlatformTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform default'**
+  String get remotePlatformTitle;
+
+  /// No description provided for @remotePlatformHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.'**
+  String get remotePlatformHint;
+
+  /// No description provided for @remotePlatformLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in'**
+  String get remotePlatformLogin;
+
+  /// No description provided for @remotePlatformLogout.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign out'**
+  String get remotePlatformLogout;
+
+  /// No description provided for @remotePlatformRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Use platform default'**
+  String get remotePlatformRestore;
+
+  /// No description provided for @remotePlatformActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Using platform configuration'**
+  String get remotePlatformActive;
+
+  /// No description provided for @remoteCustomActive.
+  ///
+  /// In en, this message translates to:
+  /// **'Using custom configuration'**
+  String get remoteCustomActive;
+
+  /// No description provided for @remotePlatformEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Account email'**
+  String get remotePlatformEmail;
+
+  /// No description provided for @remotePlatformAutomatic.
+  ///
+  /// In en, this message translates to:
+  /// **'Chosen automatically by your Connector'**
+  String get remotePlatformAutomatic;
+
+  /// No description provided for @remotePlatformNode.
+  ///
+  /// In en, this message translates to:
+  /// **'Relay node'**
+  String get remotePlatformNode;
+
+  /// No description provided for @remotePlatformEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No ready platform nodes. Refresh after an administrator enables a node.'**
+  String get remotePlatformEmpty;
+
+  /// No description provided for @remotePlatformNoServices.
+  ///
+  /// In en, this message translates to:
+  /// **'No services are granted to this device yet.'**
+  String get remotePlatformNoServices;
+
+  /// No description provided for @remotePlatformExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform configuration needs refreshing. The last configuration remains in use.'**
+  String get remotePlatformExpired;
+
+  /// No description provided for @remotePlatformRequestFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform request failed: {code}'**
+  String remotePlatformRequestFailed(String code);
+
+  /// No description provided for @remotePlatformNodeUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Waiting for your Connector to report its node'**
+  String get remotePlatformNodeUnavailable;
+
+  /// No description provided for @remoteNodeTest.
+  ///
+  /// In en, this message translates to:
+  /// **'Test nodes'**
+  String get remoteNodeTest;
+
+  /// No description provided for @remoteNodeTestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Tests TCP/TLS reachability from this device only, not Home service availability. The node is chosen by your Connector and followed automatically.'**
+  String get remoteNodeTestHint;
+
+  /// No description provided for @remoteNodeUnreachable.
+  ///
+  /// In en, this message translates to:
+  /// **'Unreachable'**
+  String get remoteNodeUnreachable;
+
+  /// No description provided for @remoteNodeLatency.
+  ///
+  /// In en, this message translates to:
+  /// **'{ms} ms'**
+  String remoteNodeLatency(int ms);
+
+  /// No description provided for @remotePlatformNotLoaded.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform configuration has not loaded. Refresh to try again.'**
+  String get remotePlatformNotLoaded;
+
+  /// No description provided for @remotePlatformRegister.
+  ///
+  /// In en, this message translates to:
+  /// **'Register platform account'**
+  String get remotePlatformRegister;
+
+  /// No description provided for @remotePlatformRegisterHint.
+  ///
+  /// In en, this message translates to:
+  /// **'We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.'**
+  String get remotePlatformRegisterHint;
+
+  /// No description provided for @remotePlatformSendRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Send registration email'**
+  String get remotePlatformSendRegistration;
+
+  /// No description provided for @remotePlatformRegistrationSent.
+  ///
+  /// In en, this message translates to:
+  /// **'If this email can be registered, a setup link has been sent. Check your inbox and spam folder.'**
+  String get remotePlatformRegistrationSent;
+
+  /// No description provided for @remotePlatformInvalidEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter a valid email address.'**
+  String get remotePlatformInvalidEmail;
 }
 
 class _AppLocalizationsDelegate
@@ -7593,5 +7862,4 @@ AppLocalizations lookupAppLocalizations(Locale locale) {
     'on GitHub with a reproducible sample app and the gen-l10n configuration '
     'that was used.',
   );
-
 }

@@ -12,7 +12,7 @@ services:
       - "${BIND:-127.0.0.1}:445:445"
     environment:
       NAME: media
-      USER: openplayx
+      USER: openplayx-test
       PASS: test-only-password
       RW: "false"
     volumes:
@@ -55,13 +55,13 @@ services:
   webdav:
     <<: *rclone
     command: [serve, webdav, /data, --addr, ":8080", --read-only,
-      --user, openplayx, --pass, test-only-password]
+      --user, openplayx-test, --pass, test-only-password]
     ports:
       - "${BIND:-127.0.0.1}:18080:8080"
   ftp:
     <<: *rclone
     command: [serve, ftp, /data, --addr, ":2121", --read-only,
-      --user, openplayx, --pass, test-only-password,
+      --user, openplayx-test, --pass, test-only-password,
       --passive-port, "31000-31009", --public-ip, "${HOST_IP:-127.0.0.1}"]
     ports:
       - "${BIND:-127.0.0.1}:2121:2121"
@@ -69,13 +69,13 @@ services:
   sftp:
     <<: *rclone
     command: [serve, sftp, /data, --addr, ":2022", --read-only,
-      --user, openplayx, --pass, test-only-password]
+      --user, openplayx-test, --pass, test-only-password]
     ports:
       - "${BIND:-127.0.0.1}:2222:2022"
   s3:
     <<: *rclone
     command: [serve, s3, /data, --addr, ":9000", --read-only,
-      --auth-key, "openplayx,test-only-password"]
+      --auth-key, "openplayx-test,test-only-password"]
     ports:
       - "${BIND:-127.0.0.1}:19000:9000"
   # SSDP and media URLs need the machine's own address, so MiniDLNA uses the

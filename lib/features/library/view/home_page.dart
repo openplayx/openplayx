@@ -1,5 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
+import 'package:shadcn_ui/shadcn_ui.dart';
+
+import '../../../data/library/scan_status.dart';
 
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../l10n/generated/app_localizations.dart';
@@ -20,7 +23,11 @@ class HomePage extends StatefulWidget {
     required this.service,
     required this.onPlay,
     required this.onResume,
+    this.onAddVideo,
+    this.revealRevision = 0,
   });
+  final VoidCallback? onAddVideo;
+  final int revealRevision;
   final SourceManager sources;
   final LibraryService service;
   final ValueChanged<SourceSelection> onPlay;
@@ -50,6 +57,7 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     ..addListener(_changed);
   HomeShelves get _shelves => _controller.shelves;
   ValueListenable<TickerModeData>? _visible;
+  final _scroll = ScrollController();
 
   void _changed() {
     if (mounted) setState(() {});
@@ -71,6 +79,11 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     super.didUpdateWidget(oldWidget);
     // The shell recreates the page when the home tab is selected again.
     _controller.reload();
+    if (widget.revealRevision != oldWidget.revealRevision) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && _scroll.hasClients) _scroll.jumpTo(0);
+      });
+    }
   }
 
   void _onVisibility() =>
@@ -80,6 +93,7 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   void dispose() {
     _visible?.removeListener(_onVisibility);
     _controller.dispose();
+    _scroll.dispose();
     _artwork.dispose();
     super.dispose();
   }
@@ -90,6 +104,7 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     bool landscape = false,
   }) => Navigator.of(context).push<void>(
     MaterialPageRoute(
+      settings: const RouteSettings(name: 'LibraryGridPage'),
       builder: (_) => LibraryGridPage(
         title: title,
         service: widget.service,
@@ -184,6 +199,44 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final service = widget.service;
+    final statuses = _controller.scanStates.map((state) {
+      final f = state.source;
+      final count = state.count;
+      final retry =
+          f.status == ScanStatus.failed || f.status == ScanStatus.interrupted;
+      if (!f.scanning &&
+          !retry &&
+          !(f.status == ScanStatus.done && count == 0)) {
+        return const SizedBox.shrink();
+      }
+      return Padding(
+        padding: _padding.add(const EdgeInsets.only(bottom: 16)),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(f.name ?? l.sourceRootFolder),
+            Text(
+              f.scanning
+                  ? l.homeFindingVideos(count)
+                  : retry
+                  ? l.homeScanInterrupted
+                  : l.homeNoVideos,
+            ),
+            if (retry && f.error != null) Text(ScanStatus.error(f.error)!),
+            if (retry)
+              ShadButton.ghost(
+                onPressed: () => service.startScan(f.id, widget.sources),
+                child: Text(l.retry),
+              ),
+            if (!f.scanning && widget.onAddVideo != null)
+              ShadButton.ghost(
+                onPressed: widget.onAddVideo,
+                child: Text(l.homeAdjustScope),
+              ),
+          ],
+        ),
+      );
+    }).toList();
     final shelves = [
       _resumeShelf(
         l.continueWatching,
@@ -195,23 +248,37 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
       _posterShelf(l.tvShows, 'series', _shelves.series),
     ];
     final empty = shelves.every((s) => s is SizedBox);
-    if (empty) {
+    if (empty && statuses.every((s) => s is SizedBox)) {
       return Center(
         child: Padding(
           padding: const EdgeInsets.all(24),
-          child: Text(
-            !_controller.hasFileSources
-                ? l.libraryNoFileSources
-                : l.libraryEmptyNoMedia,
-            textAlign: TextAlign.center,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                !_controller.hasFileSources
+                    ? l.libraryNoFileSources
+                    : l.libraryEmptyNoMedia,
+                textAlign: TextAlign.center,
+              ),
+              if (widget.onAddVideo != null) ...[
+                const SizedBox(height: 16),
+                ShadButton(
+                  key: const ValueKey('home-add-video-empty'),
+                  onPressed: widget.onAddVideo,
+                  child: Text(l.addVideo),
+                ),
+              ],
+            ],
           ),
         ),
       );
     }
     return ListView(
       key: const PageStorageKey('home'),
+      controller: _scroll,
       padding: const EdgeInsets.only(top: 20, bottom: 12),
-      children: shelves,
+      children: [...statuses, ...shelves],
     );
   }
 }

@@ -31,7 +31,9 @@ class AiChatView extends StatefulWidget {
     this.onExpand,
     this.onOpenMedia,
     this.onBack,
+    this.showGreetingIcon = true,
   });
+  final bool showGreetingIcon;
   final ConversationCoordinator coordinator;
   final AiChatController? controller;
   final bool Function() toolsEnabled;
@@ -316,8 +318,10 @@ class _AiChatViewState extends State<AiChatView> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(AppIcons.assistant, size: 32, color: colors.foreground),
-              const SizedBox(height: 16),
+              if (widget.showGreetingIcon) ...[
+                Icon(AppIcons.assistant, size: 32, color: colors.foreground),
+                const SizedBox(height: 16),
+              ],
               Text(
                 l.aiGreeting,
                 textAlign: TextAlign.center,

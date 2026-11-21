@@ -722,6 +722,7 @@ class SubtitleGenerationService {
     stageMs[stage.name] = (stageMs[stage.name] ?? 0) + _now - stageStart;
     unawaited(
       AnalyticsService.instance.capture('subtitle_generation_completed', {
+        'duration_ms': stageMs.values.fold<int>(0, (sum, ms) => sum + ms),
         'status': status.name == 'completed' || status.name == 'succeeded'
             ? 'success'
             : status.name == 'cancelled'

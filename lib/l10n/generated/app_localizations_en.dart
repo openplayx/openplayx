@@ -4206,19 +4206,22 @@ class AppLocalizationsEn extends AppLocalizations {
   String get detailFiles => 'Video files';
 
   @override
-  String get baiduAllFiles => 'Select all files';
-
-  @override
   String get baiduPermissionDenied =>
       'Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.';
+
+  @override
+  String get baiduAllFiles => 'Select all files';
+
   @override
   String get voiceSettings => 'Voice transcription';
 
   @override
-  String get voiceSettingsHint => 'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
+  String get voiceSettingsHint =>
+      'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
 
   @override
-  String get voiceSettingsError => 'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.';
+  String get voiceSettingsError =>
+      'Check the transcription address, model and API key in settings. The key must be saved in secure local storage.';
 
   @override
   String get voiceStart => 'Start voice input';
@@ -4227,7 +4230,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voiceStop => 'Stop and transcribe';
 
   @override
-  String get voiceRecording => 'Recording… Click stop to transcribe, or cancel to discard.';
+  String get voiceRecording =>
+      'Recording… Click stop to transcribe, or cancel to discard.';
 
   @override
   String get voiceTranscribing => 'Transcribing…';
@@ -4236,21 +4240,149 @@ class AppLocalizationsEn extends AppLocalizations {
   String get voicePreparing => 'Preparing microphone…';
 
   @override
-  String get voiceUnsupported => 'Voice recording is not supported on this platform or device.';
+  String get voiceUnsupported =>
+      'Voice recording is not supported on this platform or device.';
 
   @override
-  String get voicePermission => 'Microphone permission denied. Allow microphone access in system settings and try again.';
+  String get voicePermission =>
+      'Microphone permission denied. Allow microphone access in system settings and try again.';
 
   @override
   String get voiceEmpty => 'No speech was recognized. Please try again.';
 
   @override
-  String get voiceTooLarge => 'The recording is too large. Please record a shorter message.';
+  String get voiceTooLarge =>
+      'The recording is too large. Please record a shorter message.';
 
   @override
-  String get voiceRecordingError => 'Could not record audio. Check your microphone and try again.';
+  String get voiceRecordingError =>
+      'Could not record audio. Check your microphone and try again.';
 
   @override
-  String get voiceTranscriptionError => 'Transcription failed. Check your network and transcription settings, then try again.';
+  String get voiceTranscriptionError =>
+      'Transcription failed. Check your network and transcription settings, then try again.';
 
+  @override
+  String get addVideo => 'Add videos';
+
+  @override
+  String get addAndShowHome => 'Add and show on Home';
+
+  @override
+  String get homeScanScope => 'Video folder or library';
+
+  @override
+  String get homeScanScopeHelp =>
+      'Videos in this scope and its subfolders will appear on Home. Choose a share, bucket or library next if needed.';
+
+  @override
+  String get homeSavedConnections => 'Saved connections';
+
+  @override
+  String get homeBindingFailed =>
+      'Connection saved, but videos have not been added to Home. Retry here or choose the saved connection from Add videos.';
+
+  @override
+  String homeFindingVideos(int count) {
+    return 'Finding videos · $count found';
+  }
+
+  @override
+  String get homeScanInterrupted =>
+      'Scan interrupted. Videos already found are available.';
+
+  @override
+  String get homeNoVideos => 'No videos found in this scope.';
+
+  @override
+  String get homeAdjustScope => 'Choose another folder';
+
+  @override
+  String get remotePlatformTitle => 'Platform default';
+
+  @override
+  String get remotePlatformHint =>
+      'Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.';
+
+  @override
+  String get remotePlatformLogin => 'Sign in';
+
+  @override
+  String get remotePlatformLogout => 'Sign out';
+
+  @override
+  String get remotePlatformRestore => 'Use platform default';
+
+  @override
+  String get remotePlatformActive => 'Using platform configuration';
+
+  @override
+  String get remoteCustomActive => 'Using custom configuration';
+
+  @override
+  String get remotePlatformEmail => 'Account email';
+
+  @override
+  String get remotePlatformAutomatic =>
+      'Chosen automatically by your Connector';
+
+  @override
+  String get remotePlatformNode => 'Relay node';
+
+  @override
+  String get remotePlatformEmpty =>
+      'No ready platform nodes. Refresh after an administrator enables a node.';
+
+  @override
+  String get remotePlatformNoServices =>
+      'No services are granted to this device yet.';
+
+  @override
+  String get remotePlatformExpired =>
+      'Platform configuration needs refreshing. The last configuration remains in use.';
+
+  @override
+  String remotePlatformRequestFailed(String code) {
+    return 'Platform request failed: $code';
+  }
+
+  @override
+  String get remotePlatformNodeUnavailable =>
+      'Waiting for your Connector to report its node';
+
+  @override
+  String get remoteNodeTest => 'Test nodes';
+
+  @override
+  String get remoteNodeTestHint =>
+      'Tests TCP/TLS reachability from this device only, not Home service availability. The node is chosen by your Connector and followed automatically.';
+
+  @override
+  String get remoteNodeUnreachable => 'Unreachable';
+
+  @override
+  String remoteNodeLatency(int ms) {
+    return '$ms ms';
+  }
+
+  @override
+  String get remotePlatformNotLoaded =>
+      'Platform configuration has not loaded. Refresh to try again.';
+
+  @override
+  String get remotePlatformRegister => 'Register platform account';
+
+  @override
+  String get remotePlatformRegisterHint =>
+      'We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.';
+
+  @override
+  String get remotePlatformSendRegistration => 'Send registration email';
+
+  @override
+  String get remotePlatformRegistrationSent =>
+      'If this email can be registered, a setup link has been sent. Check your inbox and spam folder.';
+
+  @override
+  String get remotePlatformInvalidEmail => 'Enter a valid email address.';
 }

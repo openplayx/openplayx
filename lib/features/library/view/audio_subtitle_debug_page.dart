@@ -215,6 +215,7 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
   Future<void> _openModelSettings() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'AppPage'),
         builder: (_) => AppPage(
           pageContext: const PageContextData(pageType: 'asr_model_settings'),
           title: Text(l.asrSettingsTitle),

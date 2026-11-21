@@ -7,9 +7,6 @@ import 'app_localizations.dart';
 
 /// The translations for Chinese (`zh`).
 class AppLocalizationsZh extends AppLocalizations {
-  @override
-  String get baiduAllFiles => '选择全部文件';
-
   AppLocalizationsZh([String locale = 'zh']) : super(locale);
 
   @override
@@ -3940,11 +3937,16 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get baiduPermissionDenied => '百度网盘限制了播放或文件访问，请检查账号权限、下载权益及应用获批权限。';
+
+  @override
+  String get baiduAllFiles => '选择全部文件';
+
   @override
   String get voiceSettings => '语音转写';
 
   @override
-  String get voiceSettingsHint => '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
+  String get voiceSettingsHint =>
+      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
 
   @override
   String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
@@ -3982,13 +3984,124 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get voiceTranscriptionError => '转写失败，请检查网络和独立转写配置后重试。';
 
+  @override
+  String get addVideo => '添加视频';
+
+  @override
+  String get addAndShowHome => '添加并显示到首页';
+
+  @override
+  String get homeScanScope => '视频目录或库';
+
+  @override
+  String get homeScanScopeHelp => '将此范围及子目录中的视频显示到首页；如需选择共享、桶或库，将在下一步确认。';
+
+  @override
+  String get homeSavedConnections => '已保存的连接';
+
+  @override
+  String get homeBindingFailed => '连接已保存，尚未加入首页。请就地重试，或从“添加视频”选择已保存的连接。';
+
+  @override
+  String homeFindingVideos(int count) {
+    return '正在查找视频 · 已发现 $count 个';
+  }
+
+  @override
+  String get homeScanInterrupted => '扫描中断，已发现的视频仍可播放。';
+
+  @override
+  String get homeNoVideos => '该范围暂未发现视频。';
+
+  @override
+  String get homeAdjustScope => '调整扫描范围';
+
+  @override
+  String get remotePlatformTitle => '平台默认';
+
+  @override
+  String get remotePlatformHint =>
+      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+
+  @override
+  String get remotePlatformLogin => '登录平台账号';
+
+  @override
+  String get remotePlatformLogout => '退出平台账号';
+
+  @override
+  String get remotePlatformRestore => '恢复平台默认';
+
+  @override
+  String get remotePlatformActive => '正在使用平台配置';
+
+  @override
+  String get remoteCustomActive => '正在使用自建配置';
+
+  @override
+  String get remotePlatformEmail => '账号邮箱';
+
+  @override
+  String get remotePlatformAutomatic => '由 Connector 自动选择';
+
+  @override
+  String get remotePlatformNode => 'Relay 节点';
+
+  @override
+  String get remotePlatformEmpty => '暂无就绪的平台节点，请在管理员启用节点后刷新。';
+
+  @override
+  String get remotePlatformNoServices => '此设备尚未获授权访问任何服务。';
+
+  @override
+  String get remotePlatformExpired => '平台配置待更新，将继续使用上次配置。';
+
+  @override
+  String remotePlatformRequestFailed(String code) {
+    return '平台请求失败：$code';
+  }
+
+  @override
+  String get remotePlatformNodeUnavailable => '等待 Connector 上报节点';
+
+  @override
+  String get remoteNodeTest => '测试节点';
+
+  @override
+  String get remoteNodeTestHint =>
+      '仅测试本机到各节点的 TCP/TLS 连通性，不代表家中服务已可用；节点由 Connector 自动选择，App 自动跟随。';
+
+  @override
+  String get remoteNodeUnreachable => '连接失败';
+
+  @override
+  String remoteNodeLatency(int ms) {
+    return '$ms 毫秒';
+  }
+
+  @override
+  String get remotePlatformNotLoaded => '尚未加载平台配置，请刷新。';
+
+  @override
+  String get remotePlatformRegister => '注册平台账号';
+
+  @override
+  String get remotePlatformRegisterHint =>
+      '我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。';
+
+  @override
+  String get remotePlatformSendRegistration => '发送注册邮件';
+
+  @override
+  String get remotePlatformRegistrationSent =>
+      '如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。';
+
+  @override
+  String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
 class AppLocalizationsZhHans extends AppLocalizationsZh {
-  @override
-  String get baiduAllFiles => '选择全部文件';
-
   AppLocalizationsZhHans() : super('zh_Hans');
 
   @override
@@ -7919,13 +8032,171 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get baiduPermissionDenied => '百度网盘限制了播放或文件访问，请检查账号权限、下载权益及应用获批权限。';
+
+  @override
+  String get baiduAllFiles => '选择全部文件';
+
+  @override
+  String get voiceSettings => '语音转写';
+
+  @override
+  String get voiceSettingsHint =>
+      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
+
+  @override
+  String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
+
+  @override
+  String get voiceStart => '开始语音输入';
+
+  @override
+  String get voiceStop => '停止并转写';
+
+  @override
+  String get voiceRecording => '正在录音…点击停止进行转写，或取消以丢弃录音。';
+
+  @override
+  String get voiceTranscribing => '正在转写…';
+
+  @override
+  String get voicePreparing => '正在准备麦克风…';
+
+  @override
+  String get voiceUnsupported => '当前平台或设备不支持语音录入。';
+
+  @override
+  String get voicePermission => '麦克风权限被拒绝，请在系统设置中允许访问麦克风后重试。';
+
+  @override
+  String get voiceEmpty => '未识别到语音，请重试。';
+
+  @override
+  String get voiceTooLarge => '录音过大，请缩短录音后重试。';
+
+  @override
+  String get voiceRecordingError => '录音失败，请检查麦克风后重试。';
+
+  @override
+  String get voiceTranscriptionError => '转写失败，请检查网络和独立转写配置后重试。';
+
+  @override
+  String get addVideo => '添加视频';
+
+  @override
+  String get addAndShowHome => '添加并显示到首页';
+
+  @override
+  String get homeScanScope => '视频目录或库';
+
+  @override
+  String get homeScanScopeHelp => '将此范围及子目录中的视频显示到首页；如需选择共享、桶或库，将在下一步确认。';
+
+  @override
+  String get homeSavedConnections => '已保存的连接';
+
+  @override
+  String get homeBindingFailed => '连接已保存，尚未加入首页。请就地重试，或从“添加视频”选择已保存的连接。';
+
+  @override
+  String homeFindingVideos(int count) {
+    return '正在查找视频 · 已发现 $count 个';
+  }
+
+  @override
+  String get homeScanInterrupted => '扫描中断，已发现的视频仍可播放。';
+
+  @override
+  String get homeNoVideos => '该范围暂未发现视频。';
+
+  @override
+  String get homeAdjustScope => '调整扫描范围';
+
+  @override
+  String get remotePlatformTitle => '平台默认';
+
+  @override
+  String get remotePlatformHint =>
+      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+
+  @override
+  String get remotePlatformLogin => '登录平台账号';
+
+  @override
+  String get remotePlatformLogout => '退出平台账号';
+
+  @override
+  String get remotePlatformRestore => '恢复平台默认';
+
+  @override
+  String get remotePlatformActive => '正在使用平台配置';
+
+  @override
+  String get remoteCustomActive => '正在使用自建配置';
+
+  @override
+  String get remotePlatformEmail => '账号邮箱';
+
+  @override
+  String get remotePlatformAutomatic => '由 Connector 自动选择';
+
+  @override
+  String get remotePlatformNode => 'Relay 节点';
+
+  @override
+  String get remotePlatformEmpty => '暂无就绪的平台节点，请在管理员启用节点后刷新。';
+
+  @override
+  String get remotePlatformNoServices => '此设备尚未获授权访问任何服务。';
+
+  @override
+  String get remotePlatformExpired => '平台配置待更新，将继续使用上次配置。';
+
+  @override
+  String remotePlatformRequestFailed(String code) {
+    return '平台请求失败：$code';
+  }
+
+  @override
+  String get remotePlatformNodeUnavailable => '等待 Connector 上报节点';
+
+  @override
+  String get remoteNodeTest => '测试节点';
+
+  @override
+  String get remoteNodeTestHint =>
+      '仅测试本机到各节点的 TCP/TLS 连通性，不代表家中服务已可用；节点由 Connector 自动选择，App 自动跟随。';
+
+  @override
+  String get remoteNodeUnreachable => '连接失败';
+
+  @override
+  String remoteNodeLatency(int ms) {
+    return '$ms 毫秒';
+  }
+
+  @override
+  String get remotePlatformNotLoaded => '尚未加载平台配置，请刷新。';
+
+  @override
+  String get remotePlatformRegister => '注册平台账号';
+
+  @override
+  String get remotePlatformRegisterHint =>
+      '我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。';
+
+  @override
+  String get remotePlatformSendRegistration => '发送注册邮件';
+
+  @override
+  String get remotePlatformRegistrationSent =>
+      '如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。';
+
+  @override
+  String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
 class AppLocalizationsZhHant extends AppLocalizationsZh {
-  @override
-  String get baiduAllFiles => '選擇全部檔案';
-
   AppLocalizationsZhHant() : super('zh_Hant');
 
   @override
@@ -11856,11 +12127,16 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get baiduPermissionDenied => '百度網盤限制了播放或檔案存取，請檢查帳號權限、下載權益及應用程式獲批權限。';
+
+  @override
+  String get baiduAllFiles => '選擇全部檔案';
+
   @override
   String get voiceSettings => '語音轉寫';
 
   @override
-  String get voiceSettingsHint => '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，文字可編輯並需手動傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
+  String get voiceSettingsHint =>
+      '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，文字可編輯並需手動傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
 
   @override
   String get voiceSettingsError => '請在設定中檢查轉寫位址、模型和 API Key，金鑰須成功儲存至本機安全儲存空間。';
@@ -11898,4 +12174,118 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get voiceTranscriptionError => '轉寫失敗，請檢查網路和獨立轉寫設定後重試。';
 
+  @override
+  String get addVideo => '新增影片';
+
+  @override
+  String get addAndShowHome => '新增並顯示於首頁';
+
+  @override
+  String get homeScanScope => '影片目錄或媒體庫';
+
+  @override
+  String get homeScanScopeHelp => '將此範圍及子目錄中的影片顯示於首頁；如需選擇共享、儲存桶或媒體庫，將於下一步確認。';
+
+  @override
+  String get homeSavedConnections => '已儲存的連線';
+
+  @override
+  String get homeBindingFailed => '連線已儲存，尚未加入首頁。請重試，或從「新增影片」選擇已儲存的連線。';
+
+  @override
+  String homeFindingVideos(int count) {
+    return '正在尋找影片 · 已發現 $count 個';
+  }
+
+  @override
+  String get homeScanInterrupted => '掃描中斷，已發現的影片仍可播放。';
+
+  @override
+  String get homeNoVideos => '此範圍暫未發現影片。';
+
+  @override
+  String get homeAdjustScope => '調整掃描範圍';
+
+  @override
+  String get remotePlatformTitle => '平台默认';
+
+  @override
+  String get remotePlatformHint =>
+      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+
+  @override
+  String get remotePlatformLogin => '登录平台账号';
+
+  @override
+  String get remotePlatformLogout => '退出平台账号';
+
+  @override
+  String get remotePlatformRestore => '恢复平台默认';
+
+  @override
+  String get remotePlatformActive => '正在使用平台配置';
+
+  @override
+  String get remoteCustomActive => '正在使用自建配置';
+
+  @override
+  String get remotePlatformEmail => '账号邮箱';
+
+  @override
+  String get remotePlatformAutomatic => '由 Connector 自动选择';
+
+  @override
+  String get remotePlatformNode => 'Relay 节点';
+
+  @override
+  String get remotePlatformEmpty => '暂无就绪的平台节点，请在管理员启用节点后刷新。';
+
+  @override
+  String get remotePlatformNoServices => '此设备尚未获授权访问任何服务。';
+
+  @override
+  String get remotePlatformExpired => '平台配置待更新，将继续使用上次配置。';
+
+  @override
+  String remotePlatformRequestFailed(String code) {
+    return '平台请求失败：$code';
+  }
+
+  @override
+  String get remotePlatformNodeUnavailable => '等待 Connector 上报节点';
+
+  @override
+  String get remoteNodeTest => '测试节点';
+
+  @override
+  String get remoteNodeTestHint =>
+      '仅测试本机到各节点的 TCP/TLS 连通性，不代表家中服务已可用；节点由 Connector 自动选择，App 自动跟随。';
+
+  @override
+  String get remoteNodeUnreachable => '连接失败';
+
+  @override
+  String remoteNodeLatency(int ms) {
+    return '$ms 毫秒';
+  }
+
+  @override
+  String get remotePlatformNotLoaded => '尚未加载平台配置，请刷新。';
+
+  @override
+  String get remotePlatformRegister => '註冊平台帳號';
+
+  @override
+  String get remotePlatformRegisterHint =>
+      '我們會傳送一次性郵件連結。開啟郵件驗證信箱並設定密碼後，返回這裡登入。';
+
+  @override
+  String get remotePlatformSendRegistration => '傳送註冊郵件';
+
+  @override
+  String get remotePlatformRegistrationSent =>
+      '如果此信箱可註冊，設定密碼的郵件已傳送，請檢查收件匣及垃圾郵件。';
+
+  @override
+  String get remotePlatformInvalidEmail => '請輸入有效的電子郵件地址。';
 }

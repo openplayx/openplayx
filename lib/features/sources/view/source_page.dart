@@ -137,6 +137,7 @@ class _SourcePageState extends State<SourcePage> {
   Future<void> _edit(SourceConfig source) async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'SourceInstanceForm'),
         builder: (_) =>
             SourceInstanceForm(manager: widget.manager, initial: source),
       ),
@@ -177,6 +178,7 @@ class _SourcePageState extends State<SourcePage> {
   Future<void> _openAddSource() async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'SourceInstanceForm'),
         builder: (_) => SourceInstanceForm(manager: widget.manager),
       ),
     );

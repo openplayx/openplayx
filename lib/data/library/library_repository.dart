@@ -595,6 +595,15 @@ class LibraryRepository {
     [fileSource],
   );
 
+  int fileSourceMediaCount(String fileSource) =>
+      db.select(
+            'SELECT COUNT(DISTINCT r.media_id) AS n FROM evidence e '
+            'JOIN resources r ON r.id=e.resource_id '
+            'WHERE e.file_source_id=? AND e.available=1',
+            [fileSource],
+          ).first['n']
+          as int;
+
   ResultSet resourceFor(String source, String item) => db.select(
     'SELECT r.id,r.media_id,l.source,l.item,r.name FROM resources r JOIN resource_locators l ON l.resource_id=r.id WHERE l.source=? AND l.item=?',
     [source, item],

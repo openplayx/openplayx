@@ -383,6 +383,130 @@ void main() {
       isNull,
     );
   });
+  test(
+    'original titles disambiguate translated names in either UI language',
+    () {
+      final evidence = const MediaNameParser().parse(
+        'Modern Family S01E01 Pilot.mkv',
+      );
+      MetadataRecord show(String id, String title, String original, int year) =>
+          MetadataRecord(
+            ref: MetadataRef('tmdb', MediaKind.series, id),
+            fields: {'title': title, 'originalTitle': original, 'year': year},
+          );
+      for (final title in ['Modern Family', '摩登家庭']) {
+        final us = show('1421', title, 'Modern Family', 2009);
+        final greek = show(
+          '102126',
+          'Modern Family',
+          'Μοντέρνα Οικογένεια',
+          2014,
+        );
+        final korean = show('134175', 'Modern Family', '모던 패밀리', 2019);
+        expect(
+          MetadataQueueRunner.uniqueMatch(evidence, [
+            greek,
+            korean,
+            us,
+          ])?.ref.id,
+          '1421',
+        );
+        expect(
+          MetadataQueueRunner.uniqueMatch(evidence, [
+            us,
+            greek,
+          ], completePage: false),
+          isNull,
+        );
+        expect(
+          MetadataQueueRunner.uniqueMatch(
+            const MediaNameParser().parse('Modern Family 2014 S01E01.mkv'),
+            [us, greek],
+          )?.ref.id,
+          '102126',
+        );
+        // An actual original-title collision must still ask the user.
+        expect(
+          MetadataQueueRunner.uniqueMatch(evidence, [
+            us,
+            show('other', title, 'Modern Family', 2020),
+          ]),
+          isNull,
+        );
+      }
+      // Localized-title matching still works when there is no original match.
+      expect(
+        MetadataQueueRunner.uniqueMatch(
+          const MediaNameParser().parse('摩登家庭 S01E01.mkv'),
+          [show('1421', '摩登家庭', 'Modern Family', 2009)],
+        )?.ref.id,
+        '1421',
+      );
+    },
+  );
+  test(
+    'new match rule retries old misses and leaves confirmed matches alone',
+    () async {
+      addToLibrary(library, media);
+      final worker = runner();
+      try {
+        await worker.reconcile();
+        library.db.execute(
+          "UPDATE metadata_queue SET state='awaitingSelection',error_code='ambiguousMatch' WHERE media_id=?",
+          [media],
+        );
+        library.metadata.setSetting(
+          'nameRule',
+          '3/title-alias-year-v3/cover-one-fifth-v2',
+        );
+        await worker.reconcile();
+        expect(worker.queue.item(media)!['state'], 'queued');
+        await worker.runBatch();
+        expect(worker.queue.item(media)!['state'], 'completed');
+        library.db.execute(
+          'UPDATE metadata_state SET confirmed=1 WHERE media_id=?',
+          [media],
+        );
+        library.metadata.setSetting(
+          'nameRule',
+          '3/title-alias-year-v3/cover-one-fifth-v2',
+        );
+        final calls = provider.calls;
+        await worker.reconcile();
+        await worker.runBatch();
+        expect(provider.calls, calls);
+        expect(library.metadata.confirmed(media), isTrue);
+      } finally {
+        await worker.dispose();
+      }
+    },
+  );
+  test(
+    'TMDB ancestors keep their canonical identity instead of an external ID',
+    () {
+      addToLibrary(library, media);
+      library.metadata.attachHierarchy(media, [
+        (
+          scope: 'tmdb:test:1421',
+          record: MetadataRecord(
+            ref: const MetadataRef('tmdb', MediaKind.series, '1421'),
+            fields: const {'kind': 'series', 'title': 'Modern Family'},
+            externalIds: const [
+              MetadataRef('imdb', MediaKind.series, 'tt1442437'),
+            ],
+          ),
+        ),
+      ], operationId: 'ancestor-identity');
+      final id =
+          library.db.select(
+                'SELECT parent_id FROM metadata_relations WHERE child_id=?',
+                [media],
+              ).single['parent_id']
+              as String;
+      expect(library.metadata.association(id)?.provider, 'tmdb');
+      expect(library.metadata.association(id)?.id, '1421');
+    },
+  );
   test('alias fallback needs one same-year candidate whose alternative title is the file title', () async {
     final evidence = const MediaNameParser().parse('Le Film 2014.mkv');
     MetadataRecord rec(String id, int year) => MetadataRecord(

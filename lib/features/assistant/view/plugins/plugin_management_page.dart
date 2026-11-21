@@ -58,7 +58,7 @@ enum PluginGroup {
   }
 }
 
-/// The top-level AI destination (internally still `plugins`), laid out like
+/// AI configuration opened from Settings, laid out like
 /// settings in two levels: the root lists 模型 / 外部能力 / 内部能力, and each
 /// row opens its own page. On wide windows the 外部能力 and 内部能力 pages
 /// show list and detail side by side.
@@ -129,12 +129,12 @@ class PluginManagementPageState extends State<PluginManagementPage> {
   }
 
   /// Opens one group's page on top of the root list (e.g. the chat's model
-  /// settings link opens 模型), replacing any page already open.
+  /// settings link opens 模型), keeping the Settings return path.
   Future<void> showGroup(PluginGroup group, {String? selected}) async {
     final navigator = Navigator.of(context);
-    navigator.popUntil((r) => r.isFirst);
     await navigator.push(
       MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'PluginGroupPage'),
         builder: (_) => PluginGroupPage(
           key: ValueKey('plugin-group-page-${group.name}'),
           group: group,
@@ -284,6 +284,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'AppPage'),
         builder: (_) => AppPage(
           pageContext: PageContextData(
             pageType: 'plugin_detail',
@@ -304,6 +305,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   Future<void> _configureExternal(BuildContext context) async {
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'ExternalServiceConfigPage'),
         builder: (_) => ExternalServiceConfigPage(setup: _setup),
       ),
     );
@@ -321,6 +323,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
     }
     await Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'AppPage'),
         builder: (route) => AppPage(
           pageContext: PageContextData(
             pageType: 'external_service_detail',

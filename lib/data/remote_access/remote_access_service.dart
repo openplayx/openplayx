@@ -6,6 +6,8 @@ import '../configuration/configuration_database.dart';
 import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_transport.dart';
+import 'relay_subscription.dart';
+import 'relay_node_probe.dart';
 import '../../l10n/l10n.dart';
 
 /// The App's network layer, in sing-box / frp terms: one Relay entry point
@@ -84,6 +86,8 @@ class RemoteNetwork {
           RemoteProxy(
             (item as Map)['name'] as String,
             item['remotePort'] as int,
+            label: item['label'] as String?,
+            kind: item['kind'] as String?,
           ),
       ],
       probeTimeoutMs: p['probeTimeoutMs'] as int,
@@ -175,7 +179,8 @@ class RemoteNetwork {
 /// its `secrets` table). Changes take effect when saved; there is no
 /// separate apply step.
 class RemoteAccessService {
-  RemoteAccessService(this.db) {
+  RemoteAccessService(this.db, {RelaySubscription? subscription}) {
+    account = subscription ?? RelaySubscription(db);
     ConfigurationDatabase.initialize(db);
   }
 
@@ -183,7 +188,177 @@ class RemoteAccessService {
   RemoteAccessService.memory() : this(sqlite3.openInMemory());
 
   final Database db;
-  RemoteNetwork network = const RemoteNetwork();
+  RemoteNetwork _custom = const RemoteNetwork();
+  late final RelaySubscription account;
+  bool usePlatform = true;
+  RelayDeviceProfile? platformProfile;
+  String? platformError;
+  Future<void> Function()? onChanged;
+  Timer? _refreshTimer;
+  Future<void>? _syncing;
+  bool _closed = false;
+
+  RemoteNetwork get network {
+    if (!usePlatform) return _custom;
+    final p = platformProfile;
+    if (p == null || !account.signedIn) {
+      return const RemoteNetwork();
+    }
+    final node = activeNode;
+    if (node == null) return const RemoteNetwork();
+    return RemoteNetwork(
+      outbound: {
+        'type': 'vless',
+        'server': node['host'],
+        'server_port': node['port'],
+        'tls': {'enabled': true, 'server_name': node['tlsServerName']},
+      },
+      credential: {'uuid': p.uuid},
+      proxies: p.proxies,
+      probeTimeoutMs: _custom.probeTimeoutMs,
+      stabilitySeconds: _custom.stabilitySeconds,
+      reconnectAttempts: _custom.reconnectAttempts,
+      reconnectDelayMs: _custom.reconnectDelayMs,
+    );
+  }
+
+  /// The node this device uses: the one the Connector reported, else the
+  /// first listed node until a report arrives. There is no manual choice.
+  Map<String, dynamic>? get activeNode {
+    final p = platformProfile;
+    if (p == null) return null;
+    final id = p.activeNodeId;
+    return (id == null
+            ? null
+            : p.nodes.where((n) => n['nodeId'] == id).firstOrNull) ??
+        p.nodes.firstOrNull;
+  }
+
+  /// True when [activeNode] comes from a Connector report.
+  bool get followsConnector => platformProfile?.activeNodeId != null;
+
+  void _preferences() => ConfigurationDatabase.writeSetting(
+    db,
+    _namespace,
+    'platform',
+    {'enabled': usePlatform},
+  );
+
+  void startSubscription() {
+    if (_closed || _refreshTimer != null || !account.signedIn) return;
+    _refreshTimer = Timer.periodic(const Duration(seconds: 30), (_) {
+      unawaited(refreshPlatform().catchError((Object _) {}));
+    });
+    unawaited(refreshPlatform().catchError((Object _) {}));
+  }
+
+  Future<void> refreshPlatform() =>
+      _syncing ??= _refreshPlatform().whenComplete(() => _syncing = null);
+  Future<void> _refreshPlatform() async {
+    try {
+      final next = await account.fetchProfile();
+      if (_closed) return;
+      final old = platformProfile;
+      if (old != null &&
+          (next.userId != old.userId ||
+              next.deviceId != old.deviceId ||
+              next.revision < old.revision)) {
+        throw const FormatException('Invalid Relay profile revision or lease');
+      }
+      platformProfile = next;
+      platformError = null;
+      ConfigurationDatabase.writeSetting(db, _namespace, 'profile', next.data);
+    } catch (e) {
+      platformError = e is RelayApiException ? e.code : 'profile_unavailable';
+      if (!account.signedIn) {
+        platformProfile = null;
+        ConfigurationDatabase.writeSetting(db, _namespace, 'profile', null);
+        _refreshTimer?.cancel();
+        _refreshTimer = null;
+      }
+      rethrow;
+    } finally {
+      if (!_closed) {
+        _configureTransport();
+        await onChanged?.call();
+      }
+    }
+  }
+
+  Future<void> loginPlatform(String email, String password) async {
+    await load();
+    // Serialize with an in-flight refresh before replacing the account.
+    try {
+      await _syncing;
+    } catch (_) {}
+    await account.login(email, password);
+    platformProfile = null;
+    ConfigurationDatabase.writeSetting(db, _namespace, 'profile', null);
+    try {
+      await refreshPlatform();
+    } finally {
+      startSubscription();
+    }
+  }
+
+  Future<void> selectPlatform() async {
+    await load();
+    usePlatform = true;
+    _preferences();
+    _configureTransport();
+    await onChanged?.call();
+  }
+
+  final Map<String, int?> nodeLatencyMs = {};
+
+  Future<void> testPlatformNodes({
+    Future<Duration> Function(Map<String, dynamic>)? probe,
+  }) async {
+    final nodes = platformProfile?.nodes.toList() ?? [];
+    final measure = probe ?? probeRelayNode;
+    final results = <String, int?>{};
+    // Bound concurrent handshakes; results are informational only.
+    for (var offset = 0; offset < nodes.length; offset += 4) {
+      await Future.wait(
+        nodes.skip(offset).take(4).map((node) async {
+          final id = node['nodeId'] as String;
+          try {
+            results[id] = (await measure(node)).inMilliseconds;
+          } catch (_) {
+            results[id] = null;
+          }
+        }),
+      );
+    }
+    if (!_closed) {
+      nodeLatencyMs
+        ..clear()
+        ..addAll(results);
+    }
+  }
+
+  Future<void> logoutPlatform() async {
+    try {
+      await _syncing;
+    } catch (_) {}
+    try {
+      await account.logout();
+    } finally {
+      platformProfile = null;
+      _refreshTimer?.cancel();
+      _refreshTimer = null;
+      ConfigurationDatabase.writeSetting(db, _namespace, 'profile', null);
+      _configureTransport();
+      await onChanged?.call();
+    }
+  }
+
+  void dispose() {
+    _closed = true;
+    _refreshTimer?.cancel();
+    account.close();
+  }
+
   bool _loaded = false;
 
   static const _namespace = 'remote_access';
@@ -197,12 +372,35 @@ class RemoteAccessService {
     final value = ConfigurationDatabase.readSetting(db, _namespace, _key);
     if (value is Map) {
       try {
-        network = RemoteNetwork.fromJson(Map<String, dynamic>.from(value));
+        _custom = RemoteNetwork.fromJson(Map<String, dynamic>.from(value));
       } catch (_) {
         // Unreadable or incompatible settings are dropped: remote access
         // starts unconfigured.
-        network = const RemoteNetwork();
+        _custom = const RemoteNetwork();
       }
+    }
+    account.load();
+    final preference = ConfigurationDatabase.readSetting(
+      db,
+      _namespace,
+      'platform',
+    );
+    usePlatform = preference is Map
+        ? preference['enabled'] != false
+        : !_custom.configured;
+    try {
+      final cached = ConfigurationDatabase.readSetting(
+        db,
+        _namespace,
+        'profile',
+      );
+      if (account.signedIn && cached is Map) {
+        platformProfile = RelayDeviceProfile.parse(
+          Map<String, dynamic>.from(cached),
+        );
+      }
+    } catch (_) {
+      platformProfile = null;
     }
     _configureTransport();
     _loaded = true;
@@ -219,7 +417,7 @@ class RemoteAccessService {
   Future<void> _write(RemoteNetwork next) async {
     next.validate();
     ConfigurationDatabase.writeSetting(db, _namespace, _key, next.toJson());
-    network = next;
+    _custom = next;
     _configureTransport();
   }
 
@@ -240,20 +438,26 @@ class RemoteAccessService {
         proxies: pair.proxies,
       ),
     );
+    usePlatform = false;
+    _preferences();
+    _configureTransport();
     return network;
   }
 
   /// Removes the Relay connection and its credential, resetting local defaults.
   Future<RemoteNetwork> clear() async {
     await load();
-    await _write(network.cleared());
+    await _write(_custom.cleared());
+    usePlatform = true;
+    _preferences();
+    _configureTransport();
     return network;
   }
 
   Future<RemoteNetwork> savePolicy(RemoteNetwork next) async {
     await load();
     await _write(
-      network.copyWith(
+      _custom.copyWith(
         probeTimeoutMs: next.probeTimeoutMs,
         stabilitySeconds: next.stabilitySeconds,
         reconnectAttempts: next.reconnectAttempts,

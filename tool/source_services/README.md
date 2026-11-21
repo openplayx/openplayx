@@ -39,17 +39,19 @@ flutter test integration_test/sources_test.dart -d macos \
 
 | 类型 | 端口 | 地址 / 账号 |
 | --- | --- | --- |
-| SMB | 445 | `smb://HOST/media`，`openplayx` / `test-only-password` |
-| WebDAV | 18080 | `http://HOST:18080/media`，同上（rclone） |
+| SMB | 445 | `smb://HOST/media`，`openplayx-test` / `test-only-password` |
+| WebDAV | 18080 | `http://HOST:18080/media`，`openplayx-test` / `test-only-password`（rclone） |
 | FTP | 2121，被动 30000–30009 | `ftp://HOST:2121/media`，同上（rclone） |
 | SFTP | 2222 | `sftp://HOST:2222/media`，同上（rclone） |
-| S3 | 19000 | `http://HOST:19000/media`，Access Key `openplayx`，Secret `test-only-password`（rclone） |
+| S3 | 19000 | `http://HOST:19000/media`，Access Key `openplayx-test`，Secret `test-only-password`（rclone） |
 | Plex | 13240 | `http://HOST:13240`，免登录 |
-| Jellyfin | 18096 | `http://HOST:18096`，`openplayx` / `test-only-password` |
+| Jellyfin | 18096 | `http://HOST:18096`，`openplayx-test` / `test-only-password` |
 | Emby | 18097 | `http://HOST:18097`，同上 |
 | DLNA | 8200 | `http://HOST:8200/rootDesc.xml`（MiniDLNA，host 网络） |
 
 镜像按 digest 固定。SMB 使用标准 445 端口，若机器上已有文件共享服务，请换一台测试机，不要停止已有服务。媒体素材只读挂载，Jellyfin、Plex、Emby 的配置在容器 tmpfs 里，重建后需要重新 bootstrap。Plex 在这个独立临时容器中允许免登录访问，仅供测试。
+
+SMB 的 `openplayx-test` 是协议验证和集成测试专用账号，只能读取 `media` 测试素材；VM 上的 `movie` 共享使用独立账号 `app-test`。旧测试账号 `openplayx` 已改为 `openplayx-test`，电影共享账号 `zyl` 已改为 `app-test`；已保存的 SMB 连接需要更新用户名，密码不变。WebDAV、FTP、SFTP、S3、Jellyfin 和 Emby 的测试账号也统一为 `openplayx-test`，原密码不变。Plex 免登录，DLNA 无账号；媒体服务器显示名称统一包含 `Test`。
 
 `bootstrap.py` 创建 Jellyfin 和 Emby 测试账号，初始化 Jellyfin、Plex、Emby 的视频库并等待扫描完成，生成被 git 忽略的 `defines.local.json`。此文件包含临时令牌，不要提交。
 

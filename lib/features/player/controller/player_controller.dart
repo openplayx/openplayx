@@ -1,6 +1,7 @@
 import 'dart:async';
 
 import '../../../data/analytics/analytics_service.dart';
+import '../../../data/analytics/playback_analytics.dart';
 
 import 'package:flutter/foundation.dart';
 import 'package:openplayx_playback/playback.dart';
@@ -105,7 +106,11 @@ class PlayerController extends ChangeNotifier {
   // The remembered subtitle is applied once per media, when it plays and
   // its library record is known.
   bool _tracked = false, _played = false, _restored = false;
-  bool _analyticsFailed = false;
+  late final _analytics = PlaybackAnalytics(
+    emit: (event, properties) {
+      unawaited(AnalyticsService.instance.capture(event, properties));
+    },
+  );
 
   void _restoreSubtitle() {
     if (_restored || !_tracked || !_played || _disposed) return;
@@ -173,8 +178,7 @@ class PlayerController extends ChangeNotifier {
   /// one, clears the error and every per-media state.
   void beginMedia(String name) {
     _tracked = _played = _restored = false;
-    _analyticsFailed = false;
-    unawaited(AnalyticsService.instance.capture('playback_requested'));
+    _analytics.begin();
     history.finish();
     _resetFeatures();
     _set(_state.copyWith(name: () => name, error: () => null));
@@ -231,6 +235,7 @@ class PlayerController extends ChangeNotifier {
     required Future<void> Function() restoreDisplay,
   }) async {
     history.checkpoint(force: true);
+    _analytics.finish();
     await backend.stop();
     await restoreDisplay();
     history.finish();
@@ -239,6 +244,7 @@ class PlayerController extends ChangeNotifier {
 
   /// Forgets the stopped media.
   void endMedia() {
+    _analytics.finish();
     tools.cancelSleep();
     _resetFeatures();
     _set(_state.copyWith(name: () => null, error: () => null));
@@ -254,14 +260,7 @@ class PlayerController extends ChangeNotifier {
   /// the media, boost and background pause.
   void onPlayback() {
     final snapshot = backend.value;
-    if (!_analyticsFailed && snapshot.status == PlaybackStatus.error) {
-      _analyticsFailed = true;
-      unawaited(
-        AnalyticsService.instance.capture('playback_failed', {
-          'error_category': 'playback',
-        }),
-      );
-    }
+    _analytics.update(snapshot);
     if (history.onPlayback(snapshot)) return;
     tools.onPlayback(snapshot);
     if (_lastStatus != snapshot.status) {
@@ -275,7 +274,6 @@ class PlayerController extends ChangeNotifier {
     }
     if (!_played && snapshot.status == PlaybackStatus.playing) {
       _played = true;
-      unawaited(AnalyticsService.instance.capture('playback_started'));
       _restoreSubtitle();
     }
     if (tools.state.boosting && snapshot.status != PlaybackStatus.playing) {
@@ -290,6 +288,7 @@ class PlayerController extends ChangeNotifier {
   /// backend are released by their owner afterwards.
   @override
   void dispose() {
+    _analytics.finish();
     history.dispose();
     _disposed = true;
     backend.removeListener(onPlayback);

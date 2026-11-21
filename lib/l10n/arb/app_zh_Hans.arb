@@ -1378,5 +1378,61 @@
   "voiceEmpty": "未识别到语音，请重试。",
   "voiceTooLarge": "录音过大，请缩短录音后重试。",
   "voiceRecordingError": "录音失败，请检查麦克风后重试。",
-  "voiceTranscriptionError": "转写失败，请检查网络和独立转写配置后重试。"
+  "voiceTranscriptionError": "转写失败，请检查网络和独立转写配置后重试。",
+  "addVideo": "添加视频",
+  "addAndShowHome": "添加并显示到首页",
+  "homeScanScope": "视频目录或库",
+  "homeScanScopeHelp": "将此范围及子目录中的视频显示到首页；如需选择共享、桶或库，将在下一步确认。",
+  "homeSavedConnections": "已保存的连接",
+  "homeBindingFailed": "连接已保存，尚未加入首页。请就地重试，或从“添加视频”选择已保存的连接。",
+  "homeFindingVideos": "正在查找视频 · 已发现 {count} 个",
+  "homeScanInterrupted": "扫描中断，已发现的视频仍可播放。",
+  "homeNoVideos": "该范围暂未发现视频。",
+  "homeAdjustScope": "调整扫描范围",
+  "@homeFindingVideos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformTitle": "平台默认",
+  "remotePlatformHint": "登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。",
+  "remotePlatformLogin": "登录平台账号",
+  "remotePlatformLogout": "退出平台账号",
+  "remotePlatformRestore": "恢复平台默认",
+  "remotePlatformActive": "正在使用平台配置",
+  "remoteCustomActive": "正在使用自建配置",
+  "remotePlatformEmail": "账号邮箱",
+  "remotePlatformAutomatic": "由 Connector 自动选择",
+  "remotePlatformNode": "Relay 节点",
+  "remotePlatformEmpty": "暂无就绪的平台节点，请在管理员启用节点后刷新。",
+  "remotePlatformNoServices": "此设备尚未获授权访问任何服务。",
+  "remotePlatformExpired": "平台配置待更新，将继续使用上次配置。",
+  "remotePlatformRequestFailed": "平台请求失败：{code}",
+  "@remotePlatformRequestFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePlatformNodeUnavailable": "等待 Connector 上报节点",
+  "remoteNodeTest": "测试节点",
+  "remoteNodeTestHint": "仅测试本机到各节点的 TCP/TLS 连通性，不代表家中服务已可用；节点由 Connector 自动选择，App 自动跟随。",
+  "remoteNodeUnreachable": "连接失败",
+  "remoteNodeLatency": "{ms} 毫秒",
+  "@remoteNodeLatency": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformNotLoaded": "尚未加载平台配置，请刷新。",
+  "remotePlatformRegister": "注册平台账号",
+  "remotePlatformRegisterHint": "我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。",
+  "remotePlatformSendRegistration": "发送注册邮件",
+  "remotePlatformRegistrationSent": "如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。",
+  "remotePlatformInvalidEmail": "请输入有效的邮箱地址。"
 }

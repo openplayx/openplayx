@@ -535,7 +535,13 @@
   "remoteProxy": "Service (frpc proxy)",
   "remoteNoProxies": "No proxies available yet: import the App configuration from your Relay in Settings → Remote access first.",
   "remoteProxyMissing": "{name} (not in the current App configuration)",
-  "@remoteProxyMissing": {"placeholders": {"name": {"type": "String"}}},
+  "@remoteProxyMissing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "remoteLanAddress": "Paired LAN HTTPS address",
   "remoteLanFingerprint": "LAN service certificate SHA-256",
   "remoteLanIdentityHelp": "Confirm the 64-digit hexadecimal fingerprint through a trusted channel. The certificate must also pass system trust checks.",
@@ -656,9 +662,24 @@
   "ffmpegSnapshotDebug": "FFmpeg snapshot debug",
   "ffmpegSnapshotAgain": "Take another",
   "ffmpegSnapshotAt": "Frame at {time} of {duration}",
-  "@ffmpegSnapshotAt": {"placeholders": {"time": {"type": "String"}, "duration": {"type": "String"}}},
+  "@ffmpegSnapshotAt": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      },
+      "duration": {
+        "type": "String"
+      }
+    }
+  },
   "ffmpegSnapshotFailed": "Snapshot failed ({reason}).",
-  "@ffmpegSnapshotFailed": {"placeholders": {"reason": {"type": "String"}}},
+  "@ffmpegSnapshotFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "ffmpegUnavailable": "FFmpeg processing is not available in this build.",
   "asrDebugTitle": "Audio & subtitle debug",
   "asrChooseEpisode": "Choose an episode",
@@ -682,16 +703,37 @@
   "asrWholeUnavailable": "Duration unknown: whole-episode processing is not supported.",
   "asrRangeInvalid": "Invalid range: the end must be after the start and within the media.",
   "asrChannels": "{n} ch",
-  "@asrChannels": {"placeholders": {"n": {"type": "int"}}},
+  "@asrChannels": {
+    "placeholders": {
+      "n": {
+        "type": "int"
+      }
+    }
+  },
   "asrNotDecodable": "not decodable",
   "asrEmbedded": "On device",
   "asrHttp": "HTTP service",
   "asrNoBackends": "No recognition backend configured.",
   "asrChecking": "Checking…",
   "asrBackendReady": "Ready · {engine} · model {revision}",
-  "@asrBackendReady": {"placeholders": {"engine": {"type": "String"}, "revision": {"type": "String"}}},
+  "@asrBackendReady": {
+    "placeholders": {
+      "engine": {
+        "type": "String"
+      },
+      "revision": {
+        "type": "String"
+      }
+    }
+  },
   "asrBackendUnavailable": "Unavailable: {reason}",
-  "@asrBackendUnavailable": {"placeholders": {"reason": {"type": "String"}}},
+  "@asrBackendUnavailable": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "asrExtractOnly": "Extract audio only",
   "asrExtractAndTranscribe": "Extract and recognise subtitles",
   "asrStagePreparing": "Preparing resource",
@@ -704,7 +746,13 @@
   "asrCancelled": "Cancelled",
   "asrSucceeded": "Finished",
   "asrFailed": "Failed: {reason}",
-  "@asrFailed": {"placeholders": {"reason": {"type": "String"}}},
+  "@asrFailed": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "asrAudioTrack": "Track",
   "asrAudioFormat": "Format",
   "asrAudioSize": "Size",
@@ -712,7 +760,16 @@
   "asrNoSpeech": "No speech recognised in this range.",
   "asrWholeResult": "Whole episode",
   "asrPartialResult": "Partial: {start} – {end} (not the whole episode)",
-  "@asrPartialResult": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "@asrPartialResult": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "asrSave": "Save subtitle",
   "asrExport": "Export…",
   "asrExported": "Exported.",
@@ -729,10 +786,31 @@
   "asrContinue": "Continue",
   "asrWholeTitle": "Process the whole episode?",
   "asrWholeBody": "Duration {duration}, about {size} of audio. Recognition can take a long time.",
-  "@asrWholeBody": {"placeholders": {"duration": {"type": "String"}, "size": {"type": "String"}}},
+  "@asrWholeBody": {
+    "placeholders": {
+      "duration": {
+        "type": "String"
+      },
+      "size": {
+        "type": "String"
+      }
+    }
+  },
   "asrUploadTitle": "Upload audio to a recognition service?",
   "asrUploadBody": "Audio of {range} will be uploaded to {host}. {insecure}",
-  "@asrUploadBody": {"placeholders": {"host": {"type": "String"}, "range": {"type": "String"}, "insecure": {"type": "String"}}},
+  "@asrUploadBody": {
+    "placeholders": {
+      "host": {
+        "type": "String"
+      },
+      "range": {
+        "type": "String"
+      },
+      "insecure": {
+        "type": "String"
+      }
+    }
+  },
   "asrUploadInsecure": "This service uses plain HTTP: the audio is not encrypted in transit.",
   "asrUploadAllow": "Allow upload",
   "asrUploadAuthorized": "uploads allowed",
@@ -750,7 +828,16 @@
   "asrModelFooter": "On-device Whisper models (multilingual). Files are verified by size and SHA-256 before use; nothing is downloaded automatically.",
   "asrModelDownload": "Download",
   "asrModelDownloading": "Downloading {done} / {total}",
-  "@asrModelDownloading": {"placeholders": {"done": {"type": "String"}, "total": {"type": "String"}}},
+  "@asrModelDownloading": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
   "asrModelDownloadFailed": "Download failed or the file did not verify.",
   "asrModelImport": "Import model file…",
   "asrModelImportRejected": "Not a known model file (size/checksum mismatch).",
@@ -774,15 +861,36 @@
   "asrInstallModel": "Install or choose a model",
   "asrRecheck": "Check again",
   "asrTranscribeBlocked": "Recognition unavailable: {reason}",
-  "@asrTranscribeBlocked": {"placeholders": {"reason": {"type": "String"}}},
+  "@asrTranscribeBlocked": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "embeddedSubtitles": "Embedded subtitles",
   "externalSubtitles": "External subtitles",
   "recognizedSubtitles": "Recognised subtitles",
   "recognizedSubtitleBadge": "Recognised",
   "recognizedSubtitleTitle": "Saved {time}",
-  "@recognizedSubtitleTitle": {"placeholders": {"time": {"type": "String"}}},
+  "@recognizedSubtitleTitle": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "recognizedSubtitlePartial": "Partial {start}–{end}",
-  "@recognizedSubtitlePartial": {"placeholders": {"start": {"type": "String"}, "end": {"type": "String"}}},
+  "@recognizedSubtitlePartial": {
+    "placeholders": {
+      "start": {
+        "type": "String"
+      },
+      "end": {
+        "type": "String"
+      }
+    }
+  },
   "recognizedSubtitleFull": "Whole episode",
   "addSourceConnection": "Add connection",
   "sourcesDescription": "Connect your storage. Organize your media.",
@@ -807,12 +915,27 @@
     }
   },
   "plAbASet": "A set at {time}",
-  "@plAbASet": {"placeholders": {"time": {"type": "String"}}},
+  "@plAbASet": {
+    "placeholders": {
+      "time": {
+        "type": "String"
+      }
+    }
+  },
   "plAbClear": "Clear A-B loop",
   "plAbCleared": "A-B loop cleared",
   "plAbLoop": "A-B loop",
   "plAbLooping": "Looping {a} – {b}",
-  "@plAbLooping": {"placeholders": {"a": {"type": "String"}, "b": {"type": "String"}}},
+  "@plAbLooping": {
+    "placeholders": {
+      "a": {
+        "type": "String"
+      },
+      "b": {
+        "type": "String"
+      }
+    }
+  },
   "plAbSetA": "Set point A",
   "plAbSetB": "Set point B",
   "plAdvancedTools": "Advanced tools row",
@@ -820,7 +943,13 @@
   "plAspectRatio": "Aspect ratio",
   "plAudioDelay": "Audio delay",
   "plBoosting": "{speed} fast forward · release to restore",
-  "@plBoosting": {"placeholders": {"speed": {"type": "String"}}},
+  "@plBoosting": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "plDelayHint": "Positive values play audio or show subtitles later.",
   "plExitFullscreen": "Exit full screen",
   "plFaster": "Faster",
@@ -839,7 +968,13 @@
   "plJumpForwardMedium": "Forward 1 minute",
   "plJumpLong": "Jump 5 minutes",
   "plJumpSeconds": "{seconds} s",
-  "@plJumpSeconds": {"placeholders": {"seconds": {"type": "String"}}},
+  "@plJumpSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "plJumpToTime": "Jump to time",
   "plJumpToTimeInvalid": "Enter a time such as 1:23:45 or 12:30.",
   "plLoadSubtitle": "Load subtitle file…",
@@ -868,7 +1003,13 @@
   "plSleepEndOfItem": "End of item",
   "plSleepFinished": "Sleep timer paused playback",
   "plSleepMinutes": "{minutes} minutes",
-  "@plSleepMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@plSleepMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "plSleepOff": "Off",
   "plSleepShort": "Sleep",
   "plSleepTimer": "Sleep timer",
@@ -877,7 +1018,13 @@
   "plSnapshot": "Snapshot",
   "plSnapshotFailed": "Could not save the snapshot",
   "plSnapshotSaved": "Snapshot saved: {path}",
-  "@plSnapshotSaved": {"placeholders": {"path": {"type": "String"}}},
+  "@plSnapshotSaved": {
+    "placeholders": {
+      "path": {
+        "type": "String"
+      }
+    }
+  },
   "plSpeedShort": "Speed",
   "plStatistics": "Statistics",
   "plStatsAudio": "Audio played / lost",
@@ -902,10 +1049,22 @@
   "plZoomOriginal": "Original",
   "plMenuPlaybackControl": "Playback controls",
   "plBoostingShort": "{speed} fast forward",
-  "@plBoostingShort": {"placeholders": {"speed": {"type": "String"}}},
+  "@plBoostingShort": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "plSwipeUpToLock": "Swipe up to lock",
   "plSpeedLocked": "Speed locked at {speed}",
-  "@plSpeedLocked": {"placeholders": {"speed": {"type": "String"}}},
+  "@plSpeedLocked": {
+    "placeholders": {
+      "speed": {
+        "type": "String"
+      }
+    }
+  },
   "plExternalSubtitleShort": "+ External",
   "listSeparator": ", ",
   "remoteAccess": "Remote access",
@@ -928,16 +1087,34 @@
   "remoteCredentialsSecure": "Saved in system secure storage",
   "remoteProxyUnused": "Not used by any source",
   "remoteProxyUsedBy": "Sources: {sources}",
-  "@remoteProxyUsedBy": {"placeholders": {"sources": {"type": "String"}}},
+  "@remoteProxyUsedBy": {
+    "placeholders": {
+      "sources": {
+        "type": "String"
+      }
+    }
+  },
   "remoteProxyPort": "Port {port}",
-  "@remoteProxyPort": {"placeholders": {"port": {"type": "int"}}},
+  "@remoteProxyPort": {
+    "placeholders": {
+      "port": {
+        "type": "int"
+      }
+    }
+  },
   "remoteRelayServer": "Relay server",
   "remoteRelayFooter": "The whole App shares this connection. Credentials are kept in system secure storage.",
   "remoteAvailableServices": "Available services",
   "remoteAvailableServicesFooter": "Registered on Relay by Home. Pick one for a source under “Edit source → Home remote access”.",
   "remoteNeedsAttention": "Needs attention",
   "remoteSourceProxyMissing": "Its proxy “{proxy}” is not in the current configuration, so remote connection is unavailable.",
-  "@remoteSourceProxyMissing": {"placeholders": {"proxy": {"type": "String"}}},
+  "@remoteSourceProxyMissing": {
+    "placeholders": {
+      "proxy": {
+        "type": "String"
+      }
+    }
+  },
   "statusConfigured": "Configured",
   "statusNotConfigured": "Not configured",
   "statusAvailable": "Available",
@@ -949,32 +1126,86 @@
   "plgGroupExternalDescription": "Self-hosted or cloud services you add",
   "plgGroupBuiltInDescription": "Ships with the App, all open by default",
   "plgCount": "{count}",
-  "@plgCount": {"placeholders": {"count": {"type": "int"}}},
+  "@plgCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "extToolCount": "{count, plural, =1{1 tool} other{{count} tools}}",
-  "@extToolCount": {"placeholders": {"count": {"type": "int"}}},
+  "@extToolCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgInstanceCount": "{count, plural, =1{1 instance} other{{count} instances}}",
-  "@plgInstanceCount": {"placeholders": {"count": {"type": "int"}}},
+  "@plgInstanceCount": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgExternalHint": "Enter an address and token to detect and set up a service automatically",
   "plgExternalEmpty": "No external services yet",
   "extConfigureTitle": "Set up external capability",
   "plgBuiltInHint": "{count} capabilities ship with the App, all open by default — nothing to enable one by one",
-  "@plgBuiltInHint": {"placeholders": {"count": {"type": "int"}}},
+  "@plgBuiltInHint": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgGroupEmpty": "No {group} yet",
-  "@plgGroupEmpty": {"placeholders": {"group": {"type": "String"}}},
+  "@plgGroupEmpty": {
+    "placeholders": {
+      "group": {
+        "type": "String"
+      }
+    }
+  },
   "plgNoAssistant": "This build does not include the AI assistant",
   "plgSelectForDetail": "Select an item to see details",
   "plgDeviceUnsupported": "Not supported on this device",
   "plgTemporarilyUnavailable": "Temporarily unavailable",
   "plgDisabled": "Plugin disabled",
   "plgDisableConfirmTitle": "Disable “{name}”?",
-  "@plgDisableConfirmTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@plgDisableConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "plgImpactIntro": "New calls are blocked right away. Instance settings, generated subtitles and history are kept.",
   "plgImpactPlaying": "{count} playing sessions continue until playback ends, then release their connections.",
-  "@plgImpactPlaying": {"placeholders": {"count": {"type": "int"}}},
+  "@plgImpactPlaying": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgImpactRunning": "{count} running requests are released when they finish.",
-  "@plgImpactRunning": {"placeholders": {"count": {"type": "int"}}},
+  "@plgImpactRunning": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgImpactInstances": "Affected instances: {instances}.",
-  "@plgImpactInstances": {"placeholders": {"instances": {"type": "String"}}},
+  "@plgImpactInstances": {
+    "placeholders": {
+      "instances": {
+        "type": "String"
+      }
+    }
+  },
   "actionFailedRetry": "Something went wrong. Please try again.",
   "plgUnavailableReason": "Why it's unavailable",
   "plgSwitch": "Plugin switch",
@@ -983,7 +1214,13 @@
   "settingsCapabilities": "Capabilities",
   "capabilitySwitchesFooter": "A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.",
   "capabilityNeeds": "Needs “{name}” switched on",
-  "@capabilityNeeds": {"placeholders": {"name": {"type": "String"}}},
+  "@capabilityNeeds": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "plgCapabilitySwitch": "Capability switch",
   "plgCapabilitySwitchHint": "Switched in Settings → Capabilities, for the whole App",
   "capabilityOn": "On",
@@ -995,51 +1232,138 @@
   "plgLocationCloudApi": "The App calls a cloud API from this device",
   "plgDependencies": "Dependencies",
   "plgDependency": "{name} ({status})",
-  "@plgDependency": {"placeholders": {"name": {"type": "String"}, "status": {"type": "String"}}},
+  "@plgDependency": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      },
+      "status": {
+        "type": "String"
+      }
+    }
+  },
   "plgCapabilities": "Capabilities",
   "plgCapabilitiesFooter": "Only methods this plugin actually implements are listed.",
   "plgInstancesTitle": "Instances ({count})",
-  "@plgInstancesTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@plgInstancesTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "plgInstanceBusy": "In use: {playing} playing · {running} requests",
-  "@plgInstanceBusy": {"placeholders": {"playing": {"type": "int"}, "running": {"type": "int"}}},
+  "@plgInstanceBusy": {
+    "placeholders": {
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      }
+    }
+  },
   "plgNoInstances": "No instances",
   "plgOpenSettings": "Open settings",
   "plgRuntime": "Status and diagnostics",
   "plgRevisions": "Saved revision {saved} · In effect {applied}",
-  "@plgRevisions": {"placeholders": {"saved": {"type": "String"}, "applied": {"type": "String"}}},
+  "@plgRevisions": {
+    "placeholders": {
+      "saved": {
+        "type": "String"
+      },
+      "applied": {
+        "type": "String"
+      }
+    }
+  },
   "plgNotApplied": "not yet",
   "plgPendingApply": "New settings pending; the old revision still serves calls in progress",
   "plgActivity": "Active playback {playing} · Running requests {running}",
-  "@plgActivity": {"placeholders": {"playing": {"type": "int"}, "running": {"type": "int"}}},
+  "@plgActivity": {
+    "placeholders": {
+      "playing": {
+        "type": "int"
+      },
+      "running": {
+        "type": "int"
+      }
+    }
+  },
   "plgLastError": "Last error: {code}",
-  "@plgLastError": {"placeholders": {"code": {"type": "String"}}},
+  "@plgLastError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "plgRefreshStatus": "Refresh status",
   "plgCopyDiagnostics": "Copy redacted diagnostics",
   "plgCopyDiagnosticsHint": "No addresses, accounts, paths or keys",
   "plgDiagnosticsCopied": "Diagnostics copied",
   "extConnectionOk": "Connection OK",
   "extRemoveConfirmTitle": "Remove “{name}”?",
-  "@extRemoveConfirmTitle": {"placeholders": {"name": {"type": "String"}}},
+  "@extRemoveConfirmTitle": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "extRemoveConfirmMessage": "Only the address and token are removed from the App. Data on the server is not affected.",
   "extNeedsRecheck": "Needs re-detection",
   "extToolAiUnavailable": "Not available to AI: {problem}",
-  "@extToolAiUnavailable": {"placeholders": {"problem": {"type": "String"}}},
+  "@extToolAiUnavailable": {
+    "placeholders": {
+      "problem": {
+        "type": "String"
+      }
+    }
+  },
   "extToolNeedsConfirm": "Asks for your confirmation first",
   "extAiServiceUnavailable": "The service is unavailable, so AI can't call it right now",
   "extAiNeedsRecheck": "Tap “Re-detect” to fetch the tool definitions",
   "extAiSummary": "AI can call {usable} of {total} tools directly; actions that change state ask for your confirmation first",
-  "@extAiSummary": {"placeholders": {"usable": {"type": "int"}, "total": {"type": "int"}}},
+  "@extAiSummary": {
+    "placeholders": {
+      "usable": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
   "extRemoved": "This external capability was removed",
   "extVersion": "Version {version}",
-  "@extVersion": {"placeholders": {"version": {"type": "String"}}},
+  "@extVersion": {
+    "placeholders": {
+      "version": {
+        "type": "String"
+      }
+    }
+  },
   "extAiCalls": "AI calls",
   "extToolsTitle": "Tools ({count})",
-  "@extToolsTitle": {"placeholders": {"count": {"type": "int"}}},
+  "@extToolsTitle": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "extNoTools": "No tools",
   "extRecheck": "Re-detect",
   "extConnecting": "Connecting and detecting…",
   "extAdded": "Added “{name}”",
-  "@extAdded": {"placeholders": {"name": {"type": "String"}}},
+  "@extAdded": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "extConfigureFooter": "Enter the service address and access token. The App connects over MCP to find out what the service is and which tools it offers.",
   "extServiceAddress": "Service address",
   "extAccessToken": "Access token",
@@ -1070,7 +1394,13 @@
   "errInvalidServerAddress": "Enter a valid server address; put credentials in their own fields.",
   "errSmbAddressFormat": "SMB uses the standard port 445: smb://host/share/optional-folder.",
   "errUserIdRequired": "Please enter the {kind} user ID.",
-  "@errUserIdRequired": {"placeholders": {"kind": {"type": "String"}}},
+  "@errUserIdRequired": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
   "errSftpUsernameRequired": "Please enter the SFTP username.",
   "errServerAddressRequired": "Please enter the server address.",
   "errInvalidHost": "Enter a valid IP, host name or server address.",
@@ -1082,12 +1412,24 @@
   "errCannotConnectService": "Cannot connect to the service. Check the address and network.",
   "errConnectTimeout": "Connection timed out. Please try again.",
   "errKindUsernameRequired": "Please enter the {kind} username.",
-  "@errKindUsernameRequired": {"placeholders": {"kind": {"type": "String"}}},
+  "@errKindUsernameRequired": {
+    "placeholders": {
+      "kind": {
+        "type": "String"
+      }
+    }
+  },
   "errNoValidSignIn": "The server did not return a valid sign-in result.",
   "errPlexSessionExpired": "Your sign-in expired. Please sign in to Plex again.",
   "errPlexServerUnreachable": "Cannot connect to this Plex server. Make sure it is online.",
   "errDlnaHttp": "DLNA device request failed (HTTP {status}).",
-  "@errDlnaHttp": {"placeholders": {"status": {"type": "int"}}},
+  "@errDlnaHttp": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "errDlnaForeignHost": "The DLNA device returned an address on another host.",
   "errDlnaNotMediaServer": "This device is not a media server (no content directory service).",
   "errChooseFolder": "Please choose a folder.",
@@ -1099,10 +1441,28 @@
   "errOutsideScope": "This folder is outside the access scope configured for this instance.",
   "errAttachmentTooLarge": "Attachment too large",
   "errServiceAccessDenied": "{service} denied access (HTTP {status}). Check the username and password.",
-  "@errServiceAccessDenied": {"placeholders": {"service": {"type": "String"}, "status": {"type": "int"}}},
+  "@errServiceAccessDenied": {
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "errFileNotFound": "The file or folder does not exist.",
   "errServiceRequestFailed": "{service} request failed (HTTP {status}).",
-  "@errServiceRequestFailed": {"placeholders": {"service": {"type": "String"}, "status": {"type": "int"}}},
+  "@errServiceRequestFailed": {
+    "placeholders": {
+      "service": {
+        "type": "String"
+      },
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "errFtpRefused": "The FTP server refused the connection.",
   "errFtpLogin": "FTP sign-in failed. Check the username and password.",
   "errFtpNoBinary": "The FTP server does not support binary transfers.",
@@ -1123,14 +1483,29 @@
   "errConnectionClosed": "The connection is closed.",
   "errUnsafeResourceUrl": "The media service returned an unsafe resource address.",
   "errMediaServerHttp": "Media service request failed (HTTP {status}). Check the address and credentials.",
-  "@errMediaServerHttp": {"placeholders": {"status": {"type": "int"}}},
+  "@errMediaServerHttp": {
+    "placeholders": {
+      "status": {
+        "type": "int"
+      }
+    }
+  },
   "errServerArtworkUnavailable": "Server artwork is unavailable",
   "errImageTooLarge": "Image too large",
   "errNoPlayableVersion": "This media has no playable version.",
   "errReselectVersion": "Go back to the library and choose a version again.",
   "errServerIdentityMismatch": "Server item identity does not match",
   "plexPartLabel": "File {index} · {container}",
-  "@plexPartLabel": {"placeholders": {"index": {"type": "int"}, "container": {"type": "String"}}},
+  "@plexPartLabel": {
+    "placeholders": {
+      "index": {
+        "type": "int"
+      },
+      "container": {
+        "type": "String"
+      }
+    }
+  },
   "errNoPlayableFile": "This media has no playable file.",
   "errMultiPartUnsupported": "This media has multiple versions or parts, which cannot be played directly yet.",
   "errMetadataNotThisServer": "The metadata query does not belong to this server instance",
@@ -1139,7 +1514,13 @@
   "srcFieldWorkgroup": "Workgroup (optional)",
   "srcFieldRegion": "Region (optional)",
   "srcFieldRequired": "Please enter {field}.",
-  "@srcFieldRequired": {"placeholders": {"field": {"type": "String"}}},
+  "@srcFieldRequired": {
+    "placeholders": {
+      "field": {
+        "type": "String"
+      }
+    }
+  },
   "errResourceNotThisSource": "The resource does not belong to this media source.",
   "errOutsideAuthorizedFolder": "The file is outside the authorized folder.",
   "errOutsideSmbShare": "The path is outside the configured SMB share.",
@@ -1180,7 +1561,13 @@
   "errWriteUnsupported": "This source does not support writing.",
   "errWriteTimeout": "Writing timed out. Temporary files starting with .openplayx- may remain on the server.",
   "errSourceProxyMissing": "This source uses the remote access proxy “{proxy}”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.",
-  "@errSourceProxyMissing": {"placeholders": {"proxy": {"type": "String"}}},
+  "@errSourceProxyMissing": {
+    "placeholders": {
+      "proxy": {
+        "type": "String"
+      }
+    }
+  },
   "errReloadBeforeTest": "Reload the configuration before testing.",
   "errTestTimeout": "Connection test timed out.",
   "errTestFailed": "Connection test failed. Check the address, permissions and credentials.",
@@ -1254,7 +1641,13 @@
   "healthLocal": "This device",
   "plgDraining": "New calls blocked; waiting for playback or tasks to finish",
   "plgDependencyBlocked": "The dependency “{name}” is disabled or unavailable",
-  "@plgDependencyBlocked": {"placeholders": {"name": {"type": "String"}}},
+  "@plgDependencyBlocked": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "plgNoInstanceAdded": "No instance added yet",
   "plgAllInstancesDisabled": "All instances are disabled",
   "plgInstanceFailing": "An instance failed to connect",
@@ -1269,7 +1662,13 @@
   "plgNoSources": "This build does not include media sources",
   "plgNoAsr": "This build does not include speech recognition",
   "plgModelDetail": "Model {model}",
-  "@plgModelDetail": {"placeholders": {"model": {"type": "String"}}},
+  "@plgModelDetail": {
+    "placeholders": {
+      "model": {
+        "type": "String"
+      }
+    }
+  },
   "plgLocalAsrUnavailable": "The local recognition engine is unavailable",
   "errTmdbTokenRequired": "Configure a TMDB read access token",
   "errQueryCancelled": "The query was cancelled",
@@ -1384,9 +1783,21 @@
   "errExtTls": "TLS certificate verification failed",
   "errExtTooLarge": "The service returned too much data",
   "errExtRejected": "The service rejected the request: {reason}",
-  "@errExtRejected": {"placeholders": {"reason": {"type": "String"}}},
+  "@errExtRejected": {
+    "placeholders": {
+      "reason": {
+        "type": "String"
+      }
+    }
+  },
   "errExtError": "The service returned an error ({code})",
-  "@errExtError": {"placeholders": {"code": {"type": "String"}}},
+  "@errExtError": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
   "errExtTokenInvalid": "Invalid access token",
   "errExtNoMcp": "This address does not offer an MCP endpoint",
   "errArtworkCancelled": "Image loading was cancelled",
@@ -1484,31 +1895,109 @@
   "aiStageTranscribing": "transcribing",
   "aiStageFormatting": "formatting",
   "aiArgWaitValue": "wait ≤{seconds}s",
-  "@aiArgWaitValue": {"placeholders": {"seconds": {"type": "String"}}},
+  "@aiArgWaitValue": {
+    "placeholders": {
+      "seconds": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepPreparing": "Preparing {name}...",
-  "@aiStepPreparing": {"placeholders": {"name": {"type": "String"}}},
+  "@aiStepPreparing": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepRunning": "Executing {name}...",
-  "@aiStepRunning": {"placeholders": {"name": {"type": "String"}}},
+  "@aiStepRunning": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepWaiting": "Allow {name}?",
-  "@aiStepWaiting": {"placeholders": {"name": {"type": "String"}}},
+  "@aiStepWaiting": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepFailed": "{name} failed",
-  "@aiStepFailed": {"placeholders": {"name": {"type": "String"}}},
+  "@aiStepFailed": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepCancelled": "Cancelled {name}",
-  "@aiStepCancelled": {"placeholders": {"name": {"type": "String"}}},
+  "@aiStepCancelled": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiShowAll": "Show all ({count} characters)",
-  "@aiShowAll": {"placeholders": {"count": {"type": "int"}}},
+  "@aiShowAll": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
   "aiActivityPreparingTool": "Preparing: {name}",
-  "@aiActivityPreparingTool": {"placeholders": {"name": {"type": "String"}}},
+  "@aiActivityPreparingTool": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiActivityTool": "Running: {name}",
-  "@aiActivityTool": {"placeholders": {"name": {"type": "String"}}},
+  "@aiActivityTool": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiActivityConfirm": "Waiting for you: {name}",
-  "@aiActivityConfirm": {"placeholders": {"name": {"type": "String"}}},
+  "@aiActivityConfirm": {
+    "placeholders": {
+      "name": {
+        "type": "String"
+      }
+    }
+  },
   "aiStepNumber": "step {step}",
-  "@aiStepNumber": {"placeholders": {"step": {"type": "int"}}},
+  "@aiStepNumber": {
+    "placeholders": {
+      "step": {
+        "type": "int"
+      }
+    }
+  },
   "aiReasoningSeconds": "Thought for {seconds} seconds",
-  "@aiReasoningSeconds": {"placeholders": {"seconds": {"type": "int"}}},
+  "@aiReasoningSeconds": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
   "aiReasoningMinutes": "Thought for {minutes, plural, =1{a minute} other{{minutes} minutes}}",
-  "@aiReasoningMinutes": {"placeholders": {"minutes": {"type": "int"}}},
+  "@aiReasoningMinutes": {
+    "placeholders": {
+      "minutes": {
+        "type": "int"
+      }
+    }
+  },
   "cloudJianguoyun": "Jianguoyun",
   "cloud123": "123 Cloud Drive",
   "cloudJianguoyunHelp": "Use your account and a third-party app password. The default WebDAV folder can be changed.",
@@ -1555,5 +2044,61 @@
   "voiceEmpty": "No speech was recognized. Please try again.",
   "voiceTooLarge": "The recording is too large. Please record a shorter message.",
   "voiceRecordingError": "Could not record audio. Check your microphone and try again.",
-  "voiceTranscriptionError": "Transcription failed. Check your network and transcription settings, then try again."
+  "voiceTranscriptionError": "Transcription failed. Check your network and transcription settings, then try again.",
+  "addVideo": "Add videos",
+  "addAndShowHome": "Add and show on Home",
+  "homeScanScope": "Video folder or library",
+  "homeScanScopeHelp": "Videos in this scope and its subfolders will appear on Home. Choose a share, bucket or library next if needed.",
+  "homeSavedConnections": "Saved connections",
+  "homeBindingFailed": "Connection saved, but videos have not been added to Home. Retry here or choose the saved connection from Add videos.",
+  "homeFindingVideos": "Finding videos · {count} found",
+  "homeScanInterrupted": "Scan interrupted. Videos already found are available.",
+  "homeNoVideos": "No videos found in this scope.",
+  "homeAdjustScope": "Choose another folder",
+  "@homeFindingVideos": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformTitle": "Platform default",
+  "remotePlatformHint": "Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.",
+  "remotePlatformLogin": "Sign in",
+  "remotePlatformLogout": "Sign out",
+  "remotePlatformRestore": "Use platform default",
+  "remotePlatformActive": "Using platform configuration",
+  "remoteCustomActive": "Using custom configuration",
+  "remotePlatformEmail": "Account email",
+  "remotePlatformAutomatic": "Chosen automatically by your Connector",
+  "remotePlatformNode": "Relay node",
+  "remotePlatformEmpty": "No ready platform nodes. Refresh after an administrator enables a node.",
+  "remotePlatformNoServices": "No services are granted to this device yet.",
+  "remotePlatformExpired": "Platform configuration needs refreshing. The last configuration remains in use.",
+  "remotePlatformRequestFailed": "Platform request failed: {code}",
+  "@remotePlatformRequestFailed": {
+    "placeholders": {
+      "code": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePlatformNodeUnavailable": "Waiting for your Connector to report its node",
+  "remoteNodeTest": "Test nodes",
+  "remoteNodeTestHint": "Tests TCP/TLS reachability from this device only, not Home service availability. The node is chosen by your Connector and followed automatically.",
+  "remoteNodeUnreachable": "Unreachable",
+  "remoteNodeLatency": "{ms} ms",
+  "@remoteNodeLatency": {
+    "placeholders": {
+      "ms": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformNotLoaded": "Platform configuration has not loaded. Refresh to try again.",
+  "remotePlatformRegister": "Register platform account",
+  "remotePlatformRegisterHint": "We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.",
+  "remotePlatformSendRegistration": "Send registration email",
+  "remotePlatformRegistrationSent": "If this email can be registered, a setup link has been sent. Check your inbox and spam folder.",
+  "remotePlatformInvalidEmail": "Enter a valid email address."
 }

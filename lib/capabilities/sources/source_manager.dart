@@ -233,6 +233,8 @@ class SourceManager {
     _configs
       ..clear()
       ..addAll(records.map(remote.attach));
+    remote.onChanged = _reattach;
+    remote.startSubscription();
   }
 
   Future<void> reload() async {
@@ -943,6 +945,7 @@ class SourceManager {
 
   Future<void> testConnection(String id) async {
     var success = false;
+    final analyticsTimer = Stopwatch()..start();
     final sourceType =
         configs.where((c) => c.id == id).firstOrNull?.kind.name ?? 'unknown';
     try {
@@ -952,6 +955,7 @@ class SourceManager {
       unawaited(
         AnalyticsService.instance.capture('source_connection_completed', {
           'source_type': sourceType,
+          'duration_ms': analyticsTimer.elapsedMilliseconds,
           'success': success,
         }),
       );
@@ -960,6 +964,7 @@ class SourceManager {
 
   Future<void> testDraft(SourceConfig draft, String secret) async {
     var success = false;
+    final analyticsTimer = Stopwatch()..start();
     try {
       await _testDraft(draft, secret);
       success = true;
@@ -967,6 +972,7 @@ class SourceManager {
       unawaited(
         AnalyticsService.instance.capture('source_connection_completed', {
           'source_type': draft.kind.name,
+          'duration_ms': analyticsTimer.elapsedMilliseconds,
           'success': success,
         }),
       );
@@ -1079,6 +1085,7 @@ class SourceManager {
 
   Future<void> dispose() async {
     _disposed = true;
+    _remote?.dispose();
     unawaited(_changes.close());
     for (final id in _runtimes.keys.toList()) {
       await _retire(id);

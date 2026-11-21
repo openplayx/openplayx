@@ -106,7 +106,9 @@ class MetadataRepository {
         expectedRevision: revision(id),
         operationId: '$operationId:ancestor:$index',
         select: true,
-        selectedRef: entry.record.externalIds.firstOrNull ?? entry.record.ref,
+        selectedRef: entry.record.ref.provider == 'tmdb'
+            ? entry.record.ref
+            : entry.record.externalIds.firstOrNull ?? entry.record.ref,
         userConfirmed: confirmed(id),
       );
       db.execute(
@@ -636,6 +638,7 @@ class MetadataRepository {
       ConfigurationDatabase.readSetting(_configuration, settingsNamespace, key)
           as String? ??
       fallback;
+
   /// Setting with the App's UI language, saved by the App so background work
   /// (another isolate) fetches in the same language.
   static const uiLanguageKey = 'uiLanguage';

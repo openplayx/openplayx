@@ -3,6 +3,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../core/capabilities/source_capability.dart';
+import '../../../data/sources/source_config.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../ui/adaptive/app_page.dart';
 import '../../../ui/components/media/content_row.dart';
@@ -10,9 +11,17 @@ import '../../../ui/icons/app_icons.dart';
 
 /// Picks the folder of a connection that a new file source scans.
 class ScanScopePage extends StatefulWidget {
-  const ScanScopePage({super.key, required this.sources, required this.source});
+  const ScanScopePage({
+    super.key,
+    required this.sources,
+    required this.source,
+    this.forHome = false,
+    this.requireFolder = false,
+  });
   final SourceManager sources;
   final String source;
+  final bool forHome;
+  final bool requireFolder;
   @override
   State<ScanScopePage> createState() => _ScanScopePageState();
 }
@@ -21,6 +30,7 @@ class _ScanScopePageState extends State<ScanScopePage> {
   AppLocalizations get l => AppLocalizations.of(context);
   final List<SourceEntry> _path = [];
   List<SourceEntry> _folders = [];
+  List<SourceEntry> _files = [];
   int? _next;
   String? _error;
   bool _busy = false;
@@ -34,6 +44,11 @@ class _ScanScopePageState extends State<ScanScopePage> {
     setState(() {
       _busy = true;
       _error = null;
+      if (!more) {
+        _folders = [];
+        _files = [];
+        _next = null;
+      }
     });
     try {
       final page = await widget.sources.browse(
@@ -46,11 +61,23 @@ class _ScanScopePageState extends State<ScanScopePage> {
             ...(more ? _folders : <SourceEntry>[]),
             ...page.entries.where((e) => e.isFolder),
           ];
+          _files = [
+            ...(more ? _files : <SourceEntry>[]),
+            ...page.entries.where(
+              (e) =>
+                  !e.isFolder &&
+                  matchesScanExtension(e.name, widget.sources.scanExtensions),
+            ),
+          ];
           _next = page.nextOffset;
         });
       }
-    } catch (_) {
-      if (mounted) setState(() => _error = l.browseFailed);
+    } catch (error) {
+      if (mounted) {
+        setState(() {
+          _error = error is PluginException ? error.message : l.browseFailed;
+        });
+      }
     } finally {
       if (mounted) setState(() => _busy = false);
     }
@@ -64,7 +91,18 @@ class _ScanScopePageState extends State<ScanScopePage> {
         Padding(padding: EdgeInsets.all(16), child: Text(l.scopeDescription)),
         if (_busy) ShadProgress(),
         if (_error != null)
-          ShadButton.ghost(onPressed: () => _load(), child: Text(_error!)),
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              children: [
+                Text(_error!),
+                ShadButton.ghost(
+                  onPressed: _busy ? null : () => _load(),
+                  child: Text(l.retry),
+                ),
+              ],
+            ),
+          ),
         if (_path.isNotEmpty)
           ContentRow(
             title: Text(l.parent),
@@ -89,6 +127,11 @@ class _ScanScopePageState extends State<ScanScopePage> {
                           _load();
                         },
                 ),
+              for (final file in _files)
+                ContentRow(
+                  leading: Icon(AppIcons.playMedia),
+                  title: Text(file.name),
+                ),
               if (_next != null)
                 ShadButton.ghost(
                   onPressed: _busy ? null : () => _load(more: true),
@@ -101,7 +144,10 @@ class _ScanScopePageState extends State<ScanScopePage> {
         Padding(
           padding: EdgeInsets.all(16),
           child: ShadButton(
-            onPressed: _busy || _error != null
+            onPressed:
+                _busy ||
+                    _error != null ||
+                    (widget.requireFolder && _path.isEmpty)
                 ? null
                 : () => Navigator.pop(
                     context,
@@ -112,8 +158,11 @@ class _ScanScopePageState extends State<ScanScopePage> {
                           isFolder: true,
                         ),
                   ),
-            enabled: !(_busy || _error != null),
-            child: Text(l.confirmScanScope),
+            enabled:
+                !(_busy ||
+                    _error != null ||
+                    (widget.requireFolder && _path.isEmpty)),
+            child: Text(widget.forHome ? l.addAndShowHome : l.confirmScanScope),
           ),
         ),
       ],

@@ -32,7 +32,9 @@ Future<void> initializeAnalyticsWindowBridge() async {
       final data = Map<String, dynamic>.from(call.arguments as Map);
       final properties = <String, Object>{};
       for (final entry in (data['properties'] as Map).entries) {
-        if (entry.value is String || entry.value is bool) {
+        if (entry.value is String ||
+            entry.value is bool ||
+            entry.value is num) {
           properties[entry.key as String] = entry.value as Object;
         }
       }

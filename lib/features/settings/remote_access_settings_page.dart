@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+
+import 'platform_login_page.dart';
+
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/remote_access/remote_access_service.dart';
@@ -23,6 +26,7 @@ class RemoteAccessSettingsPage extends StatefulWidget {
 class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   final _pairing = TextEditingController();
   bool _loaded = false;
+  RemoteAccessService? _service;
 
   /// What is running (shown in the action bar), or null when idle.
   String? _busyLabel;
@@ -38,7 +42,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     super.initState();
     _run(appStrings.loading, () async {
       await widget.sources.load();
-      await widget.sources.remoteSettings;
+      _service = await widget.sources.remoteSettings;
       _loaded = true;
     });
   }
@@ -115,6 +119,160 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     _pairing.clear();
   }
 
+  Future<void> _register() async {
+    final l = AppLocalizations.of(context);
+    final email = TextEditingController(text: _service?.account.email);
+    try {
+      final address = await pushSettingsPage<String>(
+        context,
+        title: l.remotePlatformRegister,
+        children: (_) => [
+          SettingsSection(
+            footer: l.remotePlatformRegisterHint,
+            children: [
+              ShadInput(
+                key: const ValueKey('relay-registration-email'),
+                controller: email,
+                placeholder: Text(l.remotePlatformEmail),
+                keyboardType: TextInputType.emailAddress,
+                autocorrect: false,
+              ),
+            ],
+          ),
+        ],
+        trailing: (c) => [
+          PageSubmitButton(
+            key: const ValueKey('relay-registration-submit'),
+            label: l.remotePlatformSendRegistration,
+            onPressed: () {
+              final value = email.text.trim();
+              if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
+                showAppToast(
+                  c,
+                  l.remotePlatformInvalidEmail,
+                  kind: FeedbackKind.error,
+                );
+                return;
+              }
+              Navigator.pop(c, value);
+            },
+          ),
+        ],
+      );
+      if (address == null || !mounted) return;
+      await _run(
+        l.loading,
+        () => _service!.account.requestRegistration(address),
+        done: l.remotePlatformRegistrationSent,
+      );
+    } finally {
+      // Route exit animations may still retain the input briefly.
+      WidgetsBinding.instance.addPostFrameCallback((_) => email.dispose());
+    }
+  }
+
+  Future<void> _login() async {
+    if (_busy || _service == null) return;
+    await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'PlatformLoginPage'),
+        builder: (_) => PlatformLoginPage(
+          email: _service!.account.email,
+          login: _service!.loginPlatform,
+        ),
+      ),
+    );
+    if (mounted) setState(() {});
+  }
+
+  String _nodeLabel(Map<String, dynamic> node, AppLocalizations l) {
+    final id = node['nodeId'] as String;
+    final name = node['name'] as String;
+    final results = _service!.nodeLatencyMs;
+    if (!results.containsKey(id)) return name;
+    return '$name · ${results[id] == null ? l.remoteNodeUnreachable : l.remoteNodeLatency(results[id]!)}';
+  }
+
+  Widget _platform(AppLocalizations l) {
+    final service = _service!;
+    final profile = service.platformProfile;
+    final active = service.activeNode;
+    return SettingsSection(
+      title: l.remotePlatformTitle,
+      footer: l.remotePlatformHint,
+      children: [
+        SettingsRow(
+          title: service.usePlatform
+              ? l.remotePlatformActive
+              : l.remoteCustomActive,
+          description: service.account.email ?? l.remotePlatformHint,
+        ),
+        if (service.account.signedIn) ...[
+          if (profile == null) SettingsRow(title: l.remotePlatformNotLoaded),
+          if (profile != null && !profile.valid)
+            SettingsRow(title: l.remotePlatformExpired),
+          if (profile != null && profile.nodes.isEmpty)
+            SettingsRow(title: l.remotePlatformEmpty),
+          if (profile != null && profile.proxies.isEmpty)
+            SettingsRow(title: l.remotePlatformNoServices),
+          if (active != null)
+            SettingsRow(
+              key: const ValueKey('relay-platform-node'),
+              title: l.remotePlatformNode,
+              description:
+                  '${_nodeLabel(active, l)} · ${service.followsConnector ? l.remotePlatformAutomatic : l.remotePlatformNodeUnavailable}',
+            ),
+        ],
+        if (service.platformError != null)
+          SettingsRow(
+            title: l.remotePlatformRequestFailed(service.platformError!),
+          ),
+        if (service.nodeLatencyMs.isNotEmpty)
+          SettingsRow(title: l.remoteNodeTestHint),
+        FormActions([
+          if (profile?.nodes.isNotEmpty == true)
+            FormAction(
+              l.remoteNodeTest,
+              _busy
+                  ? null
+                  : () => _run(l.loading, () => service.testPlatformNodes()),
+              key: const ValueKey('relay-platform-test'),
+            ),
+          if (service.account.signedIn)
+            FormAction.destructive(
+              l.remotePlatformLogout,
+              _busy ? null : () => _run(l.loading, service.logoutPlatform),
+            ),
+          if (service.account.signedIn)
+            FormAction(
+              l.refresh,
+              _busy ? null : () => _run(l.loading, service.refreshPlatform),
+              key: const ValueKey('relay-platform-refresh'),
+            ),
+          FormAction(
+            l.remotePlatformRestore,
+            _busy
+                ? null
+                : () => _run(l.loading, () => service.selectPlatform()),
+            key: const ValueKey('relay-platform-restore'),
+          ),
+          if (!service.account.signedIn)
+            FormAction.primary(
+              l.remotePlatformLogin,
+              _busy ? null : _login,
+              key: const ValueKey('relay-platform-login'),
+            ),
+          if (!service.account.signedIn)
+            FormAction(
+              l.remotePlatformRegister,
+              _busy ? null : _register,
+              key: const ValueKey('relay-platform-register'),
+            ),
+        ]),
+      ],
+    );
+  }
+
   Future<void> _clear() async {
     final l = AppLocalizations.of(context);
     final confirmed = await showSettingsConfirm(
@@ -170,7 +328,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
       for (final proxy in _network.proxies)
         SettingsRow(
           key: ValueKey('remote-proxy-${proxy.name}'),
-          title: proxy.name,
+          title: proxy.displayName,
           description: () {
             final users = sources
                 .where((s) => s.remote?.proxy == proxy.name)
@@ -200,6 +358,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
       body: SettingsListView(
         children: [
           if (_loaded) ...[
+            _platform(l),
             SettingsSection(
               title: l.remoteRelayServer,
               footer: l.remoteRelayFooter,

@@ -153,6 +153,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
   Future<void> _openMetadata() async {
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'MetadataPage'),
         builder: (_) =>
             MetadataPage(library: service, sources: widget.sources, media: _id),
       ),
@@ -174,6 +175,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     if (version == null || !mounted) return;
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'FfmpegSnapshotDebugPage'),
         builder: (_) => FfmpegSnapshotDebugPage(
           service: MediaProcessingService.current,
           resource: version.ref,
@@ -252,6 +254,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     }
     await Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'AudioSubtitleDebugPage'),
         builder: (_) => AudioSubtitleDebugPage(
           service: SubtitleGenerationService.current,
           target: AudioSubtitleTarget(
@@ -270,6 +273,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
     if (media.id == _id) return;
     Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'MediaDetailPage'),
         builder: (_) => MediaDetailPage(
           service: service,
           sources: widget.sources,

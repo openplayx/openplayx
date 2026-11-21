@@ -12,6 +12,7 @@ import '../../core/capabilities/metadata_capability.dart';
 import '../../data/configuration/configuration_database.dart';
 import '../../data/metadata/metadata_repository.dart';
 import '../../data/library/library_database.dart';
+import '../../data/library/scan_status.dart';
 import '../../data/library/library_repository.dart';
 import '../sources/source_manager.dart';
 import 'file_source.dart';
@@ -235,6 +236,64 @@ class LibraryService {
     }
     notifyChanged();
     return id;
+  }
+
+  /// Reuses a confirmed scope, including disabled bindings, on retries.
+  String addToHome(
+    String source, {
+    String? root,
+    String? name,
+    SourceEntry? entry,
+  }) {
+    final existing = fileSourceList()
+        .where(
+          (f) => f.connectionId == source && (f.root ?? '') == (root ?? ''),
+        )
+        .firstOrNull;
+    if (existing != null) {
+      if (!existing.enabled) setFileSourceEnabled(existing.id, true);
+      return existing.id;
+    }
+    return addFileSource(source, root: root, name: name, rootEntry: entry);
+  }
+
+  /// Persist work before returning to the home page. The service owns its
+  /// lifetime; errors remain in the binding's state for an in-place retry.
+  void startScan(String id, SourceManager sources) {
+    if (_closeRequested) throw StateError(appStrings.errLibraryClosing);
+    if (_running.contains(id)) return;
+    final binding = fileSourceList().firstWhere((f) => f.id == id);
+    final config = sources.configs.firstWhere(
+      (c) => c.id == binding.connectionId,
+    );
+    transaction(() {
+      final prior = repository.scanTask(id).firstOrNull;
+      if (prior == null || prior['revision'] != config.revision) {
+        repository.removeScanTask(id);
+        repository.insertScanTask(id, _id(), config.revision);
+        repository.insertScanRoot(id, binding.root ?? '');
+      }
+      repository.markScanRunning(id);
+    });
+    unawaited(scan(id, sources).catchError((Object _) {}));
+  }
+
+  /// Restore interrupted traversal using its saved page cursor.
+  Future<void> recoverScans(SourceManager sources) async {
+    await sources.load();
+    if (_closeRequested) return;
+    for (final binding in fileSourceList()) {
+      final config = sources.configs
+          .where((c) => c.id == binding.connectionId)
+          .firstOrNull;
+      if (binding.enabled &&
+          config?.enabled == true &&
+          config!.scanMode != ScanMode.disabled &&
+          (binding.status == ScanStatus.interrupted || binding.scanning) &&
+          repository.scanTask(binding.id).isNotEmpty) {
+        startScan(binding.id, sources);
+      }
+    }
   }
 
   String _content(SourceEntry entry) {
@@ -485,6 +544,8 @@ class LibraryService {
   Future<void> scan(String fileSource, SourceManager sources) async {
     if (!_running.add(fileSource)) throw StateError(appStrings.errScanRunning);
     var analyticsSuccess = false;
+    final analyticsTimer = Stopwatch()..start();
+    var analyticsCount = 0;
     var batch = _id();
     try {
       final b = repository.fileSource(fileSource);
@@ -560,6 +621,7 @@ class LibraryService {
               !matchesScanExtension(entry.name, sources.scanExtensions)) {
             continue;
           }
+          analyticsCount++;
           final media = register(
             entry,
             localPath: config.kind == SourceKind.local ? entry.ref.id : null,
@@ -596,9 +658,12 @@ class LibraryService {
       rethrow;
     } finally {
       _running.remove(fileSource);
+      notifyChanged();
       unawaited(
         AnalyticsService.instance.capture('library_scan_completed', {
           'success': analyticsSuccess,
+          'duration_ms': analyticsTimer.elapsedMilliseconds,
+          'item_count': analyticsCount,
         }),
       );
       if (_closeRequested && _running.isEmpty) _closeDatabase();
@@ -608,6 +673,9 @@ class LibraryService {
   /// Valid media files the running scan of [fileSource] has found so far.
   int scannedMediaCount(String fileSource) =>
       repository.scannedMediaCount(fileSource).first['n'] as int;
+
+  /// Available playable titles found by a scope, including completed scans.
+  int fileSourceMediaCount(String id) => repository.fileSourceMediaCount(id);
 
   /// Title of media [id], if it exists.
   String? mediaTitle(String id) =>

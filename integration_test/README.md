@@ -25,6 +25,7 @@ integration_test/
 ├── sources_test.dart
 ├── mobile_ai_playback_test.dart
 ├── metadata_background_test.dart
+├── metadata_matching_test.dart
 ├── player_window_test.dart
 ├── assistant_movie_flow_test.dart
 ├── ui_screenshots_test.dart
@@ -110,6 +111,29 @@ rm -rf ../ffmpeg-package/android/.cxx ../package-whisper/android/.cxx  # 丢弃�
 ```
 
 ## 验证记录
+
+### 剧集自动匹配回归（真实 SMB + TMDB）
+
+`metadata_matching_test.dart` 从 seed JSON 读取 VM 的 `/movie` SMB 连接和 TMDB 令牌，
+在临时目录导入配置和存储图片，媒体库使用内存数据库，不修改共享文件或用户媒体库。
+
+```sh
+make integration-metadata DEVICE=<iOS 模拟器 UDID>
+# 不传 DEVICE 时使用 macOS；seed 模板默认是 debug-seed.json。
+```
+
+需要 seed 中存在一个地址以 `/movie` 结尾的 SMB 源、有效的 TMDB 令牌，
+以及共享中的 `Modern Family Season 1…` 文件夹（第一季 24 集）。缺失配置或服务不可用会失败，不跳过。
+
+测试覆盖英文、中文两种刮削语言下的整季自动识别、旧版 `ambiguousMatch` 任务自动重试、
+24 集归到同一部剧和同一季、剧集和季保持 TMDB 身份、海报和分集缩略图下载，
+以及队列再次运行不重复搜索。额外用固定 TMDB 响应验证两个完全相同的原名仍需用户选择；
+该负面用例不依赖线上目录是否恰好存在重名条目。
+
+2026-11-21 在 iPhone 17 Pro 仿真机（iOS 26.5）用上述命令验证，3 项全部通过。
+英文、中文各自完整识别 24 集；固定同原名冲突用例保留 `awaitingSelection`。
+`flutter test test/metadata` 同次验证为 76 项通过、2 项需显式启用的用例跳过；
+此次未执行 Android 或 macOS 的新增集成用例。
 
 2026-11-18，服务在本机测试 VM（192.168.1.107），测试素材带静音音轨：
 

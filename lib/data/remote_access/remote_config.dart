@@ -151,16 +151,23 @@ class RemoteAccessConfig {
 /// One frpc proxy the App may use: Home registered it on Relay's frps under
 /// [name], reachable on Relay loopback at [remotePort].
 class RemoteProxy {
-  const RemoteProxy(this.name, this.remotePort);
+  const RemoteProxy(this.name, this.remotePort, {this.label, this.kind});
   final String name;
   final int remotePort;
+  final String? label, kind;
+  String get displayName => label ?? name;
 
-  Map<String, dynamic> toJson() => {'name': name, 'remotePort': remotePort};
+  Map<String, dynamic> toJson() => {
+    'name': name,
+    'remotePort': remotePort,
+    if (label != null) 'label': label,
+    if (kind != null) 'kind': kind,
+  };
 
   /// The proxy a new source of [kind] defaults to: the one named after the
   /// kind (jellyfin, smb...), else the only one.
   static RemoteProxy? defaultFor(List<RemoteProxy> proxies, String kind) =>
-      proxies.where((p) => p.name == kind).firstOrNull ??
+      proxies.where((p) => (p.kind ?? p.name) == kind).firstOrNull ??
       (proxies.length == 1 ? proxies.single : null);
 }
 

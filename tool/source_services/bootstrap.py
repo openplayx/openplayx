@@ -41,6 +41,13 @@ def wait(base, path):
     raise RuntimeError(f'Service did not become ready: {base}')
 
 
+def set_server_name(base, name, headers):
+    config = call(base, '/System/Configuration', headers=headers)
+    if config.get('ServerName') != name:
+        config['ServerName'] = name
+        call(base, '/System/Configuration', 'POST', config, headers)
+
+
 def setup_emby():
     headers = {'X-Emby-Authorization': AUTH}
     wait(EMBY, '/System/Info/Public')
@@ -48,15 +55,16 @@ def setup_emby():
         call(EMBY, '/Startup/Configuration', 'POST',
             {'UICulture': 'en-US', 'MetadataCountryCode': 'US', 'PreferredMetadataLanguage': 'en'})
         call(EMBY, '/Startup/User')
-        call(EMBY, '/Startup/User', 'POST', {'Name': 'openplayx', 'Password': 'test-only-password'})
+        call(EMBY, '/Startup/User', 'POST', {'Name': 'openplayx-test', 'Password': 'test-only-password'})
         call(EMBY, '/Startup/Complete', 'POST')
     except RuntimeError:
         pass  # The wizard already ran on this container.
     auth = call(EMBY, '/Users/AuthenticateByName', 'POST',
-        {'Username': 'openplayx', 'Pw': 'test-only-password'}, headers)
+        {'Username': 'openplayx-test', 'Pw': 'test-only-password'}, headers)
     token = auth['AccessToken']
     user = auth['User']['Id']
     headers = {'X-Emby-Authorization': AUTH + ', Token="' + token + '"', 'X-Emby-Token': token}
+    set_server_name(EMBY, 'OpenPlayX Emby Test', headers)
     if not call(EMBY, '/Library/VirtualFolders', headers=headers):
         query = urllib.parse.urlencode({'name': 'Test Videos', 'collectionType': 'homevideos',
             'paths': '/media', 'refreshLibrary': 'true'})
@@ -77,13 +85,14 @@ def main():
         call(JELLYFIN, '/Startup/Configuration', 'POST',
             {'UICulture': 'en-US', 'MetadataCountryCode': 'US', 'PreferredMetadataLanguage': 'en'})
         call(JELLYFIN, '/Startup/User')  # Creates the first user on a fresh server.
-        call(JELLYFIN, '/Startup/User', 'POST', {'Name': 'openplayx', 'Password': 'test-only-password'})
+        call(JELLYFIN, '/Startup/User', 'POST', {'Name': 'openplayx-test', 'Password': 'test-only-password'})
         call(JELLYFIN, '/Startup/RemoteAccess', 'POST', {'EnableRemoteAccess': True, 'EnableAutomaticPortMapping': False})
         call(JELLYFIN, '/Startup/Complete', 'POST')
     auth = call(JELLYFIN, '/Users/AuthenticateByName', 'POST',
-        {'Username': 'openplayx', 'Pw': 'test-only-password'}, {'Authorization': AUTH})
+        {'Username': 'openplayx-test', 'Pw': 'test-only-password'}, {'Authorization': AUTH})
     token = auth['AccessToken']
     headers = {'Authorization': AUTH + ', Token="' + token + '"'}
+    set_server_name(JELLYFIN, 'OpenPlayX Jellyfin Test', headers)
     libraries = call(JELLYFIN, '/Library/VirtualFolders', headers=headers)
     if not libraries:
         call(JELLYFIN, '/Library/VirtualFolders?name=Test%20Videos&collectionType=homevideos&refreshLibrary=true', 'POST',
@@ -106,6 +115,7 @@ def main():
             time.sleep(1)
     else:
         raise RuntimeError('Plex did not become ready')
+    call(PLEX, '/:/prefs?FriendlyName=OpenPlayX%20Plex%20Test', 'PUT')
     if not sections['MediaContainer'].get('Directory'):
         query = urllib.parse.urlencode({'name': 'Test Videos', 'type': 'movie',
             'agent': 'com.plexapp.agents.none', 'scanner': 'Plex Video Files Scanner',

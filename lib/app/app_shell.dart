@@ -1,5 +1,8 @@
 import 'dart:async';
 
+import '../data/analytics/analytics_service.dart';
+import '../data/analytics/analytics_navigation_observer.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
@@ -18,6 +21,7 @@ import '../data/files/local_media_picker.dart';
 import '../capabilities/playback/playback_launcher.dart';
 import '../capabilities/sources/source_manager.dart';
 import '../features/library/view/home_page.dart';
+import '../features/sources/view/add_video_page.dart';
 import 'app_destination.dart';
 import '../features/player/view/player_page.dart';
 import '../features/sources/view/source_page.dart';
@@ -86,6 +90,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     AppDestination.values.length,
     (_) => _PageDepthObserver(_depthChanged),
   );
+  late final _analyticsObservers = List.generate(
+    AppDestination.values.length,
+    (index) => AnalyticsNavigationObserver(
+      active: () => index == _destination,
+      onScreen: (name) => AnalyticsService.instance.tabScreen = name,
+    ),
+  );
   LibraryService? _library;
   MetadataRuntime? _metadataRuntime;
   ArtworkService? _artwork;
@@ -103,11 +114,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   late final PlayerWindows? _playerWindows =
       widget.backend == null && supportsPlayerWindow ? PlayerWindows() : null;
   int _destination = 0;
-  // The plugin branch is built on first visit, so its status refresh does not
-  // run behind the home page at startup.
-  bool _pluginsVisited = false;
-  final _pluginsKey = GlobalKey<PluginManagementPageState>();
-  PluginGroup? _pluginsInitialGroup;
+  int _homeRevealRevision = 0;
+  // Build chat on first visit and retain its state when switching tabs.
+  bool _chatVisited = false;
   bool _showPlayer = false;
   bool _opening = false;
   bool _exitingPlayer = false;
@@ -134,6 +143,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       }
       // The library drops what a removed connection brought in.
       library.followSources(_sources);
+      unawaited(library.recoverScans(_sources).catchError((Object _) {}));
       setState(() {
         _library = library;
         final media = _mediaProcessing = MediaProcessingService(
@@ -291,19 +301,23 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _chat = AiChatController(module.coordinator);
   }
 
-  /// Model settings live on the AI page's 模型 page.
+  /// Open model configuration in the Settings branch, including from chat.
   Future<void> _modelSettings() async {
     if (_assistantStore == null || (_assistant?.busy ?? false)) return;
-    // The chat page (root route) closes first, otherwise it would cover the page.
     Navigator.of(context, rootNavigator: true).popUntil((r) => r.isFirst);
-    final ai = AppDestination.plugins.index;
-    _pluginsInitialGroup = PluginGroup.model;
-    _branches[ai].currentState?.popUntil((r) => r.isFirst);
-    _pluginsKey.currentState?.showGroup(PluginGroup.model);
-    if (_destination != ai) _select(ai);
+    final settings = AppDestination.settings.index;
+    _select(settings);
+    final navigator = _branches[settings].currentState!;
+    navigator.popUntil((r) => r.isFirst);
+    await navigator.push<void>(
+      MaterialPageRoute(
+        builder: (_) => _pluginsPage(initialGroup: PluginGroup.model),
+      ),
+    );
   }
 
   Widget _assistantView({VoidCallback? onBack}) => AssistantView(
+    showGreetingIcon: onBack != null,
     onBack: onBack,
     coordinator: _assistant!,
     controller: _chat,
@@ -458,6 +472,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     try {
       if (await _player.currentState!.stopPlayback() && mounted) {
         setState(() => _showPlayer = false);
+        AnalyticsService.instance.tabScreen =
+            _analyticsObservers[_destination].current;
+        unawaited(
+          AnalyticsService.instance.screen(AnalyticsService.instance.tabScreen),
+        );
         _revision.value++;
       }
     } finally {
@@ -487,6 +506,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     _closeAssistant();
     setState(() {
       _showPlayer = true;
+      AnalyticsService.instance.tabScreen = 'player';
+      unawaited(AnalyticsService.instance.screen('player'));
     });
     try {
       await _player.currentState!.playSelection(selection);
@@ -538,31 +559,64 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   Widget _homeContent() => AppPage(
     pageContext: const PageContextData(pageType: 'home'),
     title: Text(l.home),
+    trailing: [
+      ShadButton.ghost(
+        key: const ValueKey('home-add-video'),
+        onPressed: _addVideo,
+        child: Text(l.addVideo),
+      ),
+    ],
     body: _homeMedia(),
   );
+
+  Future<void> _addVideo() async {
+    final added = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'AddVideoPage'),
+        builder: (_) => AddVideoPage(sources: _sources, library: _library!),
+      ),
+    );
+    if (mounted) {
+      if (added == true) _homeRevealRevision++;
+      _revision.value++;
+    }
+  }
 
   Widget _homeMedia() => HomePage(
     sources: _sources,
     service: _library!,
     onPlay: _play,
     onResume: _playHistory,
+    onAddVideo: _addVideo,
+    revealRevision: _homeRevealRevision,
   );
 
-  Widget _settings() =>
-      SettingsPage(library: _library, sources: _sources, plugins: _plugins);
+  Widget _settings() => SettingsPage(
+    library: _library,
+    sources: _sources,
+    plugins: _plugins,
+    aiSettingsBuilder: (_) => _pluginsPage(),
+  );
 
-  Widget _pluginsPage() => _plugins == null
+  Widget _chatPage() => Scaffold(
+    body: SafeArea(
+      child: _assistant == null
+          ? ContentState(message: l.statusUnavailable)
+          : _assistantView(),
+    ),
+  );
+
+  Widget _pluginsPage({PluginGroup? initialGroup}) => _plugins == null
       ? AppPage(
           pageContext: const PageContextData(pageType: 'plugins'),
           title: Text(l.plugins),
           body: ContentState(message: l.loading, loading: true),
         )
       : PluginManagementPage(
-          key: _pluginsKey,
           manager: _plugins!,
           sources: _sources,
           assistantStore: _assistantStore,
-          initialGroup: _pluginsInitialGroup,
+          initialGroup: initialGroup,
           externalServices: ExternalServiceRegistry.forDb(
             _library!.configuration,
           ),
@@ -584,8 +638,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   Widget _navigator(int index) => Navigator(
     key: _branches[index],
-    observers: [_depths[index]],
+    observers: [_depths[index], _analyticsObservers[index]],
     onGenerateRoute: (_) => MaterialPageRoute<void>(
+      settings: RouteSettings(name: AppDestination.values[index].name),
       builder: (_) => switch (AppDestination.values[index]) {
         AppDestination.home => _home(),
         AppDestination.sources => SourcePage(
@@ -593,16 +648,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           library: _library,
           onPlay: _play,
         ),
-        AppDestination.plugins => _pluginsPage(),
+        AppDestination.plugins => _chatPage(),
         AppDestination.settings => _settings(),
       },
     ),
   );
 
   void _select(int index) {
+    final screen = _analyticsObservers[index].current == 'home'
+        ? AppDestination.values[index].name
+        : _analyticsObservers[index].current;
+    AnalyticsService.instance.tabScreen = screen;
+    unawaited(AnalyticsService.instance.screen(screen));
     setState(() {
       _destination = index;
-      if (index == AppDestination.plugins.index) _pluginsVisited = true;
+      if (index == AppDestination.plugins.index) {
+        _chatVisited = true;
+        _originPage = null;
+      }
     });
     if (index == 0) _revision.value++;
   }
@@ -671,7 +734,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
                                     children: [
                                       for (final d in AppDestination.values)
                                         d == AppDestination.plugins &&
-                                                !_pluginsVisited
+                                                !_chatVisited
                                             ? const SizedBox.shrink()
                                             : _branch(d.index),
                                     ],

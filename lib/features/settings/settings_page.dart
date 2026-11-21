@@ -40,7 +40,14 @@ class _Category {
 }
 
 class SettingsPage extends StatelessWidget {
-  const SettingsPage({super.key, this.library, this.sources, this.plugins});
+  const SettingsPage({
+    super.key,
+    this.library,
+    this.sources,
+    this.plugins,
+    this.aiSettingsBuilder,
+  });
+  final WidgetBuilder? aiSettingsBuilder;
   final LibraryService? library;
   final PluginManager? plugins;
   final SourceManager? sources;
@@ -49,9 +56,13 @@ class SettingsPage extends StatelessWidget {
     final l = AppLocalizations.of(context);
     void openRemote() => Navigator.of(context).push(
       MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'RemoteAccessSettingsPage'),
         builder: (_) => RemoteAccessSettingsPage(sources: sources!),
       ),
     );
+    void openAi() =>
+        Navigator.of(context)
+            .push(MaterialPageRoute<void>(builder: aiSettingsBuilder!));
     AsrBackendRegistry asrRegistry() =>
         SubtitleGenerationService.current?.backends ??
         AsrBackendRegistry(
@@ -60,6 +71,26 @@ class SettingsPage extends StatelessWidget {
         );
     return [
       [
+        if (aiSettingsBuilder != null)
+          _Category(
+            icon: AppIcons.plugins,
+            title: l.plugins,
+            onOpen: openAi,
+            sections: [
+              SettingsSection(
+                title: l.plugins,
+                children: [
+                  SettingsRow(
+                    key: const ValueKey('settings-ai'),
+                    icon: AppIcons.plugins,
+                    title: l.plugins,
+                    chevron: true,
+                    onTap: openAi,
+                  ),
+                ],
+              ),
+            ],
+          ),
         _Category(
           icon: AppIcons.theme,
           title: l.appearance,
@@ -185,6 +216,9 @@ class SettingsPage extends StatelessWidget {
                           category.onOpen ??
                           () => Navigator.of(context).push(
                             MaterialPageRoute<void>(
+                              settings: const RouteSettings(
+                                name: 'settings_page',
+                              ),
                               builder: (_) => _SettingsSubPage(
                                 title: category.title,
                                 sections: category.sections,
@@ -348,8 +382,12 @@ PluginEditorOpener pluginEditorOpener({
       _ => null,
     };
     if (target == null) return;
-    await Navigator.of(context)
-        .push(MaterialPageRoute<void>(builder: (_) => target));
+    await Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'settings_page'),
+        builder: (_) => target,
+      ),
+    );
   };
 }
 

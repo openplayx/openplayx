@@ -115,6 +115,9 @@ class _PluginDetailViewState extends State<PluginDetailView> {
                 ? null
                 : () => Navigator.of(context).push(
                     MaterialPageRoute<void>(
+                      settings: const RouteSettings(
+                        name: 'CapabilitySwitchesPage',
+                      ),
                       builder: (_) =>
                           CapabilitySwitchesPage(sources: widget.sources!),
                     ),

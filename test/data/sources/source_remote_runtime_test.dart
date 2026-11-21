@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:convert';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:openplayx/core/capabilities/source_capability.dart';
@@ -16,15 +17,19 @@ void main() {
     () async {
       final configuration = SourceConfigurationService(sqlite3.openInMemory());
       final remote = RemoteAccessService.memory();
-      remote.network = const RemoteNetwork(
-        outbound: {
-          'type': 'vless',
-          'server': 'relay.test',
-          'server_port': 443,
-          'tls': {'enabled': true, 'server_name': 'relay.test'},
-        },
-        credential: {'uuid': '11111111-1111-4111-8111-111111111111'},
-        proxies: [RemoteProxy('smb', 18445)],
+      await remote.importPairing(
+        jsonEncode({
+          'outbound': {
+            'type': 'vless',
+            'server': 'relay.test',
+            'server_port': 443,
+            'uuid': '11111111-1111-4111-8111-111111111111',
+            'tls': {'enabled': true, 'server_name': 'relay.test'},
+          },
+          'proxies': [
+            {'name': 'smb', 'remotePort': 18445},
+          ],
+        }),
       );
       final manager = SourceManager(
         configuration: configuration,

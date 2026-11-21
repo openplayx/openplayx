@@ -1,5 +1,7 @@
 import 'dart:async';
 
+import '../analytics/analytics_service.dart';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:sentry_flutter/sentry_flutter.dart';
@@ -51,6 +53,16 @@ Future<void> runWithDiagnostics(
     await SentryFlutter.init(
       (options) {
         options
+          ..beforeSend = (event, hint) {
+            unawaited(
+              AnalyticsService.instance.capture(r'$exception', {
+                'error_type':
+                    event.exceptions?.firstOrNull?.type ?? 'Exception',
+                'engine_role': role.name,
+              }),
+            );
+            return event;
+          }
           ..dsn = dsn
           ..environment = _environment
           ..release = _release.isEmpty ? null : _release

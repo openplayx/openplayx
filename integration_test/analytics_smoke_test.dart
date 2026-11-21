@@ -33,11 +33,15 @@ void main() {
       await Posthog().close();
       await analytics.load();
       expect(analytics.enabled, isTrue);
+      expect(Posthog().config?.disableGeoIp, isFalse);
+      expect(Posthog().config?.personProfiles, PostHogPersonProfiles.always);
+      expect(Posthog().config?.sessionReplay, isTrue);
       // Repeated initialization shares one future and does not emit a session twice.
       await analytics.load();
       await Posthog().flush();
       await Future<void>.delayed(const Duration(seconds: 3));
     } finally {
+      await analytics.close();
       await Posthog().close();
       ConfigurationDatabase.writeSetting(db, 'analytics', 'enabled', original);
       db.close();

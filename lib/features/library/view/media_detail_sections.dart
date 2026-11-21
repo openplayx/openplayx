@@ -536,6 +536,7 @@ extension _DetailSections on _MediaDetailPageState {
   void _openEpisodeList(String label, List<MediaItem> episodes) {
     Navigator.of(context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'AppPage'),
         builder: (_) => AppPage(
           pageContext: PageContextData(
             pageType: 'episode_list',

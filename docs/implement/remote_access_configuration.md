@@ -71,3 +71,13 @@ CLI 安装/更新也读取同一角色 JSON 和机密引用，使用同一锁，
 Relay 的 `tests/e2e.py --managed-json` 使用真实固定版本 sing-box、frps、frpc 和 App 原生库验证角色 JSON → 机密引用 → 组件配置 → 认证/Range 媒体链路及访问控制。（2026-11-12 起该测试由 relay/home 仓库的 Go `TestEndToEnd` 取代，从角色 JSON 导入、经应用流程启动进程内组件，App 端改用同版本 sing-box 出站。）浏览器已实际验证 Relay 登录、草稿校验与“已保存但未生效”状态。Android APK 与 iOS 模拟器构建已验证新增网络类型桥接。
 
 真实 Linux/systemd 安装、真实移动设备蜂窝切换、VPS 与跨境长期播放仍需环境验收；本次没有部署或公开任何实际服务。
+
+## 平台默认配置
+
+新安装使用平台订阅；已有 schemaVersion=3 的手动配置保持自建模式。账号会话独立保存在 configuration.sqlite3 的 relay_account/session，用户密码仅用于登录请求；平台缓存、默认模式和所选节点分别位于 remote_access/profile、remote_access/platform，不覆盖 remote_access/network 中的自建配置。
+
+登录使用 /v1/auth/login，clientType=app。首次同步创建本机设备，随后 /v1/relay/device/config 仅返回该设备已授权服务。服务选择的持久引用是 serviceId，显示 Connector/服务名称，避免同名服务串线。首次默认按 sortOrder/nodeId 选首个启用节点并持久化固定选择；之后仅用户可更换节点，后台优先级变化不会切换。节点 TCP/TLS 测试不携带账号凭据，只作为手动选择参考，不代表 NAS 服务已就绪；可显式选节点或导入自建配置。固定节点被撤下时保持不可用，不静默改用其他节点。
+
+每分钟刷新，刷新 Token 串行轮换。校验 schema、节点 TLS、用户/设备归属和单调 revision。validUntil 只作刷新提示，过期或暂时离线不自动停用上次成功配置；拒绝旧版本覆盖。注销或设备被撤销时清除平台路由，自建配置保留。Relay 仍同步账号与服务权限，通过不可变策略快照热更新；新增用户/服务不打断已有连接，撤销授权、删除服务、凭据轮换仅关闭相关连接，基础传输变更可受控重启。
+
+这不自动绑定或迁移旧 Home 的本地配对；账号未获服务授权、平台没有就绪节点时显示相应空状态。

@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart';
 
 import '../../../capabilities/library/library_service.dart';
+import '../../../capabilities/library/file_source.dart';
 import '../model/home_shelves.dart';
 
 /// The home shelves: queried outside build (the queries are synchronous and
@@ -21,6 +22,7 @@ class HomeController extends ChangeNotifier {
   final LibraryService service;
   late HomeShelves _shelves;
   HomeShelves get shelves => _shelves;
+  List<({FileSource source, int count})> scanStates = [];
   StreamSubscription<void>? _changes;
   bool _visible = true;
 
@@ -69,6 +71,15 @@ class HomeController extends ChangeNotifier {
   }
 
   HomeShelves _load() {
+    scanStates = [
+      for (final source in service.fileSourceList().where((f) => f.enabled))
+        (
+          source: source,
+          count: source.scanning
+              ? service.scannedMediaCount(source.id)
+              : service.fileSourceMediaCount(source.id),
+        ),
+    ];
     List<dynamic> posters(String? contentType) =>
         service.query(contentType: contentType, limit: shelfLimit);
     final shelves = HomeShelves(

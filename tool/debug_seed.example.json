@@ -6,7 +6,7 @@
       "kind": "smb",
       "name": "211 NAS",
       "address": "smb://192.168.1.211/media",
-      "username": "openplayx",
+      "username": "openplayx-test",
       "secret": "${SMB_PASSWORD}"
     },
     {

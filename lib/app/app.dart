@@ -1,5 +1,10 @@
 import '../ui/input/remote_select.dart';
 
+import 'package:posthog_flutter/posthog_flutter.dart';
+
+import '../data/analytics/analytics_service.dart';
+import '../data/analytics/analytics_navigation_observer.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
@@ -22,6 +27,9 @@ class OpenPlayXApp extends StatefulWidget {
 }
 
 class _OpenPlayXAppState extends State<OpenPlayXApp> {
+  final _analyticsObserver = AnalyticsNavigationObserver(
+    fallback: () => AnalyticsService.instance.tabScreen,
+  );
   late final _appearance = widget.appearance ?? AppThemeController();
   @override
   void dispose() {
@@ -40,6 +48,7 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
         themeMode: _appearance.mode,
         appBuilder: (context) => MaterialApp(
           title: 'OpenPlayX',
+          navigatorObservers: [_analyticsObserver],
           debugShowCheckedModeBanner: false,
           theme: MaterialThemeAdapter.adapt(context),
           locale: _appearance.locale,
@@ -69,7 +78,17 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
             setAppStrings(AppLocalizations.of(context));
             return AnnotatedRegion<SystemUiOverlayStyle>(
               value: appSystemUiStyle(Theme.of(context).brightness),
-              child: RemoteSelectAsEnter(child: ShadAppBuilder(child: child!)),
+              child: Listener(
+                onPointerUp: (event) =>
+                    AnalyticsService.instance.interaction(event.position),
+                child: RemoteSelectAsEnter(
+                  child: ShadAppBuilder(
+                    child: AnalyticsService.instance.ownsSdk
+                        ? PostHogWidget(child: child!)
+                        : child!,
+                  ),
+                ),
+              ),
             );
           },
           routes: {'/design-system': (_) => const ComponentGalleryPage()},

@@ -56,6 +56,7 @@ Future<void> addFileSource(
   final l = AppLocalizations.of(context);
   final scope = await Navigator.of(context).push<SourceEntry>(
     MaterialPageRoute(
+      settings: const RouteSettings(name: 'ScanScopePage'),
       builder: (_) =>
           ScanScopePage(sources: controller.sources, source: connection),
     ),
@@ -152,6 +153,7 @@ class FileSourceRow extends StatelessWidget {
     void browse() {
       Navigator.of(context).push<void>(
         MaterialPageRoute(
+          settings: const RouteSettings(name: 'FileSourceBrowserPage'),
           builder: (_) => FileSourceBrowserPage(
             manager: controller.sources,
             sourceId: connection!.id,

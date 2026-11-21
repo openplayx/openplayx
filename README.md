@@ -187,3 +187,5 @@ creation (a partial file can be visible while writing); errors/cancellation
 attempt to remove it. OS suspension pauses App work until the App runs again.
 
 Baidu Netdisk browser authorization, publisher setup and acceptance: [guide](docs/baidu_netdisk_source.md).
+
+Platform Relay configuration is the default for new installations: sign in under Settings → Remote access to subscribe to enabled platform nodes and device-authorized services. Custom imports remain available and take priority until **Use platform default** is selected. Existing imports are preserved. Profiles refresh every minute and retain the last configuration when its freshness timestamp expires. The initial recommended node is fixed until the user changes it; TCP/TLS test results never switch nodes automatically. An empty node pool is shown as unavailable.

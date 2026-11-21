@@ -1,4 +1,4 @@
-.PHONY: help ios-devices ios-build ios-install ios-install-seeded seed seed-check seed-push run-seeded \
+.PHONY: help ios-devices ios-build ios-install ios-install-seeded seed seed-check seed-push run-seeded integration-metadata \
 	integration-defines integration-ollama integration-macos integration-ios integration-android
 
 # iOS device to install on: UDID or name as shown by `make ios-devices`.
@@ -46,6 +46,13 @@ help:
 	@echo "make integration-macos           All integration tests on macOS (live services required)"
 	@echo "make integration-ios [IOS_SIM=…] Mobile integration tests on an iOS simulator"
 	@echo "make integration-android [ANDROID_DEVICE=…]  Mobile integration tests on Android"
+	@echo "make integration-metadata [DEVICE=…]  Seeded VM SMB/TMDB matching regression (default macOS)"
+
+# The seed is passed as one runtime argument; never echo its credentials.
+integration-metadata: seed
+	@flutter drive --driver=test_driver/integration_test.dart \
+		--target=integration_test/metadata_matching_test.dart -d $(or $(DEVICE),macos) \
+		$$(dart run tool/debug_seed.dart define)
 
 ios-devices:
 	@xcrun devicectl list devices

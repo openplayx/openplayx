@@ -227,6 +227,7 @@ Future<T?> pushSettingsPage<T>(
   List<Widget> Function(BuildContext context)? trailing,
 }) => Navigator.of(context).push<T>(
   MaterialPageRoute(
+    settings: const RouteSettings(name: 'AppPage'),
     builder: (c) => AppPage(
       pageContext: const PageContextData(pageType: 'settings_form'),
       title: Text(title),

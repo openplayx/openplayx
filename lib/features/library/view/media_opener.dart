@@ -41,6 +41,7 @@ mixin MediaOpener<T extends StatefulWidget> on State<T> {
   Future<void> openDetail(dynamic media, {BuildContext? from}) async {
     await Navigator.of(from ?? context).push<void>(
       MaterialPageRoute(
+        settings: const RouteSettings(name: 'MediaDetailPage'),
         builder: (_) => MediaDetailPage(
           service: openerService!,
           sources: openerSources,

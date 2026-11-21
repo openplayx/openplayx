@@ -11,7 +11,7 @@ SourceConfig sourceServiceConfig(
 ) => SourceConfig(
   id: 'probe-${kind.name}',
   kind: kind,
-  name: kind.label,
+  name: '${kind.label} Test',
   address: switch (kind) {
     SourceKind.onedrive || SourceKind.dropbox || SourceKind.baidu =>
       throw UnsupportedError('Cloud sources require real OAuth accounts'),
@@ -26,9 +26,10 @@ SourceConfig sourceServiceConfig(
     SourceKind.emby => 'http://$host:18097',
     SourceKind.dlna => 'http://$host:8200/rootDesc.xml',
   },
-  username: kind == SourceKind.dlna || kind == SourceKind.plex
-      ? ''
-      : 'openplayx',
+  username: switch (kind) {
+    SourceKind.dlna || SourceKind.plex => '',
+    _ => 'openplayx-test',
+  },
   userId: switch (kind) {
     SourceKind.jellyfin => defines['JELLYFIN_USER_ID'] as String? ?? '',
     SourceKind.emby => defines['EMBY_USER_ID'] as String? ?? '',

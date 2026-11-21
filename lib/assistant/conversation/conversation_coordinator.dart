@@ -274,6 +274,7 @@ class ConversationCoordinator extends ChangeNotifier {
       rethrow;
     }
     _notify();
+    final analyticsTimer = Stopwatch()..start();
     final deadline = Timer(turnTimeout, () {
       turn.error = 'turnTimeout';
       stop();
@@ -532,6 +533,7 @@ class ConversationCoordinator extends ChangeNotifier {
       unawaited(
         AnalyticsService.instance.capture('ai_task_completed', {
           'task_type': 'agent',
+          'duration_ms': analyticsTimer.elapsedMilliseconds,
           'status': turn.status == 'cancelled'
               ? 'cancelled'
               : turn.status == 'failed'

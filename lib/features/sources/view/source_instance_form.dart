@@ -35,7 +35,11 @@ class SourceInstanceForm extends StatefulWidget {
     this.openBrowser,
     this.chooseDirectory,
     this.discoverDlna,
+    this.onAddToHome,
   });
+
+  /// Saves the confirmed scope and schedules indexing before dismissing.
+  final Future<bool> Function(String id)? onAddToHome;
   final SourceConfig? initial;
 
   /// Preselected type for a new instance (Settings → plugin → add instance).
@@ -59,18 +63,28 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     openBrowser: widget.openBrowser,
     chooseDirectory: widget.chooseDirectory,
     discoverDlna: widget.discoverDlna,
-    // Failures pop up as a toast: an alert at the top of the form would
-    // push the fields and the in-form sign-in buttons down.
     onFailure: (message) {
-      if (mounted) showAppToast(context, message, kind: FeedbackKind.error);
+      if (!mounted) return;
+      if (widget.onAddToHome != null) {
+        setState(() => _failure = message);
+      } else {
+        showAppToast(context, message, kind: FeedbackKind.error);
+      }
     },
   );
   final _addressFocus = FocusNode();
+  bool _submitting = false;
+  String? _failure;
 
   @override
   void initState() {
     super.initState();
     _c.addListener(_changed);
+    if (widget.onAddToHome != null && widget.initialKind == SourceKind.local) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) _c.pickDirectory();
+      });
+    }
     _addressFocus.addListener(() {
       if (!_addressFocus.hasFocus && mounted) _c.normalizeAddress();
     });
@@ -88,7 +102,20 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   }
 
   Future<void> _save() async {
-    if (await _c.save() && mounted) Navigator.pop(context, true);
+    if (_submitting) return;
+    setState(() {
+      _submitting = true;
+      _failure = null;
+    });
+    try {
+      if (!await _c.save() || !mounted) return;
+      if (widget.onAddToHome != null && !await widget.onAddToHome!(_c.id)) {
+        return;
+      }
+      if (mounted) Navigator.pop(context, true);
+    } finally {
+      if (mounted) setState(() => _submitting = false);
+    }
   }
 
   String _kindName(SourceKind kind) =>
@@ -513,7 +540,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     for (final MapEntry(key: name, value: proxy) in _c.remoteProxies.entries)
       name: proxy == null
           ? l.remoteProxyMissing(name)
-          : '$name · ${proxy.remotePort}',
+          : '${proxy.displayName} · ${proxy.remotePort}',
   };
 
   String _modeLabel(RemoteConnectionMode mode) => switch (mode) {
@@ -525,7 +552,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
   @override
   Widget build(BuildContext context) => PopScope(
     // Leaving mid-save would orphan the request; Plex sign-in can be abandoned.
-    canPop: !(_c.busy && !_c.authorizing),
+    canPop: !_submitting && !(_c.busy && !_c.authorizing),
     child: AppPage(
       pageContext: const PageContextData(pageType: 'source_configuration'),
       title: Text(_c.initial == null ? l.addSource : l.editSource),
@@ -567,15 +594,46 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                     _c.kind == SourceKind.plex ||
                     _c.kind == SourceKind.smb)
                   _remoteSection(),
+                if (widget.onAddToHome != null)
+                  SettingsSection(
+                    children: [
+                      SettingsRow(
+                        title: l.homeScanScope,
+                        description: _c.kind.oauth
+                            ? _c.cloudFolderName
+                            : _c.kind == SourceKind.local
+                            ? _c.address.text
+                            : [
+                                _c.address.text,
+                                _c.path.text,
+                              ].where((s) => s.isNotEmpty).join('/'),
+                      ),
+                      SettingsRow(title: l.homeScanScopeHelp),
+                    ],
+                  ),
                 const SizedBox(height: AppSpacing.lg),
+                if (_failure != null)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: AppSpacing.md),
+                    child: Text(
+                      _failure!,
+                      style: TextStyle(
+                        color: ShadTheme.of(context).colorScheme.destructive,
+                      ),
+                    ),
+                  ),
                 FormActions(
                   status: _c.busy && !_c.authorizing
                       ? FormStatus.busy(l.saving)
                       : null,
                   [
                     FormAction.primary(
-                      _c.initial == null ? l.add : l.save,
-                      _c.canSave ? _save : null,
+                      widget.onAddToHome != null
+                          ? l.addAndShowHome
+                          : _c.initial == null
+                          ? l.add
+                          : l.save,
+                      _c.canSave && !_submitting ? _save : null,
                       key: const ValueKey('source-save'),
                     ),
                   ],
