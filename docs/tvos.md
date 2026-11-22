@@ -54,7 +54,10 @@ arbitrary devices, and an exported IPA alone is not a public TestFlight release.
 
 The build first compiles an unsigned staging app, then signs during App Store
 export. `codesign --verify --deep --strict` and the Apple Distribution authority
-are checked on the actual exported IPA. No tester invitations or notifications
+are checked on the actual exported IPA. Before export, linker-generated ad-hoc
+framework signatures are normalized to their Info.plist identifiers; otherwise
+Sentry’s static resource framework can pass local verification but fail Apple’s
+upload validator. No tester invitations or notifications
 are sent by the signing script.
 
 ## Reproduce
@@ -108,3 +111,17 @@ committed; `prepare_tvos_models.sh` verifies downloads before embedding them:
   retain their upstream MIT terms: https://github.com/openai/whisper .
 - TVVLCKit source: https://code.videolan.org/videolan/VLCKit/-/tree/319ed2c0
   and https://code.videolan.org/videolan/vlc/-/tree/79128878 .
+
+## TestFlight installation
+
+The tvOS 0.0.4 (4) archive was uploaded to App Store Connect on 2026-11-22.
+Upload success is separate from processing, export compliance and beta review;
+check TestFlight before announcing that a build is installable.
+
+For the existing public group, use https://testflight.apple.com/join/dmt8K5er.
+Install TestFlight on an iPhone/iPad and the Apple TV, using the same App Store
+account. Accept the invitation on the iPhone/iPad, then open TestFlight on the
+Apple TV and install OpenPlayX when an eligible tvOS build is available. An email
+invitation instead supplies a redemption code for TestFlight’s Redeem screen.
+The current TestFlight client requires tvOS 18+, even though the app targets
+17+. See [Apple’s installation instructions](https://testflight.apple.com/).

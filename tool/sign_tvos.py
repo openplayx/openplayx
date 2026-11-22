@@ -15,6 +15,17 @@ with tempfile.TemporaryDirectory(prefix='openplayx-tvos-sign-') as temp:
  archive=root/'build/tvos-signing/Runner.xcarchive';opts=temp/'export.plist'
  opts.write_bytes(plistlib.dumps({'method':'app-store-connect','destination':'export','signingStyle':'automatic','teamID':'7UVYD43NRC','manageAppVersionAndBuildNumber':False,'uploadSymbols':True}))
  subprocess.run(['xcodebuild','-workspace','tvos/Runner.xcworkspace','-scheme','Runner','-configuration','Release','-destination','generic/platform=tvOS','-archivePath',str(archive),'-derivedDataPath','build/tvos-signing/DerivedData','archive','CODE_SIGNING_ALLOWED=NO',*auth],cwd=root,check=True)
+ # Xcode emits a resource-only dylib for Sentry's static Swift package. Its
+ # linker signature uses "Sentry", while Info.plist says "io.sentry.Sentry".
+ # Export preserves that stale identifier in the designated requirement and
+ # Apple's upload validator rejects it despite local deep verification passing.
+ for framework in (archive/'Products/Applications/Runner.app/Frameworks').glob('*.framework'):
+  info=plistlib.loads((framework/'Info.plist').read_bytes());identifier=info['CFBundleIdentifier']
+  signature=subprocess.run(['codesign','-dvv',str(framework)],capture_output=True,text=True)
+  match=re.search(r'^Identifier=(.+)$',signature.stderr,re.MULTILINE)
+  if match and match.group(1)!=identifier:
+   if 'Signature=adhoc' not in signature.stderr:raise RuntimeError(f'Unexpected signed framework identifier: {framework.name}')
+   subprocess.run(['codesign','--force','--sign','-','--identifier',identifier,str(framework)],check=True)
  subprocess.run(['xcodebuild','-exportArchive','-archivePath',str(archive),'-exportPath',str(output),'-exportOptionsPlist',str(opts),*auth],cwd=root,check=True)
  with tempfile.TemporaryDirectory(prefix='openplayx-tvos-verify-') as verify:
   ipas=list(output.glob('*.ipa'))
