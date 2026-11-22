@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import 'dart:async';
 import 'dart:io';
 
@@ -46,6 +48,11 @@ class DeviceVoiceRecorder implements VoiceRecorder {
   @override
   Future<void> start() async {
     if (!supported) throw const VoiceFailure('unsupported');
+    if (Platform.operatingSystem == 'tvos') {
+      final connected = await const MethodChannel('openplayx/tvos')
+          .invokeMethod<bool>('connectMicrophone');
+      if (connected != true) throw const VoiceFailure('permission');
+    }
     final recorder = _recorder ??= AudioRecorder();
     if (!await recorder.hasPermission()) throw const VoiceFailure('permission');
     if (!await recorder.isEncoderSupported(AudioEncoder.wav)) {

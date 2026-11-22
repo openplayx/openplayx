@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:math';
 
 import 'package:openplayx_whisper/openplayx_whisper.dart' show WhisperEngine;
@@ -89,7 +90,9 @@ class AsrBackendRegistry {
           'id': 'embedded',
           'kind': 'embedded',
           'name': 'On device',
-          'model_id': 'whisper-base-multilingual',
+          'model_id': Platform.operatingSystem == 'tvos'
+              ? 'whisper-tiny-multilingual'
+              : 'whisper-base-multilingual',
           'language': 'auto',
           'allow_insecure_http': false,
           'created': DateTime.now().millisecondsSinceEpoch,

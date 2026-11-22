@@ -964,6 +964,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "5.61.0"
+  posthog_flutter_tvos:
+    dependency: "direct main"
+    description:
+      path: "packages/posthog_flutter_tvos"
+      relative: true
+    source: path
+    version: "0.0.1"
   process:
     dependency: transitive
     description:
@@ -1044,6 +1051,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "1.5.0"
+  record_tvos:
+    dependency: "direct main"
+    description:
+      path: "packages/record_tvos"
+      relative: true
+    source: path
+    version: "0.0.1"
   record_use:
     dependency: transitive
     description:
@@ -1116,6 +1130,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "10.3.0"
+  sentry_flutter_tvos:
+    dependency: "direct main"
+    description:
+      path: "packages/sentry_flutter_tvos"
+      relative: true
+    source: path
+    version: "0.0.1"
   serial_csv:
     dependency: transitive
     description:
@@ -1248,6 +1269,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "7.5.0"
+  tvos_services:
+    dependency: "direct main"
+    description:
+      path: "packages/tvos_services"
+      relative: true
+    source: path
+    version: "0.0.1"
   two_dimensional_scrollables:
     dependency: transitive
     description:

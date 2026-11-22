@@ -16,9 +16,9 @@ case "$output" in
   "$PWD/build/tvos"|"$PWD/build/tvos/"*) echo 'Use an artifact directory outside build/tvos' >&2; exit 1 ;;
 esac
 rm -rf build/tvos
+bash tool/prepare_tvos_models.sh
 "$tvos_bin" build tvos --release --no-codesign -t lib/main.dart \
-  --build-name="$version" --build-number="$number" \
-  --dart-define=SENTRY_DSN= --dart-define=POSTHOG_PROJECT_TOKEN=
+  --build-name="$version" --build-number="$number"
 app="build/tvos/Release-appletvos/Runner.app"
 /usr/libexec/PlistBuddy -c 'Print :CFBundleSupportedPlatforms:0' "$app/Info.plist" | grep -qx AppleTVOS
 # Fail packaging if any engine silently disappeared or an iOS framework leaked in.
@@ -53,3 +53,9 @@ name="openplayx-${version}-tvos-arm64-${revision}.ipa"
 unzip -Z1 "$output/$name" | grep -x 'Payload/OpenPlayX.app/Info.plist' >/dev/null
 (cd "$output" && shasum -a 256 "$name" > "$name.sha256")
 echo "Built $output/$name (unsigned; re-sign before installing)"
+
+if [ -n "${OPX_TVOS_SIGNING_BUNDLE:-${OPX_SIGNING_FILE:-}}" ]; then
+  python3 tool/sign_tvos.py --credentials "${OPX_TVOS_SIGNING_BUNDLE:-$OPX_SIGNING_FILE}" --output "$output/appstore-export"
+  cp "$output/appstore-export/openplayx.ipa" "$output/openplayx-${version}-tvos-appstore-arm64-${revision}.ipa"
+  (cd "$output" && shasum -a 256 "openplayx-${version}-tvos-appstore-arm64-${revision}.ipa" > "openplayx-${version}-tvos-appstore-arm64-${revision}.ipa.sha256")
+fi

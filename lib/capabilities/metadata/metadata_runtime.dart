@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:async';
 
 import 'package:flutter/widgets.dart';
@@ -15,7 +16,11 @@ class MetadataRuntime with WidgetsBindingObserver {
     this.sources, {
     MetadataScheduler? scheduler,
     MetadataQueueRunner Function()? runnerFactory,
-  }) : scheduler = scheduler ?? AndroidMetadataScheduler(),
+  }) : scheduler =
+           scheduler ??
+           (Platform.operatingSystem == 'tvos'
+               ? TVOSMetadataScheduler()
+               : AndroidMetadataScheduler()),
        _runnerFactory =
            runnerFactory ?? (() => MetadataQueueRunner(library, sources));
   final LibraryService library;
@@ -29,7 +34,8 @@ class MetadataRuntime with WidgetsBindingObserver {
   bool _closed = false,
       _refreshing = false,
       _nativeReady = false,
-      _started = false;
+      _started = false,
+      _tvosBackground = false;
   String? _configuration;
 
   /// Inputs of the last full reconcile. Reconcile is O(library) on the UI
@@ -73,7 +79,7 @@ class MetadataRuntime with WidgetsBindingObserver {
   }
 
   Future<void> refresh() async {
-    if (_closed || library.isClosing || _refreshing) return;
+    if (_closed || library.isClosing || _refreshing || _tvosBackground) return;
     _refreshing = true;
     try {
       await sources.reload();
@@ -104,7 +110,7 @@ class MetadataRuntime with WidgetsBindingObserver {
         }
       }
       if (_closed || library.isClosing) return;
-      if (_nativeReady) {
+      if (_nativeReady && Platform.operatingSystem != 'tvos') {
         final queue = _runner!.queue;
         if (queue.pending()) {
           await scheduler.schedule(collect: queue.pending(allowOnline: false));
@@ -127,6 +133,15 @@ class MetadataRuntime with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (Platform.operatingSystem == 'tvos') {
+      _tvosBackground = state != AppLifecycleState.resumed;
+      if (state == AppLifecycleState.paused) {
+        _runner?.stop();
+        if (_nativeReady && (_runner?.queue.pending() ?? false)) {
+          unawaited(scheduler.schedule().catchError((Object _) {}));
+        }
+      }
+    }
     if (state == AppLifecycleState.resumed && !_closed && !library.isClosing) {
       library.checkExternalChanges();
       unawaited(refresh());

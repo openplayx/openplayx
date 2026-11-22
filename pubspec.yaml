@@ -33,6 +33,14 @@ dependencies:
 
   openplayx_playback:
     path: packages/playback
+  posthog_flutter_tvos:
+    path: packages/posthog_flutter_tvos
+  sentry_flutter_tvos:
+    path: packages/sentry_flutter_tvos
+  record_tvos:
+    path: packages/record_tvos
+  tvos_services:
+    path: packages/tvos_services
   vlc_player_tvos:
     path: packages/vlc_player_tvos
   path_provider_tvos:

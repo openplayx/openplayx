@@ -1,0 +1,14 @@
+name: posthog_flutter_tvos
+description: OpenPlayX tvOS adapter for posthog_flutter 5.61.0.
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: ^3.13.7
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      tvos:
+        pluginClass: PosthogFlutterPlugin

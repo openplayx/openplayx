@@ -1,3 +1,7 @@
+import 'dart:io';
+
+import 'package:sentry_flutter_tvos/sentry_flutter_tvos.dart';
+
 import 'dart:async';
 
 import '../analytics/analytics_service.dart';
@@ -76,6 +80,7 @@ Future<void> runWithDiagnostics(
             ..transport = SentryOptions().transport;
         }
       },
+      options: Platform.operatingSystem == 'tvos' ? tvosSentryOptions() : null,
       appRunner: () async {
         started = true;
         await start();

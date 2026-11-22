@@ -1,0 +1,16 @@
+name: tvos_services
+description: Native Apple TV authentication and file selection services.
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: ^3.13.7
+dependencies:
+  file_selector_platform_interface: ^2.7.0
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      tvos:
+        pluginClass: TVServicesPlugin
+        dartPluginClass: TVOSFileSelector

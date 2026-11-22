@@ -1,0 +1,16 @@
+name: sentry_flutter_tvos
+description: OpenPlayX tvOS adapter for sentry_flutter 10.3.0.
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: ^3.13.7
+dependencies:
+  sentry: 10.3.0
+  sentry_flutter: 10.3.0
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      tvos:
+        pluginClass: SentryFlutterPlugin

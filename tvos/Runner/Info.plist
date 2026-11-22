@@ -53,6 +53,11 @@
       </array>
     </dict>
   </dict>
+  <key>com.posthog.posthog.AUTO_INIT</key><false/>
+  <key>NSMicrophoneUsageDescription</key><string>Record voice input using a connected continuity microphone.</string>
+  <key>NSCameraUsageDescription</key><string>Connect your iPhone or iPad as a continuity input device.</string>
+  <key>BGTaskSchedulerPermittedIdentifiers</key><array><string>com.openplayx.app.metadata</string></array>
+  <key>UIBackgroundModes</key><array><string>processing</string><string>audio</string></array>
   <key>NSLocalNetworkUsageDescription</key>
   <string>OpenPlayX connects to your media servers and network storage.</string>
   <key>NSAppTransportSecurity</key>

@@ -1,95 +1,110 @@
-# Apple TV (tvOS), experimental — v0.0.4
+# Apple TV (tvOS) — v0.0.4
 
-The Apple TV build reuses the OpenPlayX Dart application with a dedicated
-`tvos/` Xcode runner and a TVVLCKit implementation of the existing VLC channel
-contract. It requires tvOS 15 or later, arm64. Flutter upstream does not support
-tvOS; this target uses [flutter-tvos](https://github.com/fluttertv/flutter-tvos).
+The dedicated tvOS runner reuses the OpenPlayX Dart app. Minimum OS: **tvOS 17**,
+ARM64. Flutter upstream does not support tvOS; this target uses FlutterTV CLI
+1.12.2, commit `1540a52432331d9bf998a51f34eb2d006ef362f6`, Flutter 3.50.1,
+Dart 3.14.0 and Xcode 27.2.
 
-## Install
+## Included functionality
 
-Download the `*-tvos-arm64-*.ipa` asset from v0.0.4 on GitHub Releases.
-It is **unsigned**: re-sign it with your own Apple developer certificate and
-a provisioning profile covering your Apple TV before sideloading. It is not
-an App Store or TestFlight download and cannot be installed by opening a web
-link on Apple TV. A macOS ZIP, iOS IPA or Android TV APK cannot replace it.
+- TVVLCKit 3.7.3 playback, full existing FFmpeg 7.1.1 codec set and sing-box
+  1.12.12 remote-access core.
+- Native Sentry Cocoa 9.32.0 and PostHog iOS SDK 3.98.2 adapters. Neither is
+  disabled by build defines. Sentry maps tvOS to its Darwin/iOS native integration
+  because its Dart platform enum has no tvOS value; Cocoa supplies tvOS contexts.
+  PostHog events, identity/session and errors use its official tvOS SDK. Upstream
+  iOS-only replay, surveys and push APIs are not advertised as tvOS features.
+- Native ASWebAuthenticationSession nearby-device authentication, using the
+  existing OAuth state/PKCE checks and publisher client configuration. Apple TV
+  does not provide an embedded browser. Provider acceptance requires configured
+  publisher client IDs and a nearby device; it is not verified by the smoke test.
+- A remote-compatible native file/folder picker for real app-owned local files.
+  tvOS does not expose iPhone's system document picker or unrestricted storage.
+- Audio recording through record_ios 1.2.0's native AVAudioRecorder/AVAudioEngine
+  implementation, with Apple's Continuity device picker before voice recording.
+  Connect a compatible iPhone/iPad microphone. This does not access the Siri
+  Remote's private Siri microphone stream. iPhone speaker-route/muted-interruption
+  flags have no tvOS equivalents; TV audio output remains system-managed.
+- BGTaskScheduler processing with an independent Flutter engine and metadata
+  queue dispatcher. Foreground metadata continues immediately; unfinished work
+  is scheduled on suspension. The OS controls execution and expiry. The simulator
+  returns background scheduling unavailable, so OS-launched background execution
+  remains a physical-device acceptance item.
+- whisper.cpp 1.9.5 with Metal, Core ML and Accelerate compiled for tvOS. Device
+  builds enable Metal. MTLSimDevice traps on Whisper weight buffer uploads, so
+  simulator builds use Core ML/CPU instead. CUDA/Vulkan are not Apple TV backends.
+- Offline multilingual tiny weights and its Core ML encoder, included as verified
+  build-time resources. Fresh tvOS installations select tiny by default. The model
+  store installs them into writable cache and restores them if tvOS purges it.
+  Other catalogue models remain downloadable.
 
-Hardware installation and Siri Remote interaction have not been verified.
-This release is experimental; do not treat simulator coverage as device coverage.
+Physical Apple TV installation, OS-scheduled task execution, nearby-device OAuth,
+Continuity microphone capture and physical remote interaction remain unverified.
+The APIs and plugins are compiled and wired; this is not a claim of hardware tests.
+Continuity input requires Apple TV 4K (2nd generation or later), tvOS 17+, and a
+compatible iPhone/iPad with iOS/iPadOS 17+.
 
-## Build
+## Downloads and signing
 
-Use Xcode with the tvOS SDK, CocoaPods, and the sibling dependencies described
-in the main README. The verified toolchain is flutter-tvos commit
-`1540a52432331d9bf998a51f34eb2d006ef362f6` (CLI 1.12.2), Flutter 3.50.1,
-Dart 3.14.0, Xcode 27.2, TVVLCKit 3.7.3, FFmpeg 7.1.1, whisper.cpp 1.9.5 and sing-box 1.12.12. tvOS companion plugins are pinned in
-`pubspec.yaml` and `pubspec.lock`. The native package source revisions are
-FFmpeg package `8d298bf` and Whisper package `0ab95a6`; use these companion
-revisions when reproducing this Apple TV build.
+GitHub Releases offers the normal `*-tvos-arm64-*.ipa` for user re-signing and
+`*-tvos-appstore-arm64-*.ipa`, exported with a verified Apple Distribution
+signature and App Store profile. The latter is for Apple distribution and cannot
+be installed merely by tapping a download link. It is not an ad-hoc profile for
+arbitrary devices, and an exported IPA alone is not a public TestFlight release.
 
-```sh
-git clone https://github.com/fluttertv/flutter-tvos.git /tmp/flutter-tvos
-git -C /tmp/flutter-tvos checkout 1540a52432331d9bf998a51f34eb2d006ef362f6
-/tmp/flutter-tvos/bin/flutter-tvos precache
-FLUTTER_TVOS_BIN=/tmp/flutter-tvos/bin/flutter-tvos bash tool/build_tvos.sh
-```
+The build first compiles an unsigned staging app, then signs during App Store
+export. `codesign --verify --deep --strict` and the Apple Distribution authority
+are checked on the actual exported IPA. No tester invitations or notifications
+are sent by the signing script.
 
-The script builds the **main application** in release mode and creates an IPA
-under `build/tvos-artifacts/`, plus a SHA-256 checksum. It does not upload anything.
-Analytics and Sentry native integrations are disabled in this build because
-their tvOS plugins have not been ported. The system SQLite dylib is loaded
-explicitly: the tvOS embedder does not generate Dart native-asset mappings.
+## Reproduce
 
-The FFmpeg and Whisper `tvos/` podspecs build the same pinned sources and codec
-recipes used by other platforms, with separate `tvos-arm64` and
-`tvos-sim-arm64` outputs. iOS static archives are never linked into tvOS.
-The remote core is built as a Go `ios/arm64` C archive with the actual tvOS
-SDK and target triple, as supported by Go's tvOS linker test.
-
-The tvOS runner uses the existing `com.openplayx.app` bundle ID. Signing for a
-store release must configure the matching Apple developer team and tvOS profile.
-
-## Storage and capability limits
-
-- tvOS writes configuration, library indexes and generated files under
-  `Library/Caches/OpenPlayX`. The OS may purge these files. Reconfigure sources
-  and rebuild indexes if this happens; this is not durable library storage.
-- VLC playback and the shared source adapters are present. The simulator
-  smoke check covers SQLite, cache writes, MP4 decoding, pause, seeking and
-  resuming. It does not verify all server protocols or media formats.
-- FFmpeg (with the existing x264/x265/AV1/VP8/VP9/MP3/Opus codec set),
-  whisper.cpp CPU recognition, and the sing-box transport core are included as
-  native tvOS libraries. Model weights use the existing model catalogue and
-  download flow; they are not embedded in the IPA.
-- Local file selection, browser OAuth, microphone recording and background-task
-  plugins have not been ported. Use network sources with directly configured
-  credentials. These OS/plugin limitations do not remove FFmpeg media processing,
-  speech-to-text from media files, or the remote-access core.
-- The whole UI consumes TV overscan margins once so sidebar controls retain
-  their width. Existing directional focus and select-to-Enter handling are
-  reused; physical remote acceptance is still pending.
-
-## Native smoke check
+Sibling FFmpeg, Whisper and SMB checkouts are required as described in README.
+Use the pinned FlutterTV toolchain above, CocoaPods, CMake, pkg-config, Go, Python,
+OpenSSL and Xcode with tvOS SDKs.
 
 ```sh
-flutter-tvos run -d <Apple-TV-simulator-id> -t tool/tvos_smoke.dart
+bash tool/prepare_tvos_models.sh
+FLUTTER_TVOS_BIN=/path/to/flutter-tvos/bin/flutter-tvos \
+OPX_TVOS_SIGNING_BUNDLE=/private/path/asc-api-bundle.zip \
+bash tool/build_tvos.sh
 ```
 
-The test creates isolated probe databases and copies bundled test video/speech into
-the app cache. Read `Library/Caches/OpenPlayX/tvos-smoke.json` in the simulator
-container. A passing result has `status: passed`, with `sqlite`, `storage`,
-`decode`, `pause`, `seek_resume`, `ffmpeg_probe_snapshot`,
-`whisper_transcribe`, and `remote_start_stop` all `passed`. Seed the pinned
-`ggml-tiny.bin` model in the same cache directory before running this check;
-its expected SHA-256 is
-`be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`. The shipped IPA uses
-`lib/main.dart`, never this test entry point.
+Omit the credential variable to build only a re-signable IPA. Credentials are not
+committed or embedded. Outputs go to `build/tvos-artifacts/`, outside FlutterTV's
+asset staging tree. The script rejects an IPA with an invalid Payload layout,
+missing native bridges or non-tvOS frameworks. Build source is `lib/main.dart`.
 
-## Third-party sources
+## Verification
 
-The adapter in `packages/vlc_player_tvos` is adapted from vlc_player 2.1.2,
-MIT, Copyright (c) 2026 lingjhf; its license is preserved there. TVVLCKit 3.7.3
-is obtained from the checksummed CocoaPods spec. Source:
-https://code.videolan.org/videolan/VLCKit/-/tree/319ed2c0 and
-https://code.videolan.org/videolan/vlc/-/tree/79128878 .
-The FlutterTV CLI, engine patches and plugins retain their upstream licenses:
-https://github.com/fluttertv/flutter-tvos and https://github.com/fluttertv/plugins.
+`tool/tvos_smoke.dart` exercises SQLite/cache, VLC decode/pause/seek/resume,
+FFmpeg probe/snapshot and remote-core lifecycle. `tool/tvos_plugins_smoke.dart`
+checks native services and file-picker registration, authentication URL validation,
+WAV encoder availability, offline model installation, enabled backend reporting,
+real transcription and native Sentry/PostHog capture into a local HTTP collector.
+It does not contact production telemetry or authorize a real cloud account.
+Hardware-dependent checks are reported explicitly, not fabricated as passed.
+
+```sh
+flutter-tvos run -d <Apple-TV-simulator-id> -t tool/tvos_plugins_smoke.dart
+```
+
+Reports are written under `Library/Caches/OpenPlayX/`. tvOS may purge configuration,
+indexes and generated artifacts in that directory; use server sources as the
+recoverable source of media.
+
+## Sources, licenses and models
+
+Native adapters preserve upstream licenses in their package directories. Runtime
+license copies are generated into the tvOS model resource bundle and sideload IPA.
+SDK revisions are pinned in Package.swift/Package.resolved. Model weights are never
+committed; `prepare_tvos_models.sh` verifies downloads before embedding them:
+
+- ggml-tiny.bin (77,691,713 bytes): SHA-256
+  `be07e048e1e599ad46341c8d2a135645097a538221678b7acdd1b1919c6e1b21`.
+- ggml-tiny-encoder.mlmodelc.zip (15,037,446 bytes): SHA-256
+  `c88cbd2648e1f5415092bcf5256add463a0f19943e6938f46e8d4ffdebd47739`.
+- Model source: https://huggingface.co/ggerganov/whisper.cpp ; OpenAI Whisper weights
+  retain their upstream MIT terms: https://github.com/openai/whisper .
+- TVVLCKit source: https://code.videolan.org/videolan/VLCKit/-/tree/319ed2c0
+  and https://code.videolan.org/videolan/vlc/-/tree/79128878 .

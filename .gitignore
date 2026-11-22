@@ -59,3 +59,10 @@ sentry.properties
 # Generated Go core libraries and toolchain output
 native/remote_access/build/
 native/remote_access/remote_access
+
+# Verified build-time model assets; never commit model weights.
+/packages/tvos_services/tvos/Resources/*.bin
+
+/packages/tvos_services/tvos/Resources/*.mlmodelc/
+
+/packages/tvos_services/tvos/Resources/Licenses/

@@ -1,3 +1,5 @@
+import 'package:flutter/services.dart';
+
 import '../../data/storage/app_directories.dart';
 
 import 'dart:async';
@@ -139,6 +141,46 @@ class AsrModelStore {
   Future<Set<String>> installed() async {
     final m = await _read();
     final dir = await root;
+    if (Platform.operatingSystem == 'tvos' &&
+        dir != null &&
+        !m.containsKey('whisper-tiny-multilingual')) {
+      final path = await const MethodChannel('openplayx/tvos')
+          .invokeMethod<String>('bundledWhisperModel');
+      if (path != null) {
+        final spec = asrModelSpec('whisper-tiny-multilingual')!;
+        final bundled = File(path);
+        if (await bundled.length() == spec.bytes &&
+            await sha256File(bundled) == spec.sha256) {
+          await dir.create(recursive: true);
+          await bundled.copy('${dir.path}/${spec.file}');
+          final coreml = Directory(
+            '${bundled.parent.path}/ggml-tiny-encoder.mlmodelc',
+          );
+          if (await coreml.exists()) {
+            final destination = Directory(
+              '${dir.path}/ggml-tiny-encoder.mlmodelc',
+            );
+            await destination.create(recursive: true);
+            await for (final entity in coreml.list(
+              recursive: true,
+              followLinks: false,
+            )) {
+              final suffix = entity.path.substring(coreml.path.length);
+              if (entity is Directory)
+                await Directory('${destination.path}$suffix')
+                    .create(recursive: true);
+              if (entity is File) {
+                final target = File('${destination.path}$suffix');
+                await target.parent.create(recursive: true);
+                await entity.copy(target.path);
+              }
+            }
+          }
+          m[spec.id] = {'sha256': spec.sha256, 'bytes': spec.bytes};
+          await _write(m);
+        }
+      }
+    }
     if (dir == null) return {};
     return {
       for (final id in m.keys)

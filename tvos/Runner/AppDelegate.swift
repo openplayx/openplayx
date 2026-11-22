@@ -1,6 +1,7 @@
 import Flutter
 import UIKit
 import Darwin
+import tvos_services
 
 @main
 @objc class AppDelegate: FlutterAppDelegate, FlutterImplicitEngineDelegate {
@@ -13,6 +14,10 @@ import Darwin
     guard dlopen("/usr/lib/libsqlite3.dylib", RTLD_NOW | RTLD_GLOBAL) != nil else {
       fatalError("Unable to load tvOS SQLite")
     }
+    TVServicesPlugin.registerBackgroundPlugins = { registry in
+      GeneratedPluginRegistrant.register(with: registry)
+    }
+    TVServicesPlugin.registerBackgroundTask()
     return super.application(application, didFinishLaunchingWithOptions: launchOptions)
   }
 

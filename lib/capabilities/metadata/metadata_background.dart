@@ -1,3 +1,6 @@
+import 'package:flutter/services.dart';
+import 'package:flutter/widgets.dart';
+
 import '../../data/diagnostics/diagnostics_bootstrap.dart';
 
 import 'dart:async';
@@ -124,5 +127,56 @@ class AndroidMetadataScheduler implements MetadataScheduler {
         backoffPolicyDelay: const Duration(seconds: 30),
       );
     }
+  }
+}
+
+/// tvOS launches a dedicated engine for the OS-scheduled processing task.
+@pragma('vm:entry-point')
+Future<void> tvosMetadataBackgroundMain() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  const channel = MethodChannel('openplayx/tvos_background');
+  MetadataQueueRunner? runner;
+  LibraryService? library;
+  SourceManager? sources;
+  channel.setMethodCallHandler((call) async {
+    if (call.method == 'stop') runner?.stop();
+  });
+  var succeeded = false;
+  try {
+    library = await LibraryService.open(
+      recoverInterrupted: false,
+      databaseName: metadataDatabaseName,
+      watchExternalChanges: false,
+    );
+    sources = SourceManager();
+    await sources.load();
+    runner = MetadataQueueRunner(library, sources);
+    await runner.reconcile();
+    await runner.runBatch(allowOnline: true);
+    succeeded = !runner.queue.pending(allowOnline: true);
+    if (!succeeded)
+      await const MethodChannel('openplayx/tvos')
+          .invokeMethod<void>('scheduleMetadata', {'online': true});
+  } finally {
+    await runner?.dispose();
+    await sources?.dispose();
+    library?.close();
+    await channel.invokeMethod<void>('complete', succeeded);
+  }
+}
+
+class TVOSMetadataScheduler implements MetadataScheduler {
+  static const _channel = MethodChannel('openplayx/tvos');
+  @override
+  bool get native => Platform.operatingSystem == 'tvos';
+  @override
+  Future<void> initialize() async {
+    if (native) await schedule();
+  }
+
+  @override
+  Future<void> schedule({bool collect = true, bool online = true}) async {
+    if (native && (collect || online))
+      await _channel.invokeMethod<void>('scheduleMetadata', {'online': online});
   }
 }
