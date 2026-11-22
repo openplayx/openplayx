@@ -1,4 +1,4 @@
-# Apple TV (tvOS) — v0.0.4
+# Apple TV (tvOS) — v0.0.5
 
 The dedicated tvOS runner reuses the OpenPlayX Dart app. Minimum OS: **tvOS 17**,
 ARM64. Flutter upstream does not support tvOS; this target uses FlutterTV CLI
@@ -59,6 +59,13 @@ framework signatures are normalized to their Info.plist identifiers; otherwise
 Sentry’s static resource framework can pass local verification but fail Apple’s
 upload validator. No tester invitations or notifications
 are sent by the signing script.
+
+The Jenkins tvOS target continues after signing: it uploads the archive to App
+Store Connect, waits for the exact tvOS version/build number to finish processing,
+and submits it to external TestFlight review when eligible. The build number comes
+from Jenkins, so retries produce distinct uploads. Apple review may remain pending;
+the manifest records the platform, public invitation URL, expiry and current state.
+The app declares `ITSAppUsesNonExemptEncryption=false` as instructed by its owner.
 
 ## Reproduce
 
