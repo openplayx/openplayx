@@ -129,7 +129,10 @@ Future<void> main() async {
       options
         ..dsn = 'http://public@127.0.0.1:${server!.port}/1'
         ..autoSessionTrackingInterval = const Duration(seconds: 5);
-    }, options: tvosSentryOptions());
+    },
+    // Sentry 10.3 needs this options hook for the tvOS platform adapter.
+    // ignore: invalid_use_of_internal_member
+    options: tvosSentryOptions());
     await Sentry.captureMessage('tvos_native_sentry_smoke');
     final end = DateTime.now().add(const Duration(seconds: 15));
     while (DateTime.now().isBefore(end) &&

@@ -80,6 +80,8 @@ Future<void> runWithDiagnostics(
             ..transport = SentryOptions().transport;
         }
       },
+      // Sentry 10.3 needs this options hook for the tvOS platform adapter.
+      // ignore: invalid_use_of_internal_member
       options: Platform.operatingSystem == 'tvos' ? tvosSentryOptions() : null,
       appRunner: () async {
         started = true;
