@@ -19,6 +19,14 @@ for arch in ${ARCHS:?}; do
       flags="$flags -target $arch-apple-ios15.0"
     fi
   fi
+  if [[ "${PLATFORM_NAME}" == appletv* ]]; then
+    export GOOS=ios
+    if [[ "${PLATFORM_NAME}" == appletvsimulator ]]; then
+      flags="$flags -target $arch-apple-tvos15.0-simulator"
+    else
+      flags="$flags -target $arch-apple-tvos15.0"
+    fi
+  fi
   archive="${DERIVED_FILE_DIR:?}/remote-$arch.a"
   export CGO_CFLAGS="$flags" CGO_LDFLAGS="$flags" CC="$(xcrun --find clang)"
   CGO_ENABLED=1 go build -trimpath -tags with_reality,with_utls -buildmode=c-archive -o "$archive" .

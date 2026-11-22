@@ -14,6 +14,7 @@ project 'Runner', {
 
 target 'Runner' do
   use_frameworks!
+  pod 'OpenPlayXRemote', :path => '../native/remote_access'
 
   # Install plugin pods from .flutter-plugins-dependencies
   flutter_plugins_deps = File.expand_path(File.join('..', '.flutter-plugins-dependencies'), File.dirname(__FILE__))

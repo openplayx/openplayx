@@ -8,6 +8,7 @@ Pod::Spec.new do |s|
   s.source = { :git => 'https://github.com/openplayx/openplayx.git' }
   s.source_files = 'anchor.c'
   s.ios.deployment_target = '15.0'
+  s.tvos.deployment_target = '15.0'
   s.osx.deployment_target = '12.0'
   s.static_framework = true
   s.frameworks = 'Security', 'SystemConfiguration', 'CoreFoundation', 'Network'
