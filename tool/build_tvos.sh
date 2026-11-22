@@ -44,7 +44,7 @@ cp packages/vlc_player_tvos/LICENSE "$work/Payload/OpenPlayX.app/Licenses/vlc_pl
 cp tvos/Pods/TVVLCKit/COPYING.txt "$work/Payload/OpenPlayX.app/Licenses/TVVLCKit-COPYING.txt"
 cp -R ../ffmpeg-package/LICENSES "$work/Payload/OpenPlayX.app/Licenses/FFmpeg-codecs"
 cp ../package-whisper/LICENSE "$work/Payload/OpenPlayX.app/Licenses/openplayx-whisper-LICENSE.txt"
-cp ../package-whisper/third_party/whisper/src/whisper.cpp-1.9.5/LICENSE "$work/Payload/OpenPlayX.app/Licenses/whisper.cpp-LICENSE.txt"
+cp ../package-whisper/LICENSES/whisper.cpp-LICENSE.txt "$work/Payload/OpenPlayX.app/Licenses/whisper.cpp-LICENSE.txt"
 cp native/remote_access/LICENSE "$work/Payload/OpenPlayX.app/Licenses/remote-LICENSE.txt"
 cp native/remote_access/COPYING "$work/Payload/OpenPlayX.app/Licenses/remote-COPYING.txt"
 cp docs/tvos.md "$work/Payload/OpenPlayX.app/Licenses/tvos-build.md"
