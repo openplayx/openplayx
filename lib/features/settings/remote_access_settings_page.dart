@@ -1,11 +1,13 @@
 import 'package:flutter/material.dart';
 
 import 'platform_login_page.dart';
+import 'platform_register_page.dart';
 
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/remote_access/remote_access_service.dart';
 import '../../capabilities/sources/source_manager.dart';
+import '../sources/view/hidden_connector_sources.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/forms/form_actions.dart';
 import '../../ui/components/settings/settings_adaptive.dart';
@@ -143,60 +145,34 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   }
 
   Future<void> _register() async {
-    final l = AppLocalizations.of(context);
-    final email = TextEditingController(text: _service?.account.email);
-    try {
-      final address = await pushSettingsPage<String>(
-        context,
-        title: l.remotePlatformRegister,
-        children: (c) => [
-          SettingsSection(
-            footer: l.remotePlatformRegisterHint,
-            children: [
-              ShadInput(
-                key: const ValueKey('relay-registration-email'),
-                controller: email,
-                placeholder: Text(l.remotePlatformEmail),
-                keyboardType: TextInputType.emailAddress,
-                autocorrect: false,
-              ),
-            ],
-          ),
-          FormActions([
-            FormAction.primary(l.remotePlatformSendRegistration, () {
-              final value = email.text.trim();
-              if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
-                showAppToast(
-                  c,
-                  l.remotePlatformInvalidEmail,
-                  kind: FeedbackKind.error,
-                );
-                return;
-              }
-              Navigator.pop(c, value);
-            }, key: const ValueKey('relay-registration-submit')),
-          ]),
-        ],
-      );
-      if (address == null || !mounted) return;
-      await _run(
-        l.loading,
-        () => _service!.account.requestRegistration(address),
-        done: l.remotePlatformRegistrationSent,
-      );
-    } finally {
-      // Route exit animations may still retain the input briefly.
-      WidgetsBinding.instance.addPostFrameCallback((_) => email.dispose());
-    }
+    if (_busy || _service == null) return;
+    final account = _service!.account;
+    final email = await Navigator.of(context).push<String>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'PlatformRegisterPage'),
+        builder: (_) => PlatformRegisterPage(
+          email: account.email,
+          request: account.requestRegistration,
+          complete: account.completeRegistration,
+        ),
+      ),
+    );
+    if (email == null || !mounted) return;
+    showAppToast(
+      context,
+      AppLocalizations.of(context).remotePlatformRegistered,
+      kind: FeedbackKind.success,
+    );
+    await _login(email: email);
   }
 
-  Future<void> _login() async {
+  Future<void> _login({String? email}) async {
     if (_busy || _service == null) return;
     await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         settings: const RouteSettings(name: 'PlatformLoginPage'),
         builder: (_) => PlatformLoginPage(
-          email: _service!.account.email,
+          email: email ?? _service!.account.email,
           login: _service!.loginPlatform,
         ),
       ),
@@ -315,6 +291,22 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
         if (service.platformError != null)
           SettingsRow(
             title: l.remotePlatformRequestFailed(service.platformError!),
+          ),
+        // Restoring hidden connector sources lives here, so the Sources page
+        // stays free of connector controls when nothing is pending.
+        if (service.account.signedIn)
+          SettingsRow(
+            key: const ValueKey('remote-hidden-sources'),
+            title: l.connectorSourcesHidden,
+            control: Text(
+              '${widget.sources.discoveredSources.where(widget.sources.sourceHidden).length}',
+            ),
+            onTap: _busy
+                ? null
+                : () async {
+                    await showHiddenConnectorSources(context, widget.sources);
+                    if (mounted) setState(() {});
+                  },
           ),
         FormActions([
           if (service.account.signedIn)

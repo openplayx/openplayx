@@ -351,6 +351,12 @@ class AppLocalizationsEn extends AppLocalizations {
   String get showPassword => 'Show password';
 
   @override
+  String get copyPassword => 'Copy password';
+
+  @override
+  String get passwordCopied => 'Password copied';
+
+  @override
   String get address => 'Address';
 
   @override
@@ -663,6 +669,13 @@ class AppLocalizationsEn extends AppLocalizations {
   String readSpeed(String speed) {
     return '$speed MB/s';
   }
+
+  @override
+  String get plRemoteBadge => 'Remote';
+
+  @override
+  String get plRemoteBadgeTip =>
+      'Streaming through remote access. Uses server traffic.';
 
   @override
   String get notVerified => 'Not verified yet';
@@ -4401,14 +4414,60 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remotePlatformRegisterHint =>
-      'We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.';
+      'Enter your email. We\'ll send a 6-digit verification code to finish registering here.';
 
   @override
-  String get remotePlatformSendRegistration => 'Send registration email';
+  String get remotePlatformSendRegistration => 'Send verification code';
 
   @override
   String get remotePlatformRegistrationSent =>
-      'If this email can be registered, a setup link has been sent. Check your inbox and spam folder.';
+      'If this email can be registered, a verification code has been sent. Check your inbox and spam folder.';
+
+  @override
+  String remotePlatformCodeSentTo(String email) {
+    return 'Enter the 6-digit code sent to $email and set a password. The code expires in 30 minutes.';
+  }
+
+  @override
+  String get remotePlatformCode => 'Verification code';
+
+  @override
+  String get remotePlatformNewPassword => 'Password (at least 12 characters)';
+
+  @override
+  String get remotePlatformConfirmPassword => 'Confirm password';
+
+  @override
+  String get remotePlatformCompleteRegistration => 'Create account';
+
+  @override
+  String get remotePlatformResendCode => 'Resend code';
+
+  @override
+  String remotePlatformResendCodeIn(int seconds) {
+    return 'Resend in ${seconds}s';
+  }
+
+  @override
+  String get remotePlatformChangeEmail => 'Change email';
+
+  @override
+  String get remotePlatformInvalidCode => 'The verification code is incorrect.';
+
+  @override
+  String get remotePlatformCodeExpired =>
+      'This code has expired or had too many wrong attempts. Send a new code.';
+
+  @override
+  String get remotePlatformPasswordTooShort =>
+      'Password must be at least 12 characters.';
+
+  @override
+  String get remotePlatformPasswordMismatch => 'Passwords do not match.';
+
+  @override
+  String get remotePlatformRegistered =>
+      'Account created. Sign in with your new password.';
 
   @override
   String get remotePlatformInvalidEmail => 'Enter a valid email address.';

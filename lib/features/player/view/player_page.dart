@@ -1064,23 +1064,56 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   }
 
   /// Current position text, honouring the remaining-time preference.
-  /// Player input read speed shown beside the time (docs: 读取速度).
-  Widget _readSpeedLabel(PlayerSnapshot value) => Text(
-    l.readSpeed(
-      value.readSpeedMBps == null
-          ? '--'
-          : value.readSpeedMBps!.toStringAsFixed(2),
-    ),
-    key: const Key('playback-read-speed'),
-    maxLines: 1,
-    overflow: TextOverflow.ellipsis,
-    style: const TextStyle(
-      color: PlayerStyle.muted,
-      fontSize: 12,
-      fontFeatures: PlayerStyle.tabular,
-      shadows: PlayerStyle.shadow,
-    ),
-  );
+  /// Player input read speed shown beside the time (docs: 读取速度), tagged
+  /// when the stream goes through remote access and uses server traffic.
+  Widget _readSpeedLabel(PlayerSnapshot value) {
+    final speed = Text(
+      l.readSpeed(
+        value.readSpeedMBps == null
+            ? '--'
+            : value.readSpeedMBps!.toStringAsFixed(2),
+      ),
+      key: const Key('playback-read-speed'),
+      maxLines: 1,
+      overflow: TextOverflow.ellipsis,
+      style: const TextStyle(
+        color: PlayerStyle.muted,
+        fontSize: 12,
+        fontFeatures: PlayerStyle.tabular,
+        shadows: PlayerStyle.shadow,
+      ),
+    );
+    if (!_playerState.remote) return speed;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Flexible(child: speed),
+        const SizedBox(width: 6),
+        Tooltip(
+          message: l.plRemoteBadgeTip,
+          triggerMode: TooltipTriggerMode.tap,
+          child: Container(
+            key: const Key('playback-remote-badge'),
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 1.5),
+            decoration: BoxDecoration(
+              color: PlayerStyle.remote.withValues(alpha: 0.18),
+              borderRadius: BorderRadius.circular(3),
+            ),
+            child: Text(
+              l.plRemoteBadge,
+              maxLines: 1,
+              style: const TextStyle(
+                color: PlayerStyle.remote,
+                fontSize: 10,
+                fontWeight: FontWeight.w600,
+                height: 1.2,
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
 
   String _timeText(PlayerSnapshot value, double position) {
     final duration = value.duration;

@@ -108,6 +108,8 @@
   "connectionFormFailed": "连接失败，请检查地址和登录信息。",
   "hidePassword": "隐藏密码",
   "showPassword": "显示密码",
+  "copyPassword": "复制密码",
+  "passwordCopied": "密码已复制",
   "address": "地址",
   "addressHint": "192.168.1.10 或 https://media.example.com",
   "username": "用户名",
@@ -299,6 +301,8 @@
       }
     }
   },
+  "plRemoteBadge": "远程",
+  "plRemoteBadgeTip": "经远程访问中转，会消耗服务器流量",
   "notVerified": "尚未验证",
   "disabled": "已禁用",
   "pendingApply": "待应用",
@@ -1440,9 +1444,36 @@
   },
   "remotePlatformNotLoaded": "尚未加载平台配置，请刷新。",
   "remotePlatformRegister": "注册平台账号",
-  "remotePlatformRegisterHint": "我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。",
-  "remotePlatformSendRegistration": "发送注册邮件",
-  "remotePlatformRegistrationSent": "如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。",
+  "remotePlatformRegisterHint": "输入邮箱，我们会发送 6 位验证码，在这里即可完成注册。",
+  "remotePlatformSendRegistration": "发送验证码",
+  "remotePlatformRegistrationSent": "如果该邮箱可注册，验证码已发送，请检查收件箱及垃圾邮件。",
+  "remotePlatformCodeSentTo": "输入发送到 {email} 的 6 位验证码并设置密码。验证码 30 分钟内有效。",
+  "@remotePlatformCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePlatformCode": "验证码",
+  "remotePlatformNewPassword": "密码（至少 12 位）",
+  "remotePlatformConfirmPassword": "确认密码",
+  "remotePlatformCompleteRegistration": "完成注册",
+  "remotePlatformResendCode": "重新发送验证码",
+  "remotePlatformResendCodeIn": "{seconds} 秒后可重新发送",
+  "@remotePlatformResendCodeIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformChangeEmail": "更换邮箱",
+  "remotePlatformInvalidCode": "验证码不正确。",
+  "remotePlatformCodeExpired": "验证码已过期或错误次数过多，请重新发送。",
+  "remotePlatformPasswordTooShort": "密码至少需要 12 位。",
+  "remotePlatformPasswordMismatch": "两次输入的密码不一致。",
+  "remotePlatformRegistered": "注册成功，请使用新密码登录。",
   "remotePlatformInvalidEmail": "请输入有效的邮箱地址。",
   "remoteTabCloud": "云端",
   "remoteTabLocal": "本地导入",

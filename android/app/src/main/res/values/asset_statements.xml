@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Links the App to openplayx.com so the system password manager shares
+         saved account passwords between them (Digital Asset Links). -->
+    <string name="asset_statements" translatable="false">[{\"include\": \"https://openplayx.com/.well-known/assetlinks.json\"}]</string>
+</resources>

@@ -108,6 +108,8 @@
   "connectionFormFailed": "Connection failed. Check the address and credentials.",
   "hidePassword": "Hide password",
   "showPassword": "Show password",
+  "copyPassword": "Copy password",
+  "passwordCopied": "Password copied",
   "address": "Address",
   "addressHint": "192.168.1.10 or https://media.example.com",
   "username": "Username",
@@ -323,6 +325,8 @@
       }
     }
   },
+  "plRemoteBadge": "Remote",
+  "plRemoteBadgeTip": "Streaming through remote access. Uses server traffic.",
   "notVerified": "Not verified yet",
   "disabled": "Disabled",
   "pendingApply": "Pending",
@@ -2102,9 +2106,36 @@
   },
   "remotePlatformNotLoaded": "Platform configuration has not loaded. Refresh to try again.",
   "remotePlatformRegister": "Register platform account",
-  "remotePlatformRegisterHint": "We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.",
-  "remotePlatformSendRegistration": "Send registration email",
-  "remotePlatformRegistrationSent": "If this email can be registered, a setup link has been sent. Check your inbox and spam folder.",
+  "remotePlatformRegisterHint": "Enter your email. We'll send a 6-digit verification code to finish registering here.",
+  "remotePlatformSendRegistration": "Send verification code",
+  "remotePlatformRegistrationSent": "If this email can be registered, a verification code has been sent. Check your inbox and spam folder.",
+  "remotePlatformCodeSentTo": "Enter the 6-digit code sent to {email} and set a password. The code expires in 30 minutes.",
+  "@remotePlatformCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePlatformCode": "Verification code",
+  "remotePlatformNewPassword": "Password (at least 12 characters)",
+  "remotePlatformConfirmPassword": "Confirm password",
+  "remotePlatformCompleteRegistration": "Create account",
+  "remotePlatformResendCode": "Resend code",
+  "remotePlatformResendCodeIn": "Resend in {seconds}s",
+  "@remotePlatformResendCodeIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformChangeEmail": "Change email",
+  "remotePlatformInvalidCode": "The verification code is incorrect.",
+  "remotePlatformCodeExpired": "This code has expired or had too many wrong attempts. Send a new code.",
+  "remotePlatformPasswordTooShort": "Password must be at least 12 characters.",
+  "remotePlatformPasswordMismatch": "Passwords do not match.",
+  "remotePlatformRegistered": "Account created. Sign in with your new password.",
   "remotePlatformInvalidEmail": "Enter a valid email address.",
   "remoteTabCloud": "Cloud",
   "remoteTabLocal": "Local import",

@@ -59,11 +59,19 @@ enum SourceKind {
 
 enum ScanMode { manual, disabled }
 
-/// Host-owned immutable instance snapshot. Secrets are represented by a scoped
-/// credential reference; permissions and live authorization aren't booleans here.
+/// Suggested scan suffixes, grouped so the settings list stays scannable.
+const scanExtensionVideoPresets = [
+  'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'mts', 'wmv', //
+  'flv', 'rmvb', 'mpg', 'mpeg', '3gp', 'vob',
+];
+const scanExtensionAudioPresets = [
+  'mp3', 'flac', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'ape', 'wma', 'aiff', //
+];
+
+/// Every video and audio preset is selected until the user changes it.
 const defaultScanExtensions = [
-  'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'wmv', //
-  'mp3', 'flac', 'm4a', 'wav', 'ogg',
+  ...scanExtensionVideoPresets,
+  ...scanExtensionAudioPresets,
 ];
 
 /// Parses user input such as "mp4, .MKV；avi" into normalized suffixes.
@@ -84,6 +92,8 @@ bool matchesScanExtension(String name, List<String> extensions) {
   return dot >= 0 && extensions.contains(name.substring(dot + 1).toLowerCase());
 }
 
+/// Host-owned immutable instance snapshot. Secrets are represented by a scoped
+/// credential reference; permissions and live authorization aren't booleans here.
 class SourceConfig {
   const SourceConfig({
     required this.id,

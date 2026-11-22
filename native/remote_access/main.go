@@ -21,7 +21,6 @@ import (
 	"github.com/sagernet/sing-box/adapter/outbound"
 	S "github.com/sagernet/sing-box/adapter/service"
 	"github.com/sagernet/sing-box/dns"
-	"github.com/sagernet/sing-box/dns/transport/local"
 	"github.com/sagernet/sing-box/option"
 	"github.com/sagernet/sing-box/protocol/direct"
 	"github.com/sagernet/sing-box/protocol/vless"
@@ -52,7 +51,7 @@ func transportContext() context.Context {
 	direct.RegisterOutbound(out)
 	vless.RegisterOutbound(out)
 	dnsRegistry := dns.NewTransportRegistry()
-	local.RegisterTransport(dnsRegistry)
+	registerLocalDNS(dnsRegistry)
 	return box.Context(context.Background(), inbound.NewRegistry(), out, endpoint.NewRegistry(), dnsRegistry, S.NewRegistry())
 }
 func startSession(input string) (int, error) {
@@ -61,7 +60,9 @@ func startSession(input string) (int, error) {
 		return 0, err
 	}
 	ctx, cancel := context.WithCancel(transportContext())
-	opts, err := SJ.UnmarshalExtendedContext[option.Options](ctx, []byte(`{"log":{"disabled":true},"outbounds":[`+string(req.Outbound)+`]}`))
+	// An explicit "local" server makes relay host lookups use the transport
+	// registerLocalDNS installs; without it sing-box hard-wires its own.
+	opts, err := SJ.UnmarshalExtendedContext[option.Options](ctx, []byte(`{"log":{"disabled":true},"dns":{"servers":[{"type":"local","tag":"system"}]},"outbounds":[`+string(req.Outbound)+`]}`))
 	if err != nil {
 		cancel()
 		return 0, err

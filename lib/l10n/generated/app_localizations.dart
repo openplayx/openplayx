@@ -748,6 +748,18 @@ abstract class AppLocalizations {
   /// **'Show password'**
   String get showPassword;
 
+  /// No description provided for @copyPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Copy password'**
+  String get copyPassword;
+
+  /// No description provided for @passwordCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Password copied'**
+  String get passwordCopied;
+
   /// No description provided for @address.
   ///
   /// In en, this message translates to:
@@ -1299,6 +1311,18 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'{speed} MB/s'**
   String readSpeed(String speed);
+
+  /// No description provided for @plRemoteBadge.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote'**
+  String get plRemoteBadge;
+
+  /// No description provided for @plRemoteBadgeTip.
+  ///
+  /// In en, this message translates to:
+  /// **'Streaming through remote access. Uses server traffic.'**
+  String get plRemoteBadgeTip;
 
   /// No description provided for @notVerified.
   ///
@@ -7848,20 +7872,98 @@ abstract class AppLocalizations {
   /// No description provided for @remotePlatformRegisterHint.
   ///
   /// In en, this message translates to:
-  /// **'We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.'**
+  /// **'Enter your email. We\'ll send a 6-digit verification code to finish registering here.'**
   String get remotePlatformRegisterHint;
 
   /// No description provided for @remotePlatformSendRegistration.
   ///
   /// In en, this message translates to:
-  /// **'Send registration email'**
+  /// **'Send verification code'**
   String get remotePlatformSendRegistration;
 
   /// No description provided for @remotePlatformRegistrationSent.
   ///
   /// In en, this message translates to:
-  /// **'If this email can be registered, a setup link has been sent. Check your inbox and spam folder.'**
+  /// **'If this email can be registered, a verification code has been sent. Check your inbox and spam folder.'**
   String get remotePlatformRegistrationSent;
+
+  /// No description provided for @remotePlatformCodeSentTo.
+  ///
+  /// In en, this message translates to:
+  /// **'Enter the 6-digit code sent to {email} and set a password. The code expires in 30 minutes.'**
+  String remotePlatformCodeSentTo(String email);
+
+  /// No description provided for @remotePlatformCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Verification code'**
+  String get remotePlatformCode;
+
+  /// No description provided for @remotePlatformNewPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Password (at least 12 characters)'**
+  String get remotePlatformNewPassword;
+
+  /// No description provided for @remotePlatformConfirmPassword.
+  ///
+  /// In en, this message translates to:
+  /// **'Confirm password'**
+  String get remotePlatformConfirmPassword;
+
+  /// No description provided for @remotePlatformCompleteRegistration.
+  ///
+  /// In en, this message translates to:
+  /// **'Create account'**
+  String get remotePlatformCompleteRegistration;
+
+  /// No description provided for @remotePlatformResendCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend code'**
+  String get remotePlatformResendCode;
+
+  /// No description provided for @remotePlatformResendCodeIn.
+  ///
+  /// In en, this message translates to:
+  /// **'Resend in {seconds}s'**
+  String remotePlatformResendCodeIn(int seconds);
+
+  /// No description provided for @remotePlatformChangeEmail.
+  ///
+  /// In en, this message translates to:
+  /// **'Change email'**
+  String get remotePlatformChangeEmail;
+
+  /// No description provided for @remotePlatformInvalidCode.
+  ///
+  /// In en, this message translates to:
+  /// **'The verification code is incorrect.'**
+  String get remotePlatformInvalidCode;
+
+  /// No description provided for @remotePlatformCodeExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'This code has expired or had too many wrong attempts. Send a new code.'**
+  String get remotePlatformCodeExpired;
+
+  /// No description provided for @remotePlatformPasswordTooShort.
+  ///
+  /// In en, this message translates to:
+  /// **'Password must be at least 12 characters.'**
+  String get remotePlatformPasswordTooShort;
+
+  /// No description provided for @remotePlatformPasswordMismatch.
+  ///
+  /// In en, this message translates to:
+  /// **'Passwords do not match.'**
+  String get remotePlatformPasswordMismatch;
+
+  /// No description provided for @remotePlatformRegistered.
+  ///
+  /// In en, this message translates to:
+  /// **'Account created. Sign in with your new password.'**
+  String get remotePlatformRegistered;
 
   /// No description provided for @remotePlatformInvalidEmail.
   ///

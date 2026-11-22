@@ -334,6 +334,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String get showPassword => '显示密码';
 
   @override
+  String get copyPassword => '复制密码';
+
+  @override
+  String get passwordCopied => '密码已复制';
+
+  @override
   String get address => '地址';
 
   @override
@@ -638,6 +644,12 @@ class AppLocalizationsZh extends AppLocalizations {
   String readSpeed(String speed) {
     return '$speed MB/s';
   }
+
+  @override
+  String get plRemoteBadge => '远程';
+
+  @override
+  String get plRemoteBadgeTip => '经远程访问中转，会消耗服务器流量';
 
   @override
   String get notVerified => '尚未验证';
@@ -4109,15 +4121,56 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remotePlatformRegister => '注册平台账号';
 
   @override
-  String get remotePlatformRegisterHint =>
-      '我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。';
+  String get remotePlatformRegisterHint => '输入邮箱，我们会发送 6 位验证码，在这里即可完成注册。';
 
   @override
-  String get remotePlatformSendRegistration => '发送注册邮件';
+  String get remotePlatformSendRegistration => '发送验证码';
 
   @override
-  String get remotePlatformRegistrationSent =>
-      '如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。';
+  String get remotePlatformRegistrationSent => '如果该邮箱可注册，验证码已发送，请检查收件箱及垃圾邮件。';
+
+  @override
+  String remotePlatformCodeSentTo(String email) {
+    return '输入发送到 $email 的 6 位验证码并设置密码。验证码 30 分钟内有效。';
+  }
+
+  @override
+  String get remotePlatformCode => '验证码';
+
+  @override
+  String get remotePlatformNewPassword => '密码（至少 12 位）';
+
+  @override
+  String get remotePlatformConfirmPassword => '确认密码';
+
+  @override
+  String get remotePlatformCompleteRegistration => '完成注册';
+
+  @override
+  String get remotePlatformResendCode => '重新发送验证码';
+
+  @override
+  String remotePlatformResendCodeIn(int seconds) {
+    return '$seconds 秒后可重新发送';
+  }
+
+  @override
+  String get remotePlatformChangeEmail => '更换邮箱';
+
+  @override
+  String get remotePlatformInvalidCode => '验证码不正确。';
+
+  @override
+  String get remotePlatformCodeExpired => '验证码已过期或错误次数过多，请重新发送。';
+
+  @override
+  String get remotePlatformPasswordTooShort => '密码至少需要 12 位。';
+
+  @override
+  String get remotePlatformPasswordMismatch => '两次输入的密码不一致。';
+
+  @override
+  String get remotePlatformRegistered => '注册成功，请使用新密码登录。';
 
   @override
   String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
@@ -4624,6 +4677,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get showPassword => '显示密码';
 
   @override
+  String get copyPassword => '复制密码';
+
+  @override
+  String get passwordCopied => '密码已复制';
+
+  @override
   String get address => '地址';
 
   @override
@@ -4928,6 +4987,12 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String readSpeed(String speed) {
     return '$speed MB/s';
   }
+
+  @override
+  String get plRemoteBadge => '远程';
+
+  @override
+  String get plRemoteBadgeTip => '经远程访问中转，会消耗服务器流量';
 
   @override
   String get notVerified => '尚未验证';
@@ -8399,15 +8464,56 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get remotePlatformRegister => '注册平台账号';
 
   @override
-  String get remotePlatformRegisterHint =>
-      '我们会发送一次性邮件链接。打开邮件验证邮箱并设置密码后，返回这里登录。';
+  String get remotePlatformRegisterHint => '输入邮箱，我们会发送 6 位验证码，在这里即可完成注册。';
 
   @override
-  String get remotePlatformSendRegistration => '发送注册邮件';
+  String get remotePlatformSendRegistration => '发送验证码';
 
   @override
-  String get remotePlatformRegistrationSent =>
-      '如果该邮箱可注册，设置密码的邮件已发送，请检查收件箱及垃圾邮件。';
+  String get remotePlatformRegistrationSent => '如果该邮箱可注册，验证码已发送，请检查收件箱及垃圾邮件。';
+
+  @override
+  String remotePlatformCodeSentTo(String email) {
+    return '输入发送到 $email 的 6 位验证码并设置密码。验证码 30 分钟内有效。';
+  }
+
+  @override
+  String get remotePlatformCode => '验证码';
+
+  @override
+  String get remotePlatformNewPassword => '密码（至少 12 位）';
+
+  @override
+  String get remotePlatformConfirmPassword => '确认密码';
+
+  @override
+  String get remotePlatformCompleteRegistration => '完成注册';
+
+  @override
+  String get remotePlatformResendCode => '重新发送验证码';
+
+  @override
+  String remotePlatformResendCodeIn(int seconds) {
+    return '$seconds 秒后可重新发送';
+  }
+
+  @override
+  String get remotePlatformChangeEmail => '更换邮箱';
+
+  @override
+  String get remotePlatformInvalidCode => '验证码不正确。';
+
+  @override
+  String get remotePlatformCodeExpired => '验证码已过期或错误次数过多，请重新发送。';
+
+  @override
+  String get remotePlatformPasswordTooShort => '密码至少需要 12 位。';
+
+  @override
+  String get remotePlatformPasswordMismatch => '两次输入的密码不一致。';
+
+  @override
+  String get remotePlatformRegistered => '注册成功，请使用新密码登录。';
 
   @override
   String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
@@ -8914,6 +9020,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get showPassword => '顯示密碼';
 
   @override
+  String get copyPassword => '複製密碼';
+
+  @override
+  String get passwordCopied => '密碼已複製';
+
+  @override
   String get address => '位址';
 
   @override
@@ -9218,6 +9330,12 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String readSpeed(String speed) {
     return '$speed MB/s';
   }
+
+  @override
+  String get plRemoteBadge => '遠端';
+
+  @override
+  String get plRemoteBadgeTip => '經遠端存取中轉，會消耗伺服器流量';
 
   @override
   String get notVerified => '尚未驗證';
@@ -12689,15 +12807,56 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get remotePlatformRegister => '註冊平台帳號';
 
   @override
-  String get remotePlatformRegisterHint =>
-      '我們會傳送一次性郵件連結。開啟郵件驗證信箱並設定密碼後，返回這裡登入。';
+  String get remotePlatformRegisterHint => '輸入信箱，我們會傳送 6 位驗證碼，在這裡即可完成註冊。';
 
   @override
-  String get remotePlatformSendRegistration => '傳送註冊郵件';
+  String get remotePlatformSendRegistration => '傳送驗證碼';
 
   @override
-  String get remotePlatformRegistrationSent =>
-      '如果此信箱可註冊，設定密碼的郵件已傳送，請檢查收件匣及垃圾郵件。';
+  String get remotePlatformRegistrationSent => '如果此信箱可註冊，驗證碼已傳送，請檢查收件匣及垃圾郵件。';
+
+  @override
+  String remotePlatformCodeSentTo(String email) {
+    return '輸入傳送到 $email 的 6 位驗證碼並設定密碼。驗證碼 30 分鐘內有效。';
+  }
+
+  @override
+  String get remotePlatformCode => '驗證碼';
+
+  @override
+  String get remotePlatformNewPassword => '密碼（至少 12 位）';
+
+  @override
+  String get remotePlatformConfirmPassword => '確認密碼';
+
+  @override
+  String get remotePlatformCompleteRegistration => '完成註冊';
+
+  @override
+  String get remotePlatformResendCode => '重新傳送驗證碼';
+
+  @override
+  String remotePlatformResendCodeIn(int seconds) {
+    return '$seconds 秒後可重新傳送';
+  }
+
+  @override
+  String get remotePlatformChangeEmail => '更換信箱';
+
+  @override
+  String get remotePlatformInvalidCode => '驗證碼不正確。';
+
+  @override
+  String get remotePlatformCodeExpired => '驗證碼已過期或錯誤次數過多，請重新傳送。';
+
+  @override
+  String get remotePlatformPasswordTooShort => '密碼至少需要 12 位。';
+
+  @override
+  String get remotePlatformPasswordMismatch => '兩次輸入的密碼不一致。';
+
+  @override
+  String get remotePlatformRegistered => '註冊成功，請使用新密碼登入。';
 
   @override
   String get remotePlatformInvalidEmail => '請輸入有效的電子郵件地址。';

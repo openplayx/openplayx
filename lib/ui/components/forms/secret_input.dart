@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../l10n/generated/app_localizations.dart';
 import '../../icons/app_icons.dart';
+import '../feedback/app_feedback.dart';
 
 /// Holds one secret (API key, token, password) for a [SecretInput].
 ///
@@ -70,6 +72,10 @@ class SecretInput extends StatefulWidget {
     this.onChanged,
     this.focusNode,
     this.inline = false,
+    this.autofillHints,
+    this.textInputAction,
+    this.onSubmitted,
+    this.copyable = false,
   });
 
   final TextEditingController controller;
@@ -80,6 +86,15 @@ class SecretInput extends StatefulWidget {
 
   /// Borderless, for a field sitting inside a grouped settings row.
   final bool inline;
+
+  /// Lets the system password manager fill or save this field, e.g.
+  /// [AutofillHints.newPassword] for its strong-password suggestion.
+  final Iterable<String>? autofillHints;
+  final TextInputAction? textInputAction;
+  final ValueChanged<String>? onSubmitted;
+
+  /// Shows a copy button while the content is revealed.
+  final bool copyable;
 
   @override
   State<SecretInput> createState() => _SecretInputState();
@@ -106,25 +121,63 @@ class _SecretInputState extends State<SecretInput> {
           ? null
           : Text(widget.placeholder!),
       onChanged: widget.onChanged,
-      trailing: Tooltip(
-        message: label,
-        child: Semantics(
-          button: true,
-          label: label,
-          child: ShadIconButton.ghost(
-            width: 32,
-            height: 32,
-            iconSize: 18,
-            padding: EdgeInsets.zero,
+      autofillHints: widget.autofillHints,
+      textInputAction: widget.textInputAction,
+      onSubmitted: widget.onSubmitted,
+      trailing: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          // Copy only what the user can already see.
+          if (widget.copyable && _visible)
+            _button(
+              key: const ValueKey('secret-input-copy'),
+              label: l.copyPassword,
+              icon: AppIcons.copy,
+              onPressed: () async {
+                final text = widget.controller.text;
+                if (text.isEmpty) return;
+                await Clipboard.setData(ClipboardData(text: text));
+                if (context.mounted) {
+                  showAppToast(
+                    context,
+                    l.passwordCopied,
+                    kind: FeedbackKind.success,
+                  );
+                }
+              },
+            ),
+          _button(
+            key: const ValueKey('secret-input-reveal'),
+            label: label,
             onPressed: () => setState(() => _visible = !_visible),
             // The eye shows the current state: open while the content is
             // visible, closed while it is masked.
-            icon: Icon(
-              _visible ? AppIcons.showPassword : AppIcons.hidePassword,
-            ),
+            icon: _visible ? AppIcons.showPassword : AppIcons.hidePassword,
           ),
-        ),
+        ],
       ),
     );
   }
+
+  Widget _button({
+    required Key key,
+    required String label,
+    required IconData icon,
+    required VoidCallback onPressed,
+  }) => Tooltip(
+    key: key,
+    message: label,
+    child: Semantics(
+      button: true,
+      label: label,
+      child: ShadIconButton.ghost(
+        width: 32,
+        height: 32,
+        iconSize: 18,
+        padding: EdgeInsets.zero,
+        onPressed: onPressed,
+        icon: Icon(icon),
+      ),
+    ),
+  );
 }

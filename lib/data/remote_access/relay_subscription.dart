@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'dart:math';
 
 import 'package:http/http.dart' as http;
 
@@ -69,10 +70,12 @@ class RelaySubscription {
     String method = 'GET',
     Map<String, dynamic>? body,
     String? token,
+    Map<String, String>? headers,
   }) async {
     final request = http.Request(method, _origin.resolve(path))
       ..followRedirects = false;
     request.headers['Accept'] = 'application/json';
+    if (headers != null) request.headers.addAll(headers);
     if (token != null) request.headers['Authorization'] = 'Bearer $token';
     if (body != null) {
       request.headers['Content-Type'] = 'application/json';
@@ -119,6 +122,20 @@ class RelaySubscription {
     );
   });
 
+  /// Proves the email with the emailed 6-digit code and sets the password.
+  /// The account still needs a separate sign-in afterwards.
+  Future<void> completeRegistration(
+    String email,
+    String code,
+    String password,
+  ) => _serial(() async {
+    await _request(
+      '/v1/auth/registration/complete',
+      method: 'POST',
+      body: {'email': email.trim(), 'code': code.trim(), 'password': password},
+    );
+  });
+
   Future<void> login(String email, String password) => _serial(() async {
     // Keep the previous session until a new login succeeds.
     final tokens = await _request(
@@ -139,6 +156,7 @@ class RelaySubscription {
     String path, {
     String method = 'GET',
     Map<String, dynamic>? body,
+    Map<String, String>? headers,
   }) async {
     if (_session == null) throw const RelayApiException('login_required', 401);
     if (DateTime.tryParse(_session!['expiresAt'] as String? ?? '')
@@ -171,6 +189,7 @@ class RelaySubscription {
       path,
       method: method,
       body: body,
+      headers: headers,
       token: _session!['accessToken'] as String,
     );
   }
@@ -189,6 +208,7 @@ class RelaySubscription {
             body: {
               'name': 'OpenPlayX ${Platform.operatingSystem}',
               'platform': Platform.operatingSystem,
+              'installId': installId,
             },
           );
         } on RelayApiException catch (e) {
@@ -213,6 +233,56 @@ class RelaySubscription {
       rethrow;
     }
   });
+
+  /// A random ID for this App install, kept across sign-ins, so signing in
+  /// again replaces this install's device instead of taking another slot.
+  String get installId {
+    final saved = ConfigurationDatabase.readSetting(
+      db,
+      'relay_account',
+      'install_id',
+    );
+    if (saved is String && RegExp(r'^[A-Za-z0-9_-]{16,128}$').hasMatch(saved)) {
+      return saved;
+    }
+    final random = Random.secure();
+    final id = [
+      for (var i = 0; i < 16; i++)
+        random.nextInt(256).toRadixString(16).padLeft(2, '0'),
+    ].join();
+    ConfigurationDatabase.writeSetting(db, 'relay_account', 'install_id', id);
+    return id;
+  }
+
+  /// The account's enabled devices, for freeing a slot on device_limit.
+  Future<RelayDeviceList> listDevices() => _serial(() async {
+    final devices = <RelayDevice>[];
+    String? cursor;
+    late String revision;
+    for (var page = 0; page < 20; page++) {
+      final data = await _authenticated(
+        '/v1/relay/me/devices?limit=100'
+        '${cursor == null ? '' : '&cursor=${Uri.encodeQueryComponent(cursor)}'}',
+      );
+      revision = data['revision'] as String;
+      for (final item in (data['items'] as List).whereType<Map>()) {
+        if (item['status'] == 'enabled') devices.add(RelayDevice.parse(item));
+      }
+      cursor = data['nextCursor'] as String?;
+      if (cursor == null) break;
+    }
+    return RelayDeviceList(devices, revision);
+  });
+
+  Future<void> removeDevice(String deviceId, String revision) =>
+      _serial(() async {
+        await _authenticated(
+          '/v1/relay/me/devices/${Uri.encodeComponent(deviceId)}',
+          method: 'DELETE',
+          headers: {'If-Match': '"$revision"'},
+        );
+      });
+
   Future<void> logout() => _serial(() async {
     try {
       if (_session != null) {
@@ -224,6 +294,26 @@ class RelaySubscription {
     }
   });
   void close() => _client.close();
+}
+
+class RelayDevice {
+  const RelayDevice(this.id, this.name, this.platform, this.createdAt);
+  factory RelayDevice.parse(Map item) => RelayDevice(
+    item['deviceId'] as String,
+    item['name'] as String,
+    item['platform'] as String? ?? 'other',
+    DateTime.tryParse(item['createdAt'] as String? ?? ''),
+  );
+  final String id;
+  final String name;
+  final String platform;
+  final DateTime? createdAt;
+}
+
+class RelayDeviceList {
+  const RelayDeviceList(this.devices, this.revision);
+  final List<RelayDevice> devices;
+  final String revision;
 }
 
 class RelayDeviceProfile {

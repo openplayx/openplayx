@@ -9,6 +9,7 @@ import 'package:openplayx_playback/playback.dart';
 import '../../../data/diagnostics/diagnostics_bootstrap.dart';
 import '../../../core/capabilities/source_capability.dart';
 import '../../../data/files/local_media_picker.dart';
+import '../../../data/remote_access/remote_transport.dart';
 import '../../../data/sources/source_config.dart';
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../capabilities/library/library_service.dart';
@@ -101,6 +102,25 @@ class PlayerController extends ChangeNotifier {
   PlayerState get state => _state;
   bool _disposed = false;
   PlayableStream? _stream;
+
+  /// Source of the current stream, watched for LAN / remote access moves.
+  String? _remoteSource;
+  StreamSubscription<String>? _pathChanges;
+
+  /// A non-local path for the current source means remote access through a
+  /// relay (server traffic).
+  void _refreshRemote() {
+    if (_disposed) return;
+    _pathChanges ??= RemoteTransport.pathChanges.listen((id) {
+      if (id == _remoteSource) _refreshRemote();
+    });
+    final path = _remoteSource == null
+        ? null
+        : RemoteTransport.selectedPaths[_remoteSource];
+    final remote = path != null && !path.$1;
+    if (remote != _state.remote) _set(_state.copyWith(remote: remote));
+  }
+
   PlaybackStatus _lastStatus = PlaybackStatus.idle;
 
   // The remembered subtitle is applied once per media, when it plays and
@@ -178,10 +198,11 @@ class PlayerController extends ChangeNotifier {
   /// one, clears the error and every per-media state.
   void beginMedia(String name) {
     _tracked = _played = _restored = false;
+    _remoteSource = null;
     _analytics.begin();
     history.finish();
     _resetFeatures();
-    _set(_state.copyWith(name: () => name, error: () => null));
+    _set(_state.copyWith(name: () => name, error: () => null, remote: false));
   }
 
   /// Opens a picked local file (after [beginMedia]).
@@ -209,6 +230,8 @@ class PlayerController extends ChangeNotifier {
     });
     await previous?.release();
     final ref = selection.ref;
+    _remoteSource = ref?.instanceId;
+    _refreshRemote();
     if (_state.error == null && ref != null) {
       String? localPath;
       final config = sources.configs
@@ -291,6 +314,7 @@ class PlayerController extends ChangeNotifier {
     _analytics.finish();
     history.dispose();
     _disposed = true;
+    unawaited(_pathChanges?.cancel());
     backend.removeListener(onPlayback);
     tools.dispose();
     audio.dispose();

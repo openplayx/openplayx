@@ -11,6 +11,9 @@ abstract final class PlayerStyle {
   static const hover = Color(0x14FFFFFF);
   static const track = Color(0x33FFFFFF);
   static const recording = Color(0xFFEF4444);
+
+  /// Remote access badge: playback is using relay (server) traffic.
+  static const remote = Color(0xFFF2B84B);
   static const fg = AppSemanticColors.playerForeground;
   static const muted = AppSemanticColors.playerMuted;
   static const radius = BorderRadius.all(Radius.circular(12));

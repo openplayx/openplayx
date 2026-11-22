@@ -11,25 +11,6 @@ import '../../ui/components/settings/settings_section.dart';
 import '../../ui/icons/app_icons.dart';
 import '../../ui/tokens/app_spacing.dart';
 
-/// Suggested extensions, grouped so the list stays scannable. Anything the
-/// user keeps outside these lists shows up under "Custom".
-const scanExtensionVideoPresets = [
-  'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'mts', 'wmv', //
-  'flv', 'rmvb', 'mpg', 'mpeg', '3gp', 'vob',
-];
-const scanExtensionAudioPresets = [
-  'mp3',
-  'flac',
-  'm4a',
-  'aac',
-  'wav',
-  'ogg',
-  'opus',
-  'ape',
-  'wma',
-  'aiff',
-];
-
 final _validExtension = RegExp(r'^[a-z0-9]{1,16}$');
 
 /// Picks the global scan suffixes: toggle chips for common video and audio

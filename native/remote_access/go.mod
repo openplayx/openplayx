@@ -3,6 +3,7 @@ module github.com/openplayx/openplayx/native/remote_access
 go 1.24.0
 
 require (
+	github.com/miekg/dns v1.1.67
 	github.com/sagernet/sing v0.7.13
 	github.com/sagernet/sing-box v1.12.12
 )
@@ -31,7 +32,6 @@ require (
 	github.com/metacubex/tfo-go v0.0.0-20250921095601-b102db4216c0 // indirect
 	github.com/metacubex/utls v1.8.3 // indirect
 	github.com/mholt/acmez/v3 v3.1.2 // indirect
-	github.com/miekg/dns v1.1.67 // indirect
 	github.com/sagernet/bbolt v0.0.0-20231014093535-ea5cb2fe9f0a // indirect
 	github.com/sagernet/fswatch v0.1.1 // indirect
 	github.com/sagernet/gvisor v0.0.0-20250325023245-7a9c0f5725fb // indirect

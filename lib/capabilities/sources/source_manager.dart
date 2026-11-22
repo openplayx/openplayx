@@ -200,6 +200,12 @@ class SourceManager {
     ),
   );
   bool get platformSignedIn => _remote?.account.signedIn ?? false;
+
+  /// Whether connector sources are synced at all: platform mode is on and an
+  /// account is signed in. Remote access is optional; without it the Sources
+  /// page shows no connector UI.
+  bool get syncsDiscoveredSources =>
+      (_remote?.usePlatform ?? false) && platformSignedIn;
   String? get sourceSyncError => _remote?.platformError;
   List<DiscoveredSource> get discoveredSources =>
       _remote?.discoveredSources ?? const [];

@@ -180,7 +180,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           media: () => _mediaProcessing,
           tmdbConfigured: () async {
             try {
-              return TmdbConfig.fromSettings(library.metadata.setting).configured;
+              return TmdbConfig.fromSettings(library.metadata.setting)
+                  .configured;
             } catch (_) {
               return false;
             }

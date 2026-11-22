@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../data/remote_access/relay_subscription.dart';
 import '../../l10n/l10n.dart';
 import '../../ui/adaptive/app_page.dart';
 import '../../ui/components/forms/form_actions.dart';
+import '../../ui/components/forms/ordered_autofill_group.dart';
 import '../../ui/components/settings/settings_section.dart';
 
 /// Keep the form visible until authentication finishes, including failures.
@@ -50,6 +52,7 @@ class _PlatformLoginPageState extends State<PlatformLoginPage> {
     });
     try {
       await widget.login(email, _password.text);
+      TextInput.finishAutofillContext();
       if (mounted) Navigator.of(context).pop(true);
     } catch (error) {
       if (!mounted) return;
@@ -72,48 +75,55 @@ class _PlatformLoginPageState extends State<PlatformLoginPage> {
       child: AppPage(
         pageContext: const PageContextData(pageType: 'platform_login'),
         title: Text(l.remotePlatformLogin),
-        body: SettingsListView(
-          children: [
-            SettingsSection(
-              children: [
-                ShadInput(
-                  key: const ValueKey('relay-account-email'),
-                  controller: _email,
-                  placeholder: Text(l.remotePlatformEmail),
-                  keyboardType: TextInputType.emailAddress,
-                  textInputAction: TextInputAction.next,
-                  enabled: !_busy,
-                  autocorrect: false,
-                  enableSuggestions: false,
-                ),
-                ShadInput(
-                  key: const ValueKey('relay-account-password'),
-                  controller: _password,
-                  placeholder: Text(l.password),
-                  obscureText: true,
-                  enabled: !_busy,
-                  textInputAction: TextInputAction.done,
-                  onSubmitted: (_) => _submit(),
-                  autocorrect: false,
-                  enableSuggestions: false,
-                ),
-              ],
-            ),
-            FormActions(
-              [
-                FormAction.primary(
-                  l.remotePlatformLogin,
-                  _busy ? null : _submit,
-                  key: const ValueKey('relay-login-submit'),
-                ),
-              ],
-              status: _busy
-                  ? FormStatus.busy(l.loading)
-                  : _error == null
-                  ? FormStatus.idle
-                  : FormStatus.error(_error!),
-            ),
-          ],
+        body: OrderedAutofillGroup(
+          child: SettingsListView(
+            children: [
+              SettingsSection(
+                children: [
+                  ShadInput(
+                    key: const ValueKey('relay-account-email'),
+                    controller: _email,
+                    placeholder: Text(l.remotePlatformEmail),
+                    keyboardType: TextInputType.emailAddress,
+                    autofillHints: const [
+                      AutofillHints.username,
+                      AutofillHints.email,
+                    ],
+                    textInputAction: TextInputAction.next,
+                    enabled: !_busy,
+                    autocorrect: false,
+                    enableSuggestions: false,
+                  ),
+                  ShadInput(
+                    key: const ValueKey('relay-account-password'),
+                    controller: _password,
+                    placeholder: Text(l.password),
+                    obscureText: true,
+                    autofillHints: const [AutofillHints.password],
+                    enabled: !_busy,
+                    textInputAction: TextInputAction.done,
+                    onSubmitted: (_) => _submit(),
+                    autocorrect: false,
+                    enableSuggestions: false,
+                  ),
+                ],
+              ),
+              FormActions(
+                [
+                  FormAction.primary(
+                    l.remotePlatformLogin,
+                    _busy ? null : _submit,
+                    key: const ValueKey('relay-login-submit'),
+                  ),
+                ],
+                status: _busy
+                    ? FormStatus.busy(l.loading)
+                    : _error == null
+                    ? FormStatus.idle
+                    : FormStatus.error(_error!),
+              ),
+            ],
+          ),
         ),
       ),
     );

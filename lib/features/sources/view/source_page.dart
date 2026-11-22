@@ -25,6 +25,7 @@ import 'file_source_row.dart';
 import 'source_instance_form.dart';
 import 'source_presentation.dart';
 import 'connector_source_setup.dart';
+import 'hidden_connector_sources.dart';
 import '../../../data/remote_access/discovered_source.dart';
 import '../../../data/remote_access/remote_config.dart';
 import '../../settings/remote_access_settings_page.dart';
@@ -72,7 +73,10 @@ class _SourcePageState extends State<SourcePage> {
       _files = FileSourceController(library, widget.manager)
         ..addListener(_refresh);
     }
-    _load();
+    // Opening the page picks up connector changes without a manual refresh.
+    _load().then((_) {
+      if (mounted && widget.manager.syncsDiscoveredSources) _syncDirectory();
+    });
   }
 
   @override
@@ -239,24 +243,30 @@ class _SourcePageState extends State<SourcePage> {
   );
 
   bool _syncing = false;
+  bool _connectorCollapsed = false;
   List<SourceConfig> get _visible => widget.manager.visibleConfigs;
 
+  /// Remote access is optional: connector UI appears only while platform
+  /// sync is on, and then only when there is something to set up or report.
+  bool get _showConnectorSection =>
+      widget.manager.pendingDiscoveredSources.isNotEmpty ||
+      (widget.manager.syncsDiscoveredSources &&
+          widget.manager.sourceSyncError != null);
+
+  /// Reloads the list, and syncs connector sources when remote access is on.
+  /// A failed sync keeps the last list; the connector section shows the error.
   Future<void> _syncDirectory() async {
     if (_syncing) return;
     setState(() => _syncing = true);
     try {
       await widget.manager.syncDiscoveredSources();
-      if (mounted) await _load();
     } catch (_) {
-      if (mounted) {
-        showAppToast(
-          context,
-          l.connectorSourceSyncFailed,
-          kind: FeedbackKind.error,
-        );
-      }
+      // Reported inline through sourceSyncError.
     } finally {
-      if (mounted) setState(() => _syncing = false);
+      if (mounted) {
+        await _load();
+        if (mounted) setState(() => _syncing = false);
+      }
     }
   }
 
@@ -303,44 +313,100 @@ class _SourcePageState extends State<SourcePage> {
   }
 
   Future<void> _showHidden() async {
-    await showShadDialog<void>(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, update) {
-          final hidden = widget.manager.discoveredSources
-              .where(widget.manager.sourceHidden)
-              .toList();
-          return ShadDialog(
-            title: Text(l.connectorSourcesHidden),
-            child: SizedBox(
-              width: 360,
-              height: ((hidden.length + 1) * 80).clamp(80, 400).toDouble(),
-              child: ListView(
-                shrinkWrap: true,
-                children: [
-                  if (hidden.isEmpty) Text(l.connectorSourceNoneHidden),
-                  for (final entry in hidden)
-                    ContentRow(
-                      title: Text(entry.name),
-                      subtitle: Text(entry.connectorName),
-                      trailing: ShadButton.ghost(
-                        child: Text(l.connectorSourceRestore),
-                        onPressed: () async {
-                          await widget.manager.hideDiscoveredSource(
-                            entry,
-                            false,
-                          );
-                          if (context.mounted) update(() {});
-                        },
+    await showHiddenConnectorSources(context, widget.manager);
+    if (mounted) setState(() {});
+  }
+
+  /// Bottom-of-list section for connector sources that are not set up yet,
+  /// with the sync status and the connector actions in its header.
+  List<Widget> _connectorSection() {
+    if (!_showConnectorSection) return const [];
+    final theme = ShadTheme.of(context);
+    final pending = widget.manager.pendingDiscoveredSources;
+    final failed = widget.manager.sourceSyncError != null;
+    final collapsed = _connectorCollapsed && pending.isNotEmpty;
+    return [
+      const Divider(height: AppSpacing.lg),
+      Row(
+        key: const ValueKey('connector-section'),
+        children: [
+          Expanded(
+            child: InkWell(
+              onTap: pending.isEmpty
+                  ? null
+                  : () => setState(
+                      () => _connectorCollapsed = !_connectorCollapsed,
+                    ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
+                child: Row(
+                  children: [
+                    if (pending.isNotEmpty) ...[
+                      Icon(
+                        collapsed ? AppIcons.next : AppIcons.expand,
+                        size: 14,
+                        color: theme.colorScheme.mutedForeground,
+                      ),
+                      const SizedBox(width: AppSpacing.sm),
+                    ],
+                    Flexible(
+                      child: Text(
+                        pending.isEmpty
+                            ? l.connectorSources
+                            : '${l.connectorSources} (${pending.length})',
+                        style: theme.textTheme.muted,
                       ),
                     ),
-                ],
+                  ],
+                ),
               ),
             ),
-          );
-        },
+          ),
+          Tooltip(
+            message: l.connectorSourceSync,
+            child: ShadIconButton.ghost(
+              key: const ValueKey('sync-connector-sources'),
+              width: 32,
+              height: 32,
+              icon: _syncing
+                  ? const SizedBox.square(
+                      dimension: 14,
+                      child: CircularProgressIndicator(strokeWidth: 2),
+                    )
+                  : const Icon(AppIcons.refresh, size: 16),
+              onPressed: _syncing ? null : _syncDirectory,
+            ),
+          ),
+          SourceActionsMenu(
+            key: const ValueKey('connector-section-menu'),
+            label: l.connectorSources,
+            actions: [
+              SourceRowAction(
+                label: l.connectorSourcesHidden,
+                icon: AppIcons.showPassword,
+                onPressed: _showHidden,
+              ),
+              SourceRowAction(
+                label: l.remoteAccess,
+                icon: AppIcons.connection,
+                onPressed: _accountSettings,
+              ),
+            ],
+          ),
+        ],
       ),
-    );
+      if (failed)
+        Padding(
+          padding: const EdgeInsets.only(bottom: AppSpacing.sm),
+          child: Text(
+            l.connectorSourceSyncFailed,
+            key: const ValueKey('connector-sync-failed'),
+            style: theme.textTheme.muted,
+          ),
+        ),
+      if (!collapsed)
+        for (final entry in pending) _discoveredRow(entry),
+    ];
   }
 
   Future<void> _connectionSettings(SourceConfig source) async {
@@ -642,31 +708,7 @@ class _SourcePageState extends State<SourcePage> {
     },
     child: AppPage(
       pageContext: const PageContextData(pageType: 'sources'),
-      trailing: [
-        if (_source == null) ...[
-          ShadIconButton.ghost(
-            icon: const Icon(AppIcons.refresh),
-            onPressed: _syncing ? null : _syncDirectory,
-            key: const ValueKey('sync-connector-sources'),
-          ),
-          _addSourceButton(),
-          SourceActionsMenu(
-            label: l.sources,
-            actions: [
-              SourceRowAction(
-                label: l.connectorSourcesHidden,
-                icon: AppIcons.showPassword,
-                onPressed: _showHidden,
-              ),
-              SourceRowAction(
-                label: l.connectorSourceLoginDiscover,
-                icon: AppIcons.connection,
-                onPressed: _accountSettings,
-              ),
-            ],
-          ),
-        ],
-      ],
+      trailing: [if (_source == null) _addSourceButton()],
       body: Column(
         children: [
           ...[
@@ -711,33 +753,25 @@ class _SourcePageState extends State<SourcePage> {
               child: _source == null
                   ? (!_busy &&
                             _visible.isEmpty &&
-                            widget.manager.pendingDiscoveredSources.isEmpty &&
+                            !_showConnectorSection &&
                             _orphanFileSources().isEmpty)
                         ? _emptySources()
-                        : ListView(
-                            padding: AppSpacing.page(context),
-                            children: [
-                              if (widget.manager.sourceSyncError != null)
-                                Text(l.connectorSourceSyncFailed),
-                              if (widget
-                                  .manager
-                                  .pendingDiscoveredSources
-                                  .isNotEmpty)
-                                Padding(
-                                  padding: const EdgeInsets.only(
-                                    bottom: AppSpacing.sm,
-                                  ),
-                                  child: Text(l.connectorSources),
-                                ),
-                              for (final entry
-                                  in widget.manager.pendingDiscoveredSources)
-                                _discoveredRow(entry),
-                              for (var i = 0; i < _visible.length; i++) ...[
-                                if (i > 0) const Divider(height: 1),
-                                _connectionGroup(_visible[i]),
+                        // Your own sources first; connector sources waiting
+                        // to be set up are an optional section at the end.
+                        : RefreshIndicator(
+                            onRefresh: _syncDirectory,
+                            child: ListView(
+                              physics: const AlwaysScrollableScrollPhysics(),
+                              padding: AppSpacing.page(context),
+                              children: [
+                                for (var i = 0; i < _visible.length; i++) ...[
+                                  if (i > 0) const Divider(height: 1),
+                                  _connectionGroup(_visible[i]),
+                                ],
+                                ..._orphanFileSources(),
+                                ..._connectorSection(),
                               ],
-                              ..._orphanFileSources(),
-                            ],
+                            ),
                           )
                   : ListView(
                       padding: AppSpacing.page(context),

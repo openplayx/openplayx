@@ -108,6 +108,8 @@
   "connectionFormFailed": "連線失敗，請檢查位址及登入資訊。",
   "hidePassword": "隱藏密碼",
   "showPassword": "顯示密碼",
+  "copyPassword": "複製密碼",
+  "passwordCopied": "密碼已複製",
   "address": "位址",
   "addressHint": "192.168.1.10 或 https://media.example.com",
   "username": "使用者名稱",
@@ -299,6 +301,8 @@
       }
     }
   },
+  "plRemoteBadge": "遠端",
+  "plRemoteBadgeTip": "經遠端存取中轉，會消耗伺服器流量",
   "notVerified": "尚未驗證",
   "disabled": "已停用",
   "pendingApply": "待套用",
@@ -1440,9 +1444,36 @@
   },
   "remotePlatformNotLoaded": "尚未加载平台配置，请刷新。",
   "remotePlatformRegister": "註冊平台帳號",
-  "remotePlatformRegisterHint": "我們會傳送一次性郵件連結。開啟郵件驗證信箱並設定密碼後，返回這裡登入。",
-  "remotePlatformSendRegistration": "傳送註冊郵件",
-  "remotePlatformRegistrationSent": "如果此信箱可註冊，設定密碼的郵件已傳送，請檢查收件匣及垃圾郵件。",
+  "remotePlatformRegisterHint": "輸入信箱，我們會傳送 6 位驗證碼，在這裡即可完成註冊。",
+  "remotePlatformSendRegistration": "傳送驗證碼",
+  "remotePlatformRegistrationSent": "如果此信箱可註冊，驗證碼已傳送，請檢查收件匣及垃圾郵件。",
+  "remotePlatformCodeSentTo": "輸入傳送到 {email} 的 6 位驗證碼並設定密碼。驗證碼 30 分鐘內有效。",
+  "@remotePlatformCodeSentTo": {
+    "placeholders": {
+      "email": {
+        "type": "String"
+      }
+    }
+  },
+  "remotePlatformCode": "驗證碼",
+  "remotePlatformNewPassword": "密碼（至少 12 位）",
+  "remotePlatformConfirmPassword": "確認密碼",
+  "remotePlatformCompleteRegistration": "完成註冊",
+  "remotePlatformResendCode": "重新傳送驗證碼",
+  "remotePlatformResendCodeIn": "{seconds} 秒後可重新傳送",
+  "@remotePlatformResendCodeIn": {
+    "placeholders": {
+      "seconds": {
+        "type": "int"
+      }
+    }
+  },
+  "remotePlatformChangeEmail": "更換信箱",
+  "remotePlatformInvalidCode": "驗證碼不正確。",
+  "remotePlatformCodeExpired": "驗證碼已過期或錯誤次數過多，請重新傳送。",
+  "remotePlatformPasswordTooShort": "密碼至少需要 12 位。",
+  "remotePlatformPasswordMismatch": "兩次輸入的密碼不一致。",
+  "remotePlatformRegistered": "註冊成功，請使用新密碼登入。",
   "remotePlatformInvalidEmail": "請輸入有效的電子郵件地址。",
   "remoteTabCloud": "雲端",
   "remoteTabLocal": "本機匯入",

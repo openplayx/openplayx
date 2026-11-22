@@ -3,6 +3,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
 import '../../core/capabilities/source_capability.dart';
@@ -317,6 +318,17 @@ class RemoteTransport {
 
   static final selector = RemotePathSelector();
   static final selectedPaths = <String, (bool local, DateTime observedAt)>{};
+  static final _pathChanges = StreamController<String>.broadcast();
+
+  /// Source ids whose path was just (re)selected; reconnects can move a
+  /// source between LAN and remote access in the middle of playback.
+  static Stream<String> get pathChanges => _pathChanges.stream;
+  @visibleForTesting
+  static void selectPath(String sourceId, bool local) {
+    selectedPaths[sourceId] = (local, DateTime.now());
+    _pathChanges.add(sourceId);
+  }
+
   static void networkChanged() {
     selector.networkChanged();
     selectedPaths.clear();
@@ -330,7 +342,7 @@ class RemoteTransport {
       c,
       policy: source.remoteRuntimePolicy,
     )) {
-      selectedPaths[source.id] = (true, DateTime.now());
+      selectPath(source.id, true);
       return RemotePathLease(
         Uri.parse(c.localAddress!),
         localTlsSha256: c.localTlsSha256,
@@ -371,7 +383,7 @@ class RemoteTransport {
 
     try {
       final (_, port) = await entry.ready;
-      selectedPaths[source.id] = (false, DateTime.now());
+      selectPath(source.id, false);
       return RemotePathLease(
         Uri.parse(source.address),
         loopbackPort: port,

@@ -18,6 +18,7 @@ class PlayerState {
     this.busy = false,
     this.closing = false,
     this.background = false,
+    this.remote = false,
   });
 
   /// File name of the current media; null when nothing is loaded.
@@ -33,6 +34,10 @@ class PlayerState {
   /// The app is in the background on a phone; playback stays paused.
   final bool background;
 
+  /// The current stream goes through remote access (a relay node), so it
+  /// uses server traffic rather than the local network.
+  final bool remote;
+
   bool get hasMedia => name != null;
 
   PlayerState copyWith({
@@ -41,11 +46,13 @@ class PlayerState {
     bool? busy,
     bool? closing,
     bool? background,
+    bool? remote,
   }) => PlayerState(
     name: name == null ? this.name : name(),
     error: error == null ? this.error : error(),
     busy: busy ?? this.busy,
     closing: closing ?? this.closing,
     background: background ?? this.background,
+    remote: remote ?? this.remote,
   );
 }

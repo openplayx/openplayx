@@ -57,3 +57,4 @@ sentry.properties
 
 # Generated Go core libraries and toolchain output
 native/remote_access/build/
+native/remote_access/remote_access

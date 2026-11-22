@@ -4,6 +4,7 @@ import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:openplayx/data/remote_access/discovered_source.dart';
 import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/data/remote_access/remote_config.dart';
+import 'package:openplayx/data/sources/source_config.dart';
 import 'package:openplayx/features/sources/view/source_page.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -72,6 +73,49 @@ void main() {
       expect(library.fileSourceList().single.root, 'folder');
       expect(sources.pendingDiscoveredSources, isEmpty);
       expect(find.byKey(const ValueKey('discovered-service_a')), findsNothing);
+    },
+  );
+
+  testWidgets(
+    'connector sources are an optional section after your own sources',
+    (tester) async {
+      final plain = MemorySources();
+      await tester.pumpWidget(TestApp(home: SourcePage(manager: plain)));
+      await tester.pumpAndSettle();
+      // Without remote access there is no connector UI, not even a refresh.
+      expect(find.byKey(const ValueKey('connector-section')), findsNothing);
+      expect(
+        find.byKey(const ValueKey('sync-connector-sources')),
+        findsNothing,
+      );
+
+      final sources = DiscoveredSources()
+        ..saved.add(
+          const SourceConfig(
+            id: 'own',
+            kind: SourceKind.smb,
+            name: '我的 SMB',
+            address: 'smb://host/share',
+          ),
+        );
+      await tester.pumpWidget(TestApp(home: SourcePage(manager: sources)));
+      await tester.pumpAndSettle();
+      final own = tester.getTopLeft(find.text('我的 SMB')).dy;
+      final section = tester
+          .getTopLeft(find.byKey(const ValueKey('connector-section')))
+          .dy;
+      final pending = tester.getTopLeft(find.text('家庭 NAS')).dy;
+      expect(own, lessThan(section));
+      expect(section, lessThan(pending));
+      expect(
+        find.byKey(const ValueKey('sync-connector-sources')),
+        findsOneWidget,
+      );
+
+      // The section collapses to its header.
+      await tester.tap(find.text('来自 Connector (1)'));
+      await tester.pumpAndSettle();
+      expect(find.text('家庭 NAS'), findsNothing);
     },
   );
 }

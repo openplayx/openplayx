@@ -3,7 +3,10 @@ import '../../app_test_host.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
+import 'package:openplayx/capabilities/sources/source_manager.dart';
+import 'package:openplayx/core/capabilities/source_capability.dart';
 import 'package:openplayx/data/files/local_media_picker.dart';
+import 'package:openplayx/data/remote_access/remote_transport.dart';
 import 'package:openplayx/features/player/view/player_page.dart';
 import 'package:openplayx_playback/playback.dart';
 
@@ -580,6 +583,38 @@ void main() {
     );
     await tester.pump();
     expect(tester.widget<Text>(speed).data, '12.35 MB/s');
+  });
+
+  testWidgets('remote access streams carry a badge that follows the path', (
+    tester,
+  ) async {
+    final backend = FakeBackend();
+    await openPlayer(tester, backend);
+    final badge = find.byKey(const Key('playback-remote-badge'));
+    expect(badge, findsNothing);
+    RemoteTransport.selectPath('remote-src', false);
+    addTearDown(() => RemoteTransport.selectedPaths.remove('remote-src'));
+    await tester
+        .state<PlayerPageState>(find.byType(PlayerPage))
+        .playSelection(
+          SourceSelection(
+            'movie.mkv',
+            PlayableStream(Uri.parse('http://127.0.0.1:1/movie.mkv')),
+            ref: const ResourceRef('remote-src', 'movie.mkv'),
+          ),
+        );
+    await tester.pumpAndSettle();
+    expect(badge, findsOneWidget);
+    expect(find.text('远程'), findsOneWidget);
+    // A reconnect that lands on the LAN clears it mid-playback.
+    RemoteTransport.selectPath('remote-src', true);
+    await tester.pumpAndSettle();
+    expect(badge, findsNothing);
+    // Another source moving does not touch this one.
+    RemoteTransport.selectPath('other-src', false);
+    addTearDown(() => RemoteTransport.selectedPaths.remove('other-src'));
+    await tester.pumpAndSettle();
+    expect(badge, findsNothing);
   });
 
   testWidgets('read speed lives in the statistics, measured or placeholder', (
