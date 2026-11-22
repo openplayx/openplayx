@@ -1,6 +1,7 @@
+import '../storage/app_directories.dart';
+
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../metadata/metadata_repository.dart';
@@ -24,7 +25,7 @@ abstract final class LibraryDatabase {
     if (!RegExp(r'^[a-zA-Z0-9_-]+\.sqlite3$').hasMatch(name)) {
       throw ArgumentError('Invalid library database name');
     }
-    final dir = await getApplicationSupportDirectory();
+    final dir = await appSupportDirectory();
     await dir.create(recursive: true);
     return sqlite3.open('${dir.path}${Platform.pathSeparator}$name');
   }

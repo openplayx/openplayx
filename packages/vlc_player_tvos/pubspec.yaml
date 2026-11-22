@@ -1,0 +1,14 @@
+name: vlc_player_tvos
+description: Apple TV implementation of the vlc_player channel contract using TVVLCKit.
+version: 0.0.1
+publish_to: none
+environment:
+  sdk: ^3.13.7
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    platforms:
+      tvos:
+        pluginClass: VlcPlayerPlugin

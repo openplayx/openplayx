@@ -1,16 +1,15 @@
+import '../../data/storage/app_directories.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
-import 'package:path_provider/path_provider.dart';
 
 /// `<application support>/asr_models`; null where unavailable (tests).
 Future<Directory?> asrModelRoot() async {
   try {
-    return Directory(
-      '${(await getApplicationSupportDirectory()).path}/asr_models',
-    );
+    return Directory('${(await appSupportDirectory()).path}/asr_models');
   } catch (_) {
     return null;
   }

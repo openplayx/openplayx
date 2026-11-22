@@ -1,3 +1,5 @@
+import '../../data/storage/app_directories.dart';
+
 import 'dart:async';
 
 import '../../data/analytics/analytics_service.dart';
@@ -7,7 +9,6 @@ import 'dart:io';
 import 'dart:math';
 
 import 'package:crypto/crypto.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/capabilities/source_capability.dart';
@@ -259,7 +260,7 @@ class SubtitleGenerationService {
 
   static Future<Directory?> defaultRoot() async {
     try {
-      final base = await getApplicationSupportDirectory();
+      final base = await appSupportDirectory();
       return Directory('${base.path}/subtitles');
     } catch (_) {
       return null;

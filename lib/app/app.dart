@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import '../ui/input/remote_select.dart';
 
 import 'package:posthog_flutter/posthog_flutter.dart';
@@ -74,6 +75,12 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
             ...AppLocalizations.localizationsDelegates,
           ],
           builder: (context, child) {
+            // Consume tvOS overscan insets once around the whole app. Applying
+            // SafeArea independently inside the narrow sidebar squeezes its
+            // contents between both horizontal TV margins.
+            final content = Platform.operatingSystem == 'tvos'
+                ? SafeArea(child: child!)
+                : child!;
             // Services format messages without a BuildContext.
             setAppStrings(AppLocalizations.of(context));
             return AnnotatedRegion<SystemUiOverlayStyle>(
@@ -84,8 +91,8 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
                 child: RemoteSelectAsEnter(
                   child: ShadAppBuilder(
                     child: AnalyticsService.instance.ownsSdk
-                        ? PostHogWidget(child: child!)
-                        : child!,
+                        ? PostHogWidget(child: content)
+                        : content,
                   ),
                 ),
               ),

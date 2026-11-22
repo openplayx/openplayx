@@ -1,7 +1,8 @@
+import '../storage/app_directories.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../l10n/l10n.dart';
@@ -26,7 +27,7 @@ abstract final class ConfigurationDatabase {
   static const version = 4;
 
   static Future<Database> open() async {
-    final directory = await getApplicationSupportDirectory();
+    final directory = await appSupportDirectory();
     await directory.create(recursive: true);
     final db = sqlite3.open(
       '${directory.path}${Platform.pathSeparator}$fileName',

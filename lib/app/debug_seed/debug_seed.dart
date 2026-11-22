@@ -1,9 +1,10 @@
+import '../../data/storage/app_directories.dart';
+
 import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter/foundation.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../data/configuration/configuration_database.dart';
@@ -59,7 +60,7 @@ abstract final class DebugSeed {
       if (_encoded.isNotEmpty) {
         text = utf8.decode(base64.decode(_encoded));
       } else {
-        final dir = await getApplicationSupportDirectory();
+        final dir = await appSupportDirectory();
         final candidate = File('${dir.path}${Platform.pathSeparator}$fileName');
         if (await candidate.exists()) {
           file = candidate;
@@ -92,7 +93,7 @@ abstract final class DebugSeed {
   static Future<void> _log(String line, {bool reset = false}) async {
     debugPrint('[debug-seed] $line');
     try {
-      final dir = await getApplicationSupportDirectory();
+      final dir = await appSupportDirectory();
       await File('${dir.path}${Platform.pathSeparator}$logName').writeAsString(
         '${DateTime.now().toIso8601String()} $line\n',
         mode: reset ? FileMode.write : FileMode.append,

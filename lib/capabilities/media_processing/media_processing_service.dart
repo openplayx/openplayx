@@ -1,10 +1,11 @@
+import '../../data/storage/app_directories.dart';
+
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'dart:math';
 
 import 'package:openplayx_ffmpeg/openplayx_ffmpeg.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:sqlite3/sqlite3.dart';
 
 import '../../core/capabilities/source_capability.dart';
@@ -61,7 +62,7 @@ class MediaProcessingService {
   /// directory is unavailable (e.g. widget tests).
   static Future<Directory?> defaultRoot() async {
     try {
-      final base = await getApplicationSupportDirectory();
+      final base = await appSupportDirectory();
       return Directory('${base.path}/media_processing');
     } catch (_) {
       return null;

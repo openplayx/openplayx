@@ -64,3 +64,7 @@ on what was built, not only on this table.
 
 This documentation update does not change or certify existing installers,
 model weights, remote-service data terms or any store's distribution terms.
+
+## Apple TV experimental build
+
+The tvOS build uses TVVLCKit 3.7.3 (LGPL-2.1-or-later), the MIT vlc_player adapter and the FlutterTV toolchain/plugins. It does not bundle sing-box, FFmpeg or whisper. Exact toolchain revisions, source links and build steps are recorded in [docs/tvos.md](docs/tvos.md); the adapted VLC code preserves its MIT license in `packages/vlc_player_tvos/LICENSE`.

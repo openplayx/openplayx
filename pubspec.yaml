@@ -33,6 +33,23 @@ dependencies:
 
   openplayx_playback:
     path: packages/playback
+  vlc_player_tvos:
+    path: packages/vlc_player_tvos
+  path_provider_tvos:
+    git:
+      url: https://github.com/fluttertv/plugins.git
+      ref: 80fbe42482a54e13f1e2851b8dc93e5eb916cea8
+      path: packages/path_provider_tvos
+  package_info_plus_tvos:
+    git:
+      url: https://github.com/fluttertv/plugins.git
+      ref: 80fbe42482a54e13f1e2851b8dc93e5eb916cea8
+      path: packages/package_info_plus_tvos
+  flutter_secure_storage_tvos:
+    git:
+      url: https://github.com/fluttertv/plugins.git
+      ref: 80fbe42482a54e13f1e2851b8dc93e5eb916cea8
+      path: packages/flutter_secure_storage_tvos
   # In-process FFmpeg media processing (FFI, no ffmpeg processes).
   openplayx_ffmpeg:
     path: ../ffmpeg-package
