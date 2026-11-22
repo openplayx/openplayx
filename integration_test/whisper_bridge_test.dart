@@ -73,6 +73,9 @@ void main() {
         data.buffer.asUint8List(data.offsetInBytes, data.lengthInBytes),
       );
       final model = await engine.openModel(modelPath);
+      // Which accelerator the device actually got (MTL0 / Vulkan0 / CPU).
+      // ignore: avoid_print
+      print('whisper backend: ${model.backend} ${model.device}');
       try {
         final job = engine.transcribe(
           model,

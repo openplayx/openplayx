@@ -36,8 +36,8 @@ EXTERNAL SOURCES:
 SPEC CHECKSUMS:
   FlutterMacOS: c232990155153907050900a2e175c7773903ba4e
   openplayx_ffmpeg: 60475f36efdf9e525953250410344dbfb6f3d20f
-  openplayx_whisper: 3e208db57eda54735192477ff744fdedebadd829
-  OpenPlayXRemote: c83c9371562b585271307a71acf990f70034df47
+  openplayx_whisper: b9c1c56b5976228e87fe55ce95006e144567b6ae
+  OpenPlayXRemote: 0004fd0700af6a6cdce61d86e3b0676f4aaee3f3
   vlc_player: df3d40f7ce152bd88c2d156e656ae9ef8359e2ad
   VLCKit: 4f2c462daaab6de88b93ab7609bdefbada557a4d
 
