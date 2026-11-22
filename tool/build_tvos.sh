@@ -43,6 +43,7 @@ cp native/remote_access/LICENSE "$work/Payload/OpenPlayX.app/Licenses/remote-LIC
 cp native/remote_access/COPYING "$work/Payload/OpenPlayX.app/Licenses/remote-COPYING.txt"
 cp docs/tvos.md "$work/Payload/OpenPlayX.app/Licenses/tvos-build.md"
 name="openplayx-${version}-tvos-arm64-${revision}.ipa"
-(cd "$work" && ditto -c -k --norsrc Payload "$output/$name")
+(cd "$work" && ditto -c -k --norsrc --keepParent Payload "$output/$name")
+unzip -Z1 "$output/$name" | grep -x 'Payload/OpenPlayX.app/Info.plist' >/dev/null
 (cd "$output" && shasum -a 256 "$name" > "$name.sha256")
 echo "Built $output/$name (unsigned; re-sign before installing)"
