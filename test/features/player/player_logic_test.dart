@@ -121,6 +121,49 @@ void main() {
     });
   });
 
+  group('portrait video rect', () {
+    test('full width at 16:9 under the top bar', () {
+      final rect = portraitVideoRect(const Size(402, 874), 118, null);
+      expect(rect.top, 118);
+      expect(rect.width, 402);
+      expect(rect.height, closeTo(402 * 9 / 16, 1e-9));
+    });
+
+    test('capped at 60% of the room below the top bar', () {
+      final rect = portraitVideoRect(
+        const Size(402, 874),
+        118,
+        const Size(1080, 1920), // tall video
+      );
+      expect(rect.height, closeTo((874 - 118) * 0.6, 1e-9));
+    });
+
+    // Regression: ArgumentError "Invalid argument(s): 0.0" from clamp when
+    // the layout box was shorter than the top inset + bar (iPhone17,2).
+    test('box shorter than the top bar does not throw', () {
+      for (final h in [0.0, 50.0, 117.9]) {
+        final rect = portraitVideoRect(Size(402, h), 118, null);
+        expect(rect.height, 0, reason: 'height $h');
+        expect(rect.width, 402);
+      }
+    });
+
+    test('non-finite and empty inputs do not throw', () {
+      expect(
+        portraitVideoRect(const Size(402, double.infinity), 118, null).height,
+        closeTo(402 * 9 / 16, 1e-9),
+      );
+      expect(
+        portraitVideoRect(const Size(double.infinity, 874), 118, null).width,
+        0,
+      );
+      expect(
+        portraitVideoRect(Size.zero, 118, Size.zero),
+        const Rect.fromLTWH(0, 118, 0, 0),
+      );
+    });
+  });
+
   group('video frame layout', () {
     const area = Size(1600, 900);
     const video = Size(1920, 800); // 2.4:1

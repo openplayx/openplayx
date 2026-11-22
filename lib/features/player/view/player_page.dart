@@ -639,7 +639,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _subtitles,
       _info,
     ])..addListener(_rebuild);
-    if (_mobileDisplay) {
+    // tvOS reports as iOS but has no orientation channel; a failed listen is
+    // reported as an uncaught FlutterError, not through onError.
+    if (_mobileDisplay && Platform.operatingSystem != 'tvos') {
       _deviceOrientationSubscription =
           const EventChannel('openplayx/device_orientation')
               .receiveBroadcastStream()
@@ -1371,15 +1373,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   /// Picture rectangle in portrait: full width at the video's ratio
   /// (16:9 until the size is known), below the top bar.
-  Rect _portraitVideoRect(Size screen) {
-    final video = _backend.value.videoSize;
-    final ratio = video == null || video.isEmpty
-        ? 16 / 9
-        : video.width / video.height;
-    final room = screen.height - _portraitTop;
-    final height = (screen.width / ratio).clamp(0.0, room * 0.6);
-    return Rect.fromLTWH(0, _portraitTop, screen.width, height);
-  }
+  Rect _portraitVideoRect(Size screen) =>
+      portraitVideoRect(screen, _portraitTop, _backend.value.videoSize);
 
   Widget _video() => LayoutBuilder(
     builder: (context, box) {

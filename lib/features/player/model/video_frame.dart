@@ -106,6 +106,26 @@ class VideoLayout {
   String toString() => 'VideoLayout($size, ×$scaleX, ×$scaleY)';
 }
 
+/// Picture rectangle for a portrait phone: full width at the video's ratio
+/// (16:9 until the size is known), starting [top] below the screen edge and
+/// at most 60% of the room left below it.
+///
+/// The layout box can briefly be shorter than [top] (route transitions,
+/// rotation, picture-in-picture), so the height never goes negative. An
+/// unbounded height leaves the ratio uncapped; an unbounded width collapses
+/// to an empty rect.
+Rect portraitVideoRect(Size screen, double top, Size? video) {
+  final ratio = video == null || video.isEmpty || !video.isFinite
+      ? 16 / 9
+      : video.width / video.height;
+  final width = screen.width.isFinite ? math.max(0.0, screen.width) : 0.0;
+  final maxHeight = screen.height.isFinite
+      ? math.max(0.0, (screen.height - top) * 0.6)
+      : double.infinity;
+  final height = (width / ratio).clamp(0.0, maxHeight);
+  return Rect.fromLTWH(0, top, width, height);
+}
+
 /// Computes the video box for [area]. Without a known video size the view
 /// simply fills the area and letterboxes itself.
 VideoLayout layoutVideo(Size area, Size? video, VideoFrameSettings settings) {
