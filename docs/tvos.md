@@ -34,7 +34,7 @@ FLUTTER_TVOS_BIN=/tmp/flutter-tvos/bin/flutter-tvos bash tool/build_tvos.sh
 ```
 
 The script builds the **main application** in release mode and creates an IPA
-under `build/tvos/dist/`, plus a SHA-256 checksum. It does not upload anything.
+under `build/tvos-artifacts/`, plus a SHA-256 checksum. It does not upload anything.
 Analytics and Sentry native integrations are disabled in this build because
 their tvOS plugins have not been ported. The system SQLite dylib is loaded
 explicitly: the tvOS embedder does not generate Dart native-asset mappings.

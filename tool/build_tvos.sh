@@ -7,9 +7,15 @@ tvos_bin="${FLUTTER_TVOS_BIN:-flutter-tvos}"
 version="$(sed -n 's/^version: \([^+]*\).*/\1/p' pubspec.yaml)"
 number="$(sed -n 's/^version: .*+\(.*\)/\1/p' pubspec.yaml)"
 revision="$(git rev-parse --short=10 HEAD)"
-output="${OPX_DIST_DIR:-$PWD/build/tvos/dist}"
+output="${OPX_DIST_DIR:-$PWD/build/tvos-artifacts}"
 mkdir -p "$output"
 output="$(cd "$output" && pwd)"
+# flutter-tvos stages Flutter assets in build/tvos. Keeping previous IPAs or
+# debug snapshots there would embed them into the next application's assets.
+case "$output" in
+  "$PWD/build/tvos"|"$PWD/build/tvos/"*) echo 'Use an artifact directory outside build/tvos' >&2; exit 1 ;;
+esac
+rm -rf build/tvos
 "$tvos_bin" build tvos --release --no-codesign -t lib/main.dart \
   --build-name="$version" --build-number="$number" \
   --dart-define=SENTRY_DSN= --dart-define=POSTHOG_PROJECT_TOKEN=
