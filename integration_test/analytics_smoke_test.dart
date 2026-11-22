@@ -33,8 +33,12 @@ void main() {
       await Posthog().close();
       await analytics.load();
       expect(analytics.enabled, isTrue);
+      // This smoke test verifies SDK configuration after initialization.
+      // ignore: invalid_use_of_internal_member
       expect(Posthog().config?.disableGeoIp, isFalse);
+      // ignore: invalid_use_of_internal_member
       expect(Posthog().config?.personProfiles, PostHogPersonProfiles.always);
+      // ignore: invalid_use_of_internal_member
       expect(Posthog().config?.sessionReplay, isTrue);
       // Repeated initialization shares one future and does not emit a session twice.
       await analytics.load();

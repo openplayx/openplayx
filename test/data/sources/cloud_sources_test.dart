@@ -139,6 +139,8 @@ SourceConfig config(SourceKind kind, {String root = ''}) => SourceConfig(
 final context = CallContext.forInstance('account-a');
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test(
     'PKCE callback verifies state, redirect and duplicates; denial cancels',
     () {

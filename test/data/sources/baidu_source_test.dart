@@ -34,6 +34,8 @@ class OAuthClient extends Client {
 }
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   test(
     'Baidu uses configured HTTPS publisher bridge and verifies callback',
     () {

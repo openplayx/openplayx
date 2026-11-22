@@ -89,6 +89,8 @@ Map<String, Object?> seed({String smbName = '211 NAS'}) => {
 };
 
 void main() {
+  TestWidgetsFlutterBinding.ensureInitialized();
+
   group('template', () {
     test('.env parsing handles comments, export and quotes', () {
       expect(
