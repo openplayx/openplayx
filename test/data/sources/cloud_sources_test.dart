@@ -140,6 +140,8 @@ final context = CallContext.forInstance('account-a');
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // These tests exercise the real loopback HTTP gateway.
+  HttpOverrides.global = null;
 
   test(
     'PKCE callback verifies state, redirect and duplicates; denial cancels',

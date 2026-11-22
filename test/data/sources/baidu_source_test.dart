@@ -35,6 +35,8 @@ class OAuthClient extends Client {
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  // These tests exercise the real loopback HTTP gateway.
+  HttpOverrides.global = null;
 
   test(
     'Baidu uses configured HTTPS publisher bridge and verifies callback',
