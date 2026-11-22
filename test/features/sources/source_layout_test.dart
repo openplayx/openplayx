@@ -196,14 +196,6 @@ void main() {
             .enabled,
         isFalse,
       );
-      expect(
-        tester
-            .widget<ShadButton>(
-              find.byKey(const ValueKey('source-add-folder-nas')),
-            )
-            .enabled,
-        isFalse,
-      );
       await tester.tap(find.byKey(const ValueKey('source-menu-nas')));
       await tester.pump();
       expect(

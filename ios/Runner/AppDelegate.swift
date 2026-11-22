@@ -42,6 +42,9 @@ import Network
     if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "OpenPlayXNetworkPolicy") {
       let channel = FlutterMethodChannel(name: "openplayx/network_policy", binaryMessenger: registrar.messenger())
       networkChannel = channel
+      networkMonitor.pathUpdateHandler = { [weak self] _ in
+        DispatchQueue.main.async { self?.networkChannel?.invokeMethod("networkChanged", arguments: nil) }
+      }
       channel.setMethodCallHandler { [weak self] call, result in
         guard call.method == "usingCellular" else { result(FlutterMethodNotImplemented); return }
         guard let self = self else { result(FlutterError(code: "network_unknown", message: "Network state unavailable", details: nil)); return }

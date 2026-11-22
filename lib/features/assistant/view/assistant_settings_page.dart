@@ -1,9 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../../assistant/voice/voice_settings.dart';
-import 'voice_settings_section.dart';
-
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../assistant/conversation/assistant_store.dart';
 import '../../../ui/components/forms/form_actions.dart';
@@ -97,19 +94,36 @@ class _AssistantModelSettingsState extends State<AssistantModelSettings> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        ShadTabs<bool>(
+          key: const ValueKey('ai-mode-tabs'),
+          value: _c.usePlatform,
+          onChanged: _busy ? null : _c.setUsePlatform,
+          tabs: [
+            for (final cloud in [true, false])
+              ShadTab(
+                enabled: !_busy,
+                key: ValueKey(cloud ? 'ai-tab-cloud' : 'ai-tab-local'),
+                value: cloud,
+                trailing: _c.activeUsePlatform == cloud
+                    ? const Icon(Icons.check, size: 14)
+                    : null,
+                child: Text(cloud ? l.remoteTabCloud : l.remoteTabLocal),
+              ),
+          ],
+        ),
         SettingsSection(
           footer: _c.usePlatform ? l.aiPlatformPrivacy : l.aiCustomServiceHint,
           children: [
             SettingsRow(
-              title: l.aiUsePlatform,
-              description: l.aiUsePlatformHint,
-              control: ShadCheckbox(
-                key: const ValueKey('ai-use-platform'),
-                value: _c.usePlatform,
-                enabled: !_busy,
-                onChanged: _c.setUsePlatform,
+              title: _c.activeUsePlatform == _c.usePlatform
+                  ? l.remoteModeActive
+                  : l.remoteModeInactive,
+              control: Icon(
+                _c.activeUsePlatform == _c.usePlatform
+                    ? Icons.check_circle
+                    : Icons.radio_button_unchecked,
+                size: 20,
               ),
-              onTap: _busy ? null : () => _c.setUsePlatform(!_c.usePlatform),
             ),
           ],
         ),
@@ -149,14 +163,15 @@ class _AssistantModelSettingsState extends State<AssistantModelSettings> {
               key: const ValueKey('ai-test'),
             ),
             FormAction.primary(
-              l.save,
+              _c.activeUsePlatform == _c.usePlatform
+                  ? l.save
+                  : _c.usePlatform
+                  ? l.remoteEnableCloud
+                  : l.remoteEnableLocal,
               _busy ? null : _save,
               key: const ValueKey('ai-save'),
             ),
           ],
-        ),
-        VoiceSettingsSection(
-          settings: VoiceSettings(widget.store.configuration),
         ),
       ],
     );

@@ -14,7 +14,13 @@ typedef TmdbRequest = Future<Map<String, dynamic>> Function(
 /// Scoped host transport. Credentials only enter the Authorization header.
 class TmdbTransport {
   TmdbTransport(this._token, {HttpClient? client})
-    : _client = client ?? (HttpClient()..maxConnectionsPerHost = 2);
+    : _platform = false,
+      _client = client ?? (HttpClient()..maxConnectionsPerHost = 2);
+  TmdbTransport.platform({HttpClient? client})
+    : _token = '',
+      _platform = true,
+      _client = client ?? (HttpClient()..maxConnectionsPerHost = 2);
+  final bool _platform;
   final String _token;
   final HttpClient _client;
   bool _closed = false;
@@ -22,7 +28,7 @@ class TmdbTransport {
     String path,
     Map<String, String> query,
   ) async {
-    if (_token.trim().isEmpty) {
+    if (!_platform && _token.trim().isEmpty) {
       throw PluginException('authRequired', appStrings.errTmdbTokenRequired);
     }
     for (var attempt = 0; attempt < 3; attempt++) {
@@ -34,11 +40,15 @@ class TmdbTransport {
         final response =
             await (() async {
               final request = await _client.getUrl(
-                Uri.https('api.themoviedb.org', '/3$path', query),
+                _platform
+                    ? Uri.https('api.openplayx.com', '/v1/tmdb$path', query)
+                    : Uri.https('api.themoviedb.org', '/3$path', query),
               );
               activeRequest = request;
               request.followRedirects = false;
-              request.headers.set('Authorization', 'Bearer $_token');
+              if (!_platform) {
+                request.headers.set('Authorization', 'Bearer $_token');
+              }
               request.headers.set('Accept', 'application/json');
               final response = await request.close();
               final bytes = <int>[];

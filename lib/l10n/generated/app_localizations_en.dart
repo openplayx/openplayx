@@ -19,10 +19,19 @@ class AppLocalizationsEn extends AppLocalizations {
   String get sources => 'Sources';
 
   @override
-  String get plugins => 'AI';
+  String get plugins => 'Ask';
 
   @override
   String get settings => 'Settings';
+
+  @override
+  String get settingsGeneral => 'General';
+
+  @override
+  String get settingsMediaLibrary => 'Media library';
+
+  @override
+  String get settingsApplication => 'Application';
 
   @override
   String get system => 'System';
@@ -379,7 +388,46 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get scanExtensionsHelp =>
-      'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.';
+      'Only files with a selected extension appear in preview and are added to the library. Hidden files starting with a dot are always skipped.';
+
+  @override
+  String get scanExtensionsAllFiles =>
+      'Nothing selected: every file will be kept.';
+
+  @override
+  String get scanExtensionsVideo => 'Video';
+
+  @override
+  String get scanExtensionsAudio => 'Audio';
+
+  @override
+  String get scanExtensionsCustom => 'Custom';
+
+  @override
+  String scanExtensionsSelected(int count, int total) {
+    return '$count of $total selected';
+  }
+
+  @override
+  String get scanExtensionsSelectAll => 'Select all';
+
+  @override
+  String get scanExtensionsSelectNone => 'Clear';
+
+  @override
+  String get scanExtensionsAddHint => 'e.g. iso';
+
+  @override
+  String get scanExtensionsInvalid =>
+      'Use letters and digits only, up to 16 characters each.';
+
+  @override
+  String scanExtensionsRemove(String extension) {
+    return 'Remove $extension';
+  }
+
+  @override
+  String get scanExtensionsRestoreDefaults => 'Restore defaults';
 
   @override
   String get optionalDomain => 'Workgroup (optional)';
@@ -917,7 +965,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get metadataSearch => 'Search TMDB';
 
   @override
-  String get aiAssistant => 'AI assistant';
+  String get aiAssistant => 'Ask';
 
   @override
   String get aiPrivacyNotice =>
@@ -1412,7 +1460,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get aiMore => 'More';
 
   @override
-  String get aiGreeting => 'What can I help with?';
+  String get aiGreeting => 'What would you like to watch tonight?';
 
   @override
   String get aiSuggestTonight => 'Recommend a movie for tonight';
@@ -2239,6 +2287,9 @@ class AppLocalizationsEn extends AppLocalizations {
   }
 
   @override
+  String get remoteConnectionDetails => 'Connection details';
+
+  @override
   String get remoteRelayServer => 'Relay server';
 
   @override
@@ -2256,9 +2307,8 @@ class AppLocalizationsEn extends AppLocalizations {
   String get remoteNeedsAttention => 'Needs attention';
 
   @override
-  String remoteSourceProxyMissing(String proxy) {
-    return 'Its proxy “$proxy” is not in the current configuration, so remote connection is unavailable.';
-  }
+  String get remoteSourceProxyMissing =>
+      'Its remote access service is not in the current configuration, so remote connection is unavailable.';
 
   @override
   String get statusConfigured => 'Configured';
@@ -2393,31 +2443,6 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get plgSwitchOff =>
       'New calls are blocked; instance settings are kept';
-
-  @override
-  String get settingsCapabilities => 'Capabilities';
-
-  @override
-  String get capabilitySwitchesFooter =>
-      'A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.';
-
-  @override
-  String capabilityNeeds(String name) {
-    return 'Needs “$name” switched on';
-  }
-
-  @override
-  String get plgCapabilitySwitch => 'Capability switch';
-
-  @override
-  String get plgCapabilitySwitchHint =>
-      'Switched in Settings → Capabilities, for the whole App';
-
-  @override
-  String get capabilityOn => 'On';
-
-  @override
-  String get capabilityOff => 'Off';
 
   @override
   String get plgLocation => 'Runs where';
@@ -3040,9 +3065,8 @@ class AppLocalizationsEn extends AppLocalizations {
       'Writing timed out. Temporary files starting with .openplayx- may remain on the server.';
 
   @override
-  String errSourceProxyMissing(String proxy) {
-    return 'This source uses the remote access proxy “$proxy”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.';
-  }
+  String get errSourceProxyMissing =>
+      'The remote access service this source uses is no longer in the App configuration. Import the App configuration from Relay in Settings → Remote access.';
 
   @override
   String get errReloadBeforeTest => 'Reload the configuration before testing.';
@@ -4217,7 +4241,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceSettingsHint =>
-      'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
+      'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Stop to insert the text for review, or use send to transcribe and send it right away. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.';
 
   @override
   String get voiceSettingsError =>
@@ -4228,6 +4252,9 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get voiceStop => 'Stop and transcribe';
+
+  @override
+  String get voiceSend => 'Transcribe and send';
 
   @override
   String get voiceRecording =>
@@ -4302,7 +4329,7 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remotePlatformHint =>
-      'Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.';
+      'Sign in to load platform Relay nodes and services granted to this device.';
 
   @override
   String get remotePlatformLogin => 'Sign in';
@@ -4385,4 +4412,192 @@ class AppLocalizationsEn extends AppLocalizations {
 
   @override
   String get remotePlatformInvalidEmail => 'Enter a valid email address.';
+
+  @override
+  String get remoteTabCloud => 'Cloud';
+
+  @override
+  String get remoteTabLocal => 'Local import';
+
+  @override
+  String get remoteModeActive => 'In use';
+
+  @override
+  String get remoteModeInactive => 'Not in use';
+
+  @override
+  String get remoteCloudInactiveHint =>
+      'The local import is in use. Enable the cloud configuration to switch; the local import then stops working.';
+
+  @override
+  String get remoteLocalInactiveHint =>
+      'The cloud configuration is in use. Enable the local import to switch; the cloud configuration then stops working.';
+
+  @override
+  String get remoteLocalEmptyHint =>
+      'Import a configuration exported by Relay. Importing switches to it right away and the cloud configuration stops working.';
+
+  @override
+  String get remoteEnableCloud => 'Enable cloud configuration';
+
+  @override
+  String get remoteEnableLocal => 'Enable local import';
+
+  @override
+  String get remoteEnableCloudConfirmTitle =>
+      'Switch to the cloud configuration?';
+
+  @override
+  String get remoteEnableCloudConfirmMessage =>
+      'The local import will stop working. It stays saved on this device, so you can switch back at any time.';
+
+  @override
+  String get remoteEnableLocalConfirmTitle => 'Switch to the local import?';
+
+  @override
+  String get remoteEnableLocalConfirmMessage =>
+      'The cloud configuration will stop working. Your account stays signed in, so you can switch back at any time.';
+
+  @override
+  String get remoteImportReplaceCloudTitle => 'Import and switch to it?';
+
+  @override
+  String get remoteImportReplaceCloudMessage =>
+      'The imported configuration takes effect right away and the cloud configuration stops working. You can switch back on the Cloud tab.';
+
+  @override
+  String get remoteClearActiveMessage =>
+      'Removes the local import and its credentials from this device. Remote access switches to the cloud configuration.';
+
+  @override
+  String get remoteSwitched => 'Switched.';
+
+  @override
+  String get remoteSwitch => 'Switch';
+
+  @override
+  String get tmdbCloudHint =>
+      'Use OpenPlayX cloud to look up movies and shows without a TMDB token. Titles, years, IDs and language are sent through OpenPlayX to TMDB; videos and private paths stay on this device.';
+
+  @override
+  String get tmdbLocalHint =>
+      'Connect directly to TMDB using your own read access token. The token is saved on this device.';
+
+  @override
+  String get voiceCloudHint =>
+      'Use OpenPlayX cloud transcription without an API key. Recorded audio is sent through OpenPlayX to OpenAI to turn it into text.';
+
+  @override
+  String get voiceConnectionOk =>
+      'Connected. The transcription service accepted the test audio.';
+
+  @override
+  String get voiceConnectionTimeout =>
+      'The connection test timed out. Check the endpoint and network, then try again.';
+
+  @override
+  String get voiceConnectionTestHint =>
+      'Test connection sends one second of generated silence to this service using the current configuration. It does not use the microphone or save changes.';
+
+  @override
+  String get llmModelSettings => 'LLM Model';
+
+  @override
+  String get whisperModelSettings => 'Whisper Model';
+
+  @override
+  String get settingsPlayer => 'Player';
+
+  @override
+  String get settingsSubtitles => 'Subtitles';
+
+  @override
+  String get connectorSources => 'From Connector';
+
+  @override
+  String get connectorSourceDiscovered =>
+      'Discovered automatically. Sign in to choose a folder.';
+
+  @override
+  String get connectorSourceLogin => 'Sign in and connect';
+
+  @override
+  String get connectorSourceSetup => 'Connect service';
+
+  @override
+  String get connectorSourceManaged =>
+      'Service settings are managed by Connector. Login and folders stay on this device.';
+
+  @override
+  String get connectorSourceHide => 'Hide on this device';
+
+  @override
+  String get connectorSourceHideHelp =>
+      'This hides the source from this list. Login and folders are kept, and existing home content remains available. Disable the connection to stop using it.';
+
+  @override
+  String get connectorSourcesHidden => 'Hidden sources';
+
+  @override
+  String get connectorSourceRestore => 'Restore';
+
+  @override
+  String get connectorSourceNoneHidden => 'No hidden sources';
+
+  @override
+  String get connectorSourceDisabled => 'Service disabled';
+
+  @override
+  String get connectorSourceRemoved => 'Service removed';
+
+  @override
+  String get connectorSourceSync => 'Sync sources';
+
+  @override
+  String get connectorSourceSyncFailed =>
+      'Could not sync. Your last successful source list is retained.';
+
+  @override
+  String get connectorSourceConnectionSettings => 'Connection settings';
+
+  @override
+  String get connectorSourceLoginHelp =>
+      'Use the media server account. Leave both fields empty for guest access when supported.';
+
+  @override
+  String get connectorSourceRemoteOnlyHelp =>
+      'This service currently uses remote access. SMB LAN switching requires a supported secure local transport.';
+
+  @override
+  String get connectorSourcePending => 'Not connected yet';
+
+  @override
+  String get connectorSourceLan => 'LAN connection';
+
+  @override
+  String get connectorSourceRemote => 'Remote connection';
+
+  @override
+  String get connectorSourceLoginDiscover => 'Sign in to discover sources';
+
+  @override
+  String get connectorSourceDetails => 'Service details';
+
+  @override
+  String get connectorSourceAccount => 'Account verification required';
+
+  @override
+  String get connectorSourceProtocolChanged =>
+      'Service type changed. Set up the connection again.';
+
+  @override
+  String get connectorSourceNotReady =>
+      'Connector has not reported an available route yet.';
+
+  @override
+  String get connectorSourceClearLocal => 'Clear device configuration';
+
+  @override
+  String get connectorSourceClearLocalHelp =>
+      'Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again.';
 }

@@ -56,11 +56,13 @@ class LibraryService {
   /// its file sources and what only they brought in along; a connection
   /// switched on or off shows or hides its media.
   void followSources(SourceManager sources) {
+    repository.connectionVisible = sources.sourceVisibleToAccount;
     _followed[sources] ??= sources.changes.listen((change) {
       if (_closeRequested) return;
       switch (change) {
         case SourceRemoved(:final id):
           removeFileSourcesOf(id);
+        case SourceDirectoryChanged():
         case SourceEnabledChanged():
           notifyChanged();
       }
@@ -197,11 +199,16 @@ class LibraryService {
 
   /// File sources (a connection plus one chosen folder) with their scan
   /// state: `id`, `source`, `root`, `name`, `enabled`, `status`, `error`.
-  List<Map<String, Object?>> fileSources() => repository.fileSources();
+  List<Map<String, Object?>> fileSources() => repository
+      .fileSources()
+      .where(
+        (row) => repository.connectionVisibleToAccount(row['source'] as String),
+      )
+      .toList();
 
   /// [fileSources] as models.
   List<FileSource> fileSourceList() => [
-    for (final row in repository.fileSources()) FileSource.fromRow(row),
+    for (final row in fileSources()) FileSource.fromRow(row),
   ];
 
   void setFileSourceEnabled(String id, bool enabled) {

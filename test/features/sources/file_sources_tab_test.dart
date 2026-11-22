@@ -106,15 +106,11 @@ void main() {
     expect(find.byTooltip('重新扫描全部文件源'), findsNothing);
     expect(find.byTooltip('重新加载配置'), findsNothing);
 
-    // Connections start collapsed; expanding reveals the inline add action.
-    expect(find.byKey(const ValueKey('source-add-folder-s')), findsNothing);
+    // Connections start collapsed; there is no inline add action, adding
+    // lives only in the parent menu.
     await tester.tap(find.text('NAS'));
     await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('source-add-folder-s')), findsOneWidget);
-    service.notifyChanged();
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('source-add-folder-s')), findsOneWidget);
-    // Adding is also available in the parent menu.
+    expect(find.byKey(const ValueKey('source-add-folder-s')), findsNothing);
     await tester.tap(find.byKey(const ValueKey('source-menu-s')));
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('source-add-file-s')));
@@ -168,7 +164,6 @@ void main() {
     service.notifyChanged();
     await tester.pumpAndSettle();
     expect(find.text('Movies'), findsNothing);
-    expect(find.byKey(const ValueKey('source-add-folder-s')), findsNothing);
     await tester.tap(find.text('NAS'));
     await tester.pumpAndSettle();
     expect(find.text('Movies'), findsOneWidget);

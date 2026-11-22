@@ -313,31 +313,37 @@ extension _DesktopPlayer on PlayerPageState {
                       onPressed: _seekable ? () => _skip(10) : null,
                     ),
                   const SizedBox(width: 8),
-                  Flexible(
-                    child: Tooltip(
-                      message: l.plTimeTooltip,
-                      child: GestureDetector(
-                        key: const Key('playback-time'),
-                        onTap: () =>
-                            _update(() => _showRemaining = !_showRemaining),
-                        onDoubleTap: _seekable ? _askJumpToTime : null,
-                        child: Text(
-                          _timeText(value, position),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: PlayerStyle.fg,
-                            fontSize: 13,
-                            fontFeatures: PlayerStyle.tabular,
-                            shadows: PlayerStyle.shadow,
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Flexible(
+                          child: Tooltip(
+                            message: l.plTimeTooltip,
+                            child: GestureDetector(
+                              key: const Key('playback-time'),
+                              onTap: () => _update(
+                                () => _showRemaining = !_showRemaining,
+                              ),
+                              onDoubleTap: _seekable ? _askJumpToTime : null,
+                              child: Text(
+                                _timeText(value, position),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: const TextStyle(
+                                  color: PlayerStyle.fg,
+                                  fontSize: 13,
+                                  fontFeatures: PlayerStyle.tabular,
+                                  shadows: PlayerStyle.shadow,
+                                ),
+                              ),
+                            ),
                           ),
                         ),
-                      ),
+                        const SizedBox(width: 12),
+                        Flexible(child: _readSpeedLabel(value)),
+                      ],
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  Flexible(child: _readSpeedLabel(value)),
-                  const Spacer(),
                   _desktopVolume(value),
                   PlayerIconButton(
                     key: _tracksButtonKey,

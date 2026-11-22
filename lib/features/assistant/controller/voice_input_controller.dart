@@ -28,6 +28,16 @@ class VoiceInputController extends ChangeNotifier {
   String? _conversation;
   Future<void>? _starting;
   Timer? _limit;
+  StreamSubscription<double>? _levelSub;
+
+  /// Number of level samples kept for the composer waveform.
+  static const levelHistory = 64;
+
+  /// Recent input levels (oldest first), updated while recording.
+  final levels = ValueNotifier<List<double>>(const []);
+
+  /// Time spent in the current recording.
+  final elapsed = Stopwatch();
   bool get busy => state != VoiceInputState.idle;
   void _notify() {
     if (!_disposed) notifyListeners();
@@ -54,16 +64,27 @@ class VoiceInputController extends ChangeNotifier {
     try {
       if (!recorder.supported) throw const VoiceFailure('unsupported');
       try {
-        settings.load().validate();
-        if ((await settings.key()).isEmpty) {
+        final config = settings.load()..validate();
+        if (!config.usePlatform && (await settings.key()).isEmpty) {
           throw const VoiceFailure('settings');
         }
       } catch (_) {
         throw const VoiceFailure('settings');
       }
       if (generation != _generation) return;
+      levels.value = const [];
+      await _levelSub?.cancel();
+      _levelSub = recorder.levels.listen((level) {
+        final next = [...levels.value, level];
+        levels.value = next.length > levelHistory
+            ? next.sublist(next.length - levelHistory)
+            : next;
+      });
       await recorder.start();
       if (generation != _generation) return;
+      elapsed
+        ..reset()
+        ..start();
       state = VoiceInputState.recording;
       // Bound temporary audio size and avoid unattended recordings.
       _limit = Timer(const Duration(minutes: 5), () async {
@@ -75,6 +96,7 @@ class VoiceInputController extends ChangeNotifier {
       });
     } catch (e) {
       if (generation != _generation) return;
+      _endRecording();
       try {
         await recorder.cancel();
       } catch (_) {}
@@ -84,21 +106,36 @@ class VoiceInputController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> _stop() async {
-    final generation = _generation;
+  /// Stops recording and appends the transcript to the draft. Returns whether
+  /// text was added, so callers can send it right away.
+  Future<bool> stop() async {
+    if (state != VoiceInputState.recording) return false;
+    return _stop();
+  }
+
+  void _endRecording() {
     _limit?.cancel();
+    elapsed.stop();
+    unawaited(_levelSub?.cancel());
+    _levelSub = null;
+  }
+
+  Future<bool> _stop() async {
+    final generation = _generation;
+    _endRecording();
+    var added = false;
     state = VoiceInputState.transcribing;
     _notify();
     try {
       final audio = await recorder.stop();
-      if (generation != _generation) return;
+      if (generation != _generation) return false;
       final config = settings.load()..validate();
-      final key = await settings.key();
-      if (generation != _generation) return;
+      final key = config.usePlatform ? 'platform' : await settings.key();
+      if (generation != _generation) return false;
       if (key.isEmpty) throw const VoiceFailure('settings');
       final text = await transcriber.transcribe(config, key, audio);
       if (generation != _generation || _conversation != conversationId()) {
-        return;
+        return false;
       }
       if (text.trim().isEmpty) throw const VoiceFailure('empty');
       final existing = draft.text;
@@ -108,12 +145,13 @@ class VoiceInputController extends ChangeNotifier {
         text: joined,
         selection: TextSelection.collapsed(offset: joined.length),
       );
+      added = true;
     } catch (e) {
       if (generation == _generation) {
         try {
           await recorder.cancel();
         } catch (_) {}
-        if (generation != _generation) return;
+        if (generation != _generation) return false;
         error = e is VoiceFailure ? e.code : 'transcription';
       }
     } finally {
@@ -122,12 +160,13 @@ class VoiceInputController extends ChangeNotifier {
         _notify();
       }
     }
+    return added;
   }
 
   Future<void> cancel() async {
     if (!busy || state == VoiceInputState.cancelling) return;
     ++_generation;
-    _limit?.cancel();
+    _endRecording();
     state = VoiceInputState.cancelling;
     transcriber.cancel();
     _notify();
@@ -146,8 +185,9 @@ class VoiceInputController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     ++_generation;
-    _limit?.cancel();
+    _endRecording();
     transcriber.cancel();
+    levels.dispose();
     unawaited(() async {
       await _starting;
       try {

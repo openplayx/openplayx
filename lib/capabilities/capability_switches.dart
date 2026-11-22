@@ -43,11 +43,11 @@ class CapabilitySwitchState {
   CapabilitySwitchState withSwitch(String id, bool on) =>
       copyWith(off: on ? (off.toSet()..remove(id)) : {...off, id});
 
-  // The document predates the capability layer: it was the plugin policy,
-  // and keeps its format so existing switches carry over.
+  // Keep source write grants in the existing policy document. Global
+  // capability switches were removed, so disabledPlugins is no longer saved
+  // or restored; old disabled providers become available again.
   Map<String, dynamic> toJson() => {
     'version': 1,
-    'disabledPlugins': (off.toList()..sort()),
     'sourceWriteGrants': (sourceWriteGrants.toList()..sort()),
   };
 
@@ -55,7 +55,6 @@ class CapabilitySwitchState {
     Map<String, dynamic> json,
     int revision,
   ) => CapabilitySwitchState(
-    off: {...(json['disabledPlugins'] as List? ?? const []).cast<String>()},
     sourceWriteGrants: {
       ...(json['sourceWriteGrants'] as List? ?? const []).cast<String>(),
     },

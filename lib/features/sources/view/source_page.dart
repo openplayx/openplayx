@@ -24,6 +24,10 @@ import 'widgets/source_kind_icon.dart';
 import 'file_source_row.dart';
 import 'source_instance_form.dart';
 import 'source_presentation.dart';
+import 'connector_source_setup.dart';
+import '../../../data/remote_access/discovered_source.dart';
+import '../../../data/remote_access/remote_config.dart';
+import '../../settings/remote_access_settings_page.dart';
 import 'widgets/source_list_widgets.dart';
 import '../../../ui/components/feedback/app_feedback.dart';
 
@@ -147,10 +151,15 @@ class _SourcePageState extends State<SourcePage> {
 
   Future<void> _delete(SourceConfig source) async {
     final impact = _controller.impact(source.id);
+    final discovered = widget.manager.discoveredFor(source);
     final confirmed = await showShadDialog<bool>(
       context: context,
       builder: (context) => ShadDialog(
-        title: Text(l.deleteNamedSource(source.titleName)),
+        title: Text(
+          discovered == null
+              ? l.deleteNamedSource(source.titleName)
+              : l.connectorSourceClearLocal,
+        ),
         actions: [
           ShadButton.ghost(
             onPressed: () => Navigator.pop(context, false),
@@ -162,16 +171,17 @@ class _SourcePageState extends State<SourcePage> {
           ),
         ],
         child: Text(
-          l.deleteSourceDescription(
-            impact.fileSources,
-            impact.playing,
-            impact.running,
-          ),
+          '${l.deleteSourceDescription(impact.fileSources, impact.playing, impact.running)}'
+          '${discovered == null ? '' : '\n\n${l.connectorSourceClearLocalHelp}'}',
         ),
       ),
     );
     if (confirmed != true || !mounted) return;
     await _controller.remove(source.id);
+    if (discovered != null &&
+        !widget.manager.configs.any((c) => c.id == source.id)) {
+      await widget.manager.hideDiscoveredSource(discovered, true);
+    }
   }
 
   /// Header button (top right, next to the assistant) that adds a connection.
@@ -228,6 +238,207 @@ class _SourcePageState extends State<SourcePage> {
     ),
   );
 
+  bool _syncing = false;
+  List<SourceConfig> get _visible => widget.manager.visibleConfigs;
+
+  Future<void> _syncDirectory() async {
+    if (_syncing) return;
+    setState(() => _syncing = true);
+    try {
+      await widget.manager.syncDiscoveredSources();
+      if (mounted) await _load();
+    } catch (_) {
+      if (mounted) {
+        showAppToast(
+          context,
+          l.connectorSourceSyncFailed,
+          kind: FeedbackKind.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _syncing = false);
+    }
+  }
+
+  Future<void> _accountSettings() async {
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute(
+        builder: (_) => RemoteAccessSettingsPage(sources: widget.manager),
+      ),
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _setupDiscovered(DiscoveredSource entry) async {
+    await setupConnectorSource(
+      context,
+      widget.manager,
+      entry,
+      library: widget.library,
+    );
+    if (mounted) await _load();
+  }
+
+  Future<void> _hide(DiscoveredSource entry) async {
+    final accepted = await showShadDialog<bool>(
+      context: context,
+      builder: (context) => ShadDialog(
+        title: Text(l.connectorSourceHide),
+        actions: [
+          ShadButton.ghost(
+            onPressed: () => Navigator.pop(context, false),
+            child: Text(l.cancel),
+          ),
+          ShadButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: Text(l.connectorSourceHide),
+          ),
+        ],
+        child: Text(l.connectorSourceHideHelp),
+      ),
+    );
+    if (accepted == true) {
+      await widget.manager.hideDiscoveredSource(entry, true);
+    }
+  }
+
+  Future<void> _showHidden() async {
+    await showShadDialog<void>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) {
+          final hidden = widget.manager.discoveredSources
+              .where(widget.manager.sourceHidden)
+              .toList();
+          return ShadDialog(
+            title: Text(l.connectorSourcesHidden),
+            child: SizedBox(
+              width: 360,
+              height: ((hidden.length + 1) * 80).clamp(80, 400).toDouble(),
+              child: ListView(
+                shrinkWrap: true,
+                children: [
+                  if (hidden.isEmpty) Text(l.connectorSourceNoneHidden),
+                  for (final entry in hidden)
+                    ContentRow(
+                      title: Text(entry.name),
+                      subtitle: Text(entry.connectorName),
+                      trailing: ShadButton.ghost(
+                        child: Text(l.connectorSourceRestore),
+                        onPressed: () async {
+                          await widget.manager.hideDiscoveredSource(
+                            entry,
+                            false,
+                          );
+                          if (context.mounted) update(() {});
+                        },
+                      ),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
+
+  Future<void> _connectionSettings(SourceConfig source) async {
+    final link = source.remote!;
+    var mode = link.mode;
+    final local =
+        source.kind != SourceKind.smb &&
+        (link.managedLocal
+            ? widget.manager.discoveredFor(source)?.supportsLocal == true
+            : link.localAddress?.isNotEmpty == true);
+    final accepted = await showShadDialog<bool>(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, update) => ShadDialog(
+          title: Text(l.connectorSourceConnectionSettings),
+          actions: [
+            ShadButton.ghost(
+              onPressed: () => Navigator.pop(context, false),
+              child: Text(l.cancel),
+            ),
+            ShadButton(
+              onPressed: () => Navigator.pop(context, true),
+              child: Text(l.save),
+            ),
+          ],
+          child: SizedBox(
+            width: 360,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (final option in RemoteConnectionMode.values)
+                  if (local || option == RemoteConnectionMode.remoteOnly)
+                    ContentRow(
+                      title: Text(switch (option) {
+                        RemoteConnectionMode.automatic => l.remoteAutomatic,
+                        RemoteConnectionMode.localOnly => l.remoteLocalOnly,
+                        RemoteConnectionMode.remoteOnly => l.remoteRemoteOnly,
+                      }),
+                      trailing: Icon(
+                        mode == option ? AppIcons.check : AppIcons.next,
+                      ),
+                      onTap: () => update(() => mode = option),
+                    ),
+                if (source.kind == SourceKind.smb)
+                  Text(l.connectorSourceRemoteOnlyHelp),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+    if (accepted != true) return;
+    await widget.manager.save(
+      source.copyWith(
+        remote: SourceRemote(
+          proxy: link.proxy,
+          accountId: link.accountId,
+          connectorId: link.connectorId,
+          serviceName: link.serviceName,
+          managedLocal: link.managedLocal,
+          mode: mode,
+          localAddress: link.localAddress,
+          localTlsSha256: link.localTlsSha256,
+        ),
+      ),
+      '',
+    );
+    if (mounted) await _load();
+  }
+
+  Widget _discoveredRow(DiscoveredSource entry) => SourceListRow(
+    key: ValueKey('discovered-${entry.serviceId}'),
+    title: entry.name,
+    leading: SourceKindIcon(entry.kind!),
+    subtitle: Text('${entry.kind!.label} · ${entry.connectorName}'),
+    status: Text(
+      entry.enabled ? l.connectorSourceDiscovered : l.connectorSourceDisabled,
+    ),
+    onTap: entry.enabled && !_busy ? () => _setupDiscovered(entry) : null,
+    actions: SourceActionsMenu(
+      label: entry.name,
+      enabled: !_busy,
+      actions: [
+        if (entry.enabled)
+          SourceRowAction(
+            label: l.connectorSourceLogin,
+            icon: AppIcons.signIn,
+            onPressed: () => _setupDiscovered(entry),
+          ),
+        SourceRowAction(
+          label: l.connectorSourceHide,
+          icon: AppIcons.hidePassword,
+          onPressed: () => _hide(entry),
+        ),
+      ],
+    ),
+  );
+
   void _browseConnection(SourceConfig source) => _controller.browse(source);
 
   /// A lightweight expandable group, with independent parent/child actions.
@@ -249,11 +460,19 @@ class _SourcePageState extends State<SourcePage> {
         source.enabled &&
         !files.scanning &&
         scannable.isNotEmpty;
-    final status = SourcePresentation.summary(
-      l,
-      widget.manager.applicationStatus(source.id),
-      widget.manager.credentialStatus(source.id).authorization,
-    );
+    final discovered = widget.manager.discoveredFor(source);
+    final localPath = widget.manager.connectionUsesLocal(source.id);
+    final status = discovered?.status == 'removed'
+        ? l.connectorSourceRemoved
+        : discovered?.status == 'disabled'
+        ? l.connectorSourceDisabled
+        : localPath != null
+        ? (localPath ? l.connectorSourceLan : l.connectorSourceRemote)
+        : SourcePresentation.summary(
+            l,
+            widget.manager.applicationStatus(source.id),
+            widget.manager.credentialStatus(source.id).authorization,
+          );
     return Padding(
       padding: const EdgeInsets.symmetric(vertical: AppSpacing.sm),
       child: Column(
@@ -277,6 +496,7 @@ class _SourcePageState extends State<SourcePage> {
             ),
             subtitle: Text(
               '${source.kind == SourceKind.local ? l.localSource : source.typeLabel}'
+              '${discovered == null ? '' : ' · ${discovered.connectorName}'}'
               '${files == null ? '' : ' · ${l.sourceFileCount(bindings.length)}'}',
             ),
             status: Text(
@@ -322,11 +542,19 @@ class _SourcePageState extends State<SourcePage> {
                       ? () => _browseConnection(source)
                       : null,
                 ),
+                if (discovered != null)
+                  SourceRowAction(
+                    label: l.connectorSourceConnectionSettings,
+                    icon: AppIcons.settings,
+                    onPressed: () => _connectionSettings(source),
+                  ),
                 SourceRowAction(
                   key: ValueKey('source-edit-${source.id}'),
-                  label: l.edit,
+                  label: discovered == null ? l.edit : l.connectorSourceLogin,
                   icon: AppIcons.edit,
-                  onPressed: () => _edit(source),
+                  onPressed: discovered == null || discovered.enabled
+                      ? () => _edit(source)
+                      : null,
                 ),
                 SourceRowAction(
                   key: ValueKey('source-toggle-${source.id}'),
@@ -334,9 +562,17 @@ class _SourcePageState extends State<SourcePage> {
                   icon: source.enabled ? AppIcons.pause : AppIcons.play,
                   onPressed: () => _toggle(source, !source.enabled),
                 ),
+                if (discovered != null)
+                  SourceRowAction(
+                    label: l.connectorSourceHide,
+                    icon: AppIcons.hidePassword,
+                    onPressed: () => _hide(discovered),
+                  ),
                 SourceRowAction(
                   key: ValueKey('source-delete-${source.id}'),
-                  label: l.delete,
+                  label: discovered == null
+                      ? l.delete
+                      : l.connectorSourceClearLocal,
                   icon: AppIcons.delete,
                   destructive: true,
                   onPressed: () => _delete(source),
@@ -359,21 +595,6 @@ class _SourcePageState extends State<SourcePage> {
                       connection: source,
                       onPlay: widget.onPlay,
                     ),
-                  Align(
-                    alignment: AlignmentDirectional.centerStart,
-                    child: ShadButton.ghost(
-                      key: ValueKey('source-add-folder-${source.id}'),
-                      leading: const Icon(AppIcons.add, size: 16),
-                      enabled: !_busy && source.enabled && !files.scanning,
-                      onPressed: _busy || !source.enabled || files.scanning
-                          ? null
-                          : () => addFileSource(context, files, source.id),
-                      child: Text(
-                        l.addFileSourceShort,
-                        style: theme.textTheme.muted,
-                      ),
-                    ),
-                  ),
                 ],
               ),
             ),
@@ -421,7 +642,31 @@ class _SourcePageState extends State<SourcePage> {
     },
     child: AppPage(
       pageContext: const PageContextData(pageType: 'sources'),
-      trailing: [if (_source == null) _addSourceButton()],
+      trailing: [
+        if (_source == null) ...[
+          ShadIconButton.ghost(
+            icon: const Icon(AppIcons.refresh),
+            onPressed: _syncing ? null : _syncDirectory,
+            key: const ValueKey('sync-connector-sources'),
+          ),
+          _addSourceButton(),
+          SourceActionsMenu(
+            label: l.sources,
+            actions: [
+              SourceRowAction(
+                label: l.connectorSourcesHidden,
+                icon: AppIcons.showPassword,
+                onPressed: _showHidden,
+              ),
+              SourceRowAction(
+                label: l.connectorSourceLoginDiscover,
+                icon: AppIcons.connection,
+                onPressed: _accountSettings,
+              ),
+            ],
+          ),
+        ],
+      ],
       body: Column(
         children: [
           ...[
@@ -465,19 +710,31 @@ class _SourcePageState extends State<SourcePage> {
             Expanded(
               child: _source == null
                   ? (!_busy &&
-                            widget.manager.configs.isEmpty &&
+                            _visible.isEmpty &&
+                            widget.manager.pendingDiscoveredSources.isEmpty &&
                             _orphanFileSources().isEmpty)
                         ? _emptySources()
                         : ListView(
                             padding: AppSpacing.page(context),
                             children: [
-                              for (
-                                var i = 0;
-                                i < widget.manager.configs.length;
-                                i++
-                              ) ...[
+                              if (widget.manager.sourceSyncError != null)
+                                Text(l.connectorSourceSyncFailed),
+                              if (widget
+                                  .manager
+                                  .pendingDiscoveredSources
+                                  .isNotEmpty)
+                                Padding(
+                                  padding: const EdgeInsets.only(
+                                    bottom: AppSpacing.sm,
+                                  ),
+                                  child: Text(l.connectorSources),
+                                ),
+                              for (final entry
+                                  in widget.manager.pendingDiscoveredSources)
+                                _discoveredRow(entry),
+                              for (var i = 0; i < _visible.length; i++) ...[
                                 if (i > 0) const Divider(height: 1),
-                                _connectionGroup(widget.manager.configs[i]),
+                                _connectionGroup(_visible[i]),
                               ],
                               ..._orphanFileSources(),
                             ],

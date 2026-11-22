@@ -121,7 +121,7 @@ abstract class AppLocalizations {
   /// No description provided for @plugins.
   ///
   /// In en, this message translates to:
-  /// **'AI'**
+  /// **'Ask'**
   String get plugins;
 
   /// No description provided for @settings.
@@ -129,6 +129,24 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Settings'**
   String get settings;
+
+  /// No description provided for @settingsGeneral.
+  ///
+  /// In en, this message translates to:
+  /// **'General'**
+  String get settingsGeneral;
+
+  /// No description provided for @settingsMediaLibrary.
+  ///
+  /// In en, this message translates to:
+  /// **'Media library'**
+  String get settingsMediaLibrary;
+
+  /// No description provided for @settingsApplication.
+  ///
+  /// In en, this message translates to:
+  /// **'Application'**
+  String get settingsApplication;
 
   /// No description provided for @system.
   ///
@@ -805,8 +823,74 @@ abstract class AppLocalizations {
   /// No description provided for @scanExtensionsHelp.
   ///
   /// In en, this message translates to:
-  /// **'Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.'**
+  /// **'Only files with a selected extension appear in preview and are added to the library. Hidden files starting with a dot are always skipped.'**
   String get scanExtensionsHelp;
+
+  /// No description provided for @scanExtensionsAllFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Nothing selected: every file will be kept.'**
+  String get scanExtensionsAllFiles;
+
+  /// No description provided for @scanExtensionsVideo.
+  ///
+  /// In en, this message translates to:
+  /// **'Video'**
+  String get scanExtensionsVideo;
+
+  /// No description provided for @scanExtensionsAudio.
+  ///
+  /// In en, this message translates to:
+  /// **'Audio'**
+  String get scanExtensionsAudio;
+
+  /// No description provided for @scanExtensionsCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom'**
+  String get scanExtensionsCustom;
+
+  /// No description provided for @scanExtensionsSelected.
+  ///
+  /// In en, this message translates to:
+  /// **'{count} of {total} selected'**
+  String scanExtensionsSelected(int count, int total);
+
+  /// No description provided for @scanExtensionsSelectAll.
+  ///
+  /// In en, this message translates to:
+  /// **'Select all'**
+  String get scanExtensionsSelectAll;
+
+  /// No description provided for @scanExtensionsSelectNone.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear'**
+  String get scanExtensionsSelectNone;
+
+  /// No description provided for @scanExtensionsAddHint.
+  ///
+  /// In en, this message translates to:
+  /// **'e.g. iso'**
+  String get scanExtensionsAddHint;
+
+  /// No description provided for @scanExtensionsInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Use letters and digits only, up to 16 characters each.'**
+  String get scanExtensionsInvalid;
+
+  /// No description provided for @scanExtensionsRemove.
+  ///
+  /// In en, this message translates to:
+  /// **'Remove {extension}'**
+  String scanExtensionsRemove(String extension);
+
+  /// No description provided for @scanExtensionsRestoreDefaults.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore defaults'**
+  String get scanExtensionsRestoreDefaults;
 
   /// No description provided for @optionalDomain.
   ///
@@ -1783,7 +1867,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiAssistant.
   ///
   /// In en, this message translates to:
-  /// **'AI assistant'**
+  /// **'Ask'**
   String get aiAssistant;
 
   /// No description provided for @aiPrivacyNotice.
@@ -2646,7 +2730,7 @@ abstract class AppLocalizations {
   /// No description provided for @aiGreeting.
   ///
   /// In en, this message translates to:
-  /// **'What can I help with?'**
+  /// **'What would you like to watch tonight?'**
   String get aiGreeting;
 
   /// No description provided for @aiSuggestTonight.
@@ -4149,6 +4233,12 @@ abstract class AppLocalizations {
   /// **'Port {port}'**
   String remoteProxyPort(int port);
 
+  /// No description provided for @remoteConnectionDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection details'**
+  String get remoteConnectionDetails;
+
   /// No description provided for @remoteRelayServer.
   ///
   /// In en, this message translates to:
@@ -4182,8 +4272,8 @@ abstract class AppLocalizations {
   /// No description provided for @remoteSourceProxyMissing.
   ///
   /// In en, this message translates to:
-  /// **'Its proxy “{proxy}” is not in the current configuration, so remote connection is unavailable.'**
-  String remoteSourceProxyMissing(String proxy);
+  /// **'Its remote access service is not in the current configuration, so remote connection is unavailable.'**
+  String get remoteSourceProxyMissing;
 
   /// No description provided for @statusConfigured.
   ///
@@ -4382,48 +4472,6 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'New calls are blocked; instance settings are kept'**
   String get plgSwitchOff;
-
-  /// No description provided for @settingsCapabilities.
-  ///
-  /// In en, this message translates to:
-  /// **'Capabilities'**
-  String get settingsCapabilities;
-
-  /// No description provided for @capabilitySwitchesFooter.
-  ///
-  /// In en, this message translates to:
-  /// **'A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.'**
-  String get capabilitySwitchesFooter;
-
-  /// No description provided for @capabilityNeeds.
-  ///
-  /// In en, this message translates to:
-  /// **'Needs “{name}” switched on'**
-  String capabilityNeeds(String name);
-
-  /// No description provided for @plgCapabilitySwitch.
-  ///
-  /// In en, this message translates to:
-  /// **'Capability switch'**
-  String get plgCapabilitySwitch;
-
-  /// No description provided for @plgCapabilitySwitchHint.
-  ///
-  /// In en, this message translates to:
-  /// **'Switched in Settings → Capabilities, for the whole App'**
-  String get plgCapabilitySwitchHint;
-
-  /// No description provided for @capabilityOn.
-  ///
-  /// In en, this message translates to:
-  /// **'On'**
-  String get capabilityOn;
-
-  /// No description provided for @capabilityOff.
-  ///
-  /// In en, this message translates to:
-  /// **'Off'**
-  String get capabilityOff;
 
   /// No description provided for @plgLocation.
   ///
@@ -5454,8 +5502,8 @@ abstract class AppLocalizations {
   /// No description provided for @errSourceProxyMissing.
   ///
   /// In en, this message translates to:
-  /// **'This source uses the remote access proxy “{proxy}”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.'**
-  String errSourceProxyMissing(String proxy);
+  /// **'The remote access service this source uses is no longer in the App configuration. Import the App configuration from Relay in Settings → Remote access.'**
+  String get errSourceProxyMissing;
 
   /// No description provided for @errReloadBeforeTest.
   ///
@@ -7530,7 +7578,7 @@ abstract class AppLocalizations {
   /// No description provided for @voiceSettingsHint.
   ///
   /// In en, this message translates to:
-  /// **'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.'**
+  /// **'Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Stop to insert the text for review, or use send to transcribe and send it right away. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.'**
   String get voiceSettingsHint;
 
   /// No description provided for @voiceSettingsError.
@@ -7550,6 +7598,12 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Stop and transcribe'**
   String get voiceStop;
+
+  /// No description provided for @voiceSend.
+  ///
+  /// In en, this message translates to:
+  /// **'Transcribe and send'**
+  String get voiceSend;
 
   /// No description provided for @voiceRecording.
   ///
@@ -7674,7 +7728,7 @@ abstract class AppLocalizations {
   /// No description provided for @remotePlatformHint.
   ///
   /// In en, this message translates to:
-  /// **'Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.'**
+  /// **'Sign in to load platform Relay nodes and services granted to this device.'**
   String get remotePlatformHint;
 
   /// No description provided for @remotePlatformLogin.
@@ -7814,6 +7868,336 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Enter a valid email address.'**
   String get remotePlatformInvalidEmail;
+
+  /// No description provided for @remoteTabCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Cloud'**
+  String get remoteTabCloud;
+
+  /// No description provided for @remoteTabLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local import'**
+  String get remoteTabLocal;
+
+  /// No description provided for @remoteModeActive.
+  ///
+  /// In en, this message translates to:
+  /// **'In use'**
+  String get remoteModeActive;
+
+  /// No description provided for @remoteModeInactive.
+  ///
+  /// In en, this message translates to:
+  /// **'Not in use'**
+  String get remoteModeInactive;
+
+  /// No description provided for @remoteCloudInactiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The local import is in use. Enable the cloud configuration to switch; the local import then stops working.'**
+  String get remoteCloudInactiveHint;
+
+  /// No description provided for @remoteLocalInactiveHint.
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud configuration is in use. Enable the local import to switch; the cloud configuration then stops working.'**
+  String get remoteLocalInactiveHint;
+
+  /// No description provided for @remoteLocalEmptyHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Import a configuration exported by Relay. Importing switches to it right away and the cloud configuration stops working.'**
+  String get remoteLocalEmptyHint;
+
+  /// No description provided for @remoteEnableCloud.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable cloud configuration'**
+  String get remoteEnableCloud;
+
+  /// No description provided for @remoteEnableLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable local import'**
+  String get remoteEnableLocal;
+
+  /// No description provided for @remoteEnableCloudConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the cloud configuration?'**
+  String get remoteEnableCloudConfirmTitle;
+
+  /// No description provided for @remoteEnableCloudConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The local import will stop working. It stays saved on this device, so you can switch back at any time.'**
+  String get remoteEnableCloudConfirmMessage;
+
+  /// No description provided for @remoteEnableLocalConfirmTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch to the local import?'**
+  String get remoteEnableLocalConfirmTitle;
+
+  /// No description provided for @remoteEnableLocalConfirmMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The cloud configuration will stop working. Your account stays signed in, so you can switch back at any time.'**
+  String get remoteEnableLocalConfirmMessage;
+
+  /// No description provided for @remoteImportReplaceCloudTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Import and switch to it?'**
+  String get remoteImportReplaceCloudTitle;
+
+  /// No description provided for @remoteImportReplaceCloudMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'The imported configuration takes effect right away and the cloud configuration stops working. You can switch back on the Cloud tab.'**
+  String get remoteImportReplaceCloudMessage;
+
+  /// No description provided for @remoteClearActiveMessage.
+  ///
+  /// In en, this message translates to:
+  /// **'Removes the local import and its credentials from this device. Remote access switches to the cloud configuration.'**
+  String get remoteClearActiveMessage;
+
+  /// No description provided for @remoteSwitched.
+  ///
+  /// In en, this message translates to:
+  /// **'Switched.'**
+  String get remoteSwitched;
+
+  /// No description provided for @remoteSwitch.
+  ///
+  /// In en, this message translates to:
+  /// **'Switch'**
+  String get remoteSwitch;
+
+  /// No description provided for @tmdbCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use OpenPlayX cloud to look up movies and shows without a TMDB token. Titles, years, IDs and language are sent through OpenPlayX to TMDB; videos and private paths stay on this device.'**
+  String get tmdbCloudHint;
+
+  /// No description provided for @tmdbLocalHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect directly to TMDB using your own read access token. The token is saved on this device.'**
+  String get tmdbLocalHint;
+
+  /// No description provided for @voiceCloudHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use OpenPlayX cloud transcription without an API key. Recorded audio is sent through OpenPlayX to OpenAI to turn it into text.'**
+  String get voiceCloudHint;
+
+  /// No description provided for @voiceConnectionOk.
+  ///
+  /// In en, this message translates to:
+  /// **'Connected. The transcription service accepted the test audio.'**
+  String get voiceConnectionOk;
+
+  /// No description provided for @voiceConnectionTimeout.
+  ///
+  /// In en, this message translates to:
+  /// **'The connection test timed out. Check the endpoint and network, then try again.'**
+  String get voiceConnectionTimeout;
+
+  /// No description provided for @voiceConnectionTestHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Test connection sends one second of generated silence to this service using the current configuration. It does not use the microphone or save changes.'**
+  String get voiceConnectionTestHint;
+
+  /// No description provided for @llmModelSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'LLM Model'**
+  String get llmModelSettings;
+
+  /// No description provided for @whisperModelSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Whisper Model'**
+  String get whisperModelSettings;
+
+  /// No description provided for @settingsPlayer.
+  ///
+  /// In en, this message translates to:
+  /// **'Player'**
+  String get settingsPlayer;
+
+  /// No description provided for @settingsSubtitles.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitles'**
+  String get settingsSubtitles;
+
+  /// No description provided for @connectorSources.
+  ///
+  /// In en, this message translates to:
+  /// **'From Connector'**
+  String get connectorSources;
+
+  /// No description provided for @connectorSourceDiscovered.
+  ///
+  /// In en, this message translates to:
+  /// **'Discovered automatically. Sign in to choose a folder.'**
+  String get connectorSourceDiscovered;
+
+  /// No description provided for @connectorSourceLogin.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in and connect'**
+  String get connectorSourceLogin;
+
+  /// No description provided for @connectorSourceSetup.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect service'**
+  String get connectorSourceSetup;
+
+  /// No description provided for @connectorSourceManaged.
+  ///
+  /// In en, this message translates to:
+  /// **'Service settings are managed by Connector. Login and folders stay on this device.'**
+  String get connectorSourceManaged;
+
+  /// No description provided for @connectorSourceHide.
+  ///
+  /// In en, this message translates to:
+  /// **'Hide on this device'**
+  String get connectorSourceHide;
+
+  /// No description provided for @connectorSourceHideHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This hides the source from this list. Login and folders are kept, and existing home content remains available. Disable the connection to stop using it.'**
+  String get connectorSourceHideHelp;
+
+  /// No description provided for @connectorSourcesHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'Hidden sources'**
+  String get connectorSourcesHidden;
+
+  /// No description provided for @connectorSourceRestore.
+  ///
+  /// In en, this message translates to:
+  /// **'Restore'**
+  String get connectorSourceRestore;
+
+  /// No description provided for @connectorSourceNoneHidden.
+  ///
+  /// In en, this message translates to:
+  /// **'No hidden sources'**
+  String get connectorSourceNoneHidden;
+
+  /// No description provided for @connectorSourceDisabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Service disabled'**
+  String get connectorSourceDisabled;
+
+  /// No description provided for @connectorSourceRemoved.
+  ///
+  /// In en, this message translates to:
+  /// **'Service removed'**
+  String get connectorSourceRemoved;
+
+  /// No description provided for @connectorSourceSync.
+  ///
+  /// In en, this message translates to:
+  /// **'Sync sources'**
+  String get connectorSourceSync;
+
+  /// No description provided for @connectorSourceSyncFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not sync. Your last successful source list is retained.'**
+  String get connectorSourceSyncFailed;
+
+  /// No description provided for @connectorSourceConnectionSettings.
+  ///
+  /// In en, this message translates to:
+  /// **'Connection settings'**
+  String get connectorSourceConnectionSettings;
+
+  /// No description provided for @connectorSourceLoginHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Use the media server account. Leave both fields empty for guest access when supported.'**
+  String get connectorSourceLoginHelp;
+
+  /// No description provided for @connectorSourceRemoteOnlyHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This service currently uses remote access. SMB LAN switching requires a supported secure local transport.'**
+  String get connectorSourceRemoteOnlyHelp;
+
+  /// No description provided for @connectorSourcePending.
+  ///
+  /// In en, this message translates to:
+  /// **'Not connected yet'**
+  String get connectorSourcePending;
+
+  /// No description provided for @connectorSourceLan.
+  ///
+  /// In en, this message translates to:
+  /// **'LAN connection'**
+  String get connectorSourceLan;
+
+  /// No description provided for @connectorSourceRemote.
+  ///
+  /// In en, this message translates to:
+  /// **'Remote connection'**
+  String get connectorSourceRemote;
+
+  /// No description provided for @connectorSourceLoginDiscover.
+  ///
+  /// In en, this message translates to:
+  /// **'Sign in to discover sources'**
+  String get connectorSourceLoginDiscover;
+
+  /// No description provided for @connectorSourceDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'Service details'**
+  String get connectorSourceDetails;
+
+  /// No description provided for @connectorSourceAccount.
+  ///
+  /// In en, this message translates to:
+  /// **'Account verification required'**
+  String get connectorSourceAccount;
+
+  /// No description provided for @connectorSourceProtocolChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'Service type changed. Set up the connection again.'**
+  String get connectorSourceProtocolChanged;
+
+  /// No description provided for @connectorSourceNotReady.
+  ///
+  /// In en, this message translates to:
+  /// **'Connector has not reported an available route yet.'**
+  String get connectorSourceNotReady;
+
+  /// No description provided for @connectorSourceClearLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Clear device configuration'**
+  String get connectorSourceClearLocal;
+
+  /// No description provided for @connectorSourceClearLocalHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again.'**
+  String get connectorSourceClearLocalHelp;
 }
 
 class _AppLocalizationsDelegate

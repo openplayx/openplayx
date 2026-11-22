@@ -7,8 +7,10 @@ import '../../../data/library/scan_status.dart';
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../../capabilities/artwork/artwork_service.dart';
+import '../../../capabilities/library/file_source.dart';
 import '../../../capabilities/library/library_service.dart';
 import '../../../ui/components/media/media_shelf.dart';
+import '../../../ui/icons/app_icons.dart';
 import '../controller/home_controller.dart';
 import 'media_opener.dart';
 import '../model/home_shelves.dart';
@@ -199,16 +201,33 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final service = widget.service;
+    final shelves = [
+      _resumeShelf(
+        l.continueWatching,
+        _shelves.continueWatching,
+        (limit) => service.continueWatching(limit: limit),
+      ),
+      _posterShelf(l.recentlyAdded, null, _shelves.recentlyAdded),
+      _posterShelf(l.movie, 'movie', _shelves.movies),
+      _posterShelf(l.tvShows, 'series', _shelves.series),
+    ];
+    final empty = shelves.every((s) => s is SizedBox);
+    // Scan progress only fills an otherwise empty home; once videos show up the
+    // shelves themselves are the progress. Failures and empty results stay visible.
     final statuses = _controller.scanStates.map((state) {
       final f = state.source;
       final count = state.count;
       final retry =
           f.status == ScanStatus.failed || f.status == ScanStatus.interrupted;
-      if (!f.scanning &&
-          !retry &&
-          !(f.status == ScanStatus.done && count == 0)) {
+      if (f.scanning && !empty ||
+          !f.scanning &&
+              !retry &&
+              !(f.status == ScanStatus.done && count == 0)) {
         return const SizedBox.shrink();
       }
+      // Once videos show, a failed source is one quiet row instead of a card
+      // pushing the shelves down; tapping it reveals the full reason.
+      if (retry && !empty) return _failedScanRow(l, f);
       return Padding(
         padding: _padding.add(const EdgeInsets.only(bottom: 16)),
         child: Column(
@@ -237,17 +256,6 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
         ),
       );
     }).toList();
-    final shelves = [
-      _resumeShelf(
-        l.continueWatching,
-        _shelves.continueWatching,
-        (limit) => service.continueWatching(limit: limit),
-      ),
-      _posterShelf(l.recentlyAdded, null, _shelves.recentlyAdded),
-      _posterShelf(l.movie, 'movie', _shelves.movies),
-      _posterShelf(l.tvShows, 'series', _shelves.series),
-    ];
-    final empty = shelves.every((s) => s is SizedBox);
     if (empty && statuses.every((s) => s is SizedBox)) {
       return Center(
         child: Padding(
@@ -277,8 +285,77 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
     return ListView(
       key: const PageStorageKey('home'),
       controller: _scroll,
-      padding: const EdgeInsets.only(top: 20, bottom: 12),
+      // Keep the last shelf reachable above the floating bar while allowing
+      // earlier shelves to scroll behind its backdrop filter.
+      padding: EdgeInsets.only(
+        top: 20,
+        bottom: 12 + MediaQuery.paddingOf(context).bottom,
+      ),
       children: [...statuses, ...shelves],
+    );
+  }
+
+  final _expandedScanErrors = <Object>{};
+
+  Widget _failedScanRow(AppLocalizations l, FileSource f) {
+    final theme = ShadTheme.of(context);
+    final reason = ScanStatus.error(f.error);
+    final expanded = _expandedScanErrors.contains(f.id);
+    final status = f.status == ScanStatus.failed
+        ? l.scanStatusFailed
+        : l.scanStatusInterrupted;
+    return Padding(
+      key: ValueKey('home-scan-failed-${f.id}'),
+      padding: _padding.add(const EdgeInsets.only(bottom: 12)),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Padding(
+            padding: const EdgeInsets.only(top: 2),
+            child: Icon(
+              AppIcons.warning,
+              size: 16,
+              color: theme.colorScheme.mutedForeground,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: reason == null
+                  ? null
+                  : () => setState(() {
+                      if (!_expandedScanErrors.remove(f.id)) {
+                        _expandedScanErrors.add(f.id);
+                      }
+                    }),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    '${f.name ?? l.sourceRootFolder} · $status',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.small,
+                  ),
+                  if (reason != null)
+                    Text(
+                      reason,
+                      maxLines: expanded ? null : 1,
+                      overflow: expanded ? null : TextOverflow.ellipsis,
+                      style: theme.textTheme.muted.copyWith(fontSize: 12),
+                    ),
+                ],
+              ),
+            ),
+          ),
+          ShadButton.ghost(
+            size: ShadButtonSize.sm,
+            onPressed: () => widget.service.startScan(f.id, widget.sources),
+            child: Text(l.retry),
+          ),
+        ],
+      ),
     );
   }
 }

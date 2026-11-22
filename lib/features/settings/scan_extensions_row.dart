@@ -1,14 +1,14 @@
-import 'package:flutter/widgets.dart';
+import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
-import '../../data/sources/source_config.dart';
 import '../../capabilities/sources/source_manager.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../ui/components/settings/settings_section.dart';
+import 'scan_extensions_page.dart';
 
 /// Global file-suffix filter used by both preview scans and library scans.
 ///
-/// The row shows the current list; editing happens in a dialog.
+/// The row shows the current list; editing happens on [ScanExtensionsPage].
 class ScanExtensionsRow extends StatefulWidget with SettingsRowContent {
   const ScanExtensionsRow({super.key, required this.sources});
   final SourceManager sources;
@@ -17,40 +17,14 @@ class ScanExtensionsRow extends StatefulWidget with SettingsRowContent {
 }
 
 class _ScanExtensionsRowState extends State<ScanExtensionsRow> {
-  bool _busy = false;
-  bool _failed = false;
-
   Future<void> _edit() async {
-    final l = AppLocalizations.of(context);
-    final text = await showSettingsInputDialog(
-      context,
-      title: l.scanExtensions,
-      description: l.scanExtensionsHelp,
-      initial: widget.sources.scanExtensions.join(', '),
-      placeholder: 'mp4, mkv, avi',
-      cancelLabel: l.cancel,
-      saveLabel: l.save,
-      validate: (value) {
-        try {
-          parseScanExtensions(value);
-          return null;
-        } catch (_) {
-          return l.preferenceSaveFailed;
-        }
-      },
+    final saved = await Navigator.of(context).push<bool>(
+      MaterialPageRoute(
+        settings: const RouteSettings(name: 'ScanExtensionsPage'),
+        builder: (_) => ScanExtensionsPage(sources: widget.sources),
+      ),
     );
-    if (text == null || !mounted) return;
-    setState(() {
-      _busy = true;
-      _failed = false;
-    });
-    try {
-      await widget.sources.setScanExtensions(parseScanExtensions(text));
-    } catch (_) {
-      _failed = true;
-    } finally {
-      if (mounted) setState(() => _busy = false);
-    }
+    if (saved == true && mounted) setState(() {});
   }
 
   @override
@@ -60,9 +34,8 @@ class _ScanExtensionsRowState extends State<ScanExtensionsRow> {
     return SettingsRow(
       key: const ValueKey('scan-extensions'),
       title: l.scanExtensions,
-      description: _failed ? l.preferenceSaveFailed : null,
       chevron: true,
-      onTap: _busy ? null : _edit,
+      onTap: _edit,
       control: Text(
         values.isEmpty ? '*' : values.join(', '),
         maxLines: 1,

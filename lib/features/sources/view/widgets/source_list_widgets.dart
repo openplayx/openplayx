@@ -80,7 +80,12 @@ class SourceListRow extends StatelessWidget {
             ),
             if (!compact && status != null) ...[
               const SizedBox(width: AppSpacing.md),
-              Flexible(child: status!),
+              ConstrainedBox(
+                constraints: BoxConstraints(
+                  maxWidth: constraints.maxWidth * 0.35,
+                ),
+                child: status!,
+              ),
             ],
             actions,
           ],

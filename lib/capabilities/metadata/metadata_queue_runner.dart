@@ -28,6 +28,9 @@ class MetadataQueueRunner {
   }) : queue = MetadataQueue(library.db),
        // ignore: prefer_initializing_formals
        _registry = registry,
+       _usePlatform =
+           credentials == null &&
+           TmdbConfig.fromSettings(library.metadata.setting).usePlatform,
        _credentials =
            credentials ?? (() async => library.metadata.setting(tmdbTokenKey)),
        artwork =
@@ -42,6 +45,7 @@ class MetadataQueueRunner {
   final ArtworkService artwork;
   final MetadataRegistry? _registry;
   final MetadataCredentialReader _credentials;
+  final bool _usePlatform;
   MetadataService? _service;
   bool _configured = false;
   bool _stopped = false;
@@ -111,8 +115,10 @@ class MetadataQueueRunner {
         try {
           token = await _credentials();
         } catch (_) {}
-        if (token?.trim().isNotEmpty == true) {
-          final transport = TmdbTransport(token!.trim());
+        if (_usePlatform || token?.trim().isNotEmpty == true) {
+          final transport = _usePlatform
+              ? TmdbTransport.platform()
+              : TmdbTransport(token!.trim());
           _service!.registry.register(
             'tmdb',
             TmdbMetadataPlugin(transport.get, onDispose: transport.close),
@@ -132,8 +138,10 @@ class MetadataQueueRunner {
       } catch (_) {
         /* Local import remains available. */
       }
-      if (token?.trim().isNotEmpty == true) {
-        final transport = TmdbTransport(token!.trim());
+      if (_usePlatform || token?.trim().isNotEmpty == true) {
+        final transport = _usePlatform
+            ? TmdbTransport.platform()
+            : TmdbTransport(token!.trim());
         registry.register(
           'tmdb',
           TmdbMetadataPlugin(transport.get, onDispose: transport.close),

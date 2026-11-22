@@ -42,6 +42,7 @@ import '../capabilities/speech/asr_model_store.dart';
 import '../capabilities/speech/subtitle_generation_service.dart';
 import '../capabilities/media_processing/media_processing_service.dart';
 import '../assistant/plugins/external/external_service_registry.dart';
+import '../assistant/plugins/external/external_service_setup.dart';
 import '../capabilities/metadata/tmdb_credentials.dart';
 import '../assistant/assistant_module.dart';
 import '../assistant/playback_port.dart';
@@ -179,7 +180,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
           media: () => _mediaProcessing,
           tmdbConfigured: () async {
             try {
-              return library.metadata.setting(tmdbTokenKey).trim().isNotEmpty;
+              return TmdbConfig.fromSettings(library.metadata.setting).configured;
             } catch (_) {
               return false;
             }
@@ -311,7 +312,8 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     navigator.popUntil((r) => r.isFirst);
     await navigator.push<void>(
       MaterialPageRoute(
-        builder: (_) => _pluginsPage(initialGroup: PluginGroup.model),
+        settings: const RouteSettings(name: 'PluginGroupPage'),
+        builder: (_) => _pluginGroupPage(PluginGroup.model),
       ),
     );
   }
@@ -557,13 +559,25 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   );
 
   Widget _homeContent() => AppPage(
+    bottomSafeArea: false,
     pageContext: const PageContextData(pageType: 'home'),
     title: Text(l.home),
     trailing: [
-      ShadButton.ghost(
-        key: const ValueKey('home-add-video'),
-        onPressed: _addVideo,
-        child: Text(l.addVideo),
+      // Plain ghost icon, same look as the add button on Sources.
+      Tooltip(
+        message: l.addVideo,
+        child: Semantics(
+          label: l.addVideo,
+          button: true,
+          excludeSemantics: true,
+          child: ShadIconButton.ghost(
+            key: const ValueKey('home-add-video'),
+            width: 40,
+            height: 40,
+            icon: const Icon(AppIcons.add),
+            onPressed: _addVideo,
+          ),
+        ),
       ),
     ],
     body: _homeMedia(),
@@ -595,7 +609,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     library: _library,
     sources: _sources,
     plugins: _plugins,
-    aiSettingsBuilder: (_) => _pluginsPage(),
+    aiGroupBuilder: _pluginGroupPage,
   );
 
   Widget _chatPage() => Scaffold(
@@ -606,20 +620,23 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     ),
   );
 
-  Widget _pluginsPage({PluginGroup? initialGroup}) => _plugins == null
+  ExternalServiceSetup? _externalSetup;
+
+  Widget _pluginGroupPage(PluginGroup group) => _plugins == null
       ? AppPage(
-          pageContext: const PageContextData(pageType: 'plugins'),
-          title: Text(l.plugins),
+          pageContext: const PageContextData(pageType: 'plugin_group'),
+          title: Text(group.label),
           body: ContentState(message: l.loading, loading: true),
         )
-      : PluginManagementPage(
+      : PluginGroupPage(
+          key: ValueKey('plugin-group-page-${group.name}'),
+          group: group,
           manager: _plugins!,
+          setup: _externalSetup ??= ExternalServiceSetup(
+            registry: ExternalServiceRegistry.forDb(_library!.configuration),
+          ),
           sources: _sources,
           assistantStore: _assistantStore,
-          initialGroup: initialGroup,
-          externalServices: ExternalServiceRegistry.forDb(
-            _library!.configuration,
-          ),
           openEditor: pluginEditorOpener(
             library: _library,
             sources: _sources,
@@ -709,6 +726,13 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
               (defaultTargetPlatform == TargetPlatform.android ||
                   defaultTargetPlatform == TargetPlatform.iOS);
           return Scaffold(
+            // The home shelves paint underneath the frosted capsule. Other
+            // tabs retain their reserved space for forms and the chat composer.
+            extendBody:
+                !sidebar &&
+                !_showPlayer &&
+                _destination == 0 &&
+                _depths[_destination].depth == 1,
             body: Stack(
               children: [
                 Offstage(

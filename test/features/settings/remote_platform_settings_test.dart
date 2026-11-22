@@ -99,11 +99,28 @@ void main() {
         );
         await remote.loginPlatform('test@example.com', 'fixture-only');
         await remote.refreshPlatform();
+        // A saved local import, not in use.
+        await remote.importPairing(
+          jsonEncode({
+            'outbound': {
+              'type': 'vless',
+              'server': 'custom.relay.test',
+              'server_port': 443,
+              'uuid': '11111111-1111-4111-8111-111111111111',
+              'tls': {'enabled': true, 'server_name': 'custom.relay.test'},
+            },
+            'proxies': [
+              {'name': 'smb', 'remotePort': 18445},
+            ],
+          }),
+        );
+        await remote.selectPlatform();
       });
       final config = SourceConfigurationService(sqlite3.openInMemory());
       final manager = SourceManager(
         configuration: config,
         remoteAccess: remote,
+        remoteCoreValidator: (_, _) async {},
       );
       addTearDown(() async {
         await manager.dispose();
@@ -115,14 +132,47 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('relay-platform-node')), findsOneWidget);
-      expect(find.text('a.relay.test:443'), findsOneWidget);
-      expect(tester.takeException(), isNull);
+      expect(find.text('a.relay.test:443'), findsNothing);
+      expect(find.byKey(const ValueKey('relay-platform-test')), findsNothing);
       await tester.ensureVisible(
-        find.byKey(const ValueKey('relay-platform-restore')),
+        find.byKey(const ValueKey('remote-connection-details')),
       );
-      await tester.tap(find.byKey(const ValueKey('relay-platform-restore')));
+      await tester.tap(find.byKey(const ValueKey('remote-connection-details')));
+      await tester.pumpAndSettle();
+      expect(find.text('a.relay.test:443'), findsOneWidget);
+      expect(find.byKey(const ValueKey('relay-platform-test')), findsOneWidget);
+      expect(tester.takeException(), isNull);
+      // The cloud tab is in use, so it offers no switch.
+      expect(find.byKey(const ValueKey('remote-enable-cloud')), findsNothing);
+      // A saved local import can be switched to, after a confirmation that
+      // the cloud configuration stops working.
+      await tester.tap(find.text('本地导入'));
+      await tester.pumpAndSettle();
+      // Each mode starts with a compact overview; opening cloud details does
+      // not expose local details or the destructive clear action.
+      expect(find.text('custom.relay.test:443'), findsNothing);
+      expect(find.byKey(const ValueKey('remote-clear')), findsNothing);
+      await tester.tap(find.byKey(const ValueKey('remote-enable-local')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('云端配置将失效'), findsWidgets);
+      expect(remote.usePlatform, isTrue);
+      await tester.tap(find.text('切换').last);
+      await tester.pumpAndSettle();
+      expect(remote.usePlatform, isFalse);
+      expect(remote.network.outbound!['server'], 'custom.relay.test');
+      // And back to the cloud side.
+      await tester.tap(find.text('云端'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('remote-enable-cloud')),
+      );
+      await tester.tap(find.byKey(const ValueKey('remote-enable-cloud')));
+      await tester.pumpAndSettle();
+      expect(find.textContaining('本地导入配置将失效'), findsWidgets);
+      await tester.tap(find.text('切换').last);
       await tester.pumpAndSettle();
       expect(remote.usePlatform, isTrue);
+      expect(remote.network.outbound!['server'], 'a.relay.test');
       expect(tester.takeException(), isNull);
     });
   }

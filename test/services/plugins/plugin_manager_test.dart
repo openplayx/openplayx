@@ -370,18 +370,22 @@ void main() {
     });
   });
 
-  test('switch document round-trips and ignores old AI grants', () {
+  test('stored policy keeps write grants and ignores retired switches and AI grants', () {
     final state = const CapabilitySwitchState(sourceWriteGrants: {'home'})
         .withSwitch('source.smb', false);
     final json = jsonDecode(jsonEncode(state.toJson())) as Map<String, dynamic>;
     expect(json.containsKey('ai'), isFalse);
+    expect(json.containsKey('disabledPlugins'), isFalse);
     final back = CapabilitySwitchState.fromJson({
       ...json,
+      'disabledPlugins': ['source.smb', 'media.ffmpeg', 'asr.whisper'],
       'ai': {
         'source.smb': {'allowed': false},
       },
     }, 3);
-    expect(back.isOn('source.smb'), isFalse);
+    expect(back.isOn('source.smb'), isTrue);
+    expect(back.isOn('media.ffmpeg'), isTrue);
+    expect(back.isOn('asr.whisper'), isTrue);
     expect(back.isOn('source.ftp'), isTrue);
     expect(back.revision, 3);
     expect(back.sourceWriteGrants, {'home'});

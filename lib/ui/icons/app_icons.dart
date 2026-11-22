@@ -9,6 +9,7 @@ abstract final class AppIcons {
   static const chat = LucideIcons.messageCircle;
   static const newChat = LucideIcons.squarePen;
   static const sendUp = LucideIcons.arrowUp;
+  static const mic = LucideIcons.mic;
   static const scrollDown = LucideIcons.arrowDown;
 
   static const home = LucideIcons.house;
@@ -47,6 +48,7 @@ abstract final class AppIcons {
   static const unlock = LucideIcons.lockOpen;
   static const lock = LucideIcons.lockKeyhole;
   static const more = LucideIcons.ellipsis;
+  static const metadata = LucideIcons.fileCode;
   static const pause = LucideIcons.pause;
   static const play = LucideIcons.play;
   static const muted = LucideIcons.volumeX;

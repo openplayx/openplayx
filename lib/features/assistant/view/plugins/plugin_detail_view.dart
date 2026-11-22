@@ -10,7 +10,6 @@ import '../../../../capabilities/sources/source_manager.dart';
 import '../../../../assistant/plugins/plugin_catalog.dart';
 import '../../../../assistant/plugins/plugin_manager.dart';
 import '../../../../ui/components/settings/settings_section.dart';
-import '../../../settings/capability_switches_section.dart';
 import 'plugin_management_page.dart';
 import '../../../../ui/components/feedback/app_feedback.dart';
 import '../../../../l10n/l10n.dart';
@@ -100,30 +99,7 @@ class _PluginDetailViewState extends State<PluginDetailView> {
             title: appStrings.plgUnavailableReason,
             description: unavailableReason(s),
           ),
-        // The switch belongs to the capability, App-wide; the plugin only
-        // follows it (Settings → 基础能力).
-        if (d.toggleable)
-          SettingsRow(
-            key: const ValueKey('plugin-capability-switch'),
-            title: appStrings.plgCapabilitySwitch,
-            description: [
-              s.enabled ? appStrings.capabilityOn : appStrings.capabilityOff,
-              appStrings.plgCapabilitySwitchHint,
-            ].join(' · '),
-            chevron: widget.sources != null,
-            onTap: widget.sources == null
-                ? null
-                : () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      settings: const RouteSettings(
-                        name: 'CapabilitySwitchesPage',
-                      ),
-                      builder: (_) =>
-                          CapabilitySwitchesPage(sources: widget.sources!),
-                    ),
-                  ),
-          )
-        else if (d.toggleNote != null)
+        if (d.toggleNote != null)
           SettingsRow(title: appStrings.plgSwitch, description: d.toggleNote),
         SettingsRow(
           title: appStrings.plgLocation,

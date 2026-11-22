@@ -57,12 +57,14 @@ class ModelConfigController extends ChangeNotifier {
 
   late AssistantConfig _saved;
   bool get configured => _saved.configured;
+  bool get activeUsePlatform => _saved.usePlatform;
   late bool _usePlatform;
   bool get usePlatform => _usePlatform;
   void setUsePlatform(bool value) {
     if (busy || value == _usePlatform) return;
     _usePlatform = value;
-    edited();
+    _result = null;
+    _notify();
   }
 
   late bool _tools;

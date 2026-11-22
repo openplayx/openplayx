@@ -356,7 +356,8 @@ class SourceConfig {
     if (remote != null) {
       if (!kind.mediaBrowser &&
           kind != SourceKind.plex &&
-          kind != SourceKind.smb) {
+          kind != SourceKind.smb &&
+          kind != SourceKind.webdav) {
         throw FormatException(appStrings.errRemoteKinds);
       }
       remote!.validate();

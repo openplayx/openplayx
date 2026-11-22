@@ -104,16 +104,24 @@ class AppBottomBar extends StatelessWidget {
         child: ClipPath(
           clipper: const ShapeBorderClipper(shape: StadiumBorder()),
           child: BackdropFilter(
-            filter: ImageFilter.blur(sigmaX: 24, sigmaY: 24),
+            filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
             child: Container(
               height: height,
               padding: const EdgeInsets.all(_inset),
               decoration: ShapeDecoration(
-                color: colors.card.withValues(alpha: 0.82),
+                // Let the blurred artwork supply the glass's colour.
+                gradient: LinearGradient(
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                  colors: [
+                    colors.card.withValues(alpha: dark ? 0.48 : 0.42),
+                    colors.card.withValues(alpha: dark ? 0.28 : 0.22),
+                  ],
+                ),
                 shape: StadiumBorder(
                   side: BorderSide(
-                    color: colors.foreground.withValues(alpha: 0.08),
-                    width: 0.5,
+                    color: Colors.white.withValues(alpha: dark ? 0.24 : 0.7),
+                    width: 1,
                   ),
                 ),
               ),

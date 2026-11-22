@@ -16,6 +16,21 @@ import '../model/sources_state.dart';
 class SourcesController extends ChangeNotifier {
   SourcesController({required this.sources, this.library}) {
     _libraryChanges = library?.changes.listen((_) => _notify());
+    _sourceChanges = sources.changes.listen((_) {
+      final current = _state.browsing;
+      if (current != null && !sources.sourceVisibleToAccount(current.id)) {
+        _set(
+          _state.copyWith(
+            browsing: () => null,
+            path: const [],
+            entries: const [],
+            nextOffset: () => null,
+          ),
+        );
+      } else {
+        _notify();
+      }
+    });
   }
 
   final SourceManager sources;
@@ -26,6 +41,7 @@ class SourcesController extends ChangeNotifier {
   SourcesState _state = const SourcesState();
   SourcesState get state => _state;
   StreamSubscription<void>? _libraryChanges;
+  StreamSubscription<SourceChange>? _sourceChanges;
   bool _disposed = false;
 
   void _set(SourcesState state) {
@@ -53,7 +69,9 @@ class SourcesController extends ChangeNotifier {
     final known = {for (final c in sources.configs) c.id};
     return [
       for (final f in library?.fileSourceList() ?? const <FileSource>[])
-        if (!known.contains(f.connectionId)) f,
+        if (!known.contains(f.connectionId) &&
+            sources.sourceVisibleToAccount(f.connectionId))
+          f,
     ];
   }
 
@@ -216,6 +234,7 @@ class SourcesController extends ChangeNotifier {
   void dispose() {
     _disposed = true;
     unawaited(_libraryChanges?.cancel());
+    unawaited(_sourceChanges?.cancel());
     super.dispose();
   }
 }

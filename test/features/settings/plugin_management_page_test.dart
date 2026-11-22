@@ -1,10 +1,14 @@
 import '../../app_test_host.dart';
 
+import 'package:openplayx/app/app.dart';
+import 'package:openplayx/features/settings/app_theme_controller.dart';
+
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/features/assistant/view/plugins/plugin_management_page.dart';
-import 'package:openplayx/features/settings/capability_switches_section.dart';
+import 'package:openplayx/features/settings/settings_page.dart';
+import 'package:openplayx/assistant/plugins/external/external_service_setup.dart';
 import 'package:openplayx/assistant/conversation/assistant_store.dart';
 import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
 import 'package:openplayx/assistant/plugins/plugin_manager.dart';
@@ -19,6 +23,7 @@ void main() {
     FakeSources? sources,
     AssistantStore? assistant,
     ExternalServiceRegistry? external,
+    String? language,
   }) async {
     tester.view.physicalSize = size;
     tester.view.devicePixelRatio = 1;
@@ -28,18 +33,29 @@ void main() {
     final manager = PluginManager(sources: fake, switches: fake.switches);
     addTearDown(manager.dispose);
     await tester.runAsync(manager.refresh);
-    await tester.pumpWidget(
-      TestApp(
-        home: PluginManagementPage(
-          manager: manager,
-          sources: manager.sources,
-          assistantStore: assistant,
-          externalServices:
-              external ??
-              (ExternalServiceRegistry(db: sqlite3.openInMemory())
-                ..loaded = true),
-        ),
+    final setup = ExternalServiceSetup(
+      registry:
+          external ??
+          (ExternalServiceRegistry(db: sqlite3.openInMemory())..loaded = true),
+    );
+    // The AI groups are rows on the Settings root itself.
+    final home = SettingsPage(
+      aiGroupBuilder: (group) => PluginGroupPage(
+        key: ValueKey('plugin-group-page-${group.name}'),
+        group: group,
+        manager: manager,
+        setup: setup,
+        sources: manager.sources,
+        assistantStore: assistant,
       ),
+    );
+    await tester.pumpWidget(
+      language == null
+          ? TestApp(home: home)
+          : OpenPlayXApp(
+              appearance: AppThemeController(initialLanguage: language),
+              home: home,
+            ),
     );
     await tester.pump(const Duration(milliseconds: 300));
     return manager;
@@ -50,16 +66,19 @@ void main() {
     await tester.pumpAndSettle();
   }
 
-  testWidgets('two levels: group list, then model form, external and '
-      'built-in pages', (tester) async {
+  testWidgets('Settings lists the AI groups; each opens its model form, '
+      'external or built-in page', (tester) async {
     await pump(tester);
-    // Root lists 模型 → 外部能力 → 内部能力 top to bottom, nothing else.
+    // Settings lists LLM → Whisper → external → built-in top to bottom, styled like
+    // every other category: no description or value.
     expect(find.textContaining('内置基础能力'), findsNothing);
     final rows = [
-      for (final name in ['model', 'external', 'builtIn'])
+      for (final name in ['model', 'whisper', 'external', 'builtIn'])
         tester.getCenter(find.byKey(ValueKey('plugin-group-$name'))).dy,
     ];
     expect(rows, List.of(rows)..sort());
+    expect(find.text('配置 Agent 使用的模型'), findsNothing);
+    expect(find.byKey(const ValueKey('settings-AI')), findsNothing);
     expect(find.byKey(const ValueKey('plugin-row-model.llm')), findsNothing);
     expect(find.byKey(const ValueKey('plugin-search')), findsNothing);
     expect(find.byKey(const ValueKey('plugin-row-source.smb')), findsNothing);
@@ -94,7 +113,7 @@ void main() {
     await tester.pumpAndSettle();
     // No search box on any page.
     expect(find.byKey(const ValueKey('plugin-search')), findsNothing);
-    // Back to the root, then into 内部能力.
+    // Back to Settings, then into 内部能力.
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('plugin-group-builtIn')), findsOneWidget);
@@ -189,6 +208,25 @@ void main() {
     expect(find.text('添加实例'), findsNothing);
   });
 
+  testWidgets('status badges wrap instead of overflowing on a phone', (
+    tester,
+  ) async {
+    // English badge labels are the longest; two of them used to overflow the
+    // row's trailing slot at phone width.
+    await pump(tester, size: const Size(375, 812), language: 'en');
+    await openGroup(tester, 'builtIn');
+    final list = find.byType(Scrollable).first;
+    for (final id in ['source.local', 'source.onedrive', 'source.dropbox']) {
+      await tester.scrollUntilVisible(
+        find.byKey(ValueKey('plugin-row-$id')),
+        200,
+        scrollable: list,
+      );
+      await tester.pump();
+      expect(tester.takeException(), isNull);
+    }
+  });
+
   testWidgets('source write requires an explicit per-instance opt-in', (
     tester,
   ) async {
@@ -230,75 +268,6 @@ void main() {
     );
   });
 
-  testWidgets('the capability switch lives in Settings: the plugin shows '
-      'it and opens it; switching off during playback asks first', (
-    tester,
-  ) async {
-    final manager = await pump(tester, sources: FakeSources()..playing = 1);
-    await openGroup(tester, 'builtIn');
-    await tester.tap(find.byKey(const ValueKey('plugin-row-source.smb')));
-    await tester.pumpAndSettle();
-    // Only per-source write opt-ins live here; the App-wide capability switch remains in Settings.
-    expect(
-      find.byKey(const ValueKey('capability-switch-source.smb')),
-      findsNothing,
-    );
-    final row = find.byKey(const ValueKey('plugin-capability-switch'));
-    expect(
-      find.descendant(of: row, matching: find.textContaining('已开启')),
-      findsOneWidget,
-    );
-
-    await tester.tap(row);
-    await tester.pumpAndSettle();
-    expect(find.byType(CapabilitySwitchesPage), findsOneWidget);
-    await tester.tap(
-      find.byKey(const ValueKey('capability-switch-source.smb')),
-    );
-    await tester.pump(const Duration(milliseconds: 300));
-    expect(find.textContaining('1 个正在播放的会话'), findsOneWidget);
-    expect(manager.switches.isOn('source.smb'), isTrue);
-    await tester.tap(find.byKey(const ValueKey('capability-disable-confirm')));
-    await tester.pumpAndSettle();
-    expect(manager.switches.isOn('source.smb'), isFalse);
-
-    Navigator.of(tester.element(find.byType(CapabilitySwitchesPage))).pop();
-    await tester.runAsync(manager.refresh);
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: row, matching: find.textContaining('已关闭')),
-      findsOneWidget,
-    );
-    expect(find.textContaining('正在等待播放'), findsWidgets);
-  });
-
-  testWidgets('speech recognition says when FFmpeg must be switched on', (
-    tester,
-  ) async {
-    tester.view.physicalSize = const Size(800, 2000);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.reset);
-    final sources = FakeSources();
-    await tester.pumpWidget(
-      TestApp(home: CapabilitySwitchesPage(sources: sources)),
-    );
-    await tester.pumpAndSettle();
-    final speech = find.byKey(const ValueKey('capability-asr.whisper'));
-    expect(
-      find.descendant(of: speech, matching: find.textContaining('需要先开启')),
-      findsNothing,
-    );
-    await tester.tap(
-      find.byKey(const ValueKey('capability-switch-media.ffmpeg')),
-    );
-    await tester.pumpAndSettle();
-    expect(sources.switches.enabled('asr.whisper'), isFalse);
-    expect(
-      find.descendant(of: speech, matching: find.textContaining('需要先开启')),
-      findsOneWidget,
-    );
-  });
-
   testWidgets('wide windows show list and detail without AI or permission '
       'sections', (tester) async {
     await pump(tester, size: const Size(1400, 1000));
@@ -313,7 +282,7 @@ void main() {
     expect(find.textContaining('已配置 · 可用'), findsWidgets);
   });
 
-  testWidgets('模型 page is the model settings form', (tester) async {
+  testWidgets('LLM page is the model settings form', (tester) async {
     final db = sqlite3.openInMemory();
     final configuration = sqlite3.openInMemory();
     addTearDown(db.close);
@@ -322,8 +291,6 @@ void main() {
       tester,
       assistant: AssistantStore(db, configuration: configuration),
     );
-    // The root shows the model state before opening it.
-    expect(find.text('平台服务'), findsOneWidget);
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsNothing);
     await openGroup(tester, 'model');
     expect(find.byKey(const ValueKey('plugin-model-settings')), findsOneWidget);
@@ -336,7 +303,7 @@ void main() {
     );
     expect(find.byKey(const ValueKey('ai-test')), findsOneWidget);
     expect(find.byKey(const ValueKey('ai-save')), findsOneWidget);
-    await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+    await tester.tap(find.byKey(const ValueKey('ai-tab-local')));
     await tester.pumpAndSettle();
     expect(
       find.descendant(
@@ -346,4 +313,51 @@ void main() {
       findsNWidgets(3),
     );
   });
+  for (final width in [390.0, 1400.0]) {
+    testWidgets(
+      'LLM and Whisper have separate Settings entries at width $width',
+      (tester) async {
+        final db = sqlite3.openInMemory();
+        final configuration = sqlite3.openInMemory();
+        addTearDown(db.close);
+        addTearDown(configuration.close);
+        final store = AssistantStore(db, configuration: configuration);
+        await pump(tester, size: Size(width, 1000), assistant: store);
+        expect(find.text('LLM 模型'), findsOneWidget);
+        expect(find.text('Whisper 模型'), findsOneWidget);
+        await openGroup(tester, 'model');
+        expect(
+          find.byKey(const ValueKey('plugin-model-settings')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('ai-mode-tabs')), findsOneWidget);
+        expect(find.byKey(const ValueKey('voice-mode-tabs')), findsNothing);
+        expect(find.byKey(const ValueKey('voice-settings-save')), findsNothing);
+        await tester.tap(find.byTooltip('返回'));
+        await tester.pumpAndSettle();
+        await openGroup(tester, 'whisper');
+        expect(find.text('Whisper 模型'), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('plugin-whisper-settings')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('voice-mode-tabs')), findsOneWidget);
+        expect(
+          find.byKey(const ValueKey('voice-settings-save')),
+          findsOneWidget,
+        );
+        expect(find.byKey(const ValueKey('ai-mode-tabs')), findsNothing);
+        expect(find.byKey(const ValueKey('ai-save')), findsNothing);
+        expect(find.byKey(const ValueKey('plugin-detail-empty')), findsNothing);
+        expect(
+          configuration.select(
+            "SELECT * FROM settings WHERE namespace='assistant'",
+          ),
+          isEmpty,
+        );
+        await tester.pumpWidget(const SizedBox());
+        await tester.pumpAndSettle();
+      },
+    );
+  }
 }

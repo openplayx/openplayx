@@ -89,7 +89,7 @@ void main() {
           ),
         );
         await tester.pumpAndSettle();
-        await tester.tap(find.byTooltip('AI 助手'));
+        await tester.tap(find.byTooltip('问问'));
         await tester.pumpAndSettle();
         final chat = tester.widget<AiChatView>(find.byType(AiChatView));
         final composer = find.descendant(

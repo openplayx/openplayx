@@ -15,9 +15,13 @@ class AppPage extends StatelessWidget {
     required this.body,
     this.actions = const [],
     this.trailing = const [],
+    this.bottomSafeArea = true,
     required this.pageContext,
   });
   final Widget title, body;
+
+  /// Disable for scrollable bodies that paint behind the floating tab bar.
+  final bool bottomSafeArea;
   final PageContextData pageContext;
 
   /// Height of the header row (title, back button and header controls).
@@ -53,6 +57,7 @@ class AppPage extends StatelessWidget {
       ),
       child: Scaffold(
         body: SafeArea(
+          bottom: bottomSafeArea,
           child: Column(
             children: [
               Container(

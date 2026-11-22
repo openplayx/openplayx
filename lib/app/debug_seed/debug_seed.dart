@@ -175,6 +175,7 @@ abstract final class DebugSeed {
         AssistantStore.writeConfig(
           db,
           AssistantConfig(
+            usePlatform: a['usePlatform'] == true,
             endpoint:
                 a['endpoint'] as String? ?? AssistantConfig.exampleEndpoint,
             model: a['model'] as String? ?? AssistantConfig.exampleModel,
@@ -196,8 +197,16 @@ abstract final class DebugSeed {
               value,
             );
         if (m['language'] case final String language) set('language', language);
+        if (m['tmdbMode'] case final String mode) {
+          if (mode != 'cloud' && mode != 'local') {
+            throw const FormatException('tmdbMode must be cloud or local');
+          }
+          set(tmdbModeKey, mode);
+        }
         if (m['tmdbToken'] case final String token) {
           set(tmdbTokenKey, token.trim());
+        }
+        if (m.containsKey('tmdbToken') || m.containsKey('tmdbMode')) {
           // Makes the metadata runtime rebuild its TMDB plugin.
           set('tmdbRevision', '${DateTime.now().microsecondsSinceEpoch}');
         }

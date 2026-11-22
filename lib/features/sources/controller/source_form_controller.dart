@@ -66,6 +66,7 @@ class SourceFormController extends ChangeNotifier {
 
   /// The connection being edited; null adds a new one.
   final SourceConfig? initial;
+  SourceConfig? _saved;
   final SourceSignIn signIn;
   final bool _ownsSignIn;
   final Future<bool> Function(Uri)? openBrowser;
@@ -322,8 +323,10 @@ class SourceFormController extends ChangeNotifier {
     final address = _connectionAddress();
     // A blank name stays blank: it displays as "type · address". Only a
     // server the user picked from sign-in discovery brings its own name.
-    final defaultName = _server?.name ?? _device?.name ?? '';
+    final defaultName =
+        _server?.name ?? _device?.name ?? initial?.remote?.serviceName ?? '';
     final config =
+        _saved ??
         initial ??
         SourceConfig(
           id: id,
@@ -344,6 +347,10 @@ class SourceFormController extends ChangeNotifier {
       remote: _remoteEnabled && _remoteProxy != null
           ? SourceRemote(
               proxy: _remoteProxy!,
+              accountId: initial?.remote?.accountId,
+              connectorId: initial?.remote?.connectorId,
+              serviceName: initial?.remote?.serviceName,
+              managedLocal: initial?.remote?.managedLocal ?? false,
               mode: _connectionMode,
               localAddress: localEndpoint.text.trim(),
               localTlsSha256: localFingerprint.text.trim(),
@@ -625,7 +632,7 @@ class SourceFormController extends ChangeNotifier {
           secret = password.edited;
           await manager.testDraft(draft, secret);
         case SourceKind.jellyfin || SourceKind.emby:
-          final initial = this.initial;
+          final initial = _saved ?? this.initial;
           final reauthenticate =
               initial == null ||
               password.text.isNotEmpty ||
@@ -652,6 +659,8 @@ class SourceFormController extends ChangeNotifier {
       }
       if (_disposed) return false;
       await manager.save(draft, secret);
+      _saved = manager.configs.where((c) => c.id == id).firstOrNull;
+      password.clear();
       return !_disposed;
     } catch (error) {
       if (!_disposed) {

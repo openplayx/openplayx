@@ -15,6 +15,8 @@ import '../../../../ui/tokens/app_semantic_colors.dart';
 import '../../../../ui/tokens/app_spacing.dart';
 import '../../../../assistant/plugins/external/external_service_setup.dart';
 import '../assistant_settings_page.dart';
+import '../voice_settings_section.dart';
+import '../../../../assistant/voice/voice_settings.dart';
 import '../../../../assistant/plugins/external/external_service_registry.dart';
 import 'external_service_config_page.dart';
 import 'external_service_detail_view.dart';
@@ -29,18 +31,27 @@ typedef PluginEditorOpener = Future<void> Function(
   String pluginId,
 );
 
-/// Product grouping of the plugin page: built-in capabilities are shown as a
-/// count with a read-only list; models and external capabilities are the
-/// managed areas.
+/// AI configuration groups, each a category row on the Settings root that
+/// opens its own [PluginGroupPage]: LLM, Whisper and external capabilities are the
+/// managed areas, built-in capabilities a read-only list.
 enum PluginGroup {
   model,
+  whisper,
   external,
   builtIn;
 
   String get label => switch (this) {
-    model => appStrings.plgGroupModel,
+    model => appStrings.llmModelSettings,
+    whisper => appStrings.whisperModelSettings,
     external => appStrings.plgGroupExternal,
     builtIn => appStrings.plgGroupBuiltIn,
+  };
+
+  IconData get icon => switch (this) {
+    model => AppIcons.assistant,
+    whisper => AppIcons.mic,
+    external => AppIcons.server,
+    builtIn => AppIcons.tool,
   };
 
   static PluginGroup of(PluginDefinition d) {
@@ -58,170 +69,8 @@ enum PluginGroup {
   }
 }
 
-/// AI configuration opened from Settings, laid out like
-/// settings in two levels: the root lists 模型 / 外部能力 / 内部能力, and each
-/// row opens its own page. On wide windows the 外部能力 and 内部能力 pages
-/// show list and detail side by side.
-class PluginManagementPage extends StatefulWidget {
-  const PluginManagementPage({
-    super.key,
-    required this.manager,
-    this.sources,
-    this.openEditor,
-    this.initialPlugin,
-    this.assistantStore,
-    this.initialGroup,
-    required this.externalServices,
-  });
-  final PluginManager manager;
-  final SourceManager? sources;
-  final PluginEditorOpener? openEditor;
-
-  /// Opens this plugin's group page with the plugin selected.
-  final String? initialPlugin;
-
-  /// Model settings shown on the 模型 page; null when AI is unavailable.
-  final AssistantStore? assistantStore;
-
-  /// Group page to open on first show (e.g. the chat's model settings link).
-  final PluginGroup? initialGroup;
-
-  /// Custom external capabilities (外部能力).
-  final ExternalServiceRegistry externalServices;
-
-  @override
-  State<PluginManagementPage> createState() => PluginManagementPageState();
-}
-
-class PluginManagementPageState extends State<PluginManagementPage> {
-  late final _setup = ExternalServiceSetup(registry: widget.externalServices);
-  StreamSubscription<void>? _externalChanges;
-
-  PluginManager get manager => widget.manager;
-
-  @override
-  void initState() {
-    super.initState();
-    manager.addListener(_changed);
-    manager.refresh();
-    _externalChanges = _setup.registry.changes.stream.listen((_) => _changed());
-    if (!_setup.registry.loaded) _setup.registry.load().then((_) => _changed());
-    final initial = manager.catalog[widget.initialPlugin ?? ''];
-    final group =
-        widget.initialGroup ??
-        (initial == null ? null : PluginGroup.of(initial));
-    if (group != null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) showGroup(group, selected: widget.initialPlugin);
-      });
-    }
-  }
-
-  @override
-  void dispose() {
-    manager.removeListener(_changed);
-    _externalChanges?.cancel();
-    super.dispose();
-  }
-
-  void _changed() {
-    if (mounted) setState(() {});
-  }
-
-  /// Opens one group's page on top of the root list (e.g. the chat's model
-  /// settings link opens 模型), keeping the Settings return path.
-  Future<void> showGroup(PluginGroup group, {String? selected}) async {
-    final navigator = Navigator.of(context);
-    await navigator.push(
-      MaterialPageRoute<void>(
-        settings: const RouteSettings(name: 'PluginGroupPage'),
-        builder: (_) => PluginGroupPage(
-          key: ValueKey('plugin-group-page-${group.name}'),
-          group: group,
-          manager: manager,
-          setup: _setup,
-          sources: widget.sources,
-          openEditor: widget.openEditor,
-          assistantStore: widget.assistantStore,
-          initialSelected: selected,
-        ),
-      ),
-    );
-    _changed();
-  }
-
-  int _builtInCount() => manager.snapshots
-      .where(
-        (s) =>
-            !s.definition.deprecated &&
-            PluginGroup.of(s.definition) == PluginGroup.builtIn,
-      )
-      .length;
-
-  @override
-  Widget build(BuildContext context) {
-    final l = AppLocalizations.of(context);
-    final config = widget.assistantStore?.loadConfig();
-    final modelValue = config == null
-        ? l.statusUnavailable
-        : config.configured && config.model.isNotEmpty
-        ? config.usePlatform
-              ? l.aiPlatformService
-              : config.model
-        : l.statusNotConfigured;
-    Widget row(
-      PluginGroup group, {
-      required IconData icon,
-      required String description,
-      required String value,
-    }) => SettingsRow(
-      key: ValueKey('plugin-group-${group.name}'),
-      icon: icon,
-      title: group.label,
-      description: description,
-      chevron: true,
-      control: Text(value),
-      onTap: () => showGroup(group),
-    );
-    return AppPage(
-      pageContext: const PageContextData(pageType: 'plugins'),
-      title: Text(l.plugins),
-      body: SettingsListView(
-        children: [
-          SettingsSection(
-            children: [
-              row(
-                PluginGroup.model,
-                icon: AppIcons.assistant,
-                description: l.plgGroupModelDescription,
-                value: modelValue,
-              ),
-            ],
-          ),
-          SettingsSection(
-            children: [
-              row(
-                PluginGroup.external,
-                icon: AppIcons.server,
-                description: l.plgGroupExternalDescription,
-                value: l.plgCount(_setup.registry.services.length),
-              ),
-              row(
-                PluginGroup.builtIn,
-                icon: AppIcons.tool,
-                description: l.plgGroupBuiltInDescription,
-                value: l.plgCount(_builtInCount()),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-/// One group's page: the model settings form, the external services, or
-/// the read-only built-in capabilities. Phones use list → detail; wide
+/// One group's page, opened straight from Settings: the model settings form,
+/// the external services, or the read-only built-in capabilities. Phones use list → detail; wide
 /// windows show list and detail side by side.
 class PluginGroupPage extends StatefulWidget {
   const PluginGroupPage({
@@ -259,7 +108,9 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   void initState() {
     super.initState();
     manager.addListener(_changed);
+    manager.refresh();
     _externalChanges = _setup.registry.changes.stream.listen((_) => _changed());
+    if (!_setup.registry.loaded) _setup.registry.load().then((_) => _changed());
   }
 
   @override
@@ -486,6 +337,12 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
         children: [SettingsRow(title: appStrings.plgNoAssistant)],
       );
     }
+    if (_group == PluginGroup.whisper) {
+      return VoiceSettingsSection(
+        key: const ValueKey('plugin-whisper-settings'),
+        settings: VoiceSettings(store.configuration),
+      );
+    }
     return AssistantModelSettings(
       key: const ValueKey('plugin-model-settings'),
       store: store,
@@ -498,7 +355,7 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
       ? _emptyExternal(context)
       : SettingsListView(
           children: switch (_group) {
-            PluginGroup.model => [_modelSettings()],
+            PluginGroup.model || PluginGroup.whisper => [_modelSettings()],
             PluginGroup.external => _external(context, wide),
             PluginGroup.builtIn => _builtIn(context, wide),
           },
@@ -543,8 +400,10 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
       final trailing = [
         if (_group == PluginGroup.external) _configureExternalButton(context),
       ];
-      // The model form needs no detail pane.
-      if (!wide || _group == PluginGroup.model) {
+      // Model configuration forms need no detail pane.
+      if (!wide ||
+          _group == PluginGroup.model ||
+          _group == PluginGroup.whisper) {
         return AppPage(
           pageContext: PageContextData(
             pageType: 'plugin_group',
@@ -602,10 +461,14 @@ class PluginStatusBadges extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final s = snapshot;
-    return Row(
-      mainAxisSize: MainAxisSize.min,
+    // Wrap, not Row: the row caps its trailing control's width, so on narrow
+    // phones the two badges stack instead of overflowing.
+    return Wrap(
+      alignment: WrapAlignment.end,
+      spacing: AppSpacing.xs,
+      runSpacing: AppSpacing.xs,
       children: [
-        if (s.platformSupported) ...[
+        if (s.platformSupported)
           StatusBadge(
             key: ValueKey('plugin-configured-${s.id}'),
             label: s.configured
@@ -613,8 +476,6 @@ class PluginStatusBadges extends StatelessWidget {
                 : appStrings.statusNotConfigured,
             positive: s.configured,
           ),
-          const SizedBox(width: AppSpacing.xs),
-        ],
         StatusBadge(
           key: ValueKey('plugin-available-${s.id}'),
           label: s.available

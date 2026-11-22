@@ -9,34 +9,38 @@ import '../../ui/components/feedback/app_feedback.dart';
 import '../../capabilities/library/library_service.dart';
 import '../../ui/components/settings/settings_section.dart';
 import '../../ui/icons/app_icons.dart';
-import '../../ui/tokens/app_metrics.dart';
 import '../../capabilities/sources/source_manager.dart';
 import 'scan_extensions_row.dart';
 import 'scrape_management_section.dart';
 import 'tmdb_settings_section.dart';
 import 'remote_access_settings_page.dart';
 import 'asr_settings_section.dart';
-import 'capability_switches_section.dart';
 import '../assistant/view/plugins/plugin_management_page.dart';
 import '../../assistant/plugins/plugin_manager.dart';
 import '../../capabilities/speech/asr_backend_config.dart';
 import '../../capabilities/speech/asr_model_store.dart';
 import '../../capabilities/speech/subtitle_generation_service.dart';
 
-/// One settings category. On phones it is a row in the root menu that opens
-/// [sections] on a sub-page (or runs [onOpen] for categories that already
-/// have their own page); on wider windows the sections are shown inline.
+/// A navigation entry shared by compact and desktop settings layouts.
 class _Category {
   const _Category({
     required this.icon,
     required this.title,
     this.sections = const [],
     this.onOpen,
+    this.rowKey,
   });
   final IconData icon;
+  final Key? rowKey;
   final String title;
   final List<Widget> sections;
   final VoidCallback? onOpen;
+}
+
+class _SettingsGroup {
+  const _SettingsGroup(this.title, this.categories);
+  final String title;
+  final List<_Category> categories;
 }
 
 class SettingsPage extends StatelessWidget {
@@ -45,14 +49,16 @@ class SettingsPage extends StatelessWidget {
     this.library,
     this.sources,
     this.plugins,
-    this.aiSettingsBuilder,
+    this.aiGroupBuilder,
   });
-  final WidgetBuilder? aiSettingsBuilder;
+
+  /// Builds one AI settings page (LLM / Whisper / external / built-in); null hides AI.
+  final Widget Function(PluginGroup group)? aiGroupBuilder;
   final LibraryService? library;
   final PluginManager? plugins;
   final SourceManager? sources;
 
-  List<List<_Category>> _groups(BuildContext context) {
+  List<_SettingsGroup> _groups(BuildContext context) {
     final l = AppLocalizations.of(context);
     void openRemote() => Navigator.of(context).push(
       MaterialPageRoute<void>(
@@ -60,47 +66,95 @@ class SettingsPage extends StatelessWidget {
         builder: (_) => RemoteAccessSettingsPage(sources: sources!),
       ),
     );
-    void openAi() =>
-        Navigator.of(context)
-            .push(MaterialPageRoute<void>(builder: aiSettingsBuilder!));
+    void openAi(PluginGroup group) => Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'PluginGroupPage'),
+        builder: (_) => aiGroupBuilder!(group),
+      ),
+    );
     AsrBackendRegistry asrRegistry() =>
         SubtitleGenerationService.current?.backends ??
         AsrBackendRegistry(
           db: library!.configuration,
           models: AsrModelStore(asrModelRoot()),
         );
-    return [
-      [
-        if (aiSettingsBuilder != null)
-          _Category(
-            icon: AppIcons.plugins,
-            title: l.plugins,
-            onOpen: openAi,
-            sections: [
-              SettingsSection(
-                title: l.plugins,
-                children: [
-                  SettingsRow(
-                    key: const ValueKey('settings-ai'),
-                    icon: AppIcons.plugins,
-                    title: l.plugins,
-                    chevron: true,
-                    onTap: openAi,
-                  ),
-                ],
-              ),
-            ],
+    _Category settingsPageCategory({
+      required String id,
+      required IconData icon,
+      required String title,
+      required List<Widget> sections,
+    }) {
+      void open() => Navigator.of(context).push(
+        MaterialPageRoute<void>(
+          settings: RouteSettings(name: 'settings_$id'),
+          builder: (_) => _SettingsSubPage(
+            title: title,
+            sections: sections,
+            showSectionHeaders: true,
           ),
+        ),
+      );
+      return _Category(
+        rowKey: ValueKey('settings-$id'),
+        icon: icon,
+        title: title,
+        onOpen: open,
+        sections: sections,
+      );
+    }
+
+    return [
+      _SettingsGroup(l.settingsGeneral, [
         _Category(
           icon: AppIcons.theme,
           title: l.appearance,
           sections: [_AppearanceSection(key: const ValueKey('appearance'))],
         ),
-        _Category(
-          icon: AppIcons.screenOrientation,
-          title: l.plMenuPlayback,
+      ]),
+      _SettingsGroup(l.plMenuPlayback, [
+        settingsPageCategory(
+          id: 'player',
+          icon: AppIcons.playMedia,
+          title: l.settingsPlayer,
           sections: [const _PlaybackSection()],
         ),
+        if (library != null)
+          settingsPageCategory(
+            id: 'subtitles',
+            icon: AppIcons.captions,
+            title: l.settingsSubtitles,
+            sections: [
+              SettingsSection(
+                children: [
+                  SettingsRow(
+                    key: const ValueKey('settings-speech-recognition'),
+                    icon: AppIcons.mic,
+                    title: l.asrSettingsTitle,
+                    chevron: true,
+                    onTap: () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(
+                          name: 'SpeechRecognitionSettingsPage',
+                        ),
+                        builder: (_) => _SettingsSubPage(
+                          title: l.asrSettingsTitle,
+                          sections: [
+                            AsrSettingsSection(
+                              key: const ValueKey('asr'),
+                              registry: asrRegistry(),
+                            ),
+                          ],
+                          showSectionHeaders: true,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+      ]),
+      _SettingsGroup(l.settingsMediaLibrary, [
         if (sources != null)
           _Category(
             icon: AppIcons.folder,
@@ -110,17 +164,6 @@ class SettingsPage extends StatelessWidget {
                 key: const ValueKey('sources'),
                 title: l.sources,
                 children: [ScanExtensionsRow(sources: sources!)],
-              ),
-            ],
-          ),
-        if (sources != null)
-          _Category(
-            icon: AppIcons.plugins,
-            title: l.settingsCapabilities,
-            sections: [
-              CapabilitySwitchesSection(
-                key: const ValueKey('capability-switches'),
-                sources: sources!,
               ),
             ],
           ),
@@ -143,21 +186,9 @@ class SettingsPage extends StatelessWidget {
               ),
             ],
           ),
-      ],
-      [
-        if (library != null)
-          _Category(
-            icon: AppIcons.movie,
-            title: 'TMDB',
-            sections: [
-              TmdbSettingsSection(
-                key: const ValueKey('tmdb'),
-                library: library!,
-              ),
-            ],
-          ),
         if (library != null && sources != null)
-          _Category(
+          settingsPageCategory(
+            id: 'scrape',
             icon: AppIcons.scan,
             title: l.scrapeManagement,
             sections: [
@@ -169,16 +200,29 @@ class SettingsPage extends StatelessWidget {
             ],
           ),
         if (library != null)
-          _Category(
-            icon: AppIcons.assistant,
-            title: l.asrSettingsTitle,
+          settingsPageCategory(
+            id: 'tmdb',
+            icon: AppIcons.movie,
+            title: 'TMDB',
             sections: [
-              AsrSettingsSection(
-                key: const ValueKey('asr'),
-                registry: asrRegistry(),
+              TmdbSettingsSection(
+                key: const ValueKey('tmdb'),
+                library: library!,
               ),
             ],
           ),
+      ]),
+      _SettingsGroup(l.plugins, [
+        if (aiGroupBuilder != null)
+          for (final group in PluginGroup.values)
+            _Category(
+              rowKey: ValueKey('plugin-group-${group.name}'),
+              icon: group.icon,
+              title: group.label,
+              onOpen: () => openAi(group),
+            ),
+      ]),
+      _SettingsGroup(l.settingsApplication, [
         _Category(
           icon: AppIcons.preferences,
           title: l.developerMode,
@@ -189,7 +233,7 @@ class SettingsPage extends StatelessWidget {
           title: l.about,
           sections: [_AboutSection(key: const ValueKey('about'))],
         ),
-      ],
+      ]),
     ];
   }
 
@@ -197,42 +241,34 @@ class SettingsPage extends StatelessWidget {
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final groups = _groups(context)
-        .where((g) => g.isNotEmpty)
+        .where((g) => g.categories.isNotEmpty)
         .toList(growable: false);
-    final compact =
-        MediaQuery.sizeOf(context).width < AppMetrics.compactBreakpoint;
-    final children = compact
-        ? [
-            for (final group in groups)
-              SettingsSection(
-                children: [
-                  for (final category in group)
-                    SettingsRow(
-                      key: ValueKey('settings-${category.title}'),
-                      icon: category.icon,
-                      title: category.title,
-                      chevron: true,
-                      onTap:
-                          category.onOpen ??
-                          () => Navigator.of(context).push(
-                            MaterialPageRoute<void>(
-                              settings: const RouteSettings(
-                                name: 'settings_page',
-                              ),
-                              builder: (_) => _SettingsSubPage(
-                                title: category.title,
-                                sections: category.sections,
-                              ),
-                            ),
-                          ),
+    final children = [
+      for (final group in groups)
+        SettingsSection(
+          title: group.title,
+          children: [
+            for (final category in group.categories)
+              SettingsRow(
+                key: category.rowKey ?? ValueKey('settings-${category.title}'),
+                icon: category.icon,
+                title: category.title,
+                chevron: true,
+                onTap:
+                    category.onOpen ??
+                    () => Navigator.of(context).push(
+                      MaterialPageRoute<void>(
+                        settings: const RouteSettings(name: 'settings_page'),
+                        builder: (_) => _SettingsSubPage(
+                          title: category.title,
+                          sections: category.sections,
+                        ),
+                      ),
                     ),
-                ],
               ),
-          ]
-        : [
-            for (final group in groups)
-              for (final category in group) ...category.sections,
-          ];
+          ],
+        ),
+    ];
     return AppPage(
       pageContext: const PageContextData(pageType: 'settings'),
       title: Text(l.settings),
@@ -242,16 +278,21 @@ class SettingsPage extends StatelessWidget {
 }
 
 class _SettingsSubPage extends StatelessWidget {
-  const _SettingsSubPage({required this.title, required this.sections});
+  const _SettingsSubPage({
+    required this.title,
+    required this.sections,
+    this.showSectionHeaders = false,
+  });
   final String title;
   final List<Widget> sections;
+  final bool showSectionHeaders;
   @override
   Widget build(BuildContext context) => AppPage(
     pageContext: const PageContextData(pageType: 'settings_detail'),
     title: Text(title),
     body: SettingsHeaderScope(
-      // A lone section repeats the page title; several keep their headers.
-      hidden: sections.length == 1,
+      // Keep headers when a category contains a differently named section.
+      hidden: !showSectionHeaders && sections.length == 1,
       child: SettingsListView(children: sections),
     ),
   );

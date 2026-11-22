@@ -43,11 +43,10 @@
     }
   ],
   "assistant": {
-    "endpoint": "https://api.deepseek.com",
-    "model": "deepseek-v4-pro",
+    "usePlatform": true,
     "cloudAllowed": true,
-    "apiKey": "${LLM_API_KEY}"
+    "toolsSupported": true
   },
-  "metadata": { "language": "zh-CN", "tmdbToken": "${TMDB_TOKEN}" },
+  "metadata": { "language": "zh-CN", "tmdbMode": "cloud" },
   "appearance": { "themeMode": "dark", "language": "zh-Hans", "developerMode": true }
 }

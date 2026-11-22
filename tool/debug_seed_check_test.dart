@@ -15,6 +15,7 @@ import 'package:openplayx/data/configuration/configuration_database.dart';
 import 'package:openplayx/data/configuration/source_configuration_service.dart';
 import 'package:openplayx/capabilities/sources/source_manager.dart';
 import 'package:openplayx/capabilities/metadata/providers/tmdb_metadata_plugin.dart';
+import 'package:openplayx/capabilities/metadata/tmdb_credentials.dart';
 import 'package:openplayx/assistant/conversation/assistant_store.dart';
 import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
 import 'package:openplayx/assistant/plugins/external/external_service_setup.dart';
@@ -99,29 +100,41 @@ void main() {
     }
   });
 
-  if (seed['metadata'] case {'tmdbToken': final String _}) {
-    test('TMDB token', () async {
-      final token =
-          ConfigurationDatabase.readSetting(db, 'metadata', 'tmdbToken')
-              as String;
-      final config = await TmdbTransport(
-        token,
-      ).get('/configuration', const {}).timeout(_timeout);
-      expect(config['images'], isNotNull);
+  if (seed['metadata'] case final Map _) {
+    test('TMDB configuration', () async {
+      final settings = TmdbConfig.fromSettings(
+        (key) =>
+            ConfigurationDatabase.readSetting(db, 'metadata', key) as String? ??
+            '',
+      );
+      final transport = settings.usePlatform
+          ? TmdbTransport.platform()
+          : TmdbTransport(settings.token);
+      try {
+        final config = await transport
+            .get('/configuration', const {})
+            .timeout(_timeout);
+        expect(config['images'], isNotNull);
+      } finally {
+        transport.close();
+      }
     });
   }
 
   if (seed['assistant'] case final Map _) {
-    test('assistant API key', () async {
+    test('assistant model configuration', () async {
       final store = AssistantStore(sqlite3.openInMemory(), configuration: db);
       final config = store.loadConfig();
       final client = HttpClient();
       try {
         // Lists models: authenticated, free, no tokens spent.
         final request = await client
-            .getUrl(Uri.parse('${config.endpoint}/models'))
+            .getUrl(Uri.parse('${config.effectiveEndpoint}/models'))
             .timeout(_timeout);
-        request.headers.set('Authorization', 'Bearer ${await store.key()}');
+        request.headers.set(
+          'Authorization',
+          'Bearer ${config.usePlatform ? 'platform' : await store.key()}',
+        );
         final response = await request.close().timeout(_timeout);
         final body = await utf8.decodeStream(response);
         expect(response.statusCode, 200, reason: body);
@@ -131,8 +144,8 @@ void main() {
         ];
         expect(
           models,
-          contains(config.model),
-          reason: 'model "${config.model}" not offered; have $models',
+          contains(config.effectiveModel),
+          reason: 'model "${config.effectiveModel}" not offered; have $models',
         );
       } finally {
         client.close(force: true);

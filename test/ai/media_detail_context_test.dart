@@ -28,7 +28,7 @@ void main() {
     await tester.pumpWidget(
       TestApp(
         home: AssistantAction(
-          label: 'AI 助手',
+          label: '问问',
           onPressed: () {},
           onContext: (source) => origin = source,
           child: MediaDetailPage(
@@ -43,8 +43,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.byTooltip('AI 助手'), findsOneWidget);
-    await tester.tap(find.byTooltip('AI 助手'));
+    expect(find.byTooltip('问问'), findsOneWidget);
+    await tester.tap(find.byTooltip('问问'));
     expect(origin!.read()['pageType'], 'media_detail');
     expect(origin!.read()['entity']['media_id'], id);
     expect(origin!.read()['state'].containsKey('favorite'), isFalse);

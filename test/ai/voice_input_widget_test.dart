@@ -72,7 +72,14 @@ void main() {
     await tester.pumpWidget(composer());
     await tester.tap(find.byTooltip('Start voice input'));
     await tester.pump();
-    expect(find.textContaining('Recording…'), findsOneWidget);
+    // The text field is replaced by the recording bar with a live timer.
+    expect(find.byKey(const ValueKey('ai-composer-input')), findsNothing);
+    expect(find.text('0:00'), findsOneWidget);
+    recorder.levelController
+      ..add(0.9)
+      ..add(0.02);
+    await tester.pump(const Duration(seconds: 2));
+    expect(chat.voice.levels.value, [0.9, 0.02]);
     expect(transcriber.calls, 0);
     await tester.tap(find.byTooltip('Stop and transcribe'));
     await tester.pump();
@@ -90,6 +97,21 @@ void main() {
     expect(chat.draft.text, isEmpty);
   });
 
+  testWidgets('send while recording transcribes and sends directly', (
+    tester,
+  ) async {
+    await tester.pumpWidget(composer());
+    await tester.tap(find.byTooltip('Start voice input'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('Transcribe and send'));
+    await tester.pump();
+    await tester.pump();
+    expect(transcriber.calls, 1);
+    expect(model.requests, hasLength(1));
+    expect(chat.draft.text, isEmpty);
+    expect(find.byKey(const ValueKey('ai-composer-input')), findsOneWidget);
+  });
+
   testWidgets(
     'shows transcribing state, blocks duplicate clicks and supports cancel',
     (tester) async {
@@ -101,12 +123,15 @@ void main() {
       await tester.tap(find.byTooltip('Stop and transcribe'));
       await tester.pump();
       expect(find.text('Transcribing…'), findsOneWidget);
+      // Mic is hidden and stop/send are disabled until transcription ends.
+      expect(find.byTooltip('Start voice input'), findsNothing);
       await tester.tap(
-        find.byTooltip('Start voice input'),
+        find.byTooltip('Transcribe and send'),
         warnIfMissed: false,
       );
       await tester.pump();
       expect(recorder.starts, 1);
+      expect(transcriber.calls, 1);
       await tester.tap(find.byTooltip('Cancel'));
       await tester.pump();
       transcriber.pending!.complete('discarded words');
@@ -198,5 +223,56 @@ void main() {
     expect(settings.load().model, 'independent-model');
     expect(await settings.key(), 'new-mock-key');
     expect(store.loadConfig().usePlatform, true);
+  });
+  testWidgets(
+    'voice mode tabs browse until enabled and keep local configuration',
+    (tester) async {
+      await tester.pumpWidget(
+        host(
+          SingleChildScrollView(
+            child: VoiceSettingsSection(settings: settings),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(settings.load().usePlatform, false);
+      await tester.tap(find.byKey(const ValueKey('voice-tab-cloud')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsTextInput), findsNothing);
+      expect(settings.load().usePlatform, false);
+      await tester.tap(find.byKey(const ValueKey('voice-settings-save')));
+      await tester.pumpAndSettle();
+      expect(settings.load().usePlatform, true);
+      expect(await settings.key(), 'mock-key');
+      await tester.tap(find.byKey(const ValueKey('voice-tab-local')));
+      await tester.pumpAndSettle();
+      expect(find.byType(SettingsTextInput), findsNWidgets(2));
+      expect(settings.load().usePlatform, true);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('voice-settings-save')),
+      );
+      await tester.tap(find.byKey(const ValueKey('voice-settings-save')));
+      await tester.pumpAndSettle();
+      expect(settings.load().usePlatform, false);
+      expect(await settings.key(), 'mock-key');
+    },
+  );
+
+  testWidgets('fresh voice settings hide key fields in default cloud mode', (
+    tester,
+  ) async {
+    configuration.execute(
+      "DELETE FROM settings WHERE namespace='assistant' AND key='voice'",
+    );
+    await tester.pumpWidget(
+      host(
+        SingleChildScrollView(child: VoiceSettingsSection(settings: settings)),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(settings.load().usePlatform, true);
+    expect(find.byType(SettingsTextInput), findsNothing);
+    expect(find.byType(SecretInput), findsNothing);
+    expect(tester.takeException(), isNull);
   });
 }

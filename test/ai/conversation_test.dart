@@ -427,6 +427,155 @@ void main() {
     c.dispose();
   });
 
+  test('current turn compacts valid JSON without changing saved evidence or call pairs', () async {
+    registry.register(
+      RegisteredTool(
+        'search',
+        'Search',
+        {},
+        (_) async => {
+          'results': [
+            for (var i = 0; i < 100; i++)
+              {
+                'id': 'movie-$i',
+                'url': 'https://example.com/movie/$i',
+                'description': 'x' * 100,
+              },
+          ],
+        },
+      ),
+    );
+    var round = 0;
+    final fake = FakeModel((request) async* {
+      expect(
+        request.messages.every((m) => m.reasoning.isEmpty && m.id == null),
+        true,
+      );
+      final size = jsonEncode(request.messages.map((m) => m.toJson()).toList())
+          .length;
+      final catalog = jsonEncode([
+        for (final t in request.tools)
+          {
+            'name': t.name,
+            'description': t.description,
+            'parameters': t.schema,
+          },
+      ]).length;
+      expect(size + catalog, lessThanOrEqualTo(64000));
+      if (round++ < 5) {
+        yield ModelReasoningDelta('hidden' * 12000);
+        yield ModelToolDelta(ModelToolCall('search-$round', 'search', '{}'));
+        yield const ModelCompleted('toolCalls');
+      } else {
+        final results = request.messages
+            .where((m) => m.role == 'tool')
+            .toList();
+        expect(results.length, 5);
+        expect(results.map((m) => m.callId), [
+          for (var i = 1; i <= 5; i++) 'search-$i',
+        ]);
+        expect(
+          results.any((m) => (jsonDecode(m.text) as Map)['_compacted'] == true),
+          true,
+        );
+        expect(results.first.text, contains('movie-0'));
+        yield const ModelTextDelta('Found candidates');
+        yield const ModelCompleted('stop');
+      }
+    });
+    final c = coordinator(fake);
+    await c.send('Find candidates', toolsEnabled: true);
+    expect(c.turns.single.status, 'completed');
+    final saved = c.turns.single.messages.where((m) => m.role == 'tool');
+    expect(saved.every((m) => m.text.contains('movie-99')), true);
+    expect(saved.every((m) => !m.text.contains('_compacted')), true);
+    c.dispose();
+  });
+
+  test('last request and exhausted tool budget return a summary without further execution', () async {
+    var executions = 0;
+    registry.register(
+      RegisteredTool('read', 'Read', {}, (_) async => {'count': ++executions}),
+    );
+    for (final limitedCalls in [false, true]) {
+      final fake = FakeModel((request) async* {
+        if (request.tools.isEmpty) {
+          expect(request.messages.last.text, contains('Do not call tools'));
+          yield const ModelTextDelta('Partial results; more work remains.');
+          yield const ModelCompleted('stop');
+        } else {
+          yield ModelToolDelta(ModelToolCall('id-$executions', 'read', '{}'));
+          yield const ModelCompleted('toolCalls');
+        }
+      });
+      final c = coordinator(
+        fake,
+        requests: limitedCalls ? 8 : 3,
+        calls: limitedCalls ? 2 : 12,
+      );
+      await c.send('Read', toolsEnabled: true);
+      expect(c.turns.last.status, 'completed');
+      expect(fake.requests.length, 3);
+      c.dispose();
+    }
+    expect(executions, 4);
+  });
+
+  test('near cumulative token budget reserves a tool-free answer', () async {
+    registry.register(
+      RegisteredTool('read', 'Read', {}, (_) async => {'ok': true}),
+    );
+    final fake = FakeModel((request) async* {
+      if (request.tools.isNotEmpty) {
+        yield const ModelToolDelta(ModelToolCall('read-1', 'read', '{}'));
+        yield const ModelCompleted('toolCalls', totalTokens: 90);
+      } else {
+        yield const ModelTextDelta('Done');
+        yield const ModelCompleted('stop', totalTokens: 95);
+      }
+    });
+    final c = coordinator(fake, tokens: 100);
+    await c.send('Read', toolsEnabled: true);
+    expect(c.turns.single.status, 'completed');
+    expect(c.turns.single.tokens, 185);
+    expect(fake.requests.length, 2);
+    c.dispose();
+  });
+
+  test('failed turn restores recorded results but excludes unresolved action calls', () async {
+    store.saveTurn('failed-search', 'failed', [
+      const ModelMessage('user', 'Find movie'),
+      const ModelMessage(
+        'assistant',
+        'Searching',
+        calls: [ModelToolCall('search-1', 'search', '{}')],
+      ),
+      const ModelMessage('tool', '{"id":"movie-42"}', callId: 'search-1'),
+      const ModelMessage(
+        'assistant',
+        'Saving',
+        calls: [ModelToolCall('write-1', 'write', '{}')],
+      ),
+    ], error: 'contextBudget');
+    final fake = FakeModel((request) async* {
+      expect(request.messages.any((m) => m.text.contains('movie-42')), true);
+      expect(request.messages.expand((m) => m.calls).map((c) => c.id), [
+        'search-1',
+      ]);
+      expect(
+        request.messages.any((m) => m.text.contains('Verify actual state')),
+        true,
+      );
+      yield const ModelTextDelta('I can use the recorded candidate');
+      yield const ModelCompleted('stop');
+    });
+    final c = coordinator(fake);
+    await c.send('Continue', toolsEnabled: true);
+    expect(c.turns.last.status, 'completed');
+    expect(c.turns.first.messages.last.calls.single.id, 'write-1');
+    c.dispose();
+  });
+
   test('large tool results are shortened instead of dropping the turn from history', () async {
     String result(String id, String marker) => jsonEncode({
       'call_id': id,

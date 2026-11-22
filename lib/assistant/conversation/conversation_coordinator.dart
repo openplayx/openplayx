@@ -92,6 +92,7 @@ class ConversationCoordinator extends ChangeNotifier {
     // Usage includes the tool catalog and repeated input on every request.
     // 32k allowed only a handful of browse steps before any media work.
     this.maxTokens = 256000,
+    this.contextCharacters = 64000,
     // Tools may wait up to two minutes each on background tasks; a turn of
     // many steps needs far more than a single request.
     this.turnTimeout = const Duration(minutes: 30),
@@ -186,6 +187,10 @@ class ConversationCoordinator extends ChangeNotifier {
   final int maxRequests;
   final int maxCalls;
   final int maxTokens;
+
+  /// Conservative request-size guard, including the tool catalog. This is
+  /// independent of cumulative billed token usage over the whole task.
+  final int contextCharacters;
   final Duration turnTimeout;
   final Duration requestTimeout;
   final turns = <ConversationTurn>[];
@@ -293,11 +298,13 @@ class ConversationCoordinator extends ChangeNotifier {
         if (page.isEmpty) break;
         offset += page.length;
         for (final row in page.reversed) {
-          if (row['id'] == turn.id || row['status'] != 'completed') continue;
-          final past = _fitTurn(
-            _readTurn(row).messages,
-            _historyBudget - chars,
-          );
+          if (row['id'] == turn.id) continue;
+          final saved = _readTurn(row);
+          final pastMessages = saved.status == 'completed'
+              ? saved.messages
+              : _recoverableMessages(saved);
+          if (pastMessages.isEmpty) continue;
+          final past = _fitTurn(pastMessages, _historyBudget - chars);
           if (past == null) {
             withinBudget = false;
             break;
@@ -334,17 +341,31 @@ class ConversationCoordinator extends ChangeNotifier {
       final protocolCorrections = <ModelMessage>[];
       for (var round = 0; round < maxRequests; round++) {
         if (!_active(turn)) throw const ModelFailure('cancelled');
-        final tools = toolsEnabled ? gateway.registry.available : <ModelTool>[];
-        if (jsonEncode(
-              [
-                ...messages,
-                ...turn.messages,
-                ...protocolCorrections,
-              ].map((m) => m.toJson()).toList(),
-            ).length >
-            64000) {
-          throw const ModelFailure('contextBudget');
-        }
+        // Reserve the last request for a useful answer, rather than executing
+        // tools whose results can never be returned to the user.
+        final wrappingUp =
+            round == maxRequests - 1 ||
+            count >= maxCalls ||
+            (turn.tokens ?? 0) >= maxTokens * .9;
+        final tools = toolsEnabled && !wrappingUp
+            ? gateway.registry.available
+            : <ModelTool>[];
+        final wrapInstruction = wrappingUp
+            ? const [
+                ModelMessage(
+                  'system',
+                  'The task is approaching its execution budget. Do not call tools. '
+                      'Answer the original request using only the available evidence. '
+                      'State what is incomplete or uncertain, and do not claim unfinished actions succeeded.',
+                ),
+              ]
+            : const <ModelMessage>[];
+        final requestMessages = _requestContext([
+          ...messages,
+          ...turn.messages,
+          ...protocolCorrections,
+          ...wrapInstruction,
+        ], tools);
         turn.streamingMessageId = '${turn.id}:response:$round';
         turn.step = round + 1;
         turn.reasoning = '';
@@ -357,13 +378,7 @@ class ConversationCoordinator extends ChangeNotifier {
         final reasoning = StringBuffer();
         final streamDone = Completer<void>();
         final subscription = provider
-            .infer(
-              ModelInferenceRequest([
-                ...messages,
-                ...turn.messages,
-                ...protocolCorrections,
-              ], tools: tools),
-            )
+            .infer(ModelInferenceRequest(requestMessages, tools: tools))
             .listen(
               (event) {
                 if (!_active(turn)) return;
@@ -420,12 +435,22 @@ class ConversationCoordinator extends ChangeNotifier {
         if (completed!.totalTokens != null) {
           turn.tokens = (turn.tokens ?? 0) + completed!.totalTokens!;
         }
-        if (turn.tokens != null && turn.tokens! > maxTokens) {
+        // Usage is only known after the response. Keep an already generated
+        // tool-free wrap-up even if its input pushes cumulative usage over the
+        // threshold; never execute another action in that case.
+        if (turn.tokens != null &&
+            turn.tokens! > maxTokens &&
+            !(wrappingUp && calls.isEmpty)) {
           throw const ModelFailure('tokenBudget');
         }
         if (calls.any((c) => c.id.isEmpty) ||
             calls.map((c) => c.id).toSet().length != calls.length) {
           throw const ModelFailure('invalidCallIds');
+        }
+        if (wrappingUp && calls.isNotEmpty) {
+          throw ModelFailure(
+            count >= maxCalls ? 'toolBudget' : 'requestBudget',
+          );
         }
         turn.messages.add(
           ModelMessage(
@@ -445,7 +470,8 @@ class ConversationCoordinator extends ChangeNotifier {
         // than silently treating the unfinished action as a completed answer.
         final textCall =
             calls.isEmpty &&
-            tools.isNotEmpty &&
+            toolsEnabled &&
+            gateway.registry.available.isNotEmpty &&
             _containsTextToolCall(response.toString());
         if (textCall) {
           if (repairedTextCall || round == maxRequests - 1) {
@@ -564,6 +590,148 @@ class ConversationCoordinator extends ChangeNotifier {
   }
 
   static const _historyBudget = 24000;
+
+  /// Project history for inference only. Never rewrite the stored transcript or
+  /// hidden reasoning, and never split a tool call/result group.
+  List<ModelMessage> _requestContext(
+    List<ModelMessage> source,
+    List<ModelTool> tools,
+  ) {
+    final catalogSize = jsonEncode([
+      for (final t in tools)
+        {'name': t.name, 'description': t.description, 'parameters': t.schema},
+    ]).length;
+    final budget = contextCharacters - catalogSize;
+    final messages = [
+      for (final m in source)
+        ModelMessage(m.role, m.text, calls: m.calls, callId: m.callId),
+    ];
+    if (_size(messages) <= budget) return messages;
+    // Reduce older results first; recent results retain more detail. JSON stays
+    // parseable, including status, IDs and URLs for every retained entry.
+    for (final limit in [8000, 4000, 2000, 1000, 500]) {
+      for (var i = 0; i < messages.length; i++) {
+        final m = messages[i];
+        if (m.role != 'tool' || m.text.length <= limit) continue;
+        messages[i] = ModelMessage(
+          'tool',
+          _compactResult(source[i].text, limit),
+          callId: m.callId,
+        );
+        if (_size(messages) <= budget) return messages;
+      }
+    }
+    // Arguments, user constraints and assistant answers are not safe to chop.
+    // Retain the guard if those alone exceed the request budget.
+    throw const ModelFailure('contextBudget');
+  }
+
+  static String _compactResult(String text, int limit) {
+    Object? original;
+    try {
+      original = jsonDecode(text);
+    } catch (_) {
+      return jsonEncode({
+        '_compacted': true,
+        'text': _shorten(text, limit ~/ 2),
+      });
+    }
+    Object? trim(Object? value, int entries, int characters, [String? field]) {
+      // Never shorten opaque identifiers, paths, magnets or signed URLs into
+      // plausible but unusable action targets. Only prose is safe to excerpt.
+      const prose = {
+        'text',
+        'description',
+        'content',
+        'summary',
+        'snippet',
+        'overview',
+        'body',
+        'html',
+        'biography',
+        'review',
+      };
+      if (value is String &&
+          value.length > characters &&
+          prose.contains(field)) {
+        return _shorten(value, characters);
+      }
+      if (value is List) {
+        return [
+          for (final v in value.take(entries))
+            trim(v, entries, characters, field),
+        ];
+      }
+      if (value is Map) {
+        return {
+          for (final e in value.entries)
+            e.key.toString(): trim(
+              e.value,
+              entries,
+              characters,
+              e.key.toString(),
+            ),
+        };
+      }
+      return value;
+    }
+
+    for (final entries in [20, 10, 5, 2, 1]) {
+      final reduced = trim(original, entries, limit ~/ 4);
+      final encoded = jsonEncode({
+        '_compacted': true,
+        '_notice':
+            'Partial tool evidence; omitted entries are not negative results. '
+            'Read the tool again if more detail is needed.',
+        'result': reduced,
+      });
+      if (encoded.length <= limit) return encoded;
+    }
+    return jsonEncode({
+      '_compacted': true,
+      '_notice':
+          'Tool result omitted from model context; still saved in conversation. '
+          'Read the tool again if needed. Do not infer success or failure.',
+    });
+  }
+
+  static List<ModelMessage> _recoverableMessages(ConversationTurn turn) {
+    if (!turn.messages.any((m) => m.role == 'user')) return const [];
+    final recovered = <ModelMessage>[];
+    for (var i = 0; i < turn.messages.length; i++) {
+      final m = turn.messages[i];
+      if (m.role == 'tool') continue;
+      if (m.calls.isEmpty) {
+        recovered.add(m);
+        continue;
+      }
+      final results = <ModelMessage>[];
+      var next = i + 1;
+      while (next < turn.messages.length &&
+          turn.messages[next].role == 'tool') {
+        results.add(turn.messages[next++]);
+      }
+      final ids = m.calls.map((c) => c.id).toSet();
+      if (ids.length == m.calls.length &&
+          results.length == ids.length &&
+          results.map((r) => r.callId).toSet().containsAll(ids)) {
+        recovered.addAll([m, ...results]);
+      } else if (m.text.isNotEmpty) {
+        recovered.add(ModelMessage('assistant', m.text));
+      }
+      i = next - 1;
+    }
+    recovered.add(
+      ModelMessage(
+        'assistant',
+        '[Previous turn ended with status ${turn.status}; it was not completed. '
+            'Only tool calls with recorded results are included. '
+            'Verify actual state before retrying an action; never assume a missing result means it did not run.]',
+      ),
+    );
+    return recovered;
+  }
+
   static int _size(List<ModelMessage> messages) =>
       jsonEncode(messages.map((m) => m.toJson()).toList()).length;
 

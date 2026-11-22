@@ -65,32 +65,39 @@ void main() {
     expect(filtered.error, 'unknownTool');
     expect(writes, 0);
   });
-  test('invalid arguments name what to fix so the model can correct the call', () async {
-    final registry = ToolRegistry()
-      ..register(
-        RegisteredTool('seek', 'seek', {
-          'session_id': const ToolField('string', required: true),
-          'position_ms': const ToolField('integer', required: true, minimum: 0),
-        }, (_) async => {}),
+  test(
+    'invalid arguments name what to fix so the model can correct the call',
+    () async {
+      final registry = ToolRegistry()
+        ..register(
+          RegisteredTool('seek', 'seek', {
+            'session_id': const ToolField('string', required: true),
+            'position_ms': const ToolField(
+              'integer',
+              required: true,
+              minimum: 0,
+            ),
+          }, (_) async => {}),
+        );
+      final result = await ToolGateway(registry).invoke(
+        turn: 'turn',
+        call: const ModelToolCall('id', 'seek', '{"position_ms":-1,"x":1}'),
+        allowed: {'seek'},
+        active: () => true,
+        confirm: (_, _) async => true,
       );
-    final result = await ToolGateway(registry).invoke(
-      turn: 'turn',
-      call: const ModelToolCall('id', 'seek', '{"position_ms":-1,"x":1}'),
-      allowed: {'seek'},
-      active: () => true,
-      confirm: (_, _) async => true,
-    );
-    expect(result.error, 'invalidArguments');
-    expect(result.data, {
-      'missing': ['session_id'],
-      'unknown': ['x'],
-      'invalid': ['position_ms'],
-      'expected': {
-        'session_id': {'type': 'string', 'minLength': 1, 'maxLength': 200},
-        'position_ms': {'type': 'integer', 'minimum': 0},
-      },
-    });
-  });
+      expect(result.error, 'invalidArguments');
+      expect(result.data, {
+        'missing': ['session_id'],
+        'unknown': ['x'],
+        'invalid': ['position_ms'],
+        'expected': {
+          'session_id': {'type': 'string', 'minLength': 1, 'maxLength': 200},
+          'position_ms': {'type': 'integer', 'minimum': 0},
+        },
+      });
+    },
+  );
 
   test('availability is checked again after host approval', () async {
     var enabled = true;

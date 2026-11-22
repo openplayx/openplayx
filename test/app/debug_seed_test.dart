@@ -9,6 +9,7 @@ import 'package:openplayx/data/remote_access/remote_access_service.dart';
 import 'package:openplayx/assistant/conversation/assistant_store.dart';
 import 'package:openplayx/assistant/plugins/external/external_service_registry.dart';
 import 'package:openplayx/capabilities/speech/asr_backend_config.dart';
+import 'package:openplayx/capabilities/metadata/tmdb_credentials.dart';
 import 'package:openplayx/capabilities/speech/asr_model_store.dart';
 import 'package:sqlite3/sqlite3.dart';
 
@@ -221,6 +222,43 @@ void main() {
       expect(
         ConfigurationDatabase.readSetting(db, 'metadata', 'language'),
         'en-US',
+      );
+    });
+
+    test('cloud seed replaces existing custom model and TMDB mode', () async {
+      await DebugSeed.apply(db, jsonEncode(seed()));
+      ConfigurationDatabase.writeSetting(db, 'metadata', tmdbModeKey, 'local');
+      final report = await DebugSeed.apply(
+        db,
+        jsonEncode({
+          'version': 1,
+          'assistant': {
+            'usePlatform': true,
+            'cloudAllowed': true,
+            'toolsSupported': true,
+          },
+          'metadata': {'tmdbMode': 'cloud'},
+        }),
+      );
+      expect(report.failed, isEmpty);
+      final library = sqlite3.openInMemory();
+      addTearDown(library.dispose);
+      final store = AssistantStore(library, configuration: db);
+      final config = store.loadConfig();
+      expect(config.usePlatform, isTrue);
+      expect(config.effectiveEndpoint, AssistantConfig.platformEndpoint);
+      expect(config.effectiveModel, AssistantConfig.platformModel);
+      expect(await store.key(), isEmpty);
+      final tmdb = TmdbConfig.fromSettings(
+        (key) =>
+            ConfigurationDatabase.readSetting(db, 'metadata', key) as String? ??
+            '',
+      );
+      expect(tmdb.usePlatform, isTrue);
+      expect(tmdb.token, 'tmdb-token');
+      expect(
+        ConfigurationDatabase.readSetting(db, 'metadata', 'tmdbRevision'),
+        isNotNull,
       );
     });
 

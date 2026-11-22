@@ -72,6 +72,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
       }
     },
   );
+  bool get _managed => widget.initial?.remote?.accountId != null;
   final _addressFocus = FocusNode();
   bool _submitting = false;
   String? _failure;
@@ -564,42 +565,72 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
-                SettingsSection(
-                  children: [
-                    SettingsChoiceRow<SourceKind>(
-                      key: const ValueKey('source-kind'),
-                      title: l.type,
-                      value: _c.kind,
-                      enabled: !_c.busy && _c.initial == null,
-                      options: {
-                        for (final kind in SourceKind.values)
-                          kind: _kindName(kind),
-                      },
-                      leading: (kind) => SourceKindIcon(kind, size: 28),
-                      onChanged: _c.changeKind,
-                    ),
-                    _field(_c.name, l.optionalName, hint: _nameHint),
-                  ],
-                ),
-                ...switch (_c.kind) {
-                  SourceKind.onedrive ||
-                  SourceKind.dropbox ||
-                  SourceKind.baidu => _cloudSections(),
-                  SourceKind.local => _localSections(),
-                  SourceKind.plex => _plexSections(),
-                  SourceKind.dlna => _dlnaSections(),
-                  _ => _networkSections(),
-                },
-                if (_c.kind.mediaBrowser ||
-                    _c.kind == SourceKind.plex ||
-                    _c.kind == SourceKind.smb)
+                if (_managed)
+                  SettingsSection(
+                    footer: l.connectorSourceManaged,
+                    children: [
+                      SettingsRow(
+                        title: widget.initial!.name,
+                        description: widget.initial!.kind.label,
+                      ),
+                      _field(
+                        _c.name,
+                        l.optionalName,
+                        hint: widget.initial!.name,
+                      ),
+                    ],
+                  )
+                else
+                  SettingsSection(
+                    children: [
+                      SettingsChoiceRow<SourceKind>(
+                        key: const ValueKey('source-kind'),
+                        title: l.type,
+                        value: _c.kind,
+                        enabled: !_c.busy && _c.initial == null,
+                        options: {
+                          for (final kind in SourceKind.values)
+                            kind: _kindName(kind),
+                        },
+                        leading: (kind) => SourceKindIcon(kind, size: 28),
+                        onChanged: _c.changeKind,
+                      ),
+                      _field(_c.name, l.optionalName, hint: _nameHint),
+                    ],
+                  ),
+                if (_managed)
+                  SettingsSection(
+                    footer: l.connectorSourceLoginHelp,
+                    children: [
+                      _field(_c.username, l.username, help: _usernameHelp),
+                      _field(_c.password, l.password, password: true),
+                      if (_c.kind == SourceKind.smb)
+                        _field(_c.domain, l.optionalDomain),
+                    ],
+                  )
+                else
+                  ...switch (_c.kind) {
+                    SourceKind.onedrive ||
+                    SourceKind.dropbox ||
+                    SourceKind.baidu => _cloudSections(),
+                    SourceKind.local => _localSections(),
+                    SourceKind.plex => _plexSections(),
+                    SourceKind.dlna => _dlnaSections(),
+                    _ => _networkSections(),
+                  },
+                if (!_managed &&
+                    (_c.kind.mediaBrowser ||
+                        _c.kind == SourceKind.plex ||
+                        _c.kind == SourceKind.smb))
                   _remoteSection(),
                 if (widget.onAddToHome != null)
                   SettingsSection(
                     children: [
                       SettingsRow(
                         title: l.homeScanScope,
-                        description: _c.kind.oauth
+                        description: _managed
+                            ? l.connectorSourceDiscovered
+                            : _c.kind.oauth
                             ? _c.cloudFolderName
                             : _c.kind == SourceKind.local
                             ? _c.address.text
@@ -628,7 +659,9 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
                       : null,
                   [
                     FormAction.primary(
-                      widget.onAddToHome != null
+                      _managed
+                          ? l.connectorSourceLogin
+                          : widget.onAddToHome != null
                           ? l.addAndShowHome
                           : _c.initial == null
                           ? l.add

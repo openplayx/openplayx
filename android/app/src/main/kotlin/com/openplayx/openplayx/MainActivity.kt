@@ -3,6 +3,8 @@ package com.openplayx.openplayx
 import android.app.Activity
 import android.content.Intent
 import android.net.ConnectivityManager
+import android.net.Network
+import android.net.LinkProperties
 import android.net.NetworkCapabilities
 import android.content.Context
 import android.os.Handler
@@ -17,6 +19,7 @@ import java.io.File
 import java.util.concurrent.Executors
 
 class MainActivity : FlutterActivity() {
+    private var networkCallback: ConnectivityManager.NetworkCallback? = null
     private var orientationListener: OrientationEventListener? = null
     private var pendingPick: MethodChannel.Result? = null
     private val fileWorker = Executors.newSingleThreadExecutor()
@@ -50,8 +53,16 @@ class MainActivity : FlutterActivity() {
                 if (call.method != "availableBytes") result.notImplemented()
                 else result.success(android.os.StatFs(cacheDir.absolutePath).availableBytes)
             }
-        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/network_policy")
-            .setMethodCallHandler { call, result ->
+        val networkChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/network_policy")
+        val connectivity = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        networkCallback?.let { connectivity.unregisterNetworkCallback(it) }
+        networkCallback = object : ConnectivityManager.NetworkCallback() {
+            private fun changed() { runOnUiThread { networkChannel.invokeMethod("networkChanged", null) } }
+            override fun onAvailable(network: Network) = changed()
+            override fun onLost(network: Network) = changed()
+            override fun onLinkPropertiesChanged(network: Network, properties: LinkProperties) = changed()
+        }.also { connectivity.registerDefaultNetworkCallback(it) }
+        networkChannel.setMethodCallHandler { call, result ->
                 if (call.method != "usingCellular") { result.notImplemented() }
                 else {
                     val manager = getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
@@ -124,6 +135,8 @@ class MainActivity : FlutterActivity() {
     }
 
     override fun onDestroy() {
+        networkCallback?.let { (getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager).unregisterNetworkCallback(it) }
+        networkCallback = null
         orientationListener?.disable()
         orientationListener = null
         super.onDestroy()

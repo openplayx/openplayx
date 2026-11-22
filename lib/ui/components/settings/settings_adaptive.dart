@@ -278,7 +278,7 @@ class SettingsChoicePage<T> extends StatelessWidget {
   }
 }
 
-/// Full-screen single text field with Save in the header.
+/// Full-screen single text field with Save at the bottom.
 class SettingsInputPage extends StatefulWidget {
   const SettingsInputPage({
     super.key,
@@ -320,13 +320,6 @@ class _SettingsInputPageState extends State<SettingsInputPage> {
   Widget build(BuildContext context) => AppPage(
     pageContext: const PageContextData(pageType: 'settings_input'),
     title: Text(widget.title),
-    trailing: [
-      PageSubmitButton(
-        key: const ValueKey('settings-input-save'),
-        label: widget.saveLabel,
-        onPressed: _submit,
-      ),
-    ],
     body: SettingsListView(
       children: [
         SettingsSection(
@@ -341,6 +334,13 @@ class _SettingsInputPageState extends State<SettingsInputPage> {
             ),
           ],
         ),
+        FormActions([
+          FormAction.primary(
+            widget.saveLabel,
+            _submit,
+            key: const ValueKey('settings-input-save'),
+          ),
+        ]),
       ],
     ),
   );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 import 'package:openplayx/app/app_shell.dart';
+import 'package:openplayx/ui/icons/app_icons.dart';
 import 'package:openplayx/features/assistant/view/assistant_page.dart';
 import 'package:openplayx/features/assistant/view/assistant_settings_page.dart';
 import 'package:openplayx/assistant/conversation/assistant_store.dart';
@@ -31,7 +32,7 @@ void main() {
       await tester.pumpAndSettle();
       // Home no longer embeds the assistant; the corner button opens it.
       expect(find.byType(AssistantView), findsNothing);
-      await tester.tap(find.byTooltip('AI 助手'));
+      await tester.tap(find.byIcon(AppIcons.assistant));
       await tester.pumpAndSettle();
       final first = tester.widget<AssistantView>(find.byType(AssistantView));
       expect(first.coordinator.context()['pageContext']['pageType'], 'home');
@@ -48,7 +49,7 @@ void main() {
       expect(find.byType(AssistantView), findsNothing);
       await tester.tap(find.byTooltip('来源').first);
       await tester.pumpAndSettle();
-      await tester.tap(find.byTooltip('AI 助手'));
+      await tester.tap(find.byIcon(AppIcons.assistant));
       await tester.pumpAndSettle();
       final second = tester.widget<AssistantView>(find.byType(AssistantView));
       expect(
@@ -98,7 +99,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    final button = tester.getRect(find.byTooltip('AI 助手'));
+    final button = tester.getRect(find.byIcon(AppIcons.assistant));
     expect(button.right, lessThanOrEqualTo(320));
     expect(button.top, lessThan(40));
     final title = tester.getRect(find.text('首页').first);
@@ -136,7 +137,7 @@ void main() {
           ),
           findsNothing,
         );
-        await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+        await tester.tap(find.byKey(const ValueKey('ai-tab-local')));
         await tester.pumpAndSettle();
         final inputs = tester
             .widgetList<EditableText>(
@@ -170,7 +171,7 @@ void main() {
       expect(fields, findsNothing);
       expect(store.loadConfig().usePlatform, true);
       expect(store.loadConfig().configured, true);
-      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.tap(find.byKey(const ValueKey('ai-tab-local')));
       await tester.pumpAndSettle();
       expect(fields, findsNWidgets(3));
       await tester.enterText(fields.at(0), 'https://api.deepseek.com/');
@@ -187,7 +188,9 @@ void main() {
       expect(saved.configured, true);
       expect(await store.key(saved), 'sk-test');
       expect(saved.usePlatform, false);
-      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('ai-tab-cloud')));
       await tester.pumpAndSettle();
       expect(fields, findsNothing);
       await tester.tap(find.byKey(const ValueKey('ai-save')));
@@ -197,7 +200,9 @@ void main() {
         store.loadConfig().effectiveEndpoint,
         AssistantConfig.platformEndpoint,
       );
-      await tester.tap(find.byKey(const ValueKey('ai-use-platform')));
+      await tester.pump(const Duration(seconds: 6));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('ai-tab-local')));
       await tester.pumpAndSettle();
       expect(
         tester.widget<EditableText>(fields.at(0)).controller.text,

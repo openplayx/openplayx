@@ -263,6 +263,18 @@ class RemoteTransport {
   static int _retryAttempts = 0, _retryDelayMs = 1000;
   static bool _allowCellular = true;
   static const _network = MethodChannel('openplayx/network_policy');
+  static final _networkChanges = StreamController<void>.broadcast();
+  static bool _listening = false;
+  static Stream<void> get networkChanges {
+    if (!_listening) {
+      _listening = true;
+      _network.setMethodCallHandler((call) async {
+        if (call.method == 'networkChanged') _networkChanges.add(null);
+      });
+    }
+    return _networkChanges.stream;
+  }
+
   static void configurePolicy({
     required int probeTimeoutMs,
     required int stabilitySeconds,
@@ -272,7 +284,7 @@ class RemoteTransport {
   }) {
     selector.probeTimeout = Duration(milliseconds: probeTimeoutMs);
     selector.stabilityWindow = Duration(seconds: stabilitySeconds);
-    selector.networkChanged();
+    networkChanged();
     _allowCellular = allowCellular;
     _retryAttempts = reconnectAttempts;
     _retryDelayMs = reconnectDelayMs;
@@ -304,6 +316,12 @@ class RemoteTransport {
   }
 
   static final selector = RemotePathSelector();
+  static final selectedPaths = <String, (bool local, DateTime observedAt)>{};
+  static void networkChanged() {
+    selector.networkChanged();
+    selectedPaths.clear();
+  }
+
   static final _cores = <String, _RemoteCoreEntry>{};
   static Future<RemotePathLease> acquire(SourceConfig source) async {
     final c = source.remoteAccess!;
@@ -312,9 +330,16 @@ class RemoteTransport {
       c,
       policy: source.remoteRuntimePolicy,
     )) {
+      selectedPaths[source.id] = (true, DateTime.now());
       return RemotePathLease(
         Uri.parse(c.localAddress!),
         localTlsSha256: c.localTlsSha256,
+      );
+    }
+    if (!c.remoteReady) {
+      throw PluginException(
+        'remoteUnavailable',
+        appStrings.connectorSourceNotReady,
       );
     }
     await checkNetworkPolicy(
@@ -346,6 +371,7 @@ class RemoteTransport {
 
     try {
       final (_, port) = await entry.ready;
+      selectedPaths[source.id] = (false, DateTime.now());
       return RemotePathLease(
         Uri.parse(source.address),
         loopbackPort: port,

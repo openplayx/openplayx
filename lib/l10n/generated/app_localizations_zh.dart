@@ -19,10 +19,19 @@ class AppLocalizationsZh extends AppLocalizations {
   String get sources => '来源';
 
   @override
-  String get plugins => 'AI';
+  String get plugins => '问问';
 
   @override
   String get settings => '设置';
+
+  @override
+  String get settingsGeneral => '通用';
+
+  @override
+  String get settingsMediaLibrary => '媒体库';
+
+  @override
+  String get settingsApplication => '应用';
 
   @override
   String get system => '跟随系统';
@@ -361,8 +370,44 @@ class AppLocalizationsZh extends AppLocalizations {
   String get scanExtensions => '扫描的文件后缀';
 
   @override
-  String get scanExtensionsHelp =>
-      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
+  String get scanExtensionsHelp => '预览和入库只保留选中后缀的文件。以点开头的隐藏文件始终会被忽略。';
+
+  @override
+  String get scanExtensionsAllFiles => '未选择任何后缀：将保留所有文件。';
+
+  @override
+  String get scanExtensionsVideo => '视频';
+
+  @override
+  String get scanExtensionsAudio => '音频';
+
+  @override
+  String get scanExtensionsCustom => '自定义';
+
+  @override
+  String scanExtensionsSelected(int count, int total) {
+    return '已选 $count / $total';
+  }
+
+  @override
+  String get scanExtensionsSelectAll => '全选';
+
+  @override
+  String get scanExtensionsSelectNone => '清空';
+
+  @override
+  String get scanExtensionsAddHint => '例如 iso';
+
+  @override
+  String get scanExtensionsInvalid => '后缀只能包含字母和数字，每个最多 16 个字符。';
+
+  @override
+  String scanExtensionsRemove(String extension) {
+    return '移除 $extension';
+  }
+
+  @override
+  String get scanExtensionsRestoreDefaults => '恢复默认';
 
   @override
   String get optionalDomain => '工作组（可选）';
@@ -884,7 +929,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get metadataSearch => '搜索 TMDB';
 
   @override
-  String get aiAssistant => 'AI 助手';
+  String get aiAssistant => '问问';
 
   @override
   String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
@@ -1345,7 +1390,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get aiMore => '更多';
 
   @override
-  String get aiGreeting => '有什么可以帮你？';
+  String get aiGreeting => '今晚想看什么？';
 
   @override
   String get aiSuggestTonight => '推荐一部今晚看的电影';
@@ -2148,6 +2193,9 @@ class AppLocalizationsZh extends AppLocalizations {
   }
 
   @override
+  String get remoteConnectionDetails => '连接详情';
+
+  @override
   String get remoteRelayServer => '中继服务器';
 
   @override
@@ -2164,9 +2212,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remoteNeedsAttention => '需要处理';
 
   @override
-  String remoteSourceProxyMissing(String proxy) {
-    return '使用的 proxy「$proxy」不在当前配置中，远程连接不可用。';
-  }
+  String get remoteSourceProxyMissing => '使用的远程访问服务不在当前配置中，远程连接不可用。';
 
   @override
   String get statusConfigured => '已配置';
@@ -2284,30 +2330,6 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plgSwitchOff => '已阻止新的调用；实例配置保留';
-
-  @override
-  String get settingsCapabilities => '基础能力';
-
-  @override
-  String get capabilitySwitchesFooter =>
-      '关闭的能力在整个 App 中都不再承接新的调用，AI 也无法使用；已有配置会保留。';
-
-  @override
-  String capabilityNeeds(String name) {
-    return '需要先开启「$name」';
-  }
-
-  @override
-  String get plgCapabilitySwitch => '基础能力开关';
-
-  @override
-  String get plgCapabilitySwitchHint => '在「设置 → 基础能力」中开关，对整个 App 生效';
-
-  @override
-  String get capabilityOn => '已开启';
-
-  @override
-  String get capabilityOff => '已关闭';
 
   @override
   String get plgLocation => '执行位置';
@@ -2864,9 +2886,8 @@ class AppLocalizationsZh extends AppLocalizations {
   String get errWriteTimeout => '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。';
 
   @override
-  String errSourceProxyMissing(String proxy) {
-    return '此来源使用远程访问 proxy「$proxy」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。';
-  }
+  String get errSourceProxyMissing =>
+      '此来源使用的远程访问服务已不在当前 App 配置中；请在设置 → 远程访问导入 Relay 的 App 配置。';
 
   @override
   String get errReloadBeforeTest => '请重新加载配置后测试。';
@@ -3946,7 +3967,7 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceSettingsHint =>
-      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
+      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，点停止会把文字填入输入框供修改，点发送则转写后直接发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
 
   @override
   String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
@@ -3956,6 +3977,9 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get voiceStop => '停止并转写';
+
+  @override
+  String get voiceSend => '转写并发送';
 
   @override
   String get voiceRecording => '正在录音…点击停止进行转写，或取消以丢弃录音。';
@@ -4020,8 +4044,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get remotePlatformTitle => '平台默认';
 
   @override
-  String get remotePlatformHint =>
-      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+  String get remotePlatformHint => '登录后自动加载平台 Relay 节点和已授权服务。';
 
   @override
   String get remotePlatformLogin => '登录平台账号';
@@ -4098,6 +4121,178 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
+
+  @override
+  String get remoteTabCloud => '云端';
+
+  @override
+  String get remoteTabLocal => '本地导入';
+
+  @override
+  String get remoteModeActive => '生效中';
+
+  @override
+  String get remoteModeInactive => '未生效';
+
+  @override
+  String get remoteCloudInactiveHint => '当前使用本地导入配置。启用云端配置后，本地导入配置将失效。';
+
+  @override
+  String get remoteLocalInactiveHint => '当前使用云端配置。启用本地导入配置后，云端配置将失效。';
+
+  @override
+  String get remoteLocalEmptyHint => '导入 Relay 导出的配置。导入后立即切换到本地配置，云端配置将失效。';
+
+  @override
+  String get remoteEnableCloud => '启用云端配置';
+
+  @override
+  String get remoteEnableLocal => '启用本地导入配置';
+
+  @override
+  String get remoteEnableCloudConfirmTitle => '切换到云端配置？';
+
+  @override
+  String get remoteEnableCloudConfirmMessage => '本地导入配置将失效。它仍保存在本设备上，可随时切换回来。';
+
+  @override
+  String get remoteEnableLocalConfirmTitle => '切换到本地导入配置？';
+
+  @override
+  String get remoteEnableLocalConfirmMessage => '云端配置将失效。平台账号保持登录，可随时切换回来。';
+
+  @override
+  String get remoteImportReplaceCloudTitle => '导入并切换？';
+
+  @override
+  String get remoteImportReplaceCloudMessage =>
+      '导入的配置立即生效，云端配置将失效。可在“云端”标签页切换回来。';
+
+  @override
+  String get remoteClearActiveMessage => '从本设备移除本地导入配置及凭据，远程访问将切换为云端配置。';
+
+  @override
+  String get remoteSwitched => '已切换。';
+
+  @override
+  String get remoteSwitch => '切换';
+
+  @override
+  String get tmdbCloudHint =>
+      '通过 OpenPlayX 云端查询影视信息，无需配置 TMDB 令牌。片名、年份、ID 和语言会经 OpenPlayX 发送至 TMDB，视频和私人路径保留在本机。';
+
+  @override
+  String get tmdbLocalHint => '使用自己的读取访问令牌直接连接 TMDB，令牌保存在本机。';
+
+  @override
+  String get voiceCloudHint =>
+      '使用 OpenPlayX 云端语音转文字，无需填写 API Key。录音会经 OpenPlayX 发送至 OpenAI 进行转录。';
+
+  @override
+  String get voiceConnectionOk => '连接成功，转写服务已接受测试音频。';
+
+  @override
+  String get voiceConnectionTimeout => '连接测试超时，请检查服务地址和网络后重试。';
+
+  @override
+  String get voiceConnectionTestHint =>
+      '测试连接会使用当前配置向服务发送 1 秒生成的静音，不使用麦克风，也不会保存修改。';
+
+  @override
+  String get llmModelSettings => 'LLM 模型';
+
+  @override
+  String get whisperModelSettings => 'Whisper 模型';
+
+  @override
+  String get settingsPlayer => '播放器';
+
+  @override
+  String get settingsSubtitles => '字幕';
+
+  @override
+  String get connectorSources => '来自 Connector';
+
+  @override
+  String get connectorSourceDiscovered => '已自动发现，登录后选择目录。';
+
+  @override
+  String get connectorSourceLogin => '登录并连接';
+
+  @override
+  String get connectorSourceSetup => '连接服务';
+
+  @override
+  String get connectorSourceManaged => '服务配置由 Connector 管理，登录和目录保存在此设备。';
+
+  @override
+  String get connectorSourceHide => '在本设备隐藏';
+
+  @override
+  String get connectorSourceHideHelp =>
+      '仅从此列表隐藏。登录和目录会保留，首页已有内容仍可使用；如需停止使用，请停用连接。';
+
+  @override
+  String get connectorSourcesHidden => '已隐藏来源';
+
+  @override
+  String get connectorSourceRestore => '恢复显示';
+
+  @override
+  String get connectorSourceNoneHidden => '没有已隐藏的来源';
+
+  @override
+  String get connectorSourceDisabled => '服务已停用';
+
+  @override
+  String get connectorSourceRemoved => '服务已移除';
+
+  @override
+  String get connectorSourceSync => '同步来源';
+
+  @override
+  String get connectorSourceSyncFailed => '暂时无法同步，已保留上次成功的来源列表。';
+
+  @override
+  String get connectorSourceConnectionSettings => '连接设置';
+
+  @override
+  String get connectorSourceLoginHelp => '填写媒体服务的账号；服务支持访客访问时，用户名和密码均可留空。';
+
+  @override
+  String get connectorSourceRemoteOnlyHelp =>
+      '此服务目前使用远程连接。SMB 局域网切换需要受支持的安全本地通道。';
+
+  @override
+  String get connectorSourcePending => '待连接';
+
+  @override
+  String get connectorSourceLan => '局域网连接';
+
+  @override
+  String get connectorSourceRemote => '远程连接';
+
+  @override
+  String get connectorSourceLoginDiscover => '登录并发现来源';
+
+  @override
+  String get connectorSourceDetails => '服务详情';
+
+  @override
+  String get connectorSourceAccount => '需要验证账号访问权限';
+
+  @override
+  String get connectorSourceProtocolChanged => '服务类型已更改，请重新设置连接。';
+
+  @override
+  String get connectorSourceNotReady => 'Connector 尚未上报可用线路。';
+
+  @override
+  String get connectorSourceClearLocal => '清除本机配置';
+
+  @override
+  String get connectorSourceClearLocalHelp =>
+      '仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -4114,10 +4309,19 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get sources => '来源';
 
   @override
-  String get plugins => 'AI';
+  String get plugins => '问问';
 
   @override
   String get settings => '设置';
+
+  @override
+  String get settingsGeneral => '通用';
+
+  @override
+  String get settingsMediaLibrary => '媒体库';
+
+  @override
+  String get settingsApplication => '应用';
 
   @override
   String get system => '跟随系统';
@@ -4456,8 +4660,44 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get scanExtensions => '扫描的文件后缀';
 
   @override
-  String get scanExtensionsHelp =>
-      '用逗号分隔。预览和入库只保留这些后缀的文件，留空则保留所有文件。以点开头的隐藏文件始终会被忽略。';
+  String get scanExtensionsHelp => '预览和入库只保留选中后缀的文件。以点开头的隐藏文件始终会被忽略。';
+
+  @override
+  String get scanExtensionsAllFiles => '未选择任何后缀：将保留所有文件。';
+
+  @override
+  String get scanExtensionsVideo => '视频';
+
+  @override
+  String get scanExtensionsAudio => '音频';
+
+  @override
+  String get scanExtensionsCustom => '自定义';
+
+  @override
+  String scanExtensionsSelected(int count, int total) {
+    return '已选 $count / $total';
+  }
+
+  @override
+  String get scanExtensionsSelectAll => '全选';
+
+  @override
+  String get scanExtensionsSelectNone => '清空';
+
+  @override
+  String get scanExtensionsAddHint => '例如 iso';
+
+  @override
+  String get scanExtensionsInvalid => '后缀只能包含字母和数字，每个最多 16 个字符。';
+
+  @override
+  String scanExtensionsRemove(String extension) {
+    return '移除 $extension';
+  }
+
+  @override
+  String get scanExtensionsRestoreDefaults => '恢复默认';
 
   @override
   String get optionalDomain => '工作组（可选）';
@@ -4979,7 +5219,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get metadataSearch => '搜索 TMDB';
 
   @override
-  String get aiAssistant => 'AI 助手';
+  String get aiAssistant => '问问';
 
   @override
   String get aiPrivacyNotice => '消息、选定上下文及工具结果会发送至你配置的模型供应商。';
@@ -5440,7 +5680,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get aiMore => '更多';
 
   @override
-  String get aiGreeting => '有什么可以帮你？';
+  String get aiGreeting => '今晚想看什么？';
 
   @override
   String get aiSuggestTonight => '推荐一部今晚看的电影';
@@ -6243,6 +6483,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   }
 
   @override
+  String get remoteConnectionDetails => '连接详情';
+
+  @override
   String get remoteRelayServer => '中继服务器';
 
   @override
@@ -6259,9 +6502,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get remoteNeedsAttention => '需要处理';
 
   @override
-  String remoteSourceProxyMissing(String proxy) {
-    return '使用的 proxy「$proxy」不在当前配置中，远程连接不可用。';
-  }
+  String get remoteSourceProxyMissing => '使用的远程访问服务不在当前配置中，远程连接不可用。';
 
   @override
   String get statusConfigured => '已配置';
@@ -6379,30 +6620,6 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plgSwitchOff => '已阻止新的调用；实例配置保留';
-
-  @override
-  String get settingsCapabilities => '基础能力';
-
-  @override
-  String get capabilitySwitchesFooter =>
-      '关闭的能力在整个 App 中都不再承接新的调用，AI 也无法使用；已有配置会保留。';
-
-  @override
-  String capabilityNeeds(String name) {
-    return '需要先开启「$name」';
-  }
-
-  @override
-  String get plgCapabilitySwitch => '基础能力开关';
-
-  @override
-  String get plgCapabilitySwitchHint => '在「设置 → 基础能力」中开关，对整个 App 生效';
-
-  @override
-  String get capabilityOn => '已开启';
-
-  @override
-  String get capabilityOff => '已关闭';
 
   @override
   String get plgLocation => '执行位置';
@@ -6959,9 +7176,8 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get errWriteTimeout => '写入超时，服务器上可能残留以 .openplayx- 开头的临时文件。';
 
   @override
-  String errSourceProxyMissing(String proxy) {
-    return '此来源使用远程访问 proxy「$proxy」，但当前 App 没有该 proxy；请在设置 → 远程访问导入 Relay 的 App 配置。';
-  }
+  String get errSourceProxyMissing =>
+      '此来源使用的远程访问服务已不在当前 App 配置中；请在设置 → 远程访问导入 Relay 的 App 配置。';
 
   @override
   String get errReloadBeforeTest => '请重新加载配置后测试。';
@@ -8041,7 +8257,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get voiceSettingsHint =>
-      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，文字可编辑并需手动发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
+      '独立配置 OpenAI 转写地址、模型和 API Key。停止录音后才会将音频发送到此服务，点停止会把文字填入输入框供修改，点发送则转写后直接发送。支持 Android、iOS、macOS 和 Windows，其他平台暂不支持录音。';
 
   @override
   String get voiceSettingsError => '请在设置中检查转写地址、模型和 API Key，密钥须成功保存到本机安全存储。';
@@ -8051,6 +8267,9 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get voiceStop => '停止并转写';
+
+  @override
+  String get voiceSend => '转写并发送';
 
   @override
   String get voiceRecording => '正在录音…点击停止进行转写，或取消以丢弃录音。';
@@ -8115,8 +8334,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get remotePlatformTitle => '平台默认';
 
   @override
-  String get remotePlatformHint =>
-      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+  String get remotePlatformHint => '登录后自动加载平台 Relay 节点和已授权服务。';
 
   @override
   String get remotePlatformLogin => '登录平台账号';
@@ -8193,6 +8411,178 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get remotePlatformInvalidEmail => '请输入有效的邮箱地址。';
+
+  @override
+  String get remoteTabCloud => '云端';
+
+  @override
+  String get remoteTabLocal => '本地导入';
+
+  @override
+  String get remoteModeActive => '生效中';
+
+  @override
+  String get remoteModeInactive => '未生效';
+
+  @override
+  String get remoteCloudInactiveHint => '当前使用本地导入配置。启用云端配置后，本地导入配置将失效。';
+
+  @override
+  String get remoteLocalInactiveHint => '当前使用云端配置。启用本地导入配置后，云端配置将失效。';
+
+  @override
+  String get remoteLocalEmptyHint => '导入 Relay 导出的配置。导入后立即切换到本地配置，云端配置将失效。';
+
+  @override
+  String get remoteEnableCloud => '启用云端配置';
+
+  @override
+  String get remoteEnableLocal => '启用本地导入配置';
+
+  @override
+  String get remoteEnableCloudConfirmTitle => '切换到云端配置？';
+
+  @override
+  String get remoteEnableCloudConfirmMessage => '本地导入配置将失效。它仍保存在本设备上，可随时切换回来。';
+
+  @override
+  String get remoteEnableLocalConfirmTitle => '切换到本地导入配置？';
+
+  @override
+  String get remoteEnableLocalConfirmMessage => '云端配置将失效。平台账号保持登录，可随时切换回来。';
+
+  @override
+  String get remoteImportReplaceCloudTitle => '导入并切换？';
+
+  @override
+  String get remoteImportReplaceCloudMessage =>
+      '导入的配置立即生效，云端配置将失效。可在“云端”标签页切换回来。';
+
+  @override
+  String get remoteClearActiveMessage => '从本设备移除本地导入配置及凭据，远程访问将切换为云端配置。';
+
+  @override
+  String get remoteSwitched => '已切换。';
+
+  @override
+  String get remoteSwitch => '切换';
+
+  @override
+  String get tmdbCloudHint =>
+      '通过 OpenPlayX 云端查询影视信息，无需配置 TMDB 令牌。片名、年份、ID 和语言会经 OpenPlayX 发送至 TMDB，视频和私人路径保留在本机。';
+
+  @override
+  String get tmdbLocalHint => '使用自己的读取访问令牌直接连接 TMDB，令牌保存在本机。';
+
+  @override
+  String get voiceCloudHint =>
+      '使用 OpenPlayX 云端语音转文字，无需填写 API Key。录音会经 OpenPlayX 发送至 OpenAI 进行转录。';
+
+  @override
+  String get voiceConnectionOk => '连接成功，转写服务已接受测试音频。';
+
+  @override
+  String get voiceConnectionTimeout => '连接测试超时，请检查服务地址和网络后重试。';
+
+  @override
+  String get voiceConnectionTestHint =>
+      '测试连接会使用当前配置向服务发送 1 秒生成的静音，不使用麦克风，也不会保存修改。';
+
+  @override
+  String get llmModelSettings => 'LLM 模型';
+
+  @override
+  String get whisperModelSettings => 'Whisper 模型';
+
+  @override
+  String get settingsPlayer => '播放器';
+
+  @override
+  String get settingsSubtitles => '字幕';
+
+  @override
+  String get connectorSources => '来自 Connector';
+
+  @override
+  String get connectorSourceDiscovered => '已自动发现，登录后选择目录。';
+
+  @override
+  String get connectorSourceLogin => '登录并连接';
+
+  @override
+  String get connectorSourceSetup => '连接服务';
+
+  @override
+  String get connectorSourceManaged => '服务配置由 Connector 管理，登录和目录保存在此设备。';
+
+  @override
+  String get connectorSourceHide => '在本设备隐藏';
+
+  @override
+  String get connectorSourceHideHelp =>
+      '仅从此列表隐藏。登录和目录会保留，首页已有内容仍可使用；如需停止使用，请停用连接。';
+
+  @override
+  String get connectorSourcesHidden => '已隐藏来源';
+
+  @override
+  String get connectorSourceRestore => '恢复显示';
+
+  @override
+  String get connectorSourceNoneHidden => '没有已隐藏的来源';
+
+  @override
+  String get connectorSourceDisabled => '服务已停用';
+
+  @override
+  String get connectorSourceRemoved => '服务已移除';
+
+  @override
+  String get connectorSourceSync => '同步来源';
+
+  @override
+  String get connectorSourceSyncFailed => '暂时无法同步，已保留上次成功的来源列表。';
+
+  @override
+  String get connectorSourceConnectionSettings => '连接设置';
+
+  @override
+  String get connectorSourceLoginHelp => '填写媒体服务的账号；服务支持访客访问时，用户名和密码均可留空。';
+
+  @override
+  String get connectorSourceRemoteOnlyHelp =>
+      '此服务目前使用远程连接。SMB 局域网切换需要受支持的安全本地通道。';
+
+  @override
+  String get connectorSourcePending => '待连接';
+
+  @override
+  String get connectorSourceLan => '局域网连接';
+
+  @override
+  String get connectorSourceRemote => '远程连接';
+
+  @override
+  String get connectorSourceLoginDiscover => '登录并发现来源';
+
+  @override
+  String get connectorSourceDetails => '服务详情';
+
+  @override
+  String get connectorSourceAccount => '需要验证账号访问权限';
+
+  @override
+  String get connectorSourceProtocolChanged => '服务类型已更改，请重新设置连接。';
+
+  @override
+  String get connectorSourceNotReady => 'Connector 尚未上报可用线路。';
+
+  @override
+  String get connectorSourceClearLocal => '清除本机配置';
+
+  @override
+  String get connectorSourceClearLocalHelp =>
+      '仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -8209,10 +8599,19 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get sources => '來源';
 
   @override
-  String get plugins => 'AI';
+  String get plugins => '問問';
 
   @override
   String get settings => '設定';
+
+  @override
+  String get settingsGeneral => '一般';
+
+  @override
+  String get settingsMediaLibrary => '媒體庫';
+
+  @override
+  String get settingsApplication => '應用程式';
 
   @override
   String get system => '跟隨系統';
@@ -8551,8 +8950,44 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get scanExtensions => '掃描的檔案副檔名';
 
   @override
-  String get scanExtensionsHelp =>
-      '以逗號分隔。預覽與入庫只保留這些副檔名的檔案，留空則保留所有檔案。以點開頭的隱藏檔案一律忽略。';
+  String get scanExtensionsHelp => '預覽與入庫只保留選取副檔名的檔案。以點開頭的隱藏檔案一律忽略。';
+
+  @override
+  String get scanExtensionsAllFiles => '未選取任何副檔名：將保留所有檔案。';
+
+  @override
+  String get scanExtensionsVideo => '影片';
+
+  @override
+  String get scanExtensionsAudio => '音訊';
+
+  @override
+  String get scanExtensionsCustom => '自訂';
+
+  @override
+  String scanExtensionsSelected(int count, int total) {
+    return '已選 $count / $total';
+  }
+
+  @override
+  String get scanExtensionsSelectAll => '全選';
+
+  @override
+  String get scanExtensionsSelectNone => '清除';
+
+  @override
+  String get scanExtensionsAddHint => '例如 iso';
+
+  @override
+  String get scanExtensionsInvalid => '副檔名只能包含字母與數字，每個最多 16 個字元。';
+
+  @override
+  String scanExtensionsRemove(String extension) {
+    return '移除 $extension';
+  }
+
+  @override
+  String get scanExtensionsRestoreDefaults => '恢復預設';
 
   @override
   String get optionalDomain => '工作群組（選填）';
@@ -9074,7 +9509,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get metadataSearch => '搜尋 TMDB';
 
   @override
-  String get aiAssistant => 'AI 助手';
+  String get aiAssistant => '問問';
 
   @override
   String get aiPrivacyNotice => '訊息、選定上下文及工具結果會傳送至你設定的模型供應商。';
@@ -9535,7 +9970,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get aiMore => '更多';
 
   @override
-  String get aiGreeting => '有什麼可以幫你？';
+  String get aiGreeting => '今晚想看什麼？';
 
   @override
   String get aiSuggestTonight => '推薦一部今晚看的電影';
@@ -10338,6 +10773,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   }
 
   @override
+  String get remoteConnectionDetails => '連線詳細資訊';
+
+  @override
   String get remoteRelayServer => '中繼伺服器';
 
   @override
@@ -10354,9 +10792,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get remoteNeedsAttention => '需要處理';
 
   @override
-  String remoteSourceProxyMissing(String proxy) {
-    return '使用的 proxy「$proxy」不在目前設定中，遠端連線無法使用。';
-  }
+  String get remoteSourceProxyMissing => '使用的遠端存取服務不在目前設定中，遠端連線無法使用。';
 
   @override
   String get statusConfigured => '已設定';
@@ -10474,30 +10910,6 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plgSwitchOff => '已阻止新的呼叫；實例設定保留';
-
-  @override
-  String get settingsCapabilities => '基礎能力';
-
-  @override
-  String get capabilitySwitchesFooter =>
-      '關閉的能力在整個 App 中都不再承接新的呼叫，AI 也無法使用；既有設定會保留。';
-
-  @override
-  String capabilityNeeds(String name) {
-    return '需要先開啟「$name」';
-  }
-
-  @override
-  String get plgCapabilitySwitch => '基礎能力開關';
-
-  @override
-  String get plgCapabilitySwitchHint => '在「設定 → 基礎能力」中開關，對整個 App 生效';
-
-  @override
-  String get capabilityOn => '已開啟';
-
-  @override
-  String get capabilityOff => '已關閉';
 
   @override
   String get plgLocation => '執行位置';
@@ -11054,9 +11466,8 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get errWriteTimeout => '寫入逾時，伺服器上可能殘留以 .openplayx- 開頭的暫存檔。';
 
   @override
-  String errSourceProxyMissing(String proxy) {
-    return '此來源使用遠端存取 proxy「$proxy」，但目前 App 沒有該 proxy；請在 設定 → 遠端存取 匯入 Relay 的 App 設定。';
-  }
+  String get errSourceProxyMissing =>
+      '此來源使用的遠端存取服務已不在目前 App 設定中；請在 設定 → 遠端存取 匯入 Relay 的 App 設定。';
 
   @override
   String get errReloadBeforeTest => '請重新載入設定後再測試。';
@@ -12136,7 +12547,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get voiceSettingsHint =>
-      '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，文字可編輯並需手動傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
+      '獨立設定 OpenAI 轉寫位址、模型和 API Key。停止錄音後才會將音訊傳送至此服務，點停止會把文字填入輸入框供修改，點傳送則轉寫後直接傳送。支援 Android、iOS、macOS 和 Windows，其他平台暫不支援錄音。';
 
   @override
   String get voiceSettingsError => '請在設定中檢查轉寫位址、模型和 API Key，金鑰須成功儲存至本機安全儲存空間。';
@@ -12146,6 +12557,9 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get voiceStop => '停止並轉寫';
+
+  @override
+  String get voiceSend => '轉寫並傳送';
 
   @override
   String get voiceRecording => '正在錄音…點擊停止進行轉寫，或取消以捨棄錄音。';
@@ -12210,8 +12624,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get remotePlatformTitle => '平台默认';
 
   @override
-  String get remotePlatformHint =>
-      '登录后自动加载平台 Relay 节点和已授权服务。导入自建配置后优先使用自建配置，可随时恢复平台默认。';
+  String get remotePlatformHint => '登入後自動載入平台 Relay 節點和已授權服務。';
 
   @override
   String get remotePlatformLogin => '登录平台账号';
@@ -12288,4 +12701,176 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get remotePlatformInvalidEmail => '請輸入有效的電子郵件地址。';
+
+  @override
+  String get remoteTabCloud => '雲端';
+
+  @override
+  String get remoteTabLocal => '本機匯入';
+
+  @override
+  String get remoteModeActive => '生效中';
+
+  @override
+  String get remoteModeInactive => '未生效';
+
+  @override
+  String get remoteCloudInactiveHint => '目前使用本機匯入設定。啟用雲端設定後，本機匯入設定將失效。';
+
+  @override
+  String get remoteLocalInactiveHint => '目前使用雲端設定。啟用本機匯入設定後，雲端設定將失效。';
+
+  @override
+  String get remoteLocalEmptyHint => '匯入 Relay 匯出的設定。匯入後立即切換到本機設定，雲端設定將失效。';
+
+  @override
+  String get remoteEnableCloud => '啟用雲端設定';
+
+  @override
+  String get remoteEnableLocal => '啟用本機匯入設定';
+
+  @override
+  String get remoteEnableCloudConfirmTitle => '切換到雲端設定？';
+
+  @override
+  String get remoteEnableCloudConfirmMessage => '本機匯入設定將失效。它仍保存在本裝置上，可隨時切換回來。';
+
+  @override
+  String get remoteEnableLocalConfirmTitle => '切換到本機匯入設定？';
+
+  @override
+  String get remoteEnableLocalConfirmMessage => '雲端設定將失效。平台帳號保持登入，可隨時切換回來。';
+
+  @override
+  String get remoteImportReplaceCloudTitle => '匯入並切換？';
+
+  @override
+  String get remoteImportReplaceCloudMessage =>
+      '匯入的設定立即生效，雲端設定將失效。可在「雲端」分頁切換回來。';
+
+  @override
+  String get remoteClearActiveMessage => '從本裝置移除本機匯入設定及憑證，遠端存取將切換為雲端設定。';
+
+  @override
+  String get remoteSwitched => '已切換。';
+
+  @override
+  String get remoteSwitch => '切換';
+
+  @override
+  String get tmdbCloudHint =>
+      '透過 OpenPlayX 雲端查詢影視資訊，無需設定 TMDB 權杖。片名、年份、ID 和語言會經 OpenPlayX 傳送至 TMDB，影片和私人路徑保留在本機。';
+
+  @override
+  String get tmdbLocalHint => '使用自己的讀取存取權杖直接連線 TMDB，權杖儲存在本機。';
+
+  @override
+  String get voiceCloudHint =>
+      '使用 OpenPlayX 雲端語音轉文字，無需填寫 API Key。錄音會經 OpenPlayX 傳送至 OpenAI 進行轉錄。';
+
+  @override
+  String get voiceConnectionOk => '連線成功，轉寫服務已接受測試音訊。';
+
+  @override
+  String get voiceConnectionTimeout => '連線測試逾時，請檢查服務位址與網路後重試。';
+
+  @override
+  String get voiceConnectionTestHint =>
+      '測試連線會使用目前設定向服務傳送 1 秒產生的靜音，不使用麥克風，也不會儲存修改。';
+
+  @override
+  String get llmModelSettings => 'LLM 模型';
+
+  @override
+  String get whisperModelSettings => 'Whisper 模型';
+
+  @override
+  String get settingsPlayer => '播放器';
+
+  @override
+  String get settingsSubtitles => '字幕';
+
+  @override
+  String get connectorSources => '來自 Connector';
+
+  @override
+  String get connectorSourceDiscovered => '已自動探索，登入後選擇目錄。';
+
+  @override
+  String get connectorSourceLogin => '登入並連線';
+
+  @override
+  String get connectorSourceSetup => '連線服務';
+
+  @override
+  String get connectorSourceManaged => '服務設定由 Connector 管理，登入和目錄儲存在此裝置。';
+
+  @override
+  String get connectorSourceHide => '在此裝置隱藏';
+
+  @override
+  String get connectorSourceHideHelp =>
+      '僅從此清單隱藏。登入和目錄會保留，首頁既有內容仍可使用；如需停止使用，請停用連線。';
+
+  @override
+  String get connectorSourcesHidden => '已隱藏來源';
+
+  @override
+  String get connectorSourceRestore => '恢復顯示';
+
+  @override
+  String get connectorSourceNoneHidden => '沒有已隱藏的來源';
+
+  @override
+  String get connectorSourceDisabled => '服務已停用';
+
+  @override
+  String get connectorSourceRemoved => '服務已移除';
+
+  @override
+  String get connectorSourceSync => '同步來源';
+
+  @override
+  String get connectorSourceSyncFailed => '暫時無法同步，已保留上次成功的來源清單。';
+
+  @override
+  String get connectorSourceConnectionSettings => '連線設定';
+
+  @override
+  String get connectorSourceLoginHelp => '填寫媒體服務帳號；服務支援訪客存取時，使用者名稱和密碼均可留空。';
+
+  @override
+  String get connectorSourceRemoteOnlyHelp =>
+      '此服務目前使用遠端連線。SMB 區域網路切換需要受支援的安全本地通道。';
+
+  @override
+  String get connectorSourcePending => '待連線';
+
+  @override
+  String get connectorSourceLan => '區域網路連線';
+
+  @override
+  String get connectorSourceRemote => '遠端連線';
+
+  @override
+  String get connectorSourceLoginDiscover => '登入並探索來源';
+
+  @override
+  String get connectorSourceDetails => '服務詳細資訊';
+
+  @override
+  String get connectorSourceAccount => '需要驗證帳號存取權限';
+
+  @override
+  String get connectorSourceProtocolChanged => '服務類型已變更，請重新設定連線。';
+
+  @override
+  String get connectorSourceNotReady => 'Connector 尚未回報可用路線。';
+
+  @override
+  String get connectorSourceClearLocal => '清除此裝置設定';
+
+  @override
+  String get connectorSourceClearLocalHelp =>
+      '僅清除此裝置的登入和目錄設定，Connector 服務仍保留。來源將隱藏，恢復顯示後可以重新設定。';
 }

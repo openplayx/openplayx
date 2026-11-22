@@ -72,9 +72,11 @@ iOS 真机没有可写入的位置，用 `make run-seeded` 或 `make ios-install
 | `scanExtensions` | 扫描的文件后缀 | |
 | `externalServices` | `id`、`name`、`baseUrl`、`token` | 先存为未检查，App 启动后自动探测 MCP 端点和工具 |
 | `asr` | `id`、`kind`、`name`、`url`、`modelId`、`language`、`allowInsecureHttp`、`uploadConsent`、`token` | `uploadConsent: true` 视为已同意上传音频 |
-| `assistant` | `endpoint`、`model`、`cloudAllowed`、`toolsSupported`、`maxTokens`、`apiKey` | |
-| `metadata` | `language`、`tmdbToken` | |
+| `assistant` | `usePlatform`、`endpoint`、`model`、`cloudAllowed`、`toolsSupported`、`maxTokens`、`apiKey` | |
+| `metadata` | `language`、`tmdbMode`、`tmdbToken` | |
 | `remoteAccess` | `pairing`：Relay 导出的 App 配置（JSON 对象或字符串） | |
 | `appearance` | `themeMode`、`language`、`developerMode` | |
 
 不需要的段直接省略。
+
+默认示例使用 cloud：`assistant.usePlatform: true` 使用平台模型配置，`metadata.tmdbMode: "cloud"` 使用平台 TMDB 服务，无需模型 API Key 或 TMDB token。使用自定义服务时，将 `usePlatform` 设为 `false` 并提供模型配置，将 `tmdbMode` 设为 `"local"` 并提供 `tmdbToken`。

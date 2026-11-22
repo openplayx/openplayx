@@ -207,6 +207,58 @@ void main() {
     });
   }
 
+  testWidgets('failed scan beside shelves is one row that expands', (
+    tester,
+  ) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(390, 844);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
+    final library = LibraryService(sqlite3.openInMemory());
+    final sources = PagedSources()
+      ..saved.add(
+        const SourceConfig(
+          id: 'nas',
+          kind: SourceKind.smb,
+          name: 'NAS',
+          address: 'smb://localhost/Movies',
+        ),
+      );
+    addTearDown(library.close);
+    addTearDown(sources.dispose);
+    final id = library.addToHome('nas');
+    // The first page lands, then the source fails before the rest arrives.
+    await tester.runAsync(() async {
+      library.startScan(id, sources);
+      for (var i = 0; i < 100 && library.query().isEmpty; i++) {
+        await Future<void>.delayed(const Duration(milliseconds: 10));
+      }
+    });
+    library.repository.markScanFailed('Offline', id);
+    expect(library.fileSourceList().single.status, ScanStatus.failed);
+    await tester.pumpWidget(
+      TestApp(
+        home: AppShell(
+          backend: FakeBackend(),
+          sources: sources,
+          library: library,
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final row = find.byKey(ValueKey('home-scan-failed-$id'));
+    expect(row, findsOneWidget);
+    expect(find.text('First.mp4'), findsWidgets);
+    Text reason() => tester.widget<Text>(
+      find.descendant(of: row, matching: find.text('Offline')),
+    );
+    expect(reason().maxLines, 1);
+    await tester.tap(find.descendant(of: row, matching: find.text('Offline')));
+    await tester.pump();
+    expect(reason().maxLines, isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   test(
     'failed traversal retains video and resumes the saved cursor on retry',
     () async {

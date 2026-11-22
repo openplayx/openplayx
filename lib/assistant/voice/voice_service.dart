@@ -15,6 +15,9 @@ class VoiceFailure implements Exception {
 
 abstract interface class VoiceRecorder {
   bool get supported;
+
+  /// Normalized input level (0 silent .. 1 loud), emitted while recording.
+  Stream<double> get levels;
   Future<void> start();
   Future<Uint8List> stop();
   Future<void> cancel();
@@ -24,6 +27,14 @@ abstract interface class VoiceRecorder {
 class DeviceVoiceRecorder implements VoiceRecorder {
   AudioRecorder? _recorder;
   Directory? _directory;
+  StreamSubscription<Amplitude>? _amplitude;
+  final _levels = StreamController<double>.broadcast();
+  @override
+  Stream<double> get levels => _levels.stream;
+
+  /// Maps dBFS (about -60 silence .. 0 clipping) onto 0..1.
+  static double level(double dbfs) =>
+      dbfs.isFinite ? ((dbfs + 50) / 45).clamp(0.0, 1.0) : 0;
   @override
   bool get supported =>
       !kIsWeb &&
@@ -49,12 +60,18 @@ class DeviceVoiceRecorder implements VoiceRecorder {
       ),
       path: '${_directory!.path}/voice.wav',
     );
+    await _amplitude?.cancel();
+    _amplitude = recorder
+        .onAmplitudeChanged(const Duration(milliseconds: 80))
+        .listen((a) => _levels.add(level(a.current)), onError: (_) {});
   }
 
   @override
   Future<Uint8List> stop() async {
     final directory = _directory;
     _directory = null;
+    await _amplitude?.cancel();
+    _amplitude = null;
     try {
       final path = await _recorder!.stop();
       if (path == null) throw const VoiceFailure('empty');
@@ -78,6 +95,8 @@ class DeviceVoiceRecorder implements VoiceRecorder {
   Future<void> cancel() async {
     final directory = _directory;
     _directory = null;
+    await _amplitude?.cancel();
+    _amplitude = null;
     try {
       await _recorder?.cancel();
     } finally {
@@ -91,6 +110,7 @@ class DeviceVoiceRecorder implements VoiceRecorder {
       await cancel();
     } finally {
       await _recorder?.dispose();
+      await _levels.close();
     }
   }
 }
@@ -103,13 +123,56 @@ abstract interface class VoiceTranscriber {
 /// Uses the same OpenAI SDK as the assistant, with separate credentials.
 class OpenAiVoiceTranscriber implements VoiceTranscriber {
   OpenAIClient? _client;
+
+  /// Tests the transcription endpoint with one second of generated silence.
+  /// No microphone, user recording or persisted settings are involved.
+  Future<void> testConnection(VoiceConfig config, String key) async {
+    config.validate();
+    if (!config.usePlatform && key.trim().isEmpty) {
+      throw const VoiceFailure('missingKey');
+    }
+    final audio = Uint8List(44 + 32000);
+    final header = ByteData.sublistView(audio);
+    void tag(int offset, String value) =>
+        audio.setRange(offset, offset + value.length, value.codeUnits);
+    tag(0, 'RIFF');
+    header.setUint32(4, audio.length - 8, Endian.little);
+    tag(8, 'WAVE');
+    tag(12, 'fmt ');
+    header.setUint32(16, 16, Endian.little);
+    header.setUint16(20, 1, Endian.little); // PCM
+    header.setUint16(22, 1, Endian.little); // mono
+    header.setUint32(24, 16000, Endian.little);
+    header.setUint32(28, 32000, Endian.little);
+    header.setUint16(32, 2, Endian.little);
+    header.setUint16(34, 16, Endian.little);
+    tag(36, 'data');
+    header.setUint32(40, 32000, Endian.little);
+    // Silence can return an empty transcript; a successful response is enough.
+    await _request(config, key, audio, timeout: const Duration(seconds: 20));
+  }
+
   @override
   Future<String> transcribe(
     VoiceConfig config,
     String key,
     Uint8List audio,
   ) async {
-    final client = OpenAIClient.withApiKey(key, baseUrl: config.endpoint);
+    final text = await _request(config, key, audio);
+    if (text.isEmpty) throw const VoiceFailure('empty');
+    return text;
+  }
+
+  Future<String> _request(
+    VoiceConfig config,
+    String key,
+    Uint8List audio, {
+    Duration timeout = const Duration(seconds: 90),
+  }) async {
+    final client = OpenAIClient.withApiKey(
+      config.usePlatform ? 'platform' : key,
+      baseUrl: config.effectiveEndpoint,
+    );
     _client = client;
     try {
       final result = await client.audio.transcriptions
@@ -117,11 +180,10 @@ class OpenAiVoiceTranscriber implements VoiceTranscriber {
             TranscriptionRequest(
               file: audio,
               filename: 'voice.wav',
-              model: config.model,
+              model: config.effectiveModel,
             ),
           )
-          .timeout(const Duration(seconds: 90));
-      if (result.text.trim().isEmpty) throw const VoiceFailure('empty');
+          .timeout(timeout);
       return result.text.trim();
     } on AuthenticationException {
       throw const VoiceFailure('authentication');

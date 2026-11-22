@@ -64,7 +64,7 @@ void main() {
           await tester.pumpAndSettle();
 
           final more = find.byTooltip('更多播放设置');
-          final assistant = find.byTooltip('AI 助手');
+          final assistant = find.byTooltip('问问');
           // Use the real shell so an accidental second overlay is detected.
           expect(assistant, findsOneWidget);
           expect(more.hitTestable(), findsOneWidget);

@@ -10,6 +10,7 @@ import 'package:sqlite3/sqlite3.dart';
 
 import '../../l10n/l10n.dart';
 import 'remote_config.dart';
+import 'discovered_source.dart';
 
 class RelayApiException implements Exception {
   const RelayApiException(this.code, this.status);
@@ -29,6 +30,7 @@ class RelaySubscription {
   Map<String, dynamic>? _session;
   Future<void> _tail = Future.value();
   static final _origin = Uri.parse('https://api.openplayx.com');
+  String? get userId => _session?['userId'] as String?;
   String? get email => _session?['email'] as String?;
   bool get signedIn => _session != null;
   void load() {
@@ -151,6 +153,7 @@ class RelaySubscription {
         _session = {
           ...tokens,
           'email': email,
+          if (userId != null) 'userId': userId,
           'expiresAt': DateTime.now()
               .add(Duration(seconds: tokens['expiresIn'] as int))
               .toIso8601String(),
@@ -193,7 +196,13 @@ class RelaySubscription {
         }
         data = await _authenticated('/v1/relay/device/config');
       }
-      return RelayDeviceProfile.parse(data);
+      final profile = RelayDeviceProfile.parse(data);
+      if (userId != null && userId != profile.userId) {
+        throw const FormatException('Relay account mismatch');
+      }
+      _session!['userId'] = profile.userId;
+      _save();
+      return profile;
     } on RelayApiException catch (e) {
       if (e.status == 401 ||
           e.code == 'account_inactive' ||
@@ -235,6 +244,7 @@ class RelayDeviceProfile {
   bool get valid => validUntil.isAfter(DateTime.now());
   String get userId => data['userId'] as String;
   String get deviceId => data['deviceId'] as String;
+  List<DiscoveredSource> get sources => DiscoveredSource.parseCatalog(data);
 
   /// The Relay node the owning Connector reported (serviceStatus.readyNodeIds).
   /// Connectors choose their node; devices follow it. With services on several
@@ -250,8 +260,9 @@ class RelayDeviceProfile {
       final ids = entry is Map ? entry['readyNodeIds'] : null;
       if (ids is! List) continue;
       for (final id in ids.toSet()) {
-        if (id is String && counts.containsKey(id))
+        if (id is String && counts.containsKey(id)) {
           counts[id] = counts[id]! + 1;
+        }
       }
     }
     String? best;
@@ -275,6 +286,9 @@ class RelayDeviceProfile {
         data['services'] is! List) {
       throw const FormatException('Invalid Relay profile');
     }
+    // Validate the entire directory before replacing a previously good snapshot.
+    // Older servers may omit descriptive service fields.
+    if (data['sourceCatalog'] != null) DiscoveredSource.parseCatalog(data);
     final credential = data['credential'];
     if (credential is! Map ||
         credential['type'] != 'vless' ||

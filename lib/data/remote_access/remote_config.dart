@@ -39,28 +39,51 @@ void _validateLocal(
 class SourceRemote {
   const SourceRemote({
     required this.proxy,
+    this.accountId,
+    this.connectorId,
+    this.serviceName,
+    this.managedLocal = false,
     this.mode = RemoteConnectionMode.remoteOnly,
     this.localAddress,
     this.localTlsSha256,
   });
   final String proxy;
+  final String? accountId, connectorId, serviceName;
+  final bool managedLocal;
   final RemoteConnectionMode mode;
   final String? localAddress, localTlsSha256;
 
   Map<String, dynamic> toJson() => {
     'proxy': proxy,
+    if (accountId != null) 'accountId': accountId,
+    if (connectorId != null) 'connectorId': connectorId,
+    if (serviceName != null) 'serviceName': serviceName,
+    if (managedLocal) 'managedLocal': true,
     'mode': mode.name,
     if (localAddress?.isNotEmpty == true) 'localAddress': localAddress,
     if (localTlsSha256?.isNotEmpty == true) 'localTlsSha256': localTlsSha256,
   };
 
   factory SourceRemote.fromJson(Map<String, dynamic> j) {
-    const keys = {'proxy', 'mode', 'localAddress', 'localTlsSha256'};
+    const keys = {
+      'proxy',
+      'accountId',
+      'connectorId',
+      'serviceName',
+      'managedLocal',
+      'mode',
+      'localAddress',
+      'localTlsSha256',
+    };
     if (j.keys.any((k) => !keys.contains(k))) {
       throw FormatException(appStrings.errRemoteUnknownField);
     }
     final value = SourceRemote(
       proxy: j['proxy'] as String,
+      accountId: j['accountId'] as String?,
+      connectorId: j['connectorId'] as String?,
+      serviceName: j['serviceName'] as String?,
+      managedLocal: j['managedLocal'] == true,
       mode: RemoteConnectionMode.values.byName(
         j['mode'] as String? ?? 'remoteOnly',
       ),
@@ -72,6 +95,11 @@ class SourceRemote {
   }
 
   void validate() {
+    if ((accountId == null) != (connectorId == null) ||
+        accountId?.isEmpty == true ||
+        connectorId?.isEmpty == true) {
+      throw const FormatException('Invalid source owner');
+    }
     if (proxy.trim().isEmpty) {
       throw FormatException(appStrings.errRemoteChooseProxy);
     }
@@ -88,6 +116,7 @@ class RemoteAccessConfig {
     required this.remotePort,
     required this.credential,
     required this.outbound,
+    this.remoteReady = true,
     this.mode = RemoteConnectionMode.remoteOnly,
     this.localAddress,
     this.localTlsSha256,
@@ -102,6 +131,7 @@ class RemoteAccessConfig {
 
   /// Public sing-box outbound options (no `uuid`).
   final Map<String, dynamic> outbound;
+  final bool remoteReady;
   final RemoteConnectionMode mode;
   final String? localAddress, localTlsSha256;
 
@@ -110,6 +140,7 @@ class RemoteAccessConfig {
     'remotePort': remotePort,
     'credential': credential,
     'outbound': outbound,
+    if (!remoteReady) 'remoteReady': false,
     'mode': mode.name,
     if (localAddress?.isNotEmpty == true) 'localAddress': localAddress,
     if (localTlsSha256?.isNotEmpty == true) 'localTlsSha256': localTlsSha256,
@@ -134,10 +165,12 @@ class RemoteAccessConfig {
     if (outbound.containsKey('uuid')) {
       throw FormatException(appStrings.errRemoteUuidPlacement);
     }
-    RemotePairing.validateOutbound({
-      ...outbound,
-      'uuid': '11111111-1111-4111-8111-111111111111',
-    });
+    if (remoteReady) {
+      RemotePairing.validateOutbound({
+        ...outbound,
+        'uuid': '11111111-1111-4111-8111-111111111111',
+      });
+    }
     if (proxy.trim().isEmpty ||
         credential['uuid'] is! String ||
         remotePort < 1 ||

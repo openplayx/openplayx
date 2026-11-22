@@ -13,6 +13,7 @@ import 'file_sources.dart';
 import 'source_config.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
+import '../remote_access/remote_transport.dart';
 import '../../l10n/l10n.dart';
 
 /// Keeps resource paths of a remote file source inside its configured root
@@ -172,7 +173,11 @@ PluginException _httpFailure(int status, String service) => PluginException(
 // ---------------------------------------------------------------- WebDAV --
 
 class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
-  WebDavPlugin(super.config, this._password) {
+  WebDavPlugin(
+    super.config,
+    this._password, {
+    Future<RemotePathLease> Function(SourceConfig)? remoteConnection,
+  }) : _remoteConnection = remoteConnection ?? RemoteTransport.acquire {
     _client.authenticate = (uri, scheme, realm) async {
       if (config.username.isEmpty || !_sameOrigin(uri)) return false;
       _client.addCredentials(
@@ -186,10 +191,31 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
     };
   }
   final String _password;
+  final Future<RemotePathLease> Function(SourceConfig) _remoteConnection;
+  RemotePathLease? _lease;
+  Future<void>? _connecting;
+  bool _closed = false;
+  Future<void> _ensureTransport() => _connecting ??=
+      (() async {
+        if (_closed) {
+          throw PluginException('cancelled', appStrings.errConnectionClosed);
+        }
+        if (config.remoteAccess == null) return;
+        final lease = await _remoteConnection(config);
+        if (_closed) {
+          lease.close();
+          throw PluginException('cancelled', appStrings.errConnectionClosed);
+        }
+        _lease = lease;
+        lease.configure(_client);
+      })().catchError((Object e) {
+        _connecting = null;
+        throw e;
+      });
   late final HttpClient _client = HttpClient()
     ..connectionTimeout = timeout
     ..maxConnectionsPerHost = config.maxConcurrentRequests;
-  Uri get _base => Uri.parse(config.address);
+  Uri get _base => _lease?.address ?? Uri.parse(config.address);
 
   Map<String, String> get _headers => {
     if (config.username.isNotEmpty)
@@ -218,6 +244,21 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
     Map<String, String> headers = const {},
     String? body,
   }) async {
+    final requestedBase = _base;
+    await _ensureTransport();
+    if (uri.origin == requestedBase.origin) {
+      uri = uri.replace(
+        scheme: _base.scheme,
+        host: _base.host,
+        port: _base.port,
+      );
+    }
+    if (config.remoteAccess != null && !_sameOrigin(uri)) {
+      throw PluginException(
+        'permissionDenied',
+        appStrings.errRemoteOutsideEndpoint,
+      );
+    }
     final request = await _client.openUrl(method, uri);
     request.followRedirects = false;
     ({
@@ -270,6 +311,7 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
   /// credentials to another host.
   @override
   Future<PlayableStream> open(String path, String name) async {
+    await _ensureTransport();
     var uri = _uri(path);
     var headers = _headers;
     for (var hop = 0; hop < 5; hop++) {
@@ -282,6 +324,12 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
       await response.drain<void>().catchError((_) {});
       if (response.isRedirect && location != null) {
         uri = uri.resolve(location);
+        if (config.remoteAccess != null && !_sameOrigin(uri)) {
+          throw PluginException(
+            'permissionDenied',
+            appStrings.errRemoteOutsideEndpoint,
+          );
+        }
         if (!_sameOrigin(uri)) headers = const {};
         continue;
       }
@@ -319,6 +367,7 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
     SourceWriteCancellation? cancellation,
   }) async {
     cancellation?.check();
+    await _ensureTransport();
     checkOwnership(config.id, null, context);
     validateWriteName(name);
     final dir = paths.check(writeFolder(paths.root, folder), directory: true);
@@ -404,7 +453,11 @@ class WebDavPlugin extends RemoteFilePlugin with RemoteWriteFiles {
   }
 
   @override
-  Future<void> dispose() async => _client.close(force: true);
+  Future<void> dispose() async {
+    _closed = true;
+    _client.close(force: true);
+    _lease?.close();
+  }
 }
 
 /// Parses a PROPFIND multistatus body into the children of [path].

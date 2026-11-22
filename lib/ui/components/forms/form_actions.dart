@@ -74,8 +74,8 @@ class FormStatus {
 /// - commit (save / add / import) is a solid primary button;
 /// - helper actions are outlined, destructive ones red text;
 /// - a form page (source, external service, assistant) ends with this bar
-///   below its fields; a short single-input page may use [PageSubmitButton]
-///   in its header; a dialog keeps cancel + save at its bottom right;
+///   below its fields, short single-input pages included; a dialog keeps
+///   cancel + save at its bottom right;
 /// - accent text rows in a list are for non-commit actions only (choose a
 ///   folder, search devices, re-check).
 ///
@@ -216,38 +216,4 @@ class FormActions extends StatelessWidget {
       ],
     );
   }
-}
-
-/// The commit button in a standalone page's header (save / add / import):
-/// always a solid primary button, the same in every page. While [busy] it
-/// shows a spinner in place, so the page itself never shifts.
-class PageSubmitButton extends StatelessWidget {
-  const PageSubmitButton({
-    super.key,
-    required this.label,
-    required this.onPressed,
-    this.busy = false,
-  });
-
-  final String label;
-
-  /// Null disables the button.
-  final VoidCallback? onPressed;
-  final bool busy;
-
-  @override
-  Widget build(BuildContext context) => ShadButton(
-    onPressed: busy ? null : onPressed,
-    enabled: !busy && onPressed != null,
-    leading: busy
-        ? SizedBox.square(
-            dimension: 14,
-            child: CircularProgressIndicator(
-              strokeWidth: 2,
-              color: ShadTheme.of(context).colorScheme.primaryForeground,
-            ),
-          )
-        : null,
-    child: Text(label),
-  );
 }

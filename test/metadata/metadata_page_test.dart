@@ -74,31 +74,29 @@ void main() {
     );
   }
 
-  testWidgets(
-    'without a token the page points to Settings, not its own TMDB buttons',
-    (tester) async {
-      final library = LibraryService(sqlite3.openInMemory());
-      final sources = OfflineSources();
-      final media = library.register(
-        const SourceEntry(
-          ResourceRef('@local', '/film.mkv'),
-          'Film.2014.mkv',
-          isFolder: false,
-        ),
-      );
-      await tester.pumpWidget(
-        TestApp(
-          home: MetadataPage(library: library, sources: sources, media: media),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('配置 TMDB'), findsNothing);
-      expect(find.text('移除 TMDB 凭据'), findsNothing);
-      expect(find.text('尚未配置 TMDB 令牌。'), findsOneWidget);
-      expect(find.textContaining('设置 → TMDB'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await tester.pumpWidget(const SizedBox());
-      await tester.pumpAndSettle();
-    },
-  );
+  testWidgets('local mode without a token points to Settings', (tester) async {
+    final library = LibraryService(sqlite3.openInMemory());
+    library.metadata.setSetting('tmdbMode', 'local');
+    final sources = OfflineSources();
+    final media = library.register(
+      const SourceEntry(
+        ResourceRef('@local', '/film.mkv'),
+        'Film.2014.mkv',
+        isFolder: false,
+      ),
+    );
+    await tester.pumpWidget(
+      TestApp(
+        home: MetadataPage(library: library, sources: sources, media: media),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('配置 TMDB'), findsNothing);
+    expect(find.text('移除 TMDB 凭据'), findsNothing);
+    expect(find.text('尚未配置 TMDB 令牌。'), findsOneWidget);
+    expect(find.textContaining('设置 → TMDB'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await tester.pumpAndSettle();
+  });
 }

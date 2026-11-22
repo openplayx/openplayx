@@ -7,6 +7,7 @@ import '../../../../l10n/generated/app_localizations.dart';
 import '../../../../ui/icons/app_icons.dart';
 import '../../controller/ai_chat_controller.dart';
 import '../../controller/voice_input_controller.dart';
+import 'voice_recording_bar.dart';
 
 class AiComposer extends StatelessWidget {
   const AiComposer({
@@ -19,6 +20,14 @@ class AiComposer extends StatelessWidget {
   final bool Function() toolsEnabled;
   final VoidCallback onSettings;
   Future<void> _send() => controller.send(toolsEnabled: toolsEnabled());
+
+  /// Transcribe the recording, then send it without a review step.
+  Future<void> _sendVoice() async {
+    if (await controller.voice.stop() && !controller.coordinator.busy) {
+      await _send();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context), c = controller.coordinator;
@@ -113,22 +122,14 @@ class AiComposer extends StatelessWidget {
                         ),
                       ),
                     ),
-                  if (voice.busy || voiceMessage != null)
+                  if (!voice.busy && voiceMessage != null)
                     Padding(
                       padding: const EdgeInsets.only(bottom: 8),
                       child: Text(
-                        voiceMessage ??
-                            switch (voice.state) {
-                              VoiceInputState.recording => l.voiceRecording,
-                              VoiceInputState.transcribing =>
-                                l.voiceTranscribing,
-                              _ => l.voicePreparing,
-                            },
+                        voiceMessage,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.small.copyWith(
-                          color: voiceMessage == null
-                              ? colors.mutedForeground
-                              : colors.destructive,
+                          color: colors.destructive,
                         ),
                       ),
                     ),
@@ -147,77 +148,100 @@ class AiComposer extends StatelessWidget {
                       if (!c.busy) _send();
                       return KeyEventResult.handled;
                     },
-                    child: DecoratedBox(
-                      decoration: BoxDecoration(
-                        color: colors.card,
-                        borderRadius: pill,
-                        border: Border.all(color: colors.border),
-                        boxShadow: [
-                          BoxShadow(
-                            color: colors.foreground.withValues(alpha: 0.04),
-                            blurRadius: 12,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: ShadInput(
-                        key: const ValueKey('ai-composer-input'),
-                        controller: controller.draft,
-                        minLines: 1,
-                        maxLines: 6,
-                        maxLength: 8000,
-                        textInputAction: TextInputAction.newline,
-                        placeholder: Text(l.aiInputHint),
-                        // Text line padded to the send button's height so a
-                        // single line sits centered beside it.
-                        padding: const EdgeInsetsDirectional.fromSTEB(
-                          18,
-                          6,
-                          6,
-                          6,
-                        ),
-                        inputPadding: const EdgeInsets.symmetric(vertical: 8),
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        // The pill is drawn by the container around it, so
-                        // focus does not swap in the theme's input border.
-                        decoration: const ShadDecoration(
-                          color: Colors.transparent,
-                          disableSecondaryBorder: true,
-                          border: ShadBorder.none,
-                          focusedBorder: ShadBorder.none,
-                        ),
-                        trailing: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            round(
-                              voice.state == VoiceInputState.recording
-                                  ? l.voiceStop
-                                  : l.voiceStart,
-                              voice.state == VoiceInputState.recording
-                                  ? Icons.stop_circle_outlined
-                                  : Icons.mic_none,
-                              voice.state == VoiceInputState.idle ||
-                                      voice.state == VoiceInputState.recording
-                                  ? voice.toggle
-                                  : null,
+                    // Mobile keyboards have no dismiss key, so a tap anywhere
+                    // outside the pill (input + its buttons) closes it.
+                    child: TapRegion(
+                      onTapOutside: (_) =>
+                          FocusManager.instance.primaryFocus?.unfocus(),
+                      child: DecoratedBox(
+                        decoration: BoxDecoration(
+                          color: colors.card,
+                          borderRadius: pill,
+                          border: Border.all(color: colors.border),
+                          boxShadow: [
+                            BoxShadow(
+                              color: colors.foreground.withValues(alpha: 0.04),
+                              blurRadius: 12,
+                              offset: const Offset(0, 2),
                             ),
-                            if (voice.busy)
-                              round(
-                                l.cancel,
-                                Icons.close,
-                                voice.state == VoiceInputState.cancelling
-                                    ? null
-                                    : voice.cancel,
-                              ),
-                            c.busy
-                                ? round(l.aiStop, AppIcons.stop, c.stop)
-                                : round(
-                                    l.aiSend,
-                                    AppIcons.sendUp,
-                                    canSend ? _send : null,
-                                  ),
                           ],
                         ),
+                        child: voice.busy
+                            ? VoiceRecordingBar(
+                                voice: voice,
+                                cancelLabel: l.cancel,
+                                stopLabel: l.voiceStop,
+                                sendLabel: l.voiceSend,
+                                statusLabel: switch (voice.state) {
+                                  VoiceInputState.recording => null,
+                                  VoiceInputState.transcribing =>
+                                    l.voiceTranscribing,
+                                  _ => l.voicePreparing,
+                                },
+                                onStop: voice.stop,
+                                onSend: _sendVoice,
+                              )
+                            : ShadInput(
+                                key: const ValueKey('ai-composer-input'),
+                                controller: controller.draft,
+                                minLines: 1,
+                                maxLines: 6,
+                                maxLength: 8000,
+                                textInputAction: TextInputAction.newline,
+                                placeholder: Text(l.aiInputHint),
+                                // Text line padded to the send button's height so a
+                                // single line sits centered beside it.
+                                padding: const EdgeInsetsDirectional.fromSTEB(
+                                  18,
+                                  6,
+                                  6,
+                                  6,
+                                ),
+                                inputPadding: const EdgeInsets.symmetric(
+                                  vertical: 8,
+                                ),
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                // The pill is drawn by the container around it, so
+                                // focus does not swap in the theme's input border.
+                                decoration: const ShadDecoration(
+                                  color: Colors.transparent,
+                                  disableSecondaryBorder: true,
+                                  border: ShadBorder.none,
+                                  focusedBorder: ShadBorder.none,
+                                ),
+                                trailing: Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Tooltip(
+                                      message: l.voiceStart,
+                                      child: Semantics(
+                                        label: l.voiceStart,
+                                        button: true,
+                                        child: ShadIconButton.ghost(
+                                          width: 36,
+                                          height: 36,
+                                          decoration: const ShadDecoration(
+                                            shape: BoxShape.circle,
+                                          ),
+                                          icon: const Icon(
+                                            AppIcons.mic,
+                                            size: 20,
+                                          ),
+                                          onPressed: voice.toggle,
+                                        ),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 4),
+                                    c.busy
+                                        ? round(l.aiStop, AppIcons.stop, c.stop)
+                                        : round(
+                                            l.aiSend,
+                                            AppIcons.sendUp,
+                                            canSend ? _send : null,
+                                          ),
+                                  ],
+                                ),
+                              ),
                       ),
                     ),
                   ),

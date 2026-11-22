@@ -30,6 +30,8 @@ import '../../data/sources/source_config.dart';
 import '../../data/remote_access/remote_transport.dart';
 import '../../data/remote_access/remote_access_service.dart';
 import '../../data/remote_access/remote_native.dart';
+import '../../data/remote_access/discovered_source.dart';
+import '../../data/remote_access/remote_config.dart';
 
 import 'dart:convert';
 
@@ -110,6 +112,10 @@ sealed class SourceChange {
   final String id;
 }
 
+class SourceDirectoryChanged extends SourceChange {
+  const SourceDirectoryChanged() : super('');
+}
+
 class SourceRemoved extends SourceChange {
   const SourceRemoved(super.id);
 }
@@ -179,6 +185,7 @@ class SourceManager {
           rethrow;
         }
       })();
+  StreamSubscription<void>? _networkChanges;
   bool _hasBookmarks = false;
   bool _disposed = false;
   final _configs = <SourceConfig>[];
@@ -187,7 +194,61 @@ class SourceManager {
   final _creating = <String, Future<_SourceRuntime>>{};
   final _cloudSessions = <String, (int, CloudTokenSession)>{};
   final _openingCloudSessions = <String, Future<CloudTokenSession>>{};
-  List<SourceConfig> get configs => List.unmodifiable(_configs);
+  List<SourceConfig> get configs => List.unmodifiable(
+    _configs.where(
+      (c) => _remote?.ownsSource(c.remote) ?? c.remote?.accountId == null,
+    ),
+  );
+  bool get platformSignedIn => _remote?.account.signedIn ?? false;
+  String? get sourceSyncError => _remote?.platformError;
+  List<DiscoveredSource> get discoveredSources =>
+      _remote?.discoveredSources ?? const [];
+  DiscoveredSource? discoveredFor(SourceConfig source) => discoveredSources
+      .where(
+        (s) =>
+            s.serviceId == source.remote?.proxy &&
+            s.accountId == source.remote?.accountId &&
+            s.connectorId == source.remote?.connectorId,
+      )
+      .firstOrNull;
+  bool sourceHidden(DiscoveredSource source) =>
+      _remote?.isSourceHidden(source) ?? false;
+  List<SourceConfig> get visibleConfigs => configs.where((c) {
+    final entry = discoveredFor(c);
+    return entry == null || !sourceHidden(entry);
+  }).toList();
+  List<DiscoveredSource> get pendingDiscoveredSources => discoveredSources
+      .where(
+        (s) =>
+            s.kind != null &&
+            s.status != 'removed' &&
+            !sourceHidden(s) &&
+            !configs.any(
+              (c) =>
+                  c.remote?.proxy == s.serviceId &&
+                  c.remote?.accountId == s.accountId,
+            ),
+      )
+      .toList();
+  Future<void> hideDiscoveredSource(
+    DiscoveredSource source,
+    bool hidden,
+  ) async => (await remoteSettings).setSourceHidden(source, hidden);
+
+  Future<void> syncDiscoveredSources() async {
+    await load();
+    final remote = await remoteSettings;
+    if (remote.usePlatform && remote.account.signedIn) {
+      await remote.refreshPlatform();
+    }
+  }
+
+  bool sourceVisibleToAccount(String id) {
+    final config = _configs.where((c) => c.id == id).firstOrNull;
+    return config == null ||
+        (_remote?.ownsSource(config.remote) ??
+            config.remote?.accountId == null);
+  }
 
   /// The shared configuration service once [load] completed.
   SourceConfigurationService? get configuration => _configuration;
@@ -228,18 +289,77 @@ class SourceManager {
       _state = SourceStateStore(await LibraryDatabase.open('library.sqlite3'));
       _ownsState = true;
     }
-    final records = _configuration!.load();
     final remote = await remoteSettings;
+    _migrateDiscoveredSources(remote);
+    final records = _configuration!.load();
     _configs
       ..clear()
       ..addAll(records.map(remote.attach));
     remote.onChanged = _reattach;
+    _networkChanges ??= RemoteTransport.networkChanges.listen(
+      (_) => networkChanged(),
+    );
     remote.startSubscription();
+  }
+
+  void _migrateDiscoveredSources(RemoteAccessService remote) {
+    if (!remote.usePlatform || remote.platformProfile?.valid != true) return;
+    for (final c in _configuration!.load()) {
+      final link = c.remote;
+      if (link == null) continue;
+      if (link.accountId != null && !remote.ownsSource(link)) continue;
+      if (link.accountId == null &&
+          remote.customNetwork.proxy(link.proxy) != null) {
+        continue;
+      }
+      final entry = remote.discoveredSources
+          .where(
+            (s) =>
+                s.serviceId == link.proxy &&
+                (link.accountId == null ||
+                    link.accountId == s.accountId &&
+                        link.connectorId == s.connectorId),
+          )
+          .firstOrNull;
+      if (entry == null || entry.kind != c.kind) continue;
+      final local = link.managedLocal && entry.supportsLocal
+          ? entry.localAccess
+          : null;
+      final next = c.copyWith(
+        name: link.serviceName != null && c.name == link.serviceName
+            ? entry.name
+            : c.name,
+        address: link.accountId != null && entry.descriptor != null
+            ? entry.draft().address
+            : c.address,
+        remote: SourceRemote(
+          proxy: link.proxy,
+          accountId: entry.accountId,
+          connectorId: entry.connectorId,
+          serviceName: entry.name,
+          managedLocal: link.managedLocal,
+          mode:
+              link.managedLocal &&
+                  !entry.supportsLocal &&
+                  link.mode == RemoteConnectionMode.automatic
+              ? RemoteConnectionMode.remoteOnly
+              : link.mode,
+          localAddress: local?['endpoint'] as String? ?? link.localAddress,
+          localTlsSha256:
+              (local?['identity'] as Map?)?['value'] as String? ??
+              link.localTlsSha256,
+        ),
+      );
+      if (jsonEncode(c.toJson()) != jsonEncode(next.toJson())) {
+        _configuration!.save(next, expectedRevision: c.revision);
+      }
+    }
   }
 
   Future<void> reload() async {
     await load();
     final remote = await remoteSettings;
+    _migrateDiscoveredSources(remote);
     final next = _configuration!.load().map(remote.attach).toList();
     for (final runtime in _runtimes.values.toList()) {
       if (!next.any(
@@ -426,6 +546,11 @@ class SourceManager {
 
   SourceApplicationStatus applicationStatus(String id) {
     final config = _config(id);
+    if (_remote != null &&
+        config.remote?.accountId != null &&
+        !_remote!.sourceAuthorized(config.remote!)) {
+      return SourceApplicationStatus.failed;
+    }
     if (!config.enabled) return SourceApplicationStatus.disabled;
     final state = _state?.get(id);
     return switch (state?['status']) {
@@ -544,6 +669,13 @@ class SourceManager {
   Future<_SourceRuntime> _runtime(String id) async {
     await load();
     final config = _config(id);
+    if (config.remote?.accountId != null &&
+        _remote?.sourceAuthorized(config.remote!) != true) {
+      throw PluginException(
+        'remoteUnavailable',
+        appStrings.connectorSourceAccount,
+      );
+    }
     if (!config.enabled) {
       throw PluginException('disabled', appStrings.errSourceDisabled);
     }
@@ -555,6 +687,7 @@ class SourceManager {
         !config.credentialExpiresAt!.isAfter(DateTime.now())) {
       throw PluginException('authRequired', appStrings.errTokenExpired);
     }
+    if (config.remote?.accountId != null) withRemoteRoute(config);
     final existing = _runtimes[id];
     if (existing != null) return existing;
     return _creating[id] ??= _create(config).whenComplete(() {
@@ -893,11 +1026,30 @@ class SourceManager {
   /// source that asks for remote access never silently connects directly.
   SourceConfig withRemoteRoute(SourceConfig config) {
     final network = remoteNetwork;
-    final route = network.routeFor(config.remote);
+    if (config.remote?.accountId != null) {
+      final entry = discoveredFor(config);
+      if (entry == null ||
+          entry.kind != config.kind ||
+          config.remote!.managedLocal &&
+              config.remote!.mode == RemoteConnectionMode.localOnly &&
+              !entry.supportsLocal) {
+        throw PluginException(
+          'remoteUnavailable',
+          appStrings.connectorSourceProtocolChanged,
+        );
+      }
+    }
+    final route = _remote == null
+        ? network.routeFor(config.remote)
+        : _remote!.routeFor(config.remote);
     if (config.remote != null && route == null) {
       throw PluginException(
         'remoteUnavailable',
-        appStrings.errSourceProxyMissing(config.remote!.proxy),
+        config.remote!.accountId == null
+            ? appStrings.errSourceProxyMissing
+            : _remote?.sourceAuthorized(config.remote!) == true
+            ? appStrings.connectorSourceNotReady
+            : appStrings.connectorSourceAccount,
       );
     }
     return config.copyWith(
@@ -929,7 +1081,8 @@ class SourceManager {
   Future<void> _reattach() async {
     await load();
     final remote = await remoteSettings;
-    final next = _configs.map(remote.attach).toList();
+    _migrateDiscoveredSources(remote);
+    final next = _configuration!.load().map(remote.attach).toList();
     for (final source in next) {
       if (jsonEncode(_runtimes[source.id]?.config.remoteAccess?.toJson()) !=
           jsonEncode(source.remoteAccess?.toJson())) {
@@ -939,9 +1092,25 @@ class SourceManager {
     _configs
       ..clear()
       ..addAll(next);
+    announce(const SourceDirectoryChanged());
   }
 
-  void networkChanged() => RemoteTransport.selector.networkChanged();
+  void networkChanged() {
+    RemoteTransport.networkChanged();
+    // Retire cached clients for new work; existing playback retains its lease.
+    for (final runtime in _runtimes.values.toList()) {
+      if (runtime.config.remote != null) unawaited(_retire(runtime.config.id));
+    }
+  }
+
+  bool? connectionUsesLocal(String id) {
+    if (applicationStatus(id) != SourceApplicationStatus.ready) return null;
+    final path = RemoteTransport.selectedPaths[id];
+    return path != null &&
+            DateTime.now().difference(path.$2) < const Duration(seconds: 30)
+        ? path.$1
+        : null;
+  }
 
   Future<void> testConnection(String id) async {
     var success = false;
@@ -1085,6 +1254,7 @@ class SourceManager {
 
   Future<void> dispose() async {
     _disposed = true;
+    unawaited(_networkChanges?.cancel());
     _remote?.dispose();
     unawaited(_changes.close());
     for (final id in _runtimes.keys.toList()) {

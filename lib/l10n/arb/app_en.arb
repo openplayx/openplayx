@@ -3,8 +3,11 @@
   "home": "Home",
   "library": "Library",
   "sources": "Sources",
-  "plugins": "AI",
+  "plugins": "Ask",
   "settings": "Settings",
+  "settingsGeneral": "General",
+  "settingsMediaLibrary": "Media library",
+  "settingsApplication": "Application",
   "system": "System",
   "light": "Light",
   "dark": "Dark",
@@ -117,7 +120,35 @@
   "smbPathHint": "Share/video-folder",
   "serverPathHint": "For example jellyfin; otherwise leave blank.",
   "scanExtensions": "File extensions to scan",
-  "scanExtensionsHelp": "Separate with commas. Only matching files appear in preview and are added to the library. Leave blank to keep every file. Hidden files starting with a dot are always skipped.",
+  "scanExtensionsHelp": "Only files with a selected extension appear in preview and are added to the library. Hidden files starting with a dot are always skipped.",
+  "scanExtensionsAllFiles": "Nothing selected: every file will be kept.",
+  "scanExtensionsVideo": "Video",
+  "scanExtensionsAudio": "Audio",
+  "scanExtensionsCustom": "Custom",
+  "scanExtensionsSelected": "{count} of {total} selected",
+  "@scanExtensionsSelected": {
+    "placeholders": {
+      "count": {
+        "type": "int"
+      },
+      "total": {
+        "type": "int"
+      }
+    }
+  },
+  "scanExtensionsSelectAll": "Select all",
+  "scanExtensionsSelectNone": "Clear",
+  "scanExtensionsAddHint": "e.g. iso",
+  "scanExtensionsInvalid": "Use letters and digits only, up to 16 characters each.",
+  "scanExtensionsRemove": "Remove {extension}",
+  "@scanExtensionsRemove": {
+    "placeholders": {
+      "extension": {
+        "type": "String"
+      }
+    }
+  },
+  "scanExtensionsRestoreDefaults": "Restore defaults",
   "optionalDomain": "Workgroup (optional)",
   "waitingPlex": "Waiting for Plex authorization…",
   "signInPlex": "Sign in to Plex",
@@ -407,7 +438,7 @@
   "metadataTokenStatusSaved": "Saved",
   "metadataTokenStatusMissing": "Not set",
   "metadataSearch": "Search TMDB",
-  "aiAssistant": "AI assistant",
+  "aiAssistant": "Ask",
   "aiPrivacyNotice": "Messages, selected context and tool results are sent to your configured model provider.",
   "aiWelcome": "Ask me to find media, continue watching, or control playback. Configure a model to begin.",
   "aiYou": "You",
@@ -649,7 +680,7 @@
   "markWatched": "Mark as watched",
   "markUnwatched": "Mark as unwatched",
   "aiMore": "More",
-  "aiGreeting": "What can I help with?",
+  "aiGreeting": "What would you like to watch tonight?",
   "aiSuggestTonight": "Recommend a movie for tonight",
   "aiSuggestContinue": "Continue what I was watching",
   "aiSuggestSciFi": "What sci-fi is in my library?",
@@ -1102,19 +1133,13 @@
       }
     }
   },
+  "remoteConnectionDetails": "Connection details",
   "remoteRelayServer": "Relay server",
   "remoteRelayFooter": "The whole App shares this connection. Credentials are kept in system secure storage.",
   "remoteAvailableServices": "Available services",
   "remoteAvailableServicesFooter": "Registered on Relay by Home. Pick one for a source under “Edit source → Home remote access”.",
   "remoteNeedsAttention": "Needs attention",
-  "remoteSourceProxyMissing": "Its proxy “{proxy}” is not in the current configuration, so remote connection is unavailable.",
-  "@remoteSourceProxyMissing": {
-    "placeholders": {
-      "proxy": {
-        "type": "String"
-      }
-    }
-  },
+  "remoteSourceProxyMissing": "Its remote access service is not in the current configuration, so remote connection is unavailable.",
   "statusConfigured": "Configured",
   "statusNotConfigured": "Not configured",
   "statusAvailable": "Available",
@@ -1211,20 +1236,6 @@
   "plgSwitch": "Plugin switch",
   "plgSwitchOn": "Accepting new calls",
   "plgSwitchOff": "New calls are blocked; instance settings are kept",
-  "settingsCapabilities": "Capabilities",
-  "capabilitySwitchesFooter": "A switched-off capability takes no new work anywhere in the App, and the AI cannot use it either. Its settings are kept.",
-  "capabilityNeeds": "Needs “{name}” switched on",
-  "@capabilityNeeds": {
-    "placeholders": {
-      "name": {
-        "type": "String"
-      }
-    }
-  },
-  "plgCapabilitySwitch": "Capability switch",
-  "plgCapabilitySwitchHint": "Switched in Settings → Capabilities, for the whole App",
-  "capabilityOn": "On",
-  "capabilityOff": "Off",
   "plgLocation": "Runs where",
   "plgLocationDevice": "Runs on this device",
   "plgLocationNetwork": "The App connects from this device to the storage you configured",
@@ -1560,14 +1571,7 @@
   "errAttachmentsUnsupported": "This source does not support reading attachments",
   "errWriteUnsupported": "This source does not support writing.",
   "errWriteTimeout": "Writing timed out. Temporary files starting with .openplayx- may remain on the server.",
-  "errSourceProxyMissing": "This source uses the remote access proxy “{proxy}”, but the App does not have it. Import the App configuration from Relay in Settings → Remote access.",
-  "@errSourceProxyMissing": {
-    "placeholders": {
-      "proxy": {
-        "type": "String"
-      }
-    }
-  },
+  "errSourceProxyMissing": "The remote access service this source uses is no longer in the App configuration. Import the App configuration from Relay in Settings → Remote access.",
   "errReloadBeforeTest": "Reload the configuration before testing.",
   "errTestTimeout": "Connection test timed out.",
   "errTestFailed": "Connection test failed. Check the address, permissions and credentials.",
@@ -2032,10 +2036,11 @@
   "baiduPermissionDenied": "Baidu Netdisk denied playback or file access. Check this account’s permissions, download entitlement and the app’s approved access.",
   "baiduAllFiles": "Select all files",
   "voiceSettings": "Voice transcription",
-  "voiceSettingsHint": "Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Review and send the text yourself. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.",
+  "voiceSettingsHint": "Independent OpenAI transcription endpoint, model and API key. Audio is sent to this service only after you stop recording. Stop to insert the text for review, or use send to transcribe and send it right away. Android, iOS, macOS and Windows support recording; other platforms are currently unsupported.",
   "voiceSettingsError": "Check the transcription address, model and API key in settings. The key must be saved in secure local storage.",
   "voiceStart": "Start voice input",
   "voiceStop": "Stop and transcribe",
+  "voiceSend": "Transcribe and send",
   "voiceRecording": "Recording… Click stop to transcribe, or cancel to discard.",
   "voiceTranscribing": "Transcribing…",
   "voicePreparing": "Preparing microphone…",
@@ -2063,7 +2068,7 @@
     }
   },
   "remotePlatformTitle": "Platform default",
-  "remotePlatformHint": "Sign in to load platform Relay nodes and services granted to this device. A custom import takes priority until you restore the platform default.",
+  "remotePlatformHint": "Sign in to load platform Relay nodes and services granted to this device.",
   "remotePlatformLogin": "Sign in",
   "remotePlatformLogout": "Sign out",
   "remotePlatformRestore": "Use platform default",
@@ -2100,5 +2105,60 @@
   "remotePlatformRegisterHint": "We will email a one-time link. Open it to verify your email and set a password, then return here to sign in.",
   "remotePlatformSendRegistration": "Send registration email",
   "remotePlatformRegistrationSent": "If this email can be registered, a setup link has been sent. Check your inbox and spam folder.",
-  "remotePlatformInvalidEmail": "Enter a valid email address."
+  "remotePlatformInvalidEmail": "Enter a valid email address.",
+  "remoteTabCloud": "Cloud",
+  "remoteTabLocal": "Local import",
+  "remoteModeActive": "In use",
+  "remoteModeInactive": "Not in use",
+  "remoteCloudInactiveHint": "The local import is in use. Enable the cloud configuration to switch; the local import then stops working.",
+  "remoteLocalInactiveHint": "The cloud configuration is in use. Enable the local import to switch; the cloud configuration then stops working.",
+  "remoteLocalEmptyHint": "Import a configuration exported by Relay. Importing switches to it right away and the cloud configuration stops working.",
+  "remoteEnableCloud": "Enable cloud configuration",
+  "remoteEnableLocal": "Enable local import",
+  "remoteEnableCloudConfirmTitle": "Switch to the cloud configuration?",
+  "remoteEnableCloudConfirmMessage": "The local import will stop working. It stays saved on this device, so you can switch back at any time.",
+  "remoteEnableLocalConfirmTitle": "Switch to the local import?",
+  "remoteEnableLocalConfirmMessage": "The cloud configuration will stop working. Your account stays signed in, so you can switch back at any time.",
+  "remoteImportReplaceCloudTitle": "Import and switch to it?",
+  "remoteImportReplaceCloudMessage": "The imported configuration takes effect right away and the cloud configuration stops working. You can switch back on the Cloud tab.",
+  "remoteClearActiveMessage": "Removes the local import and its credentials from this device. Remote access switches to the cloud configuration.",
+  "remoteSwitched": "Switched.",
+  "remoteSwitch": "Switch",
+  "tmdbCloudHint": "Use OpenPlayX cloud to look up movies and shows without a TMDB token. Titles, years, IDs and language are sent through OpenPlayX to TMDB; videos and private paths stay on this device.",
+  "tmdbLocalHint": "Connect directly to TMDB using your own read access token. The token is saved on this device.",
+  "voiceCloudHint": "Use OpenPlayX cloud transcription without an API key. Recorded audio is sent through OpenPlayX to OpenAI to turn it into text.",
+  "voiceConnectionOk": "Connected. The transcription service accepted the test audio.",
+  "voiceConnectionTimeout": "The connection test timed out. Check the endpoint and network, then try again.",
+  "voiceConnectionTestHint": "Test connection sends one second of generated silence to this service using the current configuration. It does not use the microphone or save changes.",
+  "llmModelSettings": "LLM Model",
+  "whisperModelSettings": "Whisper Model",
+  "settingsPlayer": "Player",
+  "settingsSubtitles": "Subtitles",
+  "connectorSources": "From Connector",
+  "connectorSourceDiscovered": "Discovered automatically. Sign in to choose a folder.",
+  "connectorSourceLogin": "Sign in and connect",
+  "connectorSourceSetup": "Connect service",
+  "connectorSourceManaged": "Service settings are managed by Connector. Login and folders stay on this device.",
+  "connectorSourceHide": "Hide on this device",
+  "connectorSourceHideHelp": "This hides the source from this list. Login and folders are kept, and existing home content remains available. Disable the connection to stop using it.",
+  "connectorSourcesHidden": "Hidden sources",
+  "connectorSourceRestore": "Restore",
+  "connectorSourceNoneHidden": "No hidden sources",
+  "connectorSourceDisabled": "Service disabled",
+  "connectorSourceRemoved": "Service removed",
+  "connectorSourceSync": "Sync sources",
+  "connectorSourceSyncFailed": "Could not sync. Your last successful source list is retained.",
+  "connectorSourceConnectionSettings": "Connection settings",
+  "connectorSourceLoginHelp": "Use the media server account. Leave both fields empty for guest access when supported.",
+  "connectorSourceRemoteOnlyHelp": "This service currently uses remote access. SMB LAN switching requires a supported secure local transport.",
+  "connectorSourcePending": "Not connected yet",
+  "connectorSourceLan": "LAN connection",
+  "connectorSourceRemote": "Remote connection",
+  "connectorSourceLoginDiscover": "Sign in to discover sources",
+  "connectorSourceDetails": "Service details",
+  "connectorSourceAccount": "Account verification required",
+  "connectorSourceProtocolChanged": "Service type changed. Set up the connection again.",
+  "connectorSourceNotReady": "Connector has not reported an available route yet.",
+  "connectorSourceClearLocal": "Clear device configuration",
+  "connectorSourceClearLocalHelp": "Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again."
 }

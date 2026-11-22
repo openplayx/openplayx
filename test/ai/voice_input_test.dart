@@ -36,6 +36,9 @@ class FakeVoiceRecorder implements VoiceRecorder {
   Completer<void>? permission;
   bool denied = false;
   bool disposed = false;
+  final levelController = StreamController<double>.broadcast();
+  @override
+  Stream<double> get levels => levelController.stream;
   @override
   Future<void> start() async {
     starts++;
@@ -61,6 +64,8 @@ class FakeVoiceRecorder implements VoiceRecorder {
 }
 
 class FakeVoiceTranscriber implements VoiceTranscriber {
+  VoiceConfig? lastConfig;
+  String? lastKey;
   int calls = 0;
   bool cancelled = false, fail = false;
   Completer<String>? pending;
@@ -71,6 +76,8 @@ class FakeVoiceTranscriber implements VoiceTranscriber {
     Uint8List audio,
   ) async {
     calls++;
+    lastConfig = config;
+    lastKey = key;
     if (fail) throw StateError('mock service failure');
     return pending == null ? 'recognized words' : await pending!.future;
   }
@@ -113,6 +120,58 @@ void main() {
     draft.dispose();
     db.close();
   });
+
+  test(
+    'fresh settings use cloud without a key or secure storage writes',
+    () async {
+      db.execute(
+        "DELETE FROM settings WHERE namespace='assistant' AND key='voice'",
+      );
+      secrets.values.clear();
+      secrets.failWrites = true;
+      final config = settings.load();
+      expect(config.usePlatform, true);
+      expect(config.effectiveEndpoint, VoiceConfig.platformEndpoint);
+      expect(config.effectiveModel, 'whisper-1');
+      await settings.save(config, '');
+      await controller.toggle();
+      expect(controller.state, VoiceInputState.recording);
+      await controller.stop();
+      expect(transcriber.lastConfig!.usePlatform, true);
+      expect(transcriber.lastKey, 'platform');
+      expect(draft.text, contains('recognized words'));
+      expect(secrets.values, isEmpty);
+    },
+  );
+
+  test(
+    'legacy settings remain local; switching cloud retains custom credentials',
+    () async {
+      ConfigurationDatabase.writeSetting(db, 'assistant', 'voice', {
+        'endpoint': 'https://custom.example/v1',
+        'model': 'custom-model',
+      });
+      expect(settings.load().usePlatform, false);
+      final local = settings.load();
+      await settings.save(
+        VoiceConfig(
+          usePlatform: true,
+          endpoint: local.endpoint,
+          model: local.model,
+        ),
+        '',
+      );
+      expect(settings.load().usePlatform, true);
+      expect(settings.load().effectiveEndpoint, VoiceConfig.platformEndpoint);
+      expect(await settings.key(), 'mock-voice-key');
+      await settings.save(
+        VoiceConfig(endpoint: local.endpoint, model: local.model),
+        '',
+      );
+      expect(settings.load().effectiveEndpoint, 'https://custom.example/v1');
+      expect(settings.load().effectiveModel, 'custom-model');
+    },
+  );
 
   test(
     'settings and key stay independent of chat and key stays out of SQLite',

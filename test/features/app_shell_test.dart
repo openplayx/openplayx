@@ -144,7 +144,7 @@ void main() {
       await toggleControls();
       expectVisibility(true);
 
-      await tester.tap(find.byTooltip('AI 助手'));
+      await tester.tap(find.byTooltip('问问'));
       await tester.pumpAndSettle();
       expect(find.byType(AiChatView), findsOneWidget);
       await tester.pump(delay);
@@ -269,20 +269,20 @@ void main() {
       expect(find.byType(AppBottomBar), findsOneWidget);
       await tester.tap(find.byKey(const ValueKey('nav-settings')));
       await tester.pumpAndSettle();
-      // AI configuration now lives in Settings, with its return path intact.
-      await tester.tap(find.byKey(const ValueKey('settings-AI')));
-      await tester.pumpAndSettle();
+      // AI groups are rows on the Settings root, one tap from their pages.
+      expect(find.byKey(const ValueKey('settings-AI')), findsNothing);
       for (final group in ['model', 'external', 'builtIn']) {
         expect(find.byKey(ValueKey('plugin-group-$group')), findsOneWidget);
       }
       await tester.tap(find.byKey(const ValueKey('plugin-group-model')));
       await tester.pumpAndSettle();
+      expect(
+        find.byKey(const ValueKey('plugin-group-page-model')),
+        findsOneWidget,
+      );
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('plugin-group-model')), findsOneWidget);
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('settings-AI')), findsOneWidget);
 
       // Chat's model shortcut opens the same configuration under Settings.
       await tester.tap(find.byKey(const ValueKey('nav-plugins')));
@@ -296,9 +296,6 @@ void main() {
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
       expect(find.byKey(const ValueKey('plugin-group-model')), findsOneWidget);
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-      expect(find.byKey(const ValueKey('settings-AI')), findsOneWidget);
       // Phone settings is a category menu; categories open sub-pages.
       expect(find.text('扫描的文件后缀'), findsNothing);
       await tester.tap(find.byKey(const ValueKey('settings-来源')));

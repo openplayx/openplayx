@@ -85,10 +85,12 @@ class _MetadataPageState extends State<MetadataPage> {
 
   Future<void> _initialize() async {
     try {
-      final token = widget.library.metadata.setting(tmdbTokenKey);
+      final config = TmdbConfig.fromSettings(widget.library.metadata.setting);
       if (!mounted) return;
-      if (token.isNotEmpty) {
-        final transport = TmdbTransport(token);
+      if (config.configured) {
+        final transport = config.usePlatform
+            ? TmdbTransport.platform()
+            : TmdbTransport(config.token);
         _service.registry.register(
           'tmdb',
           TmdbMetadataPlugin(transport.get, onDispose: transport.close),

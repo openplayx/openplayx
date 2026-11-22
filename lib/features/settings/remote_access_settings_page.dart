@@ -26,6 +26,7 @@ class RemoteAccessSettingsPage extends StatefulWidget {
 class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   final _pairing = TextEditingController();
   bool _loaded = false;
+  final _expandedDetails = <_RemoteMode>{};
   RemoteAccessService? _service;
 
   /// What is running (shown in the action bar), or null when idle.
@@ -37,12 +38,20 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
 
   RemoteNetwork get _network => widget.sources.remoteNetwork;
 
+  /// The tab on screen. Looking at a tab never changes which configuration
+  /// is in use; only the enable / import actions switch it.
+  _RemoteMode _tab = _RemoteMode.cloud;
+
+  _RemoteMode get _activeMode =>
+      _service?.usePlatform == false ? _RemoteMode.local : _RemoteMode.cloud;
+
   @override
   void initState() {
     super.initState();
     _run(appStrings.loading, () async {
       await widget.sources.load();
       _service = await widget.sources.remoteSettings;
+      _tab = _activeMode;
       _loaded = true;
     });
   }
@@ -81,6 +90,19 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   Future<void> _import() async {
     _pairing.clear();
     final l = AppLocalizations.of(context);
+    final service = _service;
+    if (service != null &&
+        service.usePlatform &&
+        service.platformNetwork.configured) {
+      final confirmed = await showSettingsConfirm(
+        context,
+        title: l.remoteImportReplaceCloudTitle,
+        message: l.remoteImportReplaceCloudMessage,
+        confirmLabel: l.remoteImport,
+        cancelLabel: l.cancel,
+      );
+      if (!confirmed || !mounted) return;
+    }
     final text = await pushSettingsPage<String>(
       context,
       title: l.remoteImportTitle,
@@ -101,13 +123,13 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
             ),
           ],
         ),
-      ],
-      trailing: (c) => [
-        PageSubmitButton(
-          key: const ValueKey('remote-import-confirm'),
-          label: l.remoteImport,
-          onPressed: () => Navigator.pop(c, _pairing.text),
-        ),
+        FormActions([
+          FormAction.primary(
+            l.remoteImport,
+            () => Navigator.pop(c, _pairing.text),
+            key: const ValueKey('remote-import-confirm'),
+          ),
+        ]),
       ],
     );
     if (text == null || !mounted) return;
@@ -117,6 +139,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
       done: l.remoteImported,
     );
     _pairing.clear();
+    if (mounted) setState(() => _tab = _activeMode);
   }
 
   Future<void> _register() async {
@@ -126,7 +149,7 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
       final address = await pushSettingsPage<String>(
         context,
         title: l.remotePlatformRegister,
-        children: (_) => [
+        children: (c) => [
           SettingsSection(
             footer: l.remotePlatformRegisterHint,
             children: [
@@ -139,12 +162,8 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
               ),
             ],
           ),
-        ],
-        trailing: (c) => [
-          PageSubmitButton(
-            key: const ValueKey('relay-registration-submit'),
-            label: l.remotePlatformSendRegistration,
-            onPressed: () {
+          FormActions([
+            FormAction.primary(l.remotePlatformSendRegistration, () {
               final value = email.text.trim();
               if (!RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$').hasMatch(value)) {
                 showAppToast(
@@ -155,8 +174,8 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
                 return;
               }
               Navigator.pop(c, value);
-            },
-          ),
+            }, key: const ValueKey('relay-registration-submit')),
+          ]),
         ],
       );
       if (address == null || !mounted) return;
@@ -193,20 +212,90 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     return '$name · ${results[id] == null ? l.remoteNodeUnreachable : l.remoteNodeLatency(results[id]!)}';
   }
 
+  /// Switches to [mode] after confirming that the other side stops working.
+  Future<void> _enable(_RemoteMode mode) async {
+    final l = AppLocalizations.of(context);
+    final cloud = mode == _RemoteMode.cloud;
+    final confirmed = await showSettingsConfirm(
+      context,
+      title: cloud
+          ? l.remoteEnableCloudConfirmTitle
+          : l.remoteEnableLocalConfirmTitle,
+      message: cloud
+          ? l.remoteEnableCloudConfirmMessage
+          : l.remoteEnableLocalConfirmMessage,
+      confirmLabel: l.remoteSwitch,
+      cancelLabel: l.cancel,
+    );
+    if (!confirmed || !mounted) return;
+    final service = _service!;
+    await _run(
+      l.loading,
+      () => cloud ? service.selectPlatform() : service.selectCustom(),
+      done: l.remoteSwitched,
+    );
+  }
+
+  /// Whether the tab's configuration is in use, and the way to switch to it.
+  Widget _modeStatus(AppLocalizations l, _RemoteMode mode) {
+    final cloud = mode == _RemoteMode.cloud;
+    final active = _activeMode == mode;
+    final canEnable = !active && (cloud || _service!.customNetwork.configured);
+    final String? hint;
+    if (active) {
+      hint = null;
+    } else if (cloud) {
+      hint = l.remoteCloudInactiveHint;
+    } else if (canEnable) {
+      hint = l.remoteLocalInactiveHint;
+    } else {
+      hint = l.remoteLocalEmptyHint;
+    }
+    return SettingsSection(
+      children: [
+        SettingsRow(
+          key: ValueKey('remote-mode-${mode.name}'),
+          title: active ? l.remoteModeActive : l.remoteModeInactive,
+          description: hint,
+          control: Icon(
+            active ? Icons.check_circle : Icons.radio_button_unchecked,
+            size: 20,
+            color: active
+                ? Theme.of(context).colorScheme.primary
+                : Theme.of(context).disabledColor,
+          ),
+        ),
+        if (canEnable)
+          FormActions([
+            FormAction.primary(
+              cloud ? l.remoteEnableCloud : l.remoteEnableLocal,
+              _busy ? null : () => _enable(mode),
+              key: ValueKey('remote-enable-${mode.name}'),
+            ),
+          ]),
+      ],
+    );
+  }
+
   Widget _platform(AppLocalizations l) {
     final service = _service!;
     final profile = service.platformProfile;
     final active = service.activeNode;
     return SettingsSection(
-      title: l.remotePlatformTitle,
-      footer: l.remotePlatformHint,
+      footer: service.account.signedIn ? null : l.remotePlatformHint,
       children: [
-        SettingsRow(
-          title: service.usePlatform
-              ? l.remotePlatformActive
-              : l.remoteCustomActive,
-          description: service.account.email ?? l.remotePlatformHint,
-        ),
+        if (service.account.signedIn)
+          SettingsMenuRow(
+            title: service.account.email ?? l.remotePlatformEmail,
+            enabled: !_busy,
+            items: [
+              SettingsMenuItem(
+                l.remotePlatformLogout,
+                () => _run(l.loading, service.logoutPlatform),
+                destructive: true,
+              ),
+            ],
+          ),
         if (service.account.signedIn) ...[
           if (profile == null) SettingsRow(title: l.remotePlatformNotLoaded),
           if (profile != null && !profile.valid)
@@ -227,35 +316,13 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
           SettingsRow(
             title: l.remotePlatformRequestFailed(service.platformError!),
           ),
-        if (service.nodeLatencyMs.isNotEmpty)
-          SettingsRow(title: l.remoteNodeTestHint),
         FormActions([
-          if (profile?.nodes.isNotEmpty == true)
-            FormAction(
-              l.remoteNodeTest,
-              _busy
-                  ? null
-                  : () => _run(l.loading, () => service.testPlatformNodes()),
-              key: const ValueKey('relay-platform-test'),
-            ),
-          if (service.account.signedIn)
-            FormAction.destructive(
-              l.remotePlatformLogout,
-              _busy ? null : () => _run(l.loading, service.logoutPlatform),
-            ),
           if (service.account.signedIn)
             FormAction(
               l.refresh,
               _busy ? null : () => _run(l.loading, service.refreshPlatform),
               key: const ValueKey('relay-platform-refresh'),
             ),
-          FormAction(
-            l.remotePlatformRestore,
-            _busy
-                ? null
-                : () => _run(l.loading, () => service.selectPlatform()),
-            key: const ValueKey('relay-platform-restore'),
-          ),
           if (!service.account.signedIn)
             FormAction.primary(
               l.remotePlatformLogin,
@@ -278,7 +345,9 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     final confirmed = await showSettingsConfirm(
       context,
       title: l.remoteClearConfirmTitle,
-      message: l.remoteClearConfirmMessage,
+      message: _activeMode == _RemoteMode.local
+          ? l.remoteClearActiveMessage
+          : l.remoteClearConfirmMessage,
       confirmLabel: l.remoteClear,
       cancelLabel: l.cancel,
       destructive: true,
@@ -289,11 +358,11 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
         widget.sources.clearRemoteNetwork,
         done: l.remoteCleared,
       );
+      if (mounted) setState(() {});
     }
   }
 
-  List<Widget> _connection(AppLocalizations l) {
-    final network = _network;
+  List<Widget> _connection(AppLocalizations l, RemoteNetwork network) {
     final out = network.outbound;
     if (out == null) {
       return [
@@ -322,10 +391,10 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     ];
   }
 
-  List<Widget> _proxies(AppLocalizations l) {
+  List<Widget> _proxies(AppLocalizations l, RemoteNetwork network) {
     final sources = widget.sources.configs;
     return [
-      for (final proxy in _network.proxies)
+      for (final proxy in network.proxies)
         SettingsRow(
           key: ValueKey('remote-proxy-${proxy.name}'),
           title: proxy.displayName,
@@ -343,69 +412,147 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
     ];
   }
 
+  /// Keep services visible; reveal technical and destructive controls on demand.
+  List<Widget> _networkSections(AppLocalizations l, RemoteNetwork network) {
+    if (!network.configured) return [];
+    final expanded = _expandedDetails.contains(_tab);
+    final service = _service!;
+    final cloud = _tab == _RemoteMode.cloud;
+    return [
+      if (network.proxies.isNotEmpty)
+        SettingsSection(
+          title: l.remoteAvailableServices,
+          footer: l.remoteAvailableServicesFooter,
+          children: _proxies(l, network),
+        ),
+      SettingsSection(
+        footer: expanded ? l.remoteRelayFooter : null,
+        children: [
+          SettingsRow(
+            key: const ValueKey('remote-connection-details'),
+            title: l.remoteConnectionDetails,
+            control: Icon(
+              expanded ? Icons.expand_less : Icons.expand_more,
+              size: 20,
+            ),
+            onTap: () => setState(() {
+              if (expanded) {
+                _expandedDetails.remove(_tab);
+              } else {
+                _expandedDetails.add(_tab);
+              }
+            }),
+          ),
+          if (expanded) ...[
+            ..._connection(l, network),
+            if (cloud && service.platformProfile?.nodes.isNotEmpty == true) ...[
+              SettingsRow(title: l.remoteNodeTestHint),
+              FormActions([
+                FormAction(
+                  l.remoteNodeTest,
+                  _busy
+                      ? null
+                      : () => _run(l.loading, service.testPlatformNodes),
+                  key: const ValueKey('relay-platform-test'),
+                ),
+              ]),
+            ],
+            if (!cloud)
+              FormActions([
+                FormAction.destructive(
+                  l.remoteClear,
+                  _busy ? null : _clear,
+                  key: const ValueKey('remote-clear'),
+                ),
+              ]),
+          ],
+        ],
+      ),
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     final l = AppLocalizations.of(context);
     final network = _network;
+    final service = _service;
+    final local = _tab == _RemoteMode.local;
     final missing = widget.sources.configs
         .where(
           (s) => s.remote != null && network.proxy(s.remote!.proxy) == null,
         )
         .toList();
+    final status = _busy
+        ? FormStatus.busy(_busyLabel!)
+        : _error == null
+        ? FormStatus.idle
+        : FormStatus.error(_error!);
     return AppPage(
       pageContext: const PageContextData(pageType: 'remote_access_settings'),
       title: Text(l.remoteAccess),
       body: SettingsListView(
         children: [
-          if (_loaded) ...[
-            _platform(l),
-            SettingsSection(
-              title: l.remoteRelayServer,
-              footer: l.remoteRelayFooter,
-              children: _connection(l),
+          if (_loaded && service != null) ...[
+            ShadTabs<_RemoteMode>(
+              key: const ValueKey('remote-mode-tabs'),
+              value: _tab,
+              onChanged: (mode) => setState(() => _tab = mode),
+              tabs: [
+                for (final mode in _RemoteMode.values)
+                  ShadTab(
+                    key: ValueKey('remote-tab-${mode.name}'),
+                    value: mode,
+                    trailing: _activeMode == mode
+                        ? const Icon(Icons.check, size: 14)
+                        : null,
+                    child: Text(
+                      mode == _RemoteMode.cloud
+                          ? l.remoteTabCloud
+                          : l.remoteTabLocal,
+                    ),
+                  ),
+              ],
             ),
-            if (network.proxies.isNotEmpty)
-              SettingsSection(
-                title: l.remoteAvailableServices,
-                footer: l.remoteAvailableServicesFooter,
-                children: _proxies(l),
-              ),
-            if (network.configured && missing.isNotEmpty)
+            if (!local) ...[
+              _modeStatus(l, _RemoteMode.cloud),
+              _platform(l),
+              if (service.account.signedIn)
+                ..._networkSections(l, service.platformNetwork),
+            ] else ...[
+              _modeStatus(l, _RemoteMode.local),
+              if (!service.customNetwork.configured)
+                SettingsSection(
+                  children: _connection(l, service.customNetwork),
+                ),
+              ..._networkSections(l, service.customNetwork),
+            ],
+            if (_tab == _activeMode && network.configured && missing.isNotEmpty)
               SettingsSection(
                 title: l.remoteNeedsAttention,
                 children: [
                   for (final source in missing)
                     SettingsRow(
                       title: source.titleName,
-                      description: l.remoteSourceProxyMissing(
-                        source.remote!.proxy,
-                      ),
+                      description: l.remoteSourceProxyMissing,
                     ),
                 ],
               ),
           ],
-          // Clear asks for confirmation first (see _clear).
-          FormActions(
-            status: _busy
-                ? FormStatus.busy(_busyLabel!)
-                : _error == null
-                ? FormStatus.idle
-                : FormStatus.error(_error!),
-            [
-              FormAction.destructive(
-                l.remoteClear,
-                _busy || !_network.configured ? null : _clear,
-                key: const ValueKey('remote-clear'),
-              ),
+          // Clear asks for confirmation first (see _clear); importing over
+          // the cloud configuration asks too (see _import).
+          FormActions(status: status, [
+            if (local) ...[
               FormAction.primary(
                 l.remoteImport,
                 _busy || !_loaded ? null : _import,
                 key: const ValueKey('remote-import'),
               ),
             ],
-          ),
+          ]),
         ],
       ),
     );
   }
 }
+
+enum _RemoteMode { cloud, local }

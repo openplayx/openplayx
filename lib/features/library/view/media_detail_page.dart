@@ -8,7 +8,6 @@ import '../../settings/app_theme_controller.dart';
 import '../../../core/capabilities/metadata_capability.dart';
 import '../../../capabilities/sources/source_manager.dart';
 import '../../../l10n/generated/app_localizations.dart';
-import '../../../capabilities/media_processing/media_processing_service.dart';
 import '../../../capabilities/artwork/artwork_service.dart';
 import '../../../capabilities/library/library_service.dart';
 import '../../../capabilities/library/media_models.dart';
@@ -20,7 +19,6 @@ import '../../../ui/icons/app_icons.dart';
 import '../../../ui/tokens/app_spacing.dart';
 import 'country_names.dart';
 import 'audio_subtitle_debug_page.dart';
-import 'ffmpeg_snapshot_debug_page.dart';
 import '../../../capabilities/speech/subtitle_generation_service.dart';
 import 'metadata_artwork.dart';
 import 'metadata_page.dart';
@@ -162,28 +160,6 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
   }
 
   bool get _debuggable => _c.debuggable;
-
-  Future<void> _openSnapshotDebug() async {
-    final media = _c.snapshotMedia;
-    if (media == null || _busy) return;
-    final versions = _c.versions(media);
-    if (versions.isEmpty) return;
-    // Keep the chosen version; ask only when several exist. Never re-pick.
-    final version = versions.length == 1
-        ? versions.first
-        : await _chooseVersion(media);
-    if (version == null || !mounted) return;
-    await Navigator.of(context).push<void>(
-      MaterialPageRoute(
-        settings: const RouteSettings(name: 'FfmpegSnapshotDebugPage'),
-        builder: (_) => FfmpegSnapshotDebugPage(
-          service: MediaProcessingService.current,
-          resource: version.ref,
-          title: version.name,
-        ),
-      ),
-    );
-  }
 
   /// Series/season: choose a season and an episode first; a whole series
   /// is never processed as one video (design §3.1).
@@ -424,26 +400,10 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                       (assistant != null ? 36 + AppSpacing.sm : 0),
                   child: _CircleButton(
                     key: const ValueKey('media-metadata'),
-                    icon: Icons.more_horiz_rounded,
+                    icon: AppIcons.metadata,
+                    iconSize: 18,
                     tooltip: l.metadata,
                     onPressed: _openMetadata,
-                  ),
-                ),
-              // FFmpeg random-snapshot debug entry (developer tool, §9.1).
-              if (developer && _debuggable)
-                Positioned(
-                  top: top + AppSpacing.md + 2,
-                  right:
-                      AppSpacing.md +
-                      (assistant != null ? 36 + AppSpacing.sm : 0) +
-                      36 +
-                      AppSpacing.sm,
-                  child: _CircleButton(
-                    key: const ValueKey('media-ffmpeg-snapshot'),
-                    icon: Icons.camera_alt_outlined,
-                    iconSize: 18,
-                    tooltip: l.ffmpegSnapshotDebug,
-                    onPressed: _openSnapshotDebug,
                   ),
                 ),
               // Audio extraction / subtitle recognition debug (developer, §3).
@@ -453,7 +413,8 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
                   right:
                       AppSpacing.md +
                       (assistant != null ? 36 + AppSpacing.sm : 0) +
-                      (36 + AppSpacing.sm) * 2,
+                      36 +
+                      AppSpacing.sm,
                   child: _CircleButton(
                     key: const ValueKey('media-audio-subtitle-debug'),
                     icon: Icons.subtitles_outlined,

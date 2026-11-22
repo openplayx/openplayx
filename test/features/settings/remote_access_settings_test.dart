@@ -48,6 +48,12 @@ void main() {
         TestApp(home: RemoteAccessSettingsPage(sources: manager)),
       );
       await tester.pumpAndSettle();
+      // Nothing imported: the cloud tab is shown and in use.
+      expect(find.byKey(const ValueKey('remote-import')), findsNothing);
+      await tester.tap(find.text('本地导入'));
+      await tester.pumpAndSettle();
+      expect(find.text('未生效'), findsOneWidget);
+      expect(find.byKey(const ValueKey('remote-enable-local')), findsNothing);
       expect(find.byKey(const ValueKey('remote-unconfigured')), findsOneWidget);
       expect(find.text('探测与连接策略'), findsNothing);
       expect(find.byKey(const ValueKey('remote-pairing')), findsNothing);
@@ -74,8 +80,18 @@ void main() {
       await tester.pumpAndSettle();
       expect(validations, 1);
       expect(remote.network.configured, isTrue);
+      expect(remote.usePlatform, isFalse);
+      expect(find.text('生效中'), findsOneWidget);
       expect(manager.configs.single.remoteAccess!.remotePort, 18096);
       await tester.drag(find.byType(ListView), const Offset(0, 1500));
+      await tester.pumpAndSettle();
+      // Services stay visible while technical and destructive controls are folded.
+      expect(find.text('relay.example:443'), findsNothing);
+      expect(find.byKey(const ValueKey('remote-clear')), findsNothing);
+      await tester.ensureVisible(
+        find.byKey(const ValueKey('remote-connection-details')),
+      );
+      await tester.tap(find.byKey(const ValueKey('remote-connection-details')));
       await tester.pumpAndSettle();
       expect(find.text('relay.example:443'), findsOneWidget);
       expect(find.byKey(const ValueKey('remote-proxy-smb')), findsOneWidget);
@@ -84,7 +100,7 @@ void main() {
       // Success is a toast at the top; while it shows, the bottom actions
       // stay tappable (the tap below would miss if the toast covered them).
       expect(find.text('已导入并生效。'), findsOneWidget);
-      // The actions sit at the bottom of the page.
+      // Clearing remains available inside connection details.
       await tester.ensureVisible(find.byKey(const ValueKey('remote-clear')));
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('remote-clear')));

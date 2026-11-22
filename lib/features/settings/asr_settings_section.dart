@@ -8,11 +8,10 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../l10n/generated/app_localizations.dart';
 import '../../capabilities/speech/asr_backend_config.dart';
 import '../../capabilities/speech/asr_model_store.dart';
-import '../../ui/components/forms/secret_input.dart';
-import '../../ui/components/forms/settings_text_input.dart';
+import 'asr_http_service_settings_page.dart';
 import '../../ui/components/settings/settings_section.dart';
 
-/// Settings → AI & models → Speech recognition: the on-device model and
+/// Settings → Subtitles → Speech recognition: the on-device model and
 /// the user's HTTP recognition services. Downloads happen only from an
 /// explicit action here; tokens live in secure storage.
 class AsrSettingsSection extends StatefulWidget {
@@ -88,144 +87,14 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
     setState(() {});
   }
 
-  /// A dialog field with its label above: hints only carry examples.
-  Widget _labeled(BuildContext c, String label, Widget input) => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    spacing: 4,
-    children: [
-      Text(label, style: ShadTheme.of(c).textTheme.small),
-      input,
-    ],
-  );
-
   Future<void> _editHttp([AsrBackendConfig? existing]) async {
-    // A blank name shows the service host.
-    final name = TextEditingController(text: existing?.name ?? '');
-    final url = TextEditingController(text: existing?.url ?? '');
-    final model = DefaultTextController(
-      text: existing?.modelId,
-      defaultValue: 'whisper-base-multilingual',
-    );
-    final language = DefaultTextController(
-      text: existing?.language,
-      defaultValue: 'auto',
-    );
-    final token = SecretController();
-    if (existing != null) {
-      token.loadStored(() => registry.credential(existing));
-    }
-    var insecure = existing?.allowInsecureHttp ?? false;
-    String? error;
-    final result = await showShadDialog<String>(
-      context: context,
-      builder: (c) => StatefulBuilder(
-        builder: (c, set) => ShadDialog(
-          title: Text(existing == null ? l.asrAddService : l.asrEditService),
-          description: Text(l.asrServicePrivacy),
-          actions: [
-            if (existing != null)
-              ShadButton.ghost(
-                foregroundColor: ShadTheme.of(c).colorScheme.destructive,
-                onPressed: () => Navigator.pop(c, 'remove'),
-                child: Text(l.asrRemoveService),
-              ),
-            ShadButton.ghost(
-              onPressed: () => Navigator.pop(c),
-              child: Text(l.cancel),
-            ),
-            ShadButton(
-              key: const ValueKey('asr-service-save'),
-              onPressed: () {
-                try {
-                  final saved = registry.save(
-                    AsrBackendConfig(
-                      id: existing?.id ?? AsrBackendRegistry.newId(),
-                      kind: 'http',
-                      name: name.text,
-                      url: url.text.trim(),
-                      modelId: model.resolved,
-                      language: language.resolved,
-                      allowInsecureHttp: insecure,
-                      uploadConsentAt: existing?.uploadConsentAt,
-                    ),
-                  );
-                  Navigator.pop(c, saved.id);
-                } on FormatException catch (e) {
-                  set(
-                    () => error = e.message == 'url'
-                        ? l.asrServiceUrlInvalid
-                        : l.asrServiceInvalid,
-                  );
-                }
-              },
-              child: Text(l.save),
-            ),
-          ],
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 480),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              spacing: 10,
-              children: [
-                _labeled(
-                  c,
-                  l.asrServiceName,
-                  SettingsTextInput(controller: name),
-                ),
-                _labeled(
-                  c,
-                  l.asrServiceUrl,
-                  SettingsTextInput(
-                    key: const ValueKey('asr-service-url'),
-                    controller: url,
-                    keyboardType: TextInputType.url,
-                    example: 'https://asr.example.com',
-                  ),
-                ),
-                _labeled(
-                  c,
-                  l.asrServiceToken,
-                  SecretInput(
-                    controller: token,
-                    placeholder: existing == null
-                        ? null
-                        : l.metadataTokenStatusSaved,
-                  ),
-                ),
-                _labeled(c, l.asrModel, SettingsTextInput(controller: model)),
-                _labeled(
-                  c,
-                  l.asrLanguage,
-                  SettingsTextInput(controller: language),
-                ),
-                ShadCheckbox(
-                  value: insecure,
-                  label: Text(l.asrAllowHttp),
-                  sublabel: Text(l.asrAllowHttpHint),
-                  onChanged: (v) => set(() => insecure = v),
-                ),
-                if (error != null)
-                  Text(
-                    error!,
-                    style: TextStyle(
-                      color: ShadTheme.of(c).colorScheme.destructive,
-                    ),
-                  ),
-              ],
-            ),
-          ),
-        ),
+    await Navigator.of(context).push<void>(
+      MaterialPageRoute<void>(
+        settings: const RouteSettings(name: 'AsrHttpServiceSettingsPage'),
+        builder: (_) =>
+            AsrHttpServiceSettingsPage(registry: registry, existing: existing),
       ),
     );
-    if (result == 'remove' && existing != null) {
-      await registry.remove(existing.id);
-    } else if (result != null && token.edited.isNotEmpty) {
-      registry.setToken(result, token.edited);
-    }
-    for (final c in [name, url, model, language, token]) {
-      c.dispose();
-    }
     if (mounted) setState(() {});
   }
 

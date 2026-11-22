@@ -457,6 +457,7 @@ String catalogText(String key) => switch (key) {
   'catSummaryLocal' => appStrings.catSummaryLocal,
   'catSummarySmb' => appStrings.catSummarySmb,
   'catSummaryWebdav' => appStrings.catSummaryWebdav,
+  'catSummaryCloudDrive' => appStrings.catSummaryCloudDrive,
   'catSummaryFtp' => appStrings.catSummaryFtp,
   'catSummarySftp' => appStrings.catSummarySftp,
   'catSummaryS3' => appStrings.catSummaryS3,

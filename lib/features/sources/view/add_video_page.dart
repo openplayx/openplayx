@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:material_ui/material_ui.dart';
 
 import '../../../capabilities/library/library_service.dart';
@@ -11,6 +13,7 @@ import '../../../ui/components/settings/settings_section.dart';
 import '../../../ui/tokens/app_spacing.dart';
 import 'scan_scope_page.dart';
 import 'source_instance_form.dart';
+import 'connector_source_setup.dart';
 import 'widgets/source_kind_icon.dart';
 
 /// One entry for new connections and confirmed scopes of saved connections.
@@ -24,6 +27,7 @@ class AddVideoPage extends StatefulWidget {
 }
 
 class _AddVideoPageState extends State<AddVideoPage> {
+  StreamSubscription<SourceChange>? _sourceChanges;
   bool _loading = true;
   bool _busy = false;
   String? _error;
@@ -31,7 +35,16 @@ class _AddVideoPageState extends State<AddVideoPage> {
   @override
   void initState() {
     super.initState();
+    _sourceChanges = widget.sources.changes.listen((_) {
+      if (mounted) setState(() {});
+    });
     _load();
+  }
+
+  @override
+  void dispose() {
+    unawaited(_sourceChanges?.cancel());
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -133,11 +146,41 @@ class _AddVideoPageState extends State<AddVideoPage> {
               padding: AppSpacing.page(context),
               children: [
                 if (_error != null) Text(_error!),
-                if (widget.sources.configs.any((c) => c.enabled))
+                if (widget.sources.pendingDiscoveredSources.isNotEmpty)
+                  SettingsSection(
+                    title: l.connectorSources,
+                    children: [
+                      for (final source
+                          in widget.sources.pendingDiscoveredSources)
+                        SettingsRow(
+                          title: source.name,
+                          description: source.connectorName,
+                          control: SourceKindIcon(source.kind!),
+                          onTap: _busy || !source.enabled
+                              ? null
+                              : () async {
+                                  setState(() => _busy = true);
+                                  final added = await setupConnectorSource(
+                                    context,
+                                    widget.sources,
+                                    source,
+                                    library: widget.library,
+                                  );
+                                  if (!context.mounted) return;
+                                  if (added) {
+                                    Navigator.pop(context, true);
+                                  } else {
+                                    setState(() => _busy = false);
+                                  }
+                                },
+                        ),
+                    ],
+                  ),
+                if (widget.sources.visibleConfigs.any((c) => c.enabled))
                   SettingsSection(
                     title: l.homeSavedConnections,
                     children: [
-                      for (final config in widget.sources.configs.where(
+                      for (final config in widget.sources.visibleConfigs.where(
                         (c) => c.enabled,
                       ))
                         SettingsRow(

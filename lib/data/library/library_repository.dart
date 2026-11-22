@@ -86,6 +86,42 @@ class LibraryRepository {
 
   /// `configuration.sqlite3` (in memory when none is given, e.g. in tests).
   final Database configuration;
+  bool Function(String id)? connectionVisible;
+
+  /// Enforce persisted account ownership even before SourceManager finishes
+  /// loading. Otherwise the first home frame could expose a signed-out scope.
+  bool connectionVisibleToAccount(String id) {
+    if (connectionVisible?.call(id) == false) return false;
+    final row = configuration.select(
+      'SELECT config_json FROM plugin_instance_configs WHERE instance_id=?',
+      [id],
+    ).firstOrNull;
+    if (row == null) return true;
+    try {
+      final config = jsonDecode(row['config_json'] as String) as Map;
+      final remote = config['remote'];
+      final owner = remote is Map ? remote['accountId'] : null;
+      if (owner == null) return true;
+      final session = ConfigurationDatabase.readSetting(
+        configuration,
+        'relay_account',
+        'session',
+      );
+      final platform = ConfigurationDatabase.readSetting(
+        configuration,
+        'remote_access',
+        'platform',
+      );
+      return session is Map &&
+          session['accessToken'] is String &&
+          session['refreshToken'] is String &&
+          session['userId'] == owner &&
+          !(platform is Map && platform['enabled'] == false);
+    } catch (_) {
+      return false;
+    }
+  }
+
   late final MetadataRepository metadata;
   T transaction<T>(T Function() action) =>
       LibraryDatabase.transaction(db, action);
@@ -203,11 +239,12 @@ class LibraryRepository {
   /// File sources that are enabled and whose connection is not disabled.
   List<String> enabledFileSourceIds() => [
     for (final r in configuration.select(
-      'SELECT id FROM file_sources f WHERE enabled=1 '
+      'SELECT id,source_id FROM file_sources f WHERE enabled=1 '
       'AND NOT EXISTS (SELECT 1 FROM plugin_instance_configs c '
       'WHERE c.instance_id=f.source_id AND c.enabled_desired=0)',
     ))
-      r['id'] as String,
+      if (connectionVisibleToAccount(r['source_id'] as String))
+        r['id'] as String,
   ];
 
   void insertFileSource(String id, String source, String? root, String? name) =>

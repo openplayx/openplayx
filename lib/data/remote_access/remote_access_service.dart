@@ -7,6 +7,7 @@ import '../sources/source_config.dart';
 import 'remote_config.dart';
 import 'remote_transport.dart';
 import 'relay_subscription.dart';
+import 'discovered_source.dart';
 import 'relay_node_probe.dart';
 import '../../l10n/l10n.dart';
 
@@ -198,8 +199,142 @@ class RemoteAccessService {
   Future<void>? _syncing;
   bool _closed = false;
 
-  RemoteNetwork get network {
-    if (!usePlatform) return _custom;
+  RemoteNetwork get network => usePlatform ? platformNetwork : _custom;
+
+  List<DiscoveredSource> get discoveredSources {
+    if (!usePlatform || !account.signedIn) return const [];
+    final profile = platformProfile;
+    if (profile == null ||
+        account.userId != null && account.userId != profile.userId) {
+      return const [];
+    }
+    return profile.sources;
+  }
+
+  bool isSourceHidden(DiscoveredSource source) {
+    final value = ConfigurationDatabase.readSetting(
+      db,
+      'source_discovery',
+      'hidden:${source.accountId}',
+    );
+    return value is List && value.contains(source.identity);
+  }
+
+  Future<void> setSourceHidden(DiscoveredSource source, bool hidden) async {
+    final key = 'hidden:${source.accountId}';
+    final saved = ConfigurationDatabase.readSetting(
+      db,
+      'source_discovery',
+      key,
+    );
+    final ids = saved is List ? saved.whereType<String>().toSet() : <String>{};
+    hidden ? ids.add(source.identity) : ids.remove(source.identity);
+    ConfigurationDatabase.writeSetting(
+      db,
+      'source_discovery',
+      key,
+      ids.toList(),
+    );
+    await onChanged?.call();
+  }
+
+  bool ownsSource(SourceRemote? source) =>
+      source?.accountId == null ||
+      usePlatform &&
+          account.signedIn &&
+          platformProfile?.userId == source!.accountId &&
+          (account.userId == null || account.userId == source.accountId);
+
+  bool sourceAuthorized(SourceRemote source) =>
+      ownsSource(source) &&
+      platformProfile?.valid == true &&
+      discoveredSources.any(
+        (s) =>
+            s.serviceId == source.proxy &&
+            s.connectorId == source.connectorId &&
+            s.enabled,
+      );
+
+  RemoteAccessConfig? routeFor(SourceRemote? source) {
+    if (source == null) return null;
+    if (!usePlatform) {
+      return source.accountId == null ? _custom.routeFor(source) : null;
+    }
+    final profile = platformProfile;
+    if (!account.signedIn ||
+        profile == null ||
+        !profile.valid ||
+        source.accountId != null && !sourceAuthorized(source)) {
+      return null;
+    }
+    final proxy = profile.proxies
+        .where((p) => p.name == source.proxy)
+        .firstOrNull;
+    if (proxy == null) return null;
+    var mode = source.mode;
+    var localAddress = source.localAddress;
+    var localPin = source.localTlsSha256;
+    if (source.managedLocal) {
+      final entry = discoveredSources
+          .where(
+            (s) =>
+                s.serviceId == source.proxy &&
+                s.connectorId == source.connectorId,
+          )
+          .firstOrNull;
+      if (entry?.supportsLocal != true) {
+        if (mode == RemoteConnectionMode.localOnly) return null;
+        mode = RemoteConnectionMode.remoteOnly;
+        localAddress = null;
+        localPin = null;
+      } else {
+        localAddress = entry!.localAccess!['endpoint'] as String;
+        localPin = (entry.localAccess!['identity'] as Map)['value'] as String;
+      }
+    }
+    final observations = profile.data['serviceStatus'];
+    Map<String, dynamic>? node;
+    if (observations is List) {
+      final status = observations
+          .whereType<Map>()
+          .where((s) => s['serviceId'] == source.proxy)
+          .firstOrNull;
+      final ids = status?['readyNodeIds'];
+      if (ids is List) {
+        node = profile.nodes
+            .where((n) => ids.contains(n['nodeId']))
+            .firstOrNull;
+      }
+    } else {
+      // Older manually paired profiles did not report per-service nodes.
+      node = activeNode;
+    }
+    if (node == null && mode == RemoteConnectionMode.remoteOnly) return null;
+    return RemoteAccessConfig(
+      proxy: proxy.name,
+      remotePort: proxy.remotePort,
+      credential: {'uuid': profile.uuid},
+      remoteReady: node != null,
+      outbound: node == null
+          ? const {}
+          : {
+              'type': 'vless',
+              'server': node['host'],
+              'server_port': node['port'],
+              'tls': {'enabled': true, 'server_name': node['tlsServerName']},
+            },
+      mode: mode,
+      localAddress: localAddress,
+      localTlsSha256: localPin,
+    );
+  }
+
+  /// The locally imported configuration, whether or not it is in use.
+  RemoteNetwork get customNetwork => _custom;
+
+  /// The configuration the platform account provides, whether or not it is
+  /// in use.
+  RemoteNetwork get platformNetwork {
     final p = platformProfile;
     if (p == null || !account.signedIn) {
       return const RemoteNetwork();
@@ -304,6 +439,19 @@ class RemoteAccessService {
   Future<void> selectPlatform() async {
     await load();
     usePlatform = true;
+    _preferences();
+    _configureTransport();
+    await onChanged?.call();
+  }
+
+  /// Switches back to the locally imported configuration; the platform
+  /// configuration stops being used.
+  Future<void> selectCustom() async {
+    await load();
+    if (!_custom.configured) {
+      throw const FormatException('No imported configuration');
+    }
+    usePlatform = false;
     _preferences();
     _configureTransport();
     await onChanged?.call();
@@ -470,7 +618,7 @@ class RemoteAccessService {
 
   /// Joins a source with the network layer for its runtime.
   SourceConfig attach(SourceConfig source) {
-    final route = network.routeFor(source.remote);
+    final route = routeFor(source.remote);
     return source.copyWith(
       remoteAccess: route,
       clearRemoteAccess: route == null,

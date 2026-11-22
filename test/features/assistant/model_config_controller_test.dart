@@ -18,12 +18,17 @@ void main() {
       expect(store.loadConfig().configured, true);
       expect(await store.key(), isEmpty);
       controller.setUsePlatform(false);
+      expect(controller.activeUsePlatform, true);
+      expect(store.loadConfig().usePlatform, true);
       controller.endpoint.text = 'https://example.com/v1';
       controller.model.text = 'custom';
       controller.key.text = 'custom-secret';
       expect(await controller.save(), true);
+      expect(controller.activeUsePlatform, false);
       controller.setUsePlatform(true);
+      expect(controller.activeUsePlatform, false);
       expect(await controller.save(), true);
+      expect(controller.activeUsePlatform, true);
       final restored = ModelConfigController(store: store);
       addTearDown(restored.dispose);
       await Future<void>.delayed(Duration.zero);
