@@ -13,6 +13,11 @@
         android:icon="@mipmap/ic_launcher"
         android:banner="@drawable/tv_banner">
         <meta-data android:name="com.posthog.posthog.AUTO_INIT" android:value="false" />
+        <!-- Report native crashes from the system tombstone (Android 12+) on next
+             launch: full unwind (PAC-safe) plus abort message, which the in-process
+             sentry-native handler can lose. -->
+        <meta-data android:name="io.sentry.tombstone.enable" android:value="true" />
+        <meta-data android:name="io.sentry.tombstone.attach-raw" android:value="true" />
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements" />
         <activity
             android:name=".MainActivity"
