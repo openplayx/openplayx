@@ -26,10 +26,16 @@ class StreamGateway {
       32,
       (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
     ).join();
-    final path = '/$key/${Uri.encodeComponent(filename ?? 'media')}';
+    final name = filename ?? 'media';
+    final path = '/$key/${Uri.encodeComponent(name)}';
     server.listen((request) async {
       try {
-        if (request.uri.path != path ||
+        // Compare decoded segments: clients may re-encode characters that
+        // encodeComponent leaves alone, e.g. VLC sends '(' as '%28'.
+        final segments = request.uri.pathSegments;
+        if (segments.length != 2 ||
+            segments[0] != key ||
+            segments[1] != name ||
             !['GET', 'HEAD'].contains(request.method)) {
           request.response.statusCode = HttpStatus.notFound;
         } else {
