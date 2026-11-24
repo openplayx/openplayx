@@ -799,7 +799,7 @@ packages:
   openplayx_playback:
     dependency: "direct main"
     description:
-      path: "packages/playback"
+      path: "../package-libvlc"
       relative: true
     source: path
     version: "0.1.0"

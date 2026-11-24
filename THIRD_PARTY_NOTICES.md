@@ -8,7 +8,7 @@ documentation use MIT; that grant does not relicense third-party components.
 | Component | Source / version authority | License and notices |
 |---|---|---|
 | Flutter / Dart | Flutter SDK used for the build | BSD-style SDK notices; Dart package snapshot below |
-| vlc_player | `packages/playback/pubspec.yaml` and `pubspec.lock` | MIT; original copyright retained in the Dart package snapshot |
+| vlc_player | package-libvlc companion `pubspec.yaml` (pinned 2.1.2) and `pubspec.lock` | MIT; original copyright retained in the Dart package snapshot |
 | libVLC / VLCKit / MobileVLCKit | Apple Pod locks currently pin VLCKit 3.7.3 | Upstream LGPL terms and bundled component notices; [VideoLAN licensing](https://www.videolan.org/legal.html) and the actual SDK's COPYING/acknowledgements govern; [macOS snapshot](LICENSES/MACOS_PODS.txt), [iOS snapshot](LICENSES/IOS_PODS.txt) |
 | sing-box | `native/remote_access/go.mod`, v1.12.12 | GPL-3.0-or-later with upstream naming/association restriction; [preserved notice](LICENSES/sing-box.txt), [GPL text](LICENSES/GPL-3.0.txt), [upstream](https://github.com/SagerNet/sing-box/tree/v1.12.12) |
 | FFmpeg | Companion build pins 7.1.1 | LGPL-2.1-or-later for the configured LGPL-only build; [license](LICENSES/LGPL-2.1.txt), [source](https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz), [legal notes](https://ffmpeg.org/legal.html) |

@@ -49,7 +49,7 @@ components. See [native playback notes](docs/implement/libvlc_basic_player.md)
 and [remote access notes](docs/implement/remote_access_singbox_frp.md).
 
 The app currently needs sibling checkouts named `ffmpeg-package`,
-`package-whisper` and `smb_connect`. The FFmpeg repository is public at
+`package-libvlc`, `package-whisper` and `smb_connect`. The FFmpeg repository is public at
 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg); keep its
 local directory named `ffmpeg-package` for the pubspec path and CI checkout name.
 The SMB fork remains a private dependency, so cloning this public repository
@@ -58,6 +58,7 @@ access can prepare them:
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
+git clone https://github.com/openplayx/package-libvlc.git
 git clone https://github.com/openplayx/package-whisper.git
 git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
 git clone git@github.com:openplayx/smb_connect.git
@@ -125,7 +126,9 @@ the AI: sources, library, metadata, media processing, speech, playback
 launch, and their App-wide switches), `assistant` (the AI: model access,
 conversations, and plugins that wrap capabilities as AI tools), `ui` (design
 system), `features` (screens, each split into `model`/`controller`/`view`) and
-`app` (wiring and navigation). The playback bridge is in `packages/playback`.
+`app` (wiring and navigation). The libVLC playback bridge is the
+sibling [package-libvlc](https://github.com/openplayx/package-libvlc), which
+also holds the file format playback tests.
 
 ## Documentation and contributing
 

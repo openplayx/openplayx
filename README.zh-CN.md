@@ -34,10 +34,11 @@
 
 依赖：Dart 满足 `^3.13.7` 的 Flutter、平台开发工具（macOS/iOS 需要 Xcode、CocoaPods），以及原生组件所需的 Go/C 工具链。另见 [播放原生依赖](docs/implement/libvlc_basic_player.md) 和 [远程访问实现](docs/implement/remote_access_singbox_frp.md)。
 
-当前需要同级目录中的 `ffmpeg-package`、`package-whisper` 和 `smb_connect`。FFmpeg 仓库已公开为 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg)，本地目录仍保留 `ffmpeg-package`，以兼容 pubspec path 和 CI checkout name。SMB 分支仍为私有依赖，仅克隆公开主仓无法复现当前构建。已有 SMB 访问权限的贡献者可准备：
+当前需要同级目录中的 `ffmpeg-package`、`package-libvlc`、`package-whisper` 和 `smb_connect`。FFmpeg 仓库已公开为 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg)，本地目录仍保留 `ffmpeg-package`，以兼容 pubspec path 和 CI checkout name。SMB 分支仍为私有依赖，仅克隆公开主仓无法复现当前构建。已有 SMB 访问权限的贡献者可准备：
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
+git clone https://github.com/openplayx/package-libvlc.git
 git clone https://github.com/openplayx/package-whisper.git
 git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
 git clone git@github.com:openplayx/smb_connect.git
@@ -77,7 +78,7 @@ flutter test
 
 原生播放器、模型、真实服务与设备测试有额外要求，见 [单元/Widget 测试](test/README.md)、[原生集成测试](integration_test/README.md) 和 [测试服务准备](tool/source_services/README.md)。真实联网检查需显式启用；模拟测试通过不等于所有设备和媒体格式均已验证。
 
-`lib/` 分层组织，每层只依赖其下的层（由 `test/architecture_test.dart` 检查）：`core`（接口与纯模型）、`data`（存储与来源连接器）、`capabilities`（App 与 AI 共用的基础能力：来源、媒体库、元数据、媒体处理、语音识别、播放入口，以及它们的全局开关）、`assistant`（AI：模型接入、会话，以及把基础能力包装成 AI 工具的插件）、`ui`（设计系统）、`features`（各界面，按 `model`/`controller`/`view` 拆分）和 `app`（装配与导航）。`packages/playback` 封装播放桥接。
+`lib/` 分层组织，每层只依赖其下的层（由 `test/architecture_test.dart` 检查）：`core`（接口与纯模型）、`data`（存储与来源连接器）、`capabilities`（App 与 AI 共用的基础能力：来源、媒体库、元数据、媒体处理、语音识别、播放入口，以及它们的全局开关）、`assistant`（AI：模型接入、会话，以及把基础能力包装成 AI 工具的插件）、`ui`（设计系统）、`features`（各界面，按 `model`/`controller`/`view` 拆分）和 `app`（装配与导航）。libVLC 播放桥接位于同级仓库 [package-libvlc](https://github.com/openplayx/package-libvlc)，文件格式播放测试也在其中。
 
 ## 文档与贡献
 

@@ -31,8 +31,9 @@ dependencies:
   flutter:
     sdk: flutter
 
+  # libVLC playback adapter: sibling checkout of openplayx/package-libvlc.
   openplayx_playback:
-    path: packages/playback
+    path: ../package-libvlc
   posthog_flutter_tvos:
     path: packages/posthog_flutter_tvos
   sentry_flutter_tvos:
