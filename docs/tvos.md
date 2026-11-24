@@ -7,7 +7,7 @@ Dart 3.14.0 and Xcode 27.2.
 
 ## Included functionality
 
-- TVVLCKit 3.7.3 playback, full existing FFmpeg 7.1.1 codec set and sing-box
+- TVVLCKit 3.7.3 playback, the package-ffmpeg FFmpeg 9.1 codec set and sing-box
   1.12.12 remote-access core.
 - Native Sentry Cocoa 9.32.0 and PostHog iOS SDK 3.98.2 adapters. Neither is
   disabled by build defines. Sentry maps tvOS to its Darwin/iOS native integration

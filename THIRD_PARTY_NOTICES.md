@@ -9,9 +9,11 @@ documentation use MIT; that grant does not relicense third-party components.
 |---|---|---|
 | Flutter / Dart | Flutter SDK used for the build | BSD-style SDK notices; Dart package snapshot below |
 | vlc_player | package-libvlc companion `pubspec.yaml` (pinned 2.1.2) and `pubspec.lock` | MIT; original copyright retained in the Dart package snapshot |
-| libVLC / VLCKit / MobileVLCKit | Apple Pod locks currently pin VLCKit 3.7.3 | Upstream LGPL terms and bundled component notices; [VideoLAN licensing](https://www.videolan.org/legal.html) and the actual SDK's COPYING/acknowledgements govern; [macOS snapshot](LICENSES/MACOS_PODS.txt), [iOS snapshot](LICENSES/IOS_PODS.txt) |
+| package-libvlc | Companion checkout used for the build | MIT; libVLC playback adapter (`openplayx_playback`) |
+| libVLC / VLCKit / MobileVLCKit | Apple Pod locks currently pin VLCKit 3.7.3 (libVLC 3.0.23, which bundles its own FFmpeg 4.4.5 for playback) | Upstream LGPL terms and bundled component notices; [VideoLAN licensing](https://www.videolan.org/legal.html) and the actual SDK's COPYING/acknowledgements govern; [macOS snapshot](LICENSES/MACOS_PODS.txt), [iOS snapshot](LICENSES/IOS_PODS.txt) |
 | sing-box | `native/remote_access/go.mod`, v1.12.12 | GPL-3.0-or-later with upstream naming/association restriction; [preserved notice](LICENSES/sing-box.txt), [GPL text](LICENSES/GPL-3.0.txt), [upstream](https://github.com/SagerNet/sing-box/tree/v1.12.12) |
-| FFmpeg | Companion build pins 7.1.1 | LGPL-2.1-or-later for the configured LGPL-only build; [license](LICENSES/LGPL-2.1.txt), [source](https://ffmpeg.org/releases/ffmpeg-7.1.1.tar.xz), [legal notes](https://ffmpeg.org/legal.html) |
+| FFmpeg | package-ffmpeg companion pins 9.1 (`tool/build_ffmpeg.sh`) | GPL build: `--enable-gpl` because it links x264/x265, no `--enable-nonfree`, so GPL-2.0-or-later for the combined FFmpeg libraries; [FFmpeg license notes and GPL/LGPL texts](https://github.com/openplayx/package-ffmpeg/tree/main/LICENSES), [source](https://ffmpeg.org/releases/ffmpeg-9.1.tar.xz), [legal notes](https://ffmpeg.org/legal.html) |
+| FFmpeg codec libraries | package-ffmpeg `tool/codec-deps.tsv`: x264, x265 4.2, libaom 3.15.3, libvpx 1.17.0, LAME 4.0, Opus 1.6.1, libxml2 2.15.4 | x264/x265 GPL; LAME LGPL; libaom, libvpx, Opus BSD-style; libxml2 MIT-style; texts and versions in package-ffmpeg [SOURCES.md](https://github.com/openplayx/package-ffmpeg/blob/main/SOURCES.md) and `LICENSES/` |
 | whisper.cpp / ggml | package-whisper build pins whisper.cpp 1.9.5 | [Preserved MIT notice](LICENSES/whisper.cpp.txt); model weights have separate terms |
 | package-whisper | Companion checkout used for the build | MIT; original wrapper notice in Dart package snapshot |
 | SMB adapter | smb_connect companion / pinned fork | Apache-2.0; preserved in Dart package snapshot |
@@ -20,8 +22,9 @@ documentation use MIT; that grant does not relicense third-party components.
 | Go dependencies | `native/remote_access/go.mod` and `go.sum` | Preserve licenses from every module used in the release build, including transitive modules |
 | Media-server branding | `assets/branding/README.md` | Existing source, attribution and trademark notes remain applicable |
 
-The private FFmpeg bridge repository has its own licensing status. The app's
-root license does not grant rights to separately maintained source. Access to
+The FFmpeg bridge is the public [package-ffmpeg](https://github.com/openplayx/package-ffmpeg)
+repository and records its own licensing status. The app's root license does
+not grant rights to separately maintained source. Access to
 a dependency is not permission to redistribute it, and a public app checkout
 still does not contain all build inputs.
 
@@ -41,8 +44,9 @@ and native dependencies separately. Keep copied texts verbatim.
 
 ## Binary releases
 
-The original application code uses MIT. Builds that link sing-box still
-need to comply with its GPL-3.0-or-later terms, including the applicable
+The original application code uses MIT. Builds that link sing-box or the
+GPL FFmpeg build still need to comply with their GPL terms (sing-box:
+GPL-3.0-or-later; FFmpeg with x264/x265: GPL-2.0-or-later), including the applicable
 terms for the combined work. The root MIT license is not a claim that such
 binaries are distributable under MIT alone. Upstream GPL text and notices
 are retained in `LICENSES/` and `native/remote_access/LICENSE`.
@@ -56,10 +60,10 @@ source. Do not describe a source link to only this repository as a complete
 source package when companion inputs are absent.
 
 Include the relevant license texts and native SDK notices with installers.
-For the LGPL-only FFmpeg build, retain the exact source and BUILDINFO/configure
-line and satisfy the applicable relinking/source requirements for the actual
-linkage. Verify the real configuration: enabling GPL or nonfree components
-changes the distribution analysis. The release's license obligations depend
+For the FFmpeg build, retain the exact FFmpeg and codec library sources, the
+BUILDINFO/configure line and the GPL corresponding-source materials. The
+current recipes enable GPL and not nonfree; verify the real configuration of
+each release, since it decides the distribution analysis. The release's license obligations depend
 on what was built, not only on this table.
 
 This documentation update does not change or certify existing installers,
