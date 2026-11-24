@@ -29,26 +29,32 @@ class DlnaDiscovery {
   }) async {
     final socket = await RawDatagramSocket.bind(InternetAddress.anyIPv4, 0);
     final locations = <Uri>{};
-    final done = Completer<void>();
-    final subscription = socket.listen((event) {
-      if (event != RawSocketEvent.read) return;
-      final datagram = socket.receive();
-      if (datagram == null) return;
-      final text = utf8.decode(datagram.data, allowMalformed: true);
-      for (final line in const LineSplitter().convert(text)) {
-        final colon = line.indexOf(':');
-        if (colon < 0 ||
-            line.substring(0, colon).trim().toLowerCase() != 'location') {
-          continue;
+    Object? sendError;
+    final subscription = socket.listen(
+      (event) {
+        if (event != RawSocketEvent.read) return;
+        final datagram = socket.receive();
+        if (datagram == null) return;
+        final text = utf8.decode(datagram.data, allowMalformed: true);
+        for (final line in const LineSplitter().convert(text)) {
+          final colon = line.indexOf(':');
+          if (colon < 0 ||
+              line.substring(0, colon).trim().toLowerCase() != 'location') {
+            continue;
+          }
+          final uri = Uri.tryParse(line.substring(colon + 1).trim());
+          if (uri != null &&
+              ['http', 'https'].contains(uri.scheme) &&
+              uri.host.isNotEmpty) {
+            locations.add(uri);
+          }
         }
-        final uri = Uri.tryParse(line.substring(colon + 1).trim());
-        if (uri != null &&
-            ['http', 'https'].contains(uri.scheme) &&
-            uri.host.isNotEmpty) {
-          locations.add(uri);
-        }
-      }
-    });
+      },
+      // Send failures (e.g. iOS without the multicast entitlement, or no
+      // Wi-Fi: "No route to host") arrive as stream errors, not as throws
+      // from send(). Unhandled, they reach the zone and crash the app.
+      onError: (Object error) => sendError ??= error,
+    );
     final message = utf8.encode(
       'M-SEARCH * HTTP/1.1\r\n'
       'HOST: 239.255.255.250:1900\r\n'
@@ -57,13 +63,22 @@ class DlnaDiscovery {
       'ST: $_target\r\n\r\n',
     );
     final group = InternetAddress('239.255.255.250');
-    for (var i = 0; i < 2; i++) {
-      socket.send(message, group, 1900);
+    try {
+      for (var i = 0; i < 2; i++) {
+        socket.send(message, group, 1900);
+      }
+      await Future<void>.delayed(timeout);
+    } finally {
+      await subscription.cancel();
+      socket.close();
     }
-    Timer(timeout, () => done.complete());
-    await done.future;
-    await subscription.cancel();
-    socket.close();
+    if (locations.isEmpty && sendError != null) {
+      throw PluginException(
+        'networkUnavailable',
+        '$sendError',
+        retryable: true,
+      );
+    }
     final client = HttpClient()..connectionTimeout = const Duration(seconds: 3);
     try {
       final devices = await Future.wait(
