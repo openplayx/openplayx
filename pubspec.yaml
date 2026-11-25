@@ -62,6 +62,10 @@ dependencies:
   # In-process FFmpeg media processing (FFI, no ffmpeg processes).
   openplayx_ffmpeg:
     path: ../ffmpeg-package
+  # Playback engines (libVLC and libmpv) and the engine router: sibling
+  # checkout of openplayx/package-media. Its libmpv links the FFmpeg above.
+  openplayx_media:
+    path: ../package-media
   # In-process whisper.cpp speech recognition (FFI, no CLI/server process).
   openplayx_whisper:
     path: ../package-whisper

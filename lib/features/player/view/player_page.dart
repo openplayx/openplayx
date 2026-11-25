@@ -8,6 +8,7 @@ import 'package:flutter/gestures.dart';
 
 import '../../settings/app_theme_controller.dart';
 import '../adapters/player_assistant.dart';
+import '../adapters/player_engines.dart';
 import '../controller/audio_track_controller.dart';
 import '../controller/media_info_controller.dart';
 import '../controller/playback_history.dart';
@@ -574,7 +575,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
-    _backend = widget.backend ?? LibVlcBackend();
+    _backend = widget.backend ?? createPlayerBackend();
     _sources = widget.sourceManager ?? SourceManager();
     _window = widget.fullscreen ?? WindowFullscreen();
     // Phones show the remaining time on the right by default (design M-1).

@@ -6,11 +6,11 @@ import 'package:desktop_multi_window/desktop_multi_window.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:openplayx_playback/playback.dart';
 
 import '../core/capabilities/source_capability.dart';
 import '../capabilities/sources/source_manager.dart';
 import '../features/player/view/player_page.dart';
+import '../features/player/adapters/player_engines.dart';
 import 'app.dart';
 import '../features/settings/app_theme_controller.dart';
 import '../data/analytics/analytics_service.dart';
@@ -53,7 +53,7 @@ Future<void> initializeAnalyticsWindowBridge() async {
 bool get supportsPlayerWindow =>
     !kIsWeb &&
     (Platform.isMacOS || Platform.isWindows || Platform.isLinux) &&
-    LibVlcBackend.isSupported;
+    playbackEngineSupported;
 
 /// Entry point for engines that desktop_multi_window created for playback.
 Future<bool> runPlayerWindowIfRequested(List<String> args) async {
@@ -206,7 +206,7 @@ class PlayerWindowPage extends StatefulWidget {
 
 class _PlayerWindowPageState extends State<PlayerWindowPage> {
   final _player = GlobalKey<PlayerPageState>();
-  final _backend = LibVlcBackend();
+  final _backend = createPlayerBackend();
   bool _closing = false;
 
   @override

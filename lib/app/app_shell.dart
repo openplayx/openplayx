@@ -24,6 +24,7 @@ import '../features/library/view/home_page.dart';
 import '../features/sources/view/add_video_page.dart';
 import 'app_destination.dart';
 import '../features/player/view/player_page.dart';
+import '../features/player/adapters/player_engines.dart';
 import '../features/sources/view/source_page.dart';
 import '../capabilities/artwork/artwork_service.dart';
 import '../capabilities/library/library_service.dart';
@@ -208,7 +209,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
         unawaited(_metadataRuntime!.start());
         _backend =
             widget.backend ??
-            (LibVlcBackend.isSupported ? LibVlcBackend() : null);
+            (playbackEngineSupported ? createPlayerBackend() : null);
         _error = null;
         try {
           _initializeAssistant(library);

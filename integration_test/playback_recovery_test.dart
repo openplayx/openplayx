@@ -6,12 +6,18 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
-import 'package:openplayx_playback/playback.dart';
+import 'package:openplayx_media/openplayx_media.dart';
+
+import 'package:openplayx/features/player/adapters/player_engines.dart';
 
 import '../test/app_test_host.dart';
 
 void main() {
-  IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  // The engine draws frames on its own schedule and the waits below are real
+  // time: tester.pump waits for a frame, which a window in the background
+  // does not get for many seconds, while the media keeps playing.
+  binding.framePolicy = LiveTestWidgetsFlutterBindingFramePolicy.fullyLive;
 
   for (final scenario in [
     'switch',
@@ -21,7 +27,7 @@ void main() {
   ]) {
     testWidgets('native playback regression: $scenario', (tester) async {
       final directory = await Directory.systemTemp.createTemp('opx-recovery-');
-      final backend = LibVlcBackend();
+      final backend = createPlayerBackend();
       HttpServer? server;
       addTearDown(() async {
         backend.dispose();
@@ -35,16 +41,54 @@ void main() {
         );
       }
 
+      // Distinct player states, for failure messages.
+      final trace = <String>[];
+      void record() {
+        final v = backend.value;
+        final line =
+            '${v.status.name} @${v.position.inSeconds}s/${v.duration.inMilliseconds}ms '
+            '${v.videoSize?.width.toInt()}x${v.videoSize?.height.toInt()}';
+        if (trace.isEmpty || trace.last != line) trace.add(line);
+      }
+
+      backend.addListener(record);
+      addTearDown(() => backend.removeListener(record));
+
       Future<void> waitFor(bool Function() condition, String stage) async {
         final deadline = DateTime.now().add(const Duration(seconds: 25));
         while (DateTime.now().isBefore(deadline)) {
-          await tester.pump(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
           if (condition()) return;
         }
         fail(
           '$scenario / $stage: ${backend.value.status}, '
-          '${backend.value.position}, ${backend.value.duration}',
+          '${backend.value.position}, ${backend.value.duration}, '
+          'video ${backend.value.videoSize}, ${engineOf(backend)}; '
+          'states: ${trace.skip(trace.length > 12 ? trace.length - 12 : 0).join(' > ')}',
         );
+      }
+
+      // Frames keep coming while a media opens: the engine router creates
+      // the engine inside open(), and libmpv's video setup waits for frames.
+      Future<void> open(Uri uri) async {
+        var done = false;
+        Object? error;
+        final opening = backend
+            .open(uri)
+            .then(
+              (_) => done = true,
+              onError: (Object e) {
+                error = e;
+                done = true;
+              },
+            );
+        final deadline = DateTime.now().add(const Duration(seconds: 25));
+        while (!done && DateTime.now().isBefore(deadline)) {
+          await Future<void>.delayed(const Duration(milliseconds: 100));
+        }
+        if (!done) fail('$scenario: opening $uri did not complete');
+        await opening;
+        if (error != null) throw error!;
       }
 
       // Record the rejection state before retrying, but assert it after recovery
@@ -52,7 +96,7 @@ void main() {
       Future<PlaybackStatus> rejectionState() async {
         final deadline = DateTime.now().add(const Duration(seconds: 25));
         while (DateTime.now().isBefore(deadline)) {
-          await tester.pump(const Duration(milliseconds: 100));
+          await Future<void>.delayed(const Duration(milliseconds: 100));
           final status = backend.value.status;
           if (status == PlaybackStatus.error ||
               status == PlaybackStatus.ended) {
@@ -80,18 +124,20 @@ void main() {
       await tester.pump(const Duration(seconds: 1));
       final first = await fixture('test_video.mp4');
       final second = await fixture('test_video_short.mp4');
-      await backend.open(first.uri);
+      await open(first.uri);
       await playing(12);
 
       if (scenario == 'switch' || scenario == 'corrupt') {
         PlaybackStatus? rejectedStatus;
+        String? rejectedEngine;
         if (scenario == 'corrupt') {
           final bad = await File('${directory.path}/corrupt.mp4')
               .writeAsBytes(List.filled(256, 7));
-          await backend.open(bad.uri);
+          await open(bad.uri);
           rejectedStatus = await rejectionState();
+          rejectedEngine = engineOf(backend);
         }
-        await backend.open(second.uri);
+        await open(second.uri);
         await playing(5);
         // Wait for B's real end event: stale A events must not restore its duration.
         await waitFor(
@@ -102,14 +148,15 @@ void main() {
           backend.value.duration.inMilliseconds,
           inInclusiveRange(4300, 5700),
         );
-        await backend.open(first.uri);
+        await open(first.uri);
         await playing(12);
         if (scenario == 'corrupt') {
           expect(
             rejectedStatus,
             PlaybackStatus.error,
             reason:
-                'Recovery succeeded, but corrupt input must report an error',
+                'Recovery succeeded, but corrupt input must report an error '
+                '($rejectedEngine)',
           );
         }
       } else {
@@ -170,14 +217,16 @@ void main() {
           }
         });
         final uri = Uri.parse('http://127.0.0.1:${server.port}/video.mp4');
-        await backend.open(uri);
+        await open(uri);
         PlaybackStatus? rejectedStatus;
+        String? rejectedEngine;
         if (scenario == 'http-recovery') {
           await waitFor(() => failures > 0, 'HTTP failure requested');
           rejectedStatus = await rejectionState();
+          rejectedEngine = engineOf(backend);
           expect(failures, greaterThan(0));
           available = true;
-          await backend.open(uri);
+          await open(uri);
         }
         await playing(12);
         expect(successes, greaterThan(0));
@@ -185,7 +234,9 @@ void main() {
           expect(
             rejectedStatus,
             PlaybackStatus.error,
-            reason: 'Retry succeeded, but HTTP 503 must report an error',
+            reason:
+                'Retry succeeded, but HTTP 503 must report an error '
+                '($rejectedEngine)',
           );
         }
         if (scenario == 'no-audio-http') {
@@ -204,3 +255,8 @@ void main() {
     });
   }
 }
+
+/// The engine behind a routed player, for failure messages.
+String engineOf(PlayerBackend backend) => backend is RoutedPlayerBackend
+    ? 'engine ${backend.engine?.name}${backend.fellBack ? ' (fallback)' : ''}'
+    : backend.runtimeType.toString();
