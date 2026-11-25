@@ -1248,7 +1248,10 @@ class SourceManager {
           if (entry.isFolder) {
             if (visited.add(entry.ref.id)) queue.add(entry.ref);
           } else {
-            if (!matchesScanExtension(entry.name, scanExtensions)) continue;
+            if (!entry.isDisc &&
+                !matchesScanExtension(entry.name, scanExtensions)) {
+              continue;
+            }
             yield entry;
             if (++emitted >= limit) return;
           }

@@ -625,6 +625,7 @@ class LibraryService {
             continue;
           }
           if (config.isFileSource &&
+              !entry.isDisc &&
               !matchesScanExtension(entry.name, sources.scanExtensions)) {
             continue;
           }

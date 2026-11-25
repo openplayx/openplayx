@@ -116,14 +116,31 @@ class SourceHttp {
     Map<String, String> query = const {},
   ]) async => await _decode(path, query) as List<dynamic>;
 
-  Future<Object?> _decode(String path, Map<String, String> query) async {
+  Future<Object?> request(
+    String path, {
+    String method = 'POST',
+    Map<String, String> query = const {},
+    Map<String, dynamic>? body,
+  }) => _decode(path, query, method: method, body: body);
+
+  Future<Object?> _decode(
+    String path,
+    Map<String, String> query, {
+    String method = 'GET',
+    Map<String, dynamic>? body,
+  }) async {
     final connection = await _connect();
     try {
-      final request = await connection.client.getUrl(
+      final request = await connection.client.openUrl(
+        method,
         uri(path, query, connection.address),
       );
       request.followRedirects = false;
       _headers.forEach(request.headers.set);
+      if (body != null) {
+        request.headers.contentType = ContentType.json;
+        request.write(jsonEncode(body));
+      }
       final response = await request.close().timeout(
         Duration(seconds: config.requestTimeoutSeconds),
         onTimeout: () {
@@ -141,12 +158,11 @@ class SourceHttp {
           retryable: true,
         );
       }
-      return jsonDecode(
-        await utf8.decoder
-            .bind(response)
-            .timeout(Duration(seconds: config.requestTimeoutSeconds))
-            .join(),
-      );
+      final text = await utf8.decoder
+          .bind(response)
+          .timeout(Duration(seconds: config.requestTimeoutSeconds))
+          .join();
+      return text.isEmpty ? null : jsonDecode(text);
     } finally {
       connection.close();
     }
@@ -289,6 +305,183 @@ class JellyfinPlugin
 
   final SourceConfig config;
   final SourceHttp http;
+  final _playbackStreams = <PlayableStream>{};
+
+  // Native engines decode these directly; the fallback has a bounded,
+  // progressive HTTP profile so a playlist cannot escape the credential proxy.
+  static Map<String, dynamic> _profile(bool fallback) => {
+    'Name': 'OpenPlayX native',
+    'MaxStreamingBitrate': 200000000,
+    'MaxStaticBitrate': 200000000,
+    'DirectPlayProfiles': [
+      {
+        'Type': 'Video',
+        'Container': 'mp4,mkv,webm,avi,mov,ts,m2ts',
+        'VideoCodec': fallback
+            ? 'h264'
+            : 'h264,hevc,av1,vp8,vp9,mpeg2video,mpeg4,vc1',
+        'AudioCodec': fallback
+            ? 'aac'
+            : 'aac,ac3,eac3,dts,truehd,flac,opus,vorbis,mp3',
+      },
+      {'Type': 'Audio', 'Container': 'mp3,flac,ogg,opus,m4a,aac,wav'},
+    ],
+    'TranscodingProfiles': [
+      {
+        'Type': 'Video',
+        'Container': 'ts',
+        'VideoCodec': 'h264',
+        'AudioCodec': 'aac',
+        'Protocol': 'http',
+        'Context': 'Streaming',
+      },
+    ],
+  };
+
+  Future<PlayableStream> _playback(
+    String id,
+    String sourceId, {
+    bool fallback = false,
+  }) async {
+    final info = await http.request(
+      'Items/$id/PlaybackInfo',
+      body: {
+        'UserId': config.userId,
+        'MediaSourceId': sourceId,
+        'EnableDirectPlay': !fallback,
+        'EnableDirectStream': true,
+        'EnableTranscoding': true,
+        'AllowVideoStreamCopy': true,
+        'AllowAudioStreamCopy': true,
+        'DeviceProfile': _profile(fallback),
+      },
+    ) as Map<String, dynamic>;
+    final sources = (info['MediaSources'] as List? ?? [])
+        .cast<Map<String, dynamic>>();
+    final source = sources.where((s) => s['Id'] == sourceId).firstOrNull;
+    if (source == null || info['ErrorCode'] != null) {
+      throw PluginException('notFound', appStrings.errNoPlayableVersion);
+    }
+    final sessionId = info['PlaySessionId'] as String?;
+    Future<void> stop() async {
+      if (sessionId == null) return;
+      await http.request(
+        'Sessions/Playing/Stopped',
+        body: {
+          'ItemId': id,
+          'MediaSourceId': sourceId,
+          'PlaySessionId': sessionId,
+          'PositionTicks': 0,
+        },
+      );
+    }
+
+    PlayableStream? stream;
+    try {
+      var method = 'DirectPlay';
+      if (!fallback && source['SupportsDirectPlay'] == true) {
+        stream = await http.stream(
+          'Videos/$id/stream',
+          query: {
+            'Static': 'true',
+            'MediaSourceId': sourceId,
+            'PlaySessionId': ?sessionId,
+          },
+          filename: 'media.${source['Container'] ?? 'bin'}',
+        );
+      } else {
+        final raw = source['TranscodingUrl'] as String?;
+        if (source['SupportsTranscoding'] != true ||
+            raw == null ||
+            source['TranscodingSubProtocol'] != 'http') {
+          throw PluginException(
+            'invalidInput',
+            appStrings.errNoPlayableVersion,
+          );
+        }
+        final url = Uri.parse(raw);
+        final base = Uri.parse(config.address);
+        final prefix = base.path.replaceFirst(RegExp(r'/+$'), '');
+        if (url.hasFragment ||
+            url.userInfo.isNotEmpty ||
+            ((url.hasScheme || url.hasAuthority) &&
+                (url.scheme != base.scheme ||
+                    url.host != base.host ||
+                    url.port != base.port ||
+                    !url.path.startsWith('$prefix/')))) {
+          throw PluginException(
+            'permissionDenied',
+            appStrings.errUnsafeResourceUrl,
+          );
+        }
+        var path = url.path;
+        if (prefix.isNotEmpty && path.startsWith('$prefix/')) {
+          path = path.substring(prefix.length);
+        }
+        final query = Map<String, String>.from(url.queryParameters)
+          ..removeWhere(
+            (k, _) => {'apikey', 'api_key', 'token'}.contains(k.toLowerCase()),
+          );
+        final tracks = (source['MediaStreams'] as List? ?? [])
+            .cast<Map<String, dynamic>>();
+        bool copies(String type) {
+          final track = tracks.where((s) => s['Type'] == type).firstOrNull;
+          final output = query['${type}Codec']?.split(',') ?? [];
+          return output.contains('copy') ||
+              (track == null && type == 'Audio') ||
+              (track?['Codec'] != null && output.contains(track!['Codec']));
+        }
+
+        // Jellyfin's progressive URL names the output codec even when its
+        // encoder selects stream copy. Only container errors allow that
+        // inference; bitrate/profile/range changes still require transcoding.
+        final reasons = (query['TranscodeReasons'] ?? '')
+            .split(',')
+            .where((r) => r.isNotEmpty);
+        method =
+            copies('Video') &&
+                copies('Audio') &&
+                reasons.every(
+                  {
+                    'ContainerNotSupported',
+                    'VideoCodecTagNotSupported',
+                    'DirectPlayError',
+                  }.contains,
+                )
+            ? 'Remux'
+            : 'Transcode';
+        stream = await http.stream(path, query: query, filename: 'media.ts');
+      }
+      final opened = stream;
+      late final PlayableStream handle;
+      handle = PlayableStream(
+        opened.uri,
+        playbackMethod: method,
+        fallback: !fallback && method == 'DirectPlay'
+            ? () => _playback(id, sourceId, fallback: true)
+            : null,
+        release: () async {
+          try {
+            await opened.release();
+          } finally {
+            _playbackStreams.remove(handle);
+            await stop();
+          }
+        },
+      );
+      _playbackStreams.add(handle);
+      return handle;
+    } catch (_) {
+      await stream?.release();
+      try {
+        await stop();
+      } catch (_) {
+        /* Preserve the negotiation error. */
+      }
+      rethrow;
+    }
+  }
+
   @override
   PluginManifest get manifest => SourceSchemas.forKind(config.kind);
   @override
@@ -388,6 +581,9 @@ class JellyfinPlugin
     if (selected == null) {
       throw PluginException('invalidInput', appStrings.errReselectVersion);
     }
+    if (config.kind == SourceKind.jellyfin && item['MediaType'] == 'Video') {
+      return _playback(id, selected['Id'] as String);
+    }
     return http.stream(
       '${item['MediaType'] == 'Audio' ? 'Audio' : 'Videos'}/$id/stream',
       query: {'Static': 'true', 'MediaSourceId': selected['Id'] as String},
@@ -432,7 +628,13 @@ class JellyfinPlugin
   }
 
   @override
-  Future<void> dispose() async => http.close();
+  Future<void> dispose() async {
+    try {
+      await Future.wait(_playbackStreams.toList().map((s) => s.release()));
+    } finally {
+      http.close();
+    }
+  }
 }
 
 class PlexPlugin

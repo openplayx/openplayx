@@ -66,7 +66,11 @@ class _ScanScopePageState extends State<ScanScopePage> {
             ...page.entries.where(
               (e) =>
                   !e.isFolder &&
-                  matchesScanExtension(e.name, widget.sources.scanExtensions),
+                  (e.isDisc ||
+                      matchesScanExtension(
+                        e.name,
+                        widget.sources.scanExtensions,
+                      )),
             ),
           ];
           _next = page.nextOffset;

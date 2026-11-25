@@ -102,6 +102,8 @@ class PlayerController extends ChangeNotifier {
   PlayerState get state => _state;
   bool _disposed = false;
   PlayableStream? _stream;
+  Future<void>? _streamRecovery;
+  int _mediaEpoch = 0;
 
   /// Source of the current stream, watched for LAN / remote access moves.
   String? _remoteSource;
@@ -197,6 +199,7 @@ class PlayerController extends ChangeNotifier {
   /// Switches to a new media named [name]: saves and forgets the previous
   /// one, clears the error and every per-media state.
   void beginMedia(String name) {
+    _mediaEpoch++;
     _tracked = _played = _restored = false;
     _remoteSource = null;
     _analytics.begin();
@@ -225,7 +228,16 @@ class PlayerController extends ChangeNotifier {
     final previous = _stream;
     _stream = selection.stream;
     await command(() async {
-      await backend.open(selection.stream.uri);
+      try {
+        await backend.open(selection.stream.uri);
+      } catch (_) {
+        if (selection.stream.fallback == null) rethrow;
+        await _recoverStream(selection.stream);
+      }
+      if (backend.value.status == PlaybackStatus.error &&
+          selection.stream.fallback != null) {
+        await _recoverStream(selection.stream);
+      }
       await backend.setSpeed(tools.state.speed);
     });
     await previous?.release();
@@ -257,6 +269,7 @@ class PlayerController extends ChangeNotifier {
   Future<void> stopMedia({
     required Future<void> Function() restoreDisplay,
   }) async {
+    _mediaEpoch++;
     history.checkpoint(force: true);
     _analytics.finish();
     await backend.stop();
@@ -274,6 +287,7 @@ class PlayerController extends ChangeNotifier {
   }
 
   Future<void> releaseStream() async {
+    _mediaEpoch++;
     final stream = _stream;
     _stream = null;
     await stream?.release();
@@ -283,6 +297,14 @@ class PlayerController extends ChangeNotifier {
   /// the media, boost and background pause.
   void onPlayback() {
     final snapshot = backend.value;
+    final stream = _stream;
+    if (snapshot.status == PlaybackStatus.error &&
+        stream?.fallback != null &&
+        _streamRecovery == null &&
+        !_disposed &&
+        !_state.closing) {
+      unawaited(command(() => _recoverStream(stream!)));
+    }
     _analytics.update(snapshot);
     if (history.onPlayback(snapshot)) return;
     tools.onPlayback(snapshot);
@@ -307,10 +329,41 @@ class PlayerController extends ChangeNotifier {
     }
   }
 
+  Future<void> _recoverStream(PlayableStream stream) {
+    final pending = _streamRecovery;
+    if (pending != null) return pending;
+    final epoch = _mediaEpoch;
+    // Defer until the backend has finished notifying listeners.
+    final recovery = Future<void>(() async {
+      if (_disposed || epoch != _mediaEpoch || _stream != stream) return;
+      await backend.stop();
+      final next = await stream.retry(releaseCurrent: true);
+      if (next == null) return;
+      if (_disposed || epoch != _mediaEpoch || _stream != stream) {
+        await next.release();
+        return;
+      }
+      await stream.release();
+      if (_disposed || epoch != _mediaEpoch || _stream != stream) {
+        await next.release();
+        return;
+      }
+      _stream = next;
+      await backend.open(next.uri);
+      await backend.setSpeed(tools.state.speed);
+      if (_state.background && !_disposed) await backend.pause();
+    });
+    _streamRecovery = recovery;
+    return recovery.whenComplete(() {
+      if (_streamRecovery == recovery) _streamRecovery = null;
+    });
+  }
+
   /// Saves the last position and stops listening; the stream and the
   /// backend are released by their owner afterwards.
   @override
   void dispose() {
+    _mediaEpoch++;
     _analytics.finish();
     history.dispose();
     _disposed = true;

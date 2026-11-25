@@ -148,6 +148,19 @@ void main() {
               {'Id': 'v2', 'Name': '4K'},
             ],
           };
+        case '/base/Items/movie/PlaybackInfo':
+          result = {
+            'PlaySessionId': 'session',
+            'MediaSources': [
+              {'Id': 'v1', 'SupportsDirectPlay': true},
+              {'Id': 'v2', 'SupportsDirectPlay': true},
+            ],
+          };
+        case '/base/Sessions/Playing':
+        case '/base/Sessions/Playing/Stopped':
+          request.response.statusCode = 204;
+          await request.response.close();
+          return;
         case '/base/library/sections':
           result = {
             'MediaContainer': {

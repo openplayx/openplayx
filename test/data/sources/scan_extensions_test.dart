@@ -16,4 +16,15 @@ void main() {
     expect(matchesScanExtension('.DS_Store', const []), isFalse);
     expect(matchesScanExtension('.hidden.mkv', const []), isFalse);
   });
+  test('default presets: unique, lower case, no playlists or disc images', () {
+    expect(defaultScanExtensions.toSet().length, defaultScanExtensions.length);
+    for (final e in defaultScanExtensions) {
+      expect(e, e.toLowerCase());
+    }
+    for (final e in ['pls', 'asx', 'm3u', 'cue', 'strm', 'iso', 'img']) {
+      expect(defaultScanExtensions, isNot(contains(e)));
+    }
+    expect(matchesScanExtension('Concert.DSF', defaultScanExtensions), isTrue);
+    expect(matchesScanExtension('show.wtv', defaultScanExtensions), isTrue);
+  });
 }

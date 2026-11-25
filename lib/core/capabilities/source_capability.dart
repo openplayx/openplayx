@@ -46,11 +46,13 @@ class SourceEntry {
     required this.isFolder,
     this.media,
     this.size,
+    this.isDisc = false,
   });
   final SourceMediaInfo? media;
   final ResourceRef ref;
   final String name;
   final bool isFolder;
+  final bool isDisc;
 
   /// File size in bytes, when the source lists it.
   final int? size;
@@ -109,13 +111,30 @@ class ResolveRequest {
 /// A session-owned handle. URI contains no remote credentials and is never
 /// persisted. Release only after the playback backend has stopped using it.
 class PlayableStream {
-  PlayableStream(this.uri, {Future<void> Function()? release})
+  PlayableStream(
+    this.uri, {
+    Future<void> Function()? release,
+    this.fallback,
+    this.playbackMethod,
+  })
     // Public named argument describes the resource lifecycle.
     // ignore: prefer_initializing_formals
     : _release = release;
   final Uri uri;
+
+  /// One controlled server-side retry, after stopping the current backend.
+  final Future<PlayableStream> Function()? fallback;
+  final String? playbackMethod;
   final Future<void> Function()? _release;
   bool _released = false;
+  bool _retried = false;
+  Future<PlayableStream?> retry({bool releaseCurrent = false}) async {
+    if (_released || _retried || fallback == null) return null;
+    _retried = true;
+    if (releaseCurrent) await release();
+    return fallback!();
+  }
+
   Future<void> release() async {
     if (_released) return;
     _released = true;

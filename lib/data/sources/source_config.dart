@@ -59,13 +59,25 @@ enum SourceKind {
 
 enum ScanMode { manual, disabled }
 
-/// Suggested scan suffixes, grouped so the settings list stays scannable.
+/// Suggested scan suffixes, grouped so the settings list stays scannable:
+/// common ones first, then the less common ones the format tests
+/// (package-media `tool/test_formats.sh`, ALL-209) play through the engine
+/// router. Playlists and reference files (pls, asx, cue, strm) and disc
+/// images stay out: they need their own handling, not a plain scan.
 const scanExtensionVideoPresets = [
   'mp4', 'mkv', 'avi', 'mov', 'webm', 'm4v', 'ts', 'm2ts', 'mts', 'wmv', //
-  'flv', 'rmvb', 'mpg', 'mpeg', '3gp', 'vob',
+  'flv', 'rmvb', 'mpg', 'mpeg', '3gp', 'vob', //
+  'asf', 'rm', 'divx', 'xvid', 'qt', 'm2t', 'm2v', 'tp', 'wtv', 'mxf', //
+  'dv', '3g2', 'amv', 'f4v', 'mk3d', 'mpe', 'ogv', 'ogm', 'pva', 'nsv', //
+  'fli', 'svq3', 'vp3', 'ty', 'rec',
 ];
 const scanExtensionAudioPresets = [
   'mp3', 'flac', 'm4a', 'aac', 'wav', 'ogg', 'opus', 'ape', 'wma', 'aiff', //
+  'alac', 'dsf', 'wv', 'mka', 'rf64', 'ac3', 'eac3', 'ec3', 'dts', 'mp2', //
+  'mpa', 'oga', 'aif', 'aifc', 'au', 'ra', 'gsm', 'm4b', 'adx', 'ast', //
+  'mmf', 'amr', 'awb', 'act', 'mod', 'xm', 'it', 's3m', '669', 'amf', //
+  'far', 'med', 'okt', 'stm', 'ult', 'dmf', 'gdm', 'imf', 'm15', 'sfx', //
+  'nsf', 'gym',
 ];
 
 /// Every video and audio preset is selected until the user changes it.

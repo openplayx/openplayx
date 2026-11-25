@@ -9,6 +9,7 @@ import 'source_config.dart';
 import '../remote_access/remote_transport.dart';
 import 'source_schema.dart';
 import 'stream_gateway.dart';
+import 'disc_directory.dart';
 import '../../l10n/l10n.dart';
 
 void checkOwnership(String id, ResourceRef? ref, CallContext context) {
@@ -41,6 +42,27 @@ class LocalFolderPlugin
   final SourceConfig config;
   @override
   PluginManifest get manifest => SourceSchemas.forKind(SourceKind.local);
+
+  Future<Uri?> _disc(String path) async {
+    final uri = await discDirectoryUri(path);
+    if (uri == null) return null;
+    // Native readers open sibling files themselves. Validate the disc root
+    // and every child against authorization, scope, and symlink boundaries.
+    final discPath = uri.replace(scheme: 'file').toFilePath();
+    await _path(discPath);
+    await for (final child in Directory(
+      discPath,
+    ).list(recursive: true, followLinks: false)) {
+      if (child is Link) {
+        throw PluginException(
+          'permissionDenied',
+          appStrings.errOutsideAuthorizedFolder,
+        );
+      }
+      await _path(child.path);
+    }
+    return uri;
+  }
 
   Future<String> _path(String? id) async {
     final root = await Directory(config.address).resolveSymbolicLinks();
@@ -92,11 +114,20 @@ class LocalFolderPlugin
           )
           .replaceAll('\\', '/');
       if (!config.allows(relative, directory: file is Directory)) continue;
+      Uri? disc;
+      if (file is Directory) {
+        try {
+          disc = await _disc(file.path);
+        } on PluginException {
+          continue;
+        }
+      }
       entries.add(
         SourceEntry(
           ResourceRef(config.id, file.path),
           file.uri.pathSegments.where((s) => s.isNotEmpty).last,
-          isFolder: file is Directory,
+          isFolder: file is Directory && disc == null,
+          isDisc: disc != null,
           size: file is File ? (await file.stat()).size : null,
         ),
       );
@@ -111,6 +142,8 @@ class LocalFolderPlugin
   ) async {
     checkOwnership(config.id, request.resource, context);
     final file = File(await _path(request.resource.id));
+    final disc = await _disc(file.path);
+    if (disc != null) return PlayableStream(disc);
     if (await FileSystemEntity.type(file.path) != FileSystemEntityType.file) {
       throw PluginException('invalidInput', appStrings.errChooseFile);
     }
