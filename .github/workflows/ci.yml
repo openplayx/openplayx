@@ -1,0 +1,94 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  test:
+    name: Analyze & Unit Tests
+    runs-on: ubuntu-latest
+    env:
+      SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+    defaults:
+      run:
+        working-directory: openplayx
+
+    steps:
+      - name: Checkout openplayx
+        uses: actions/checkout@v4
+        with:
+          path: openplayx
+          fetch-depth: 0
+
+      - name: Checkout package-libvlc
+        uses: actions/checkout@v4
+        with:
+          repository: openplayx/package-libvlc
+          path: package-libvlc
+          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
+
+      - name: Checkout package-ffmpeg
+        uses: actions/checkout@v4
+        with:
+          repository: openplayx/package-ffmpeg
+          path: ffmpeg-package
+          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
+
+      - name: Checkout package-media
+        uses: actions/checkout@v4
+        with:
+          repository: openplayx/package-media
+          path: package-media
+          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
+
+      - name: Checkout package-whisper
+        uses: actions/checkout@v4
+        with:
+          repository: openplayx/package-whisper
+          path: package-whisper
+          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
+
+      - name: Checkout smb_connect
+        uses: actions/checkout@v4
+        with:
+          repository: openplayx/smb_connect
+          path: smb_connect
+          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
+
+      - name: Install Linux test dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libsqlite3-dev
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          flutter-version: '3.50.0'
+          cache: true
+
+      - name: Install dependencies
+        run: flutter pub get
+
+      - name: Generate localizations
+        run: flutter gen-l10n
+
+      - name: Analyze
+        run: flutter analyze
+
+      - name: Run unit & widget tests with coverage
+        run: flutter test --coverage
+
+      - name: SonarQube Cloud Scan
+        if: ${{ env.SONAR_TOKEN != '' }}
+        uses: SonarSource/sonarqube-scan-action@v5
+        with:
+          projectBaseDir: openplayx

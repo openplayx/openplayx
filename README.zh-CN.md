@@ -2,7 +2,16 @@
 
 [English](README.md) | 简体中文
 
-[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+[![CI](https://img.shields.io/github/actions/workflow/status/openplayx/openplayx/ci.yml?branch=main&label=CI)](https://github.com/openplayx/openplayx/actions/workflows/ci.yml)
+[![CodeFactor](https://www.codefactor.io/repository/github/openplayx/openplayx/badge)](https://www.codefactor.io/repository/github/openplayx/openplayx)
+[![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=openplayx_openplayx&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=openplayx_openplayx)
+[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=openplayx_openplayx&metric=coverage)](https://sonarcloud.io/summary/new_code?id=openplayx_openplayx)
+[![Release](https://img.shields.io/github/v/release/openplayx/openplayx)](https://github.com/openplayx/openplayx/releases)
+[![Dart SDK](https://img.shields.io/badge/Dart-%5E3.13.7-0175C2?logo=dart&logoColor=white)](pubspec.yaml)
+[![License](https://img.shields.io/github/license/openplayx/openplayx)](LICENSE)
+[![Docs](https://img.shields.io/badge/docs-openplayx.com-blue)](https://openplayx.com/docs/zh-Hans/)
+[![Repo Size](https://img.shields.io/github/repo-size/openplayx/openplayx)](https://github.com/openplayx/openplayx)
+[![Code Size](https://img.shields.io/github/languages/code-size/openplayx/openplayx)](https://github.com/openplayx/openplayx)
 
 基于 Flutter 与 libVLC 的媒体播放器，支持本地文件、网络存储和媒体服务器，提供本机媒体库及可选 AI 助手。
 
