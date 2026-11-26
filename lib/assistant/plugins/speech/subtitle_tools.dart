@@ -56,14 +56,15 @@ class SubtitleTools {
   bool _aiBackend(AsrBackendConfig c) =>
       _ai(c.providerId, instanceId: c.id, capability: 'speech.transcribe');
 
-  /// The backend the host uses: the first available one, on-device first.
+  /// Use the selected backend; never silently upload to another destination.
   /// Returns (config, null) or (null, reason).
   Future<(AsrBackendConfig?, String?)> _pickBackend() async {
-    final candidates = service.backends.list().where(_aiBackend).toList()
-      ..sort(
-        (a, b) =>
-            (a.kind == 'embedded' ? 0 : 1) - (b.kind == 'embedded' ? 0 : 1),
-      );
+    final candidates = service.backends
+        .list()
+        .where(
+          (c) => c.id == service.backends.defaultBackendId && _aiBackend(c),
+        )
+        .toList();
     if (candidates.isEmpty) return (null, 'backend_not_configured');
     String? reason;
     for (final c in candidates) {

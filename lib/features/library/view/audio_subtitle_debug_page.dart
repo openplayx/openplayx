@@ -40,7 +40,8 @@ class AudioSubtitleTarget {
 
 /// Developer-mode page (design §3): extract audio and recognise subtitles
 /// for one selected resource without the LLM. Nothing runs until a button
-/// is pressed; leaving cancels unfinished work and discards unsaved output.
+/// is pressed; leaving cancels unfinished work. Completed chunk checkpoints
+/// survive for retry; unsaved final output is discarded.
 class AudioSubtitleDebugPage extends StatefulWidget {
   const AudioSubtitleDebugPage({
     super.key,
@@ -87,7 +88,7 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     if (service == null) return;
     _session = DebugSubtitleSession(service, widget.target.resource);
     _backends = service.backends.list();
-    _backendId = _backends.firstOrNull?.id;
+    _backendId = service.backends.defaultBackendId;
     unawaited(_inspect());
     unawaited(_refreshBackends());
   }
@@ -129,7 +130,7 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     setState(() {
       _backends = service.backends.list();
       if (!_backends.any((c) => c.id == _backendId)) {
-        _backendId = _backends.firstOrNull?.id;
+        _backendId = service.backends.defaultBackendId;
       }
       _status.clear();
     });
@@ -197,6 +198,8 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     'remote_stream_requires_download' => l.asrErrorRemoteStream,
     'audio_track_changed' => l.asrErrorTrackChanged,
     'cancelled' => l.asrCancelled,
+    'backend_busy' => l.asrBusyRetry,
+    'platform_quota_exceeded' => l.asrPlatformUnavailable,
     _ => code,
   };
 
@@ -225,7 +228,10 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
         ),
       ),
     );
-    if (mounted) await _refreshBackends();
+    if (mounted) {
+      _backendId = _service!.backends.defaultBackendId;
+      await _refreshBackends();
+    }
   }
 
   // ------------------------------------------------------------- actions
@@ -242,6 +248,35 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
     setState(() => _rangeError = null);
     final config = transcribe ? _service!.backends.get(_backendId ?? '') : null;
     if (transcribe && config == null) return;
+    if (config != null &&
+        config.kind == 'http' &&
+        config.uploadConsentAt == null) {
+      final allowed = await showShadDialog<bool>(
+        context: context,
+        builder: (c) => ShadDialog(
+          title: Text(l.asrUploadTitle),
+          description: Text(
+            l.asrUploadBody(
+              _whole ? l.asrWhole : '${clock(range.$1)} – ${clock(range.$2!)}',
+              config.host,
+              config.allowInsecureHttp ? l.asrUploadInsecure : '',
+            ),
+          ),
+          actions: [
+            ShadButton.ghost(
+              onPressed: () => Navigator.pop(c, false),
+              child: Text(l.cancel),
+            ),
+            ShadButton(
+              onPressed: () => Navigator.pop(c, true),
+              child: Text(l.asrUploadAllow),
+            ),
+          ],
+        ),
+      );
+      if (allowed != true || !mounted) return;
+      _service!.backends.grantUploadConsent(config.id);
+    }
     if (_whole && !await _confirmWhole(info)) return;
     if (!mounted) return;
     final SubtitleRun run;
@@ -510,7 +545,9 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
 
   Widget _backendPicker() {
     if (_backends.isEmpty) return Text(l.asrNoBackends);
-    String label(AsrBackendConfig c) => c.kind == 'embedded'
+    String label(AsrBackendConfig c) => c.kind == 'platform'
+        ? l.asrPlatform
+        : c.kind == 'embedded'
         ? '${l.asrEmbedded} · ${c.modelId}'
         : '${l.asrHttp} · ${c.name} · ${c.modelId}';
     final status = _status[_backendId];
@@ -529,6 +566,8 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
               Text(label(_backends.firstWhere((c) => c.id == v))),
           onChanged: (v) => setState(() => _backendId = v),
         ),
+        if (_backendId == 'platform')
+          Text(l.asrPlatformHint, style: ShadTheme.of(context).textTheme.muted),
         const SizedBox(height: AppSpacing.xs),
         Text(
           status == null
@@ -592,6 +631,16 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
               onPressed: () => _go(transcribe: true),
               child: Text(l.asrExtractAndTranscribe),
             ),
+            ShadButton.outline(
+              key: const ValueKey('asr-generate-whole'),
+              enabled:
+                  ready && !_busy && backendReady && _info?.durationMs != null,
+              onPressed: () {
+                setState(() => _whole = true);
+                _go(transcribe: true);
+              },
+              child: Text(l.asrGenerateWhole),
+            ),
             ShadButton.ghost(
               key: const ValueKey('asr-cancel'),
               enabled: _busy && _state!.status != SubtitleRunStatus.cancelling,
@@ -641,6 +690,14 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         Text(statusText, key: const ValueKey('asr-status')),
+        if (s.completedAudioMs != null && s.totalAudioMs != null)
+          Text(
+            l.asrChunkProgress(
+              clock(s.completedAudioMs!),
+              clock(s.totalAudioMs!),
+            ),
+            key: const ValueKey('asr-chunk-progress'),
+          ),
         if (!s.status.terminal) ...[
           const SizedBox(height: AppSpacing.sm),
           // No invented overall percentage: stage progress when known.

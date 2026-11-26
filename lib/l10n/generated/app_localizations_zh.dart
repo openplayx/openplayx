@@ -1647,7 +1647,7 @@ class AppLocalizationsZh extends AppLocalizations {
   String get asrContinue => '继续';
 
   @override
-  String get asrWholeTitle => '处理整集？';
+  String get asrWholeTitle => '处理整部影片？';
 
   @override
   String asrWholeBody(String duration, String size) {
@@ -4346,6 +4346,48 @@ class AppLocalizationsZh extends AppLocalizations {
   @override
   String get connectorSourceClearLocalHelp =>
       '仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。';
+
+  @override
+  String get asrPlatform => 'Groq（免费，默认）';
+
+  @override
+  String get asrPlatformHint =>
+      '免登录、免配置。所选音频通过 OpenPlayX 上传至 Groq V3，服务受可用性及限流约束。';
+
+  @override
+  String get asrLocal => '本地下载模型';
+
+  @override
+  String get asrCustom => '自定义 API';
+
+  @override
+  String get asrCustomHint => '使用自己的 OpenAI 兼容接口或 OpenPlayX ASR 服务。';
+
+  @override
+  String get asrProtocol => 'API 协议';
+
+  @override
+  String get asrGenerateWhole => '生成整部字幕';
+
+  @override
+  String asrChunkProgress(String done, String total) {
+    return '已完成 $done / $total，重试时复用已完成片段。';
+  }
+
+  @override
+  String get asrBusyRetry => '服务繁忙，请重试，将从已完成片段继续。';
+
+  @override
+  String get asrPlatformUnavailable => '平台服务达到使用上限，请稍后重试或选择其他服务。';
+
+  @override
+  String get plPictureInPicture => '画中画';
+
+  @override
+  String get plExitPictureInPicture => '退出画中画';
+
+  @override
+  String get plPictureInPictureFailed => '无法进入画中画，请重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -5990,7 +6032,7 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   String get asrContinue => '继续';
 
   @override
-  String get asrWholeTitle => '处理整集？';
+  String get asrWholeTitle => '处理整部影片？';
 
   @override
   String asrWholeBody(String duration, String size) {
@@ -8689,6 +8731,48 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
   @override
   String get connectorSourceClearLocalHelp =>
       '仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。';
+
+  @override
+  String get asrPlatform => 'Groq（免费，默认）';
+
+  @override
+  String get asrPlatformHint =>
+      '免登录、免配置。所选音频通过 OpenPlayX 上传至 Groq V3，服务受可用性及限流约束。';
+
+  @override
+  String get asrLocal => '本地下载模型';
+
+  @override
+  String get asrCustom => '自定义 API';
+
+  @override
+  String get asrCustomHint => '使用自己的 OpenAI 兼容接口或 OpenPlayX ASR 服务。';
+
+  @override
+  String get asrProtocol => 'API 协议';
+
+  @override
+  String get asrGenerateWhole => '生成整部字幕';
+
+  @override
+  String asrChunkProgress(String done, String total) {
+    return '已完成 $done / $total，重试时复用已完成片段。';
+  }
+
+  @override
+  String get asrBusyRetry => '服务繁忙，请重试，将从已完成片段继续。';
+
+  @override
+  String get asrPlatformUnavailable => '平台服务达到使用上限，请稍后重试或选择其他服务。';
+
+  @override
+  String get plPictureInPicture => '画中画';
+
+  @override
+  String get plExitPictureInPicture => '退出画中画';
+
+  @override
+  String get plPictureInPictureFailed => '无法进入画中画，请重试。';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -10333,7 +10417,7 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   String get asrContinue => '繼續';
 
   @override
-  String get asrWholeTitle => '處理整集？';
+  String get asrWholeTitle => '處理整部影片？';
 
   @override
   String asrWholeBody(String duration, String size) {
@@ -13032,4 +13116,46 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
   @override
   String get connectorSourceClearLocalHelp =>
       '僅清除此裝置的登入和目錄設定，Connector 服務仍保留。來源將隱藏，恢復顯示後可以重新設定。';
+
+  @override
+  String get asrPlatform => 'Groq（免費，預設）';
+
+  @override
+  String get asrPlatformHint =>
+      '免登入、免設定。所選音訊透過 OpenPlayX 上傳至 Groq V3，服務受可用性及流量限制。';
+
+  @override
+  String get asrLocal => '本機下載模型';
+
+  @override
+  String get asrCustom => '自訂 API';
+
+  @override
+  String get asrCustomHint => '使用自己的 OpenAI 相容介面或 OpenPlayX ASR 服務。';
+
+  @override
+  String get asrProtocol => 'API 協定';
+
+  @override
+  String get asrGenerateWhole => '產生整部字幕';
+
+  @override
+  String asrChunkProgress(String done, String total) {
+    return '已完成 $done / $total，重試時重用已完成片段。';
+  }
+
+  @override
+  String get asrBusyRetry => '服務忙碌，請重試，將從已完成片段繼續。';
+
+  @override
+  String get asrPlatformUnavailable => '平台服務達到使用上限，請稍後重試或選擇其他服務。';
+
+  @override
+  String get plPictureInPicture => '子母畫面';
+
+  @override
+  String get plExitPictureInPicture => '退出子母畫面';
+
+  @override
+  String get plPictureInPictureFailed => '無法進入子母畫面，請重試。';
 }

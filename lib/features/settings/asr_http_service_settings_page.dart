@@ -30,7 +30,7 @@ class _AsrHttpServiceSettingsPageState
   late final _url = TextEditingController(text: widget.existing?.url ?? '');
   late final _model = DefaultTextController(
     text: widget.existing?.modelId,
-    defaultValue: 'whisper-base-multilingual',
+    defaultValue: 'whisper-large-v3',
   );
   late final _language = DefaultTextController(
     text: widget.existing?.language,
@@ -38,6 +38,7 @@ class _AsrHttpServiceSettingsPageState
   );
   final _token = SecretController();
   late bool _insecure = widget.existing?.allowInsecureHttp ?? false;
+  late String _protocol = widget.existing?.protocol ?? 'openai';
   String? _error;
 
   @override
@@ -65,6 +66,7 @@ class _AsrHttpServiceSettingsPageState
         AsrBackendConfig(
           id: existing?.id ?? AsrBackendRegistry.newId(),
           kind: 'http',
+          protocol: _protocol,
           name: _name.text,
           url: _url.text.trim(),
           modelId: _model.resolved,
@@ -73,6 +75,7 @@ class _AsrHttpServiceSettingsPageState
           uploadConsentAt: existing?.uploadConsentAt,
         ),
       );
+      widget.registry.selectDefault(saved.id);
       if (_token.edited.isNotEmpty) {
         widget.registry.setToken(saved.id, _token.edited);
       }
@@ -105,6 +108,28 @@ class _AsrHttpServiceSettingsPageState
           SettingsSection(
             footer: l.asrServicePrivacy,
             children: [
+              SettingsRow(
+                title: l.asrProtocol,
+                control: ShadSelect<String>(
+                  initialValue: _protocol,
+                  options: const [
+                    ShadOption(
+                      value: 'openai',
+                      child: Text('OpenAI-compatible'),
+                    ),
+                    ShadOption(
+                      value: 'openplayx',
+                      child: Text('OpenPlayX ASR'),
+                    ),
+                  ],
+                  selectedOptionBuilder: (_, value) => Text(
+                    value == 'openai' ? 'OpenAI-compatible' : 'OpenPlayX ASR',
+                  ),
+                  onChanged: (value) {
+                    if (value != null) setState(() => _protocol = value);
+                  },
+                ),
+              ),
               _field(l.asrServiceName, SettingsTextInput(controller: _name)),
               _field(
                 l.asrServiceUrl,

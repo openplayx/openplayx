@@ -14,6 +14,7 @@ import '../controller/media_info_controller.dart';
 import '../controller/playback_history.dart';
 import '../controller/playback_tools_controller.dart';
 import '../controller/player_controller.dart';
+import '../controller/picture_in_picture_controller.dart';
 import '../controller/player_orientation_session.dart';
 import '../controller/subtitle_controller.dart';
 import '../model/audio_track_state.dart';
@@ -69,6 +70,7 @@ class PlayerPage extends StatefulWidget {
     this.active = true,
     this.prefs = const PlayerPrefs(),
     this.fullscreen,
+    this.pictureInPicture,
     this.controlsVisibility,
     this.onAssistantPressed,
   });
@@ -90,6 +92,7 @@ class PlayerPage extends StatefulWidget {
   final Future<Uri?> Function() pickSubtitle;
   final PlayerPrefs prefs;
   final WindowFullscreen? fullscreen;
+  final PictureInPictureController? pictureInPicture;
 
   /// Optional shared visibility for controls drawn by the host. The host owns
   /// and disposes this notifier when supplied.
@@ -107,6 +110,74 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   late final PlayerBackend _backend;
   late final SourceManager _sources;
   late final WindowFullscreen _window;
+  late final PictureInPictureController _pip;
+  bool _appAway = false;
+  bool _changingPip = false;
+  bool get _pipVideoOnly => _mobileDisplay && _pip.keepsPlaying;
+  bool get _canPictureInPicture =>
+      _pip.supported &&
+      (!_mobileDisplay ||
+          defaultTargetPlatform != TargetPlatform.iOS ||
+          _backend.supportsPictureInPictureOutput);
+
+  void _pipChanged() {
+    if (!mounted) return;
+    if (!_appAway && _pip.restoring) {
+      _pip.completeRestore();
+      return;
+    }
+    _player.setBackground(_appAway && _mobileDisplay && !_pip.keepsPlaying);
+    setState(() {});
+    if (!_pip.keepsPlaying) _showControls();
+  }
+
+  Future<void> _togglePictureInPicture() async {
+    if (_changingPip || !_enabled) return;
+    _changingPip = true;
+    try {
+      if (_pip.active) {
+        await _pip.exit();
+      } else {
+        _endBoost();
+        _closePanel();
+        final size = _backend.value.videoSize;
+        final ratio = size != null && size.height > 0
+            ? size.width / size.height
+            : 16 / 9;
+        final handle =
+            _mobileDisplay && defaultTargetPlatform == TargetPlatform.iOS
+            ? await _backend.pictureInPictureHandle()
+            : null;
+        if (!mounted) return;
+        _pip.prepare();
+        await WidgetsBinding.instance.endOfFrame;
+        if (!mounted) return;
+        await _pip.enter(aspectRatio: ratio, handle: handle);
+      }
+    } catch (error, stack) {
+      debugPrint('Picture in picture failed: $error\n$stack');
+      if (mounted) {
+        showAppToast(
+          context,
+          l.plPictureInPictureFailed,
+          kind: FeedbackKind.error,
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _changingPip = false);
+    }
+  }
+
+  Widget _pictureInPictureButton() => PlayerIconButton(
+    tooltip: _pip.active ? l.plExitPictureInPicture : l.plPictureInPicture,
+    icon: _pip.active
+        ? AppIcons.exitPictureInPicture
+        : AppIcons.pictureInPicture,
+    active: _pip.active,
+    onPressed: _enabled && !_changingPip
+        ? () => unawaited(_togglePictureInPicture())
+        : null,
+  );
   late final PlayerController _player;
   late final Listenable _playerListeners;
   late final PlayerAssistant _assistant;
@@ -356,6 +427,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   Future<void> _setFullscreen(bool value) async {
     if (_mobileDisplay || !_window.isSupported) return;
+    if (_pip.active) {
+      await _pip.exit();
+      return;
+    }
     final result = await _window.setFullscreen(value);
     if (mounted) setState(() => _fullscreen = result);
   }
@@ -578,6 +653,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     _backend = widget.backend ?? createPlayerBackend();
     _sources = widget.sourceManager ?? SourceManager();
     _window = widget.fullscreen ?? WindowFullscreen();
+    _pip = widget.pictureInPicture ?? PictureInPictureController();
     // Phones show the remaining time on the right by default (design M-1).
     _showRemaining = _mobileDisplay;
     if (!_mobileDisplay) {
@@ -640,6 +716,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _subtitles,
       _info,
     ])..addListener(_rebuild);
+    _pip.addListener(_pipChanged);
+    unawaited(_pip.initialize());
     // tvOS reports as iOS but has no orientation channel; a failed listen is
     // reported as an uncaught FlutterError, not through onError.
     if (_mobileDisplay && Platform.operatingSystem != 'tvos') {
@@ -722,7 +800,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     if (away) _history.checkpoint(force: true);
     // Phones pause in the background. Desktop windows report "hidden" when
     // minimised or covered by another window; like VLC they keep playing.
-    _player.setBackground(away && _mobileDisplay);
+    _appAway = away;
+    if (state == AppLifecycleState.resumed) _pip.completeRestore();
+    _player.setBackground(away && _mobileDisplay && !_pip.keepsPlaying);
     // The OS may restore the bars while the app is away.
     if (state == AppLifecycleState.resumed && widget.active) _enterImmersive();
   }
@@ -800,6 +880,15 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     _player.setClosing(true);
     _endBoost();
     try {
+      if (_pip.keepsPlaying) {
+        try {
+          await _pip.exit();
+        } catch (error) {
+          debugPrint(
+            'Could not leave picture in picture while stopping: $error',
+          );
+        }
+      }
       await _openingMedia;
       await _tools.speedCommands;
       if (!mounted) return false;
@@ -869,6 +958,8 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
 
   @override
   void dispose() {
+    _pip.removeListener(_pipChanged);
+    _pip.dispose();
     unawaited(_deviceOrientationSubscription?.cancel());
     if (widget.active) _exitImmersive();
     unawaited(
@@ -1365,7 +1456,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   /// Portrait phones put the picture at the top, under the top bar, with
   /// the controls below it (design M-7).
   bool get _portraitPhone {
-    if (!_mobileDisplay) return false;
+    if (!_mobileDisplay || _pipVideoOnly) return false;
     final size = MediaQuery.sizeOf(context);
     return size.height > size.width;
   }

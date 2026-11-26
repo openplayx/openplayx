@@ -9,6 +9,7 @@ import '../../data/configuration/configuration_database.dart';
 import 'asr_model_store.dart';
 import 'embedded_whisper_backend.dart';
 import 'http_asr_backend.dart';
+import 'openai_asr_backend.dart';
 
 /// One configured recognition backend instance (Settings → AI & models →
 /// Speech recognition). The built-in on-device instance always exists.
@@ -22,11 +23,13 @@ class AsrBackendConfig {
     this.language = 'auto',
     this.allowInsecureHttp = false,
     this.uploadConsentAt,
+    this.protocol = 'openplayx',
   });
   final String id;
 
-  /// `embedded` | `http`.
+  /// `embedded` | `platform` | `http`.
   final String kind;
+  final String protocol;
   final String name;
 
   /// HTTP service base URL; never holds credentials.
@@ -43,7 +46,7 @@ class AsrBackendConfig {
   /// When the user authorised uploading audio to this service.
   final DateTime? uploadConsentAt;
 
-  bool get uploads => kind == 'http';
+  bool get uploads => kind == 'http' || kind == 'platform';
 
   /// Plugin implementing this instance (see the plugin catalog).
   /// All backends belong to the single speech recognition plugin.
@@ -53,6 +56,7 @@ class AsrBackendConfig {
 
   AsrBackendConfig copyWith({
     String? name,
+    String? protocol,
     String? url,
     String? modelId,
     String? language,
@@ -62,6 +66,7 @@ class AsrBackendConfig {
   }) => AsrBackendConfig(
     id: id,
     kind: kind,
+    protocol: protocol ?? this.protocol,
     name: name ?? this.name,
     url: url ?? this.url,
     modelId: modelId ?? this.modelId,
@@ -82,6 +87,7 @@ class AsrBackendRegistry {
     required this.models,
     this.embeddedEngine,
     this._readCredential,
+    this.backendFactory,
   }) {
     ConfigurationDatabase.initialize(db);
     if (_documents().every((d) => d['id'] != 'embedded')) {
@@ -100,6 +106,32 @@ class AsrBackendRegistry {
         ..._documents(),
       ]);
     }
+  }
+
+  static const platform = AsrBackendConfig(
+    id: 'platform',
+    kind: 'platform',
+    name: 'Groq',
+    url: 'https://api.openplayx.com/v1/subtitles/transcriptions',
+    modelId: 'whisper-large-v3',
+    protocol: 'openai',
+  );
+
+  final SpeechRecognitionModelCapability Function(AsrBackendConfig)?
+  backendFactory;
+
+  String get defaultBackendId {
+    final id = ConfigurationDatabase.readSetting(
+      db,
+      _namespace,
+      'default_backend',
+    );
+    return id is String && get(id) != null ? id : platform.id;
+  }
+
+  void selectDefault(String id) {
+    if (get(id) == null) throw const FormatException('backend');
+    ConfigurationDatabase.writeSetting(db, _namespace, 'default_backend', id);
   }
 
   static const _namespace = 'asr';
@@ -136,6 +168,7 @@ class AsrBackendRegistry {
       AsrBackendConfig(
         id: d['id'] as String,
         kind: d['kind'] as String,
+        protocol: d['protocol'] as String? ?? 'openplayx',
         name: d['name'] as String,
         url: d['url'] as String?,
         modelId: d['model_id'] as String,
@@ -148,7 +181,7 @@ class AsrBackendRegistry {
               ),
       );
 
-  /// The on-device instance first, then in the order they were added.
+  /// Built-in platform and on-device instances, followed by custom services.
   List<AsrBackendConfig> list() {
     final documents = _documents()
       ..sort((a, b) {
@@ -159,7 +192,7 @@ class AsrBackendRegistry {
             ? embedded
             : (a['created'] as int? ?? 0).compareTo(b['created'] as int? ?? 0);
       });
-    return [for (final d in documents) _fromDocument(d)];
+    return [platform, for (final d in documents) _fromDocument(d)];
   }
 
   AsrBackendConfig? get(String id) =>
@@ -168,6 +201,10 @@ class AsrBackendRegistry {
   /// Validates and stores an instance. A changed URL drops upload consent:
   /// consent names one destination.
   AsrBackendConfig save(AsrBackendConfig c) {
+    if (c.kind == 'platform') return platform;
+    if (!['openplayx', 'openai'].contains(c.protocol)) {
+      throw const FormatException('protocol');
+    }
     if (c.kind == 'http') {
       final uri = Uri.tryParse(c.url ?? '');
       if (uri == null ||
@@ -185,7 +222,9 @@ class AsrBackendRegistry {
       throw const FormatException('language');
     }
     final previous = get(c.id);
-    final consent = previous != null && previous.url != c.url
+    final consent =
+        previous != null &&
+            (previous.url != c.url || previous.protocol != c.protocol)
         ? null
         : c.uploadConsentAt;
     final documents = _documents();
@@ -193,6 +232,7 @@ class AsrBackendRegistry {
     final document = {
       'id': c.id,
       'kind': c.kind,
+      'protocol': c.protocol,
       'name': c.name.trim().isEmpty ? c.host : c.name.trim(),
       'url': c.url,
       'model_id': c.modelId,
@@ -236,7 +276,7 @@ class AsrBackendRegistry {
 
   Future<void> remove(String id) async {
     final c = get(id);
-    if (c == null || c.kind == 'embedded') return;
+    if (c == null || c.kind == 'embedded' || c.kind == 'platform') return;
     _store([
       for (final d in _documents())
         if (d['id'] != id) d,
@@ -252,6 +292,15 @@ class AsrBackendRegistry {
   SpeechRecognitionModelCapability backend(String id) {
     final c = get(id);
     if (c == null) throw const AsrBackendException('backend_not_configured');
+    if (backendFactory != null) return backendFactory!(c);
+    if (c.kind == 'platform' || c.protocol == 'openai') {
+      return OpenAiAsrBackend(
+        config: c,
+        token: () => c.kind == 'platform'
+            ? Future.value(null)
+            : credential(get(id) ?? c),
+      );
+    }
     return switch (c.kind) {
       'embedded' => EmbeddedWhisperBackend(
         store: models,

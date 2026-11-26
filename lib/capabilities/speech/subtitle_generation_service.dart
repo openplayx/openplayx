@@ -134,6 +134,8 @@ class SubtitleRunState {
     this.modelId,
     this.engineVersion,
     this.remoteJobId,
+    this.completedAudioMs,
+    this.totalAudioMs,
   });
   final String taskId;
   final SubtitleRunStatus status;
@@ -147,6 +149,7 @@ class SubtitleRunState {
   final Transcript? transcript;
   final List<SubtitleCue>? cues;
   final String? backend, modelId, engineVersion, remoteJobId;
+  final int? completedAudioMs, totalAudioMs;
 
   SubtitleRunState copyWith({
     SubtitleRunStatus? status,
@@ -163,6 +166,8 @@ class SubtitleRunState {
     String? modelId,
     String? engineVersion,
     String? remoteJobId,
+    int? completedAudioMs,
+    int? totalAudioMs,
   }) => SubtitleRunState(
     taskId: taskId,
     status: status ?? this.status,
@@ -178,6 +183,8 @@ class SubtitleRunState {
     modelId: modelId ?? this.modelId,
     engineVersion: engineVersion ?? this.engineVersion,
     remoteJobId: remoteJobId ?? this.remoteJobId,
+    completedAudioMs: completedAudioMs ?? this.completedAudioMs,
+    totalAudioMs: totalAudioMs ?? this.totalAudioMs,
   );
 }
 
@@ -393,7 +400,7 @@ class SubtitleGenerationService {
       throw const SubtitleException('invalid_range');
     }
     if (r.transcribe) {
-      final config = backends.get(r.backendId ?? '');
+      final config = backends.get(r.backendId ?? backends.defaultBackendId);
       if (config == null) {
         throw const SubtitleException('backend_not_configured');
       }
@@ -406,12 +413,16 @@ class SubtitleGenerationService {
       r.resource.id,
       r.trackRef,
       r.wholeMedia ? 'whole' : '${r.startMs}-${r.endMs}',
-      r.transcribe ? '${r.backendId}|${r.language}' : 'audio',
+      r.transcribe
+          ? '${r.backendId ?? backends.defaultBackendId}|${r.language}'
+          : 'audio',
     ].join('|');
     final active = _activeFor(key);
     if (active != null) return active;
     final id = _id('subtitle');
-    final config = r.transcribe ? backends.get(r.backendId!) : null;
+    final config = r.transcribe
+        ? backends.get(r.backendId ?? backends.defaultBackendId)
+        : null;
     db.execute(
       '''INSERT INTO transcription_tasks (id,caller,transcribe,resource_source,
          resource_item,resource_name,track_ref,range_start_ms,range_end_ms,whole,
@@ -515,6 +526,47 @@ class SubtitleGenerationService {
         'range_end_ms': end,
       });
 
+      // Long recordings are extracted and recognised one bounded chunk at a
+      // time. Completed chunk JSON survives cancel/retry and page disposal.
+      if (r.transcribe && end - start > chunkMs + overlapMs * 2) {
+        final transcript = await _chunked(
+          run,
+          r,
+          config!,
+          info,
+          track,
+          start,
+          end,
+          (stage, done, total) => enter(stage, processed: done, total: total),
+        );
+        check();
+        enter(AsrStage.formatting);
+        final work = await _dir('work');
+        final file = File('${work.path}/$id.transcript.json');
+        await file.writeAsString(jsonEncode(transcript.toJson()));
+        _update(id, {
+          'transcript_path': file.path,
+          'model_id': transcript.modelId,
+          'model_revision': transcript.modelRevision,
+          'language': transcript.language,
+          'engine_version': transcript.engineVersion,
+        });
+        run._emit(
+          run.current.copyWith(
+            transcript: transcript,
+            cues: buildCues(transcript.segments),
+            backend: transcript.backend,
+            modelId: transcript.modelId,
+            engineVersion: transcript.engineVersion,
+          ),
+        );
+        if (r.caller == SubtitleCaller.ai) {
+          await _publishResult(id, r, transcript);
+        }
+        _finish(run, stageMs, stage, stageStart, SubtitleRunStatus.succeeded);
+        return;
+      }
+
       // 2. Extraction (reused when an identical, still valid result exists).
       enter(AsrStage.extracting);
       final audio = await _extract(run, r, info, track, start, end, (p, t) {
@@ -545,6 +597,9 @@ class SubtitleGenerationService {
               [
                 sha,
                 config.kind,
+                config.id,
+                config.url,
+                config.protocol,
                 status.modelId,
                 status.modelRevision,
                 language,
@@ -669,6 +724,173 @@ class SubtitleGenerationService {
         unawaited(_cleanupRemote(id, config.id, remote));
       }
     }
+  }
+
+  static const chunkMs = 300000;
+  static const overlapMs = 2000;
+
+  Future<Transcript> _chunked(
+    SubtitleRun run,
+    SubtitleRequest request,
+    AsrBackendConfig config,
+    ResourceAudioInfo info,
+    AudioTrackChoice track,
+    int start,
+    int end,
+    void Function(AsrStage, int, int) report,
+  ) async {
+    final cache = await _dir('chunks');
+    run._emit(
+      run.current.copyWith(completedAudioMs: 0, totalAudioMs: end - start),
+    );
+    final windows = <Map<String, Object?>>[];
+    Transcript? last;
+    final status = await backends.backend(config.id).status();
+    if (!status.available) {
+      throw SubtitleException(status.reason ?? 'backend_unavailable');
+    }
+    for (var ownedStart = start; ownedStart < end; ownedStart += chunkMs) {
+      if (run.cancelToken.cancelled) throw const SubtitleException('cancelled');
+      final from = max(start, ownedStart - overlapMs);
+      final to = min(end, ownedStart + chunkMs + overlapMs);
+      final key = sha256
+          .convert(
+            utf8.encode(
+              jsonEncode([
+                'movie-chunks-v1',
+                request.resource.instanceId,
+                request.resource.id,
+                info.fingerprint,
+                track.ref,
+                from,
+                to,
+                config.id,
+                config.kind,
+                config.url,
+                config.protocol,
+                config.modelId,
+                status.modelRevision,
+                request.language ?? config.language,
+                MediaPreset.speechWav.revision,
+              ]),
+            ),
+          )
+          .toString();
+      final file = File('${cache.path}/$key.json');
+      Transcript? chunk;
+      if (await file.exists()) {
+        try {
+          chunk = Transcript.fromJson(
+            jsonDecode(await file.readAsString()) as Map<String, dynamic>,
+          );
+          if (chunk.rangeStartMs != from || chunk.rangeEndMs != to) {
+            chunk = null;
+          }
+          if (chunk != null) {
+            validateSegments(chunk.segments, minMs: from, maxMs: to);
+          }
+        } catch (_) {
+          chunk = null;
+        }
+      }
+      report(AsrStage.transcribing, ownedStart - start, end - start);
+      if (chunk == null) {
+        final child = this.start(
+          SubtitleRequest(
+            resource: request.resource,
+            resourceName: request.resourceName,
+            caller: SubtitleCaller.debug,
+            trackRef: track.ref,
+            startMs: from,
+            endMs: to,
+            backendId: config.id,
+            language: request.language,
+          ),
+        );
+        run.cancelToken.onCancel(child.cancel);
+        final sub = child.updates.listen((state) {
+          report(state.stage, ownedStart - start, end - start);
+        });
+        try {
+          final result = await child.done;
+          if (run.cancelToken.cancelled) {
+            throw const SubtitleException('cancelled');
+          }
+          if (result.status != SubtitleRunStatus.succeeded ||
+              result.transcript == null) {
+            throw SubtitleException(result.error ?? 'recognition_failed');
+          }
+          chunk = result.transcript!;
+          final part = File('${file.path}.${run.taskId}.part');
+          await part.writeAsString(jsonEncode(chunk.toJson()), flush: true);
+          await part.rename(file.path);
+        } finally {
+          await sub.cancel();
+          await discard(child.taskId);
+        }
+      }
+      last = chunk;
+      windows.add({
+        'offset_ms': ownedStart - start,
+        'duration_ms': to - ownedStart,
+        'segments': [
+          for (final segment in chunk.segments)
+            {
+              'start_ms': segment.startMs - start,
+              'end_ms': segment.endMs - start,
+              'text': segment.text,
+            },
+        ],
+      });
+      report(
+        AsrStage.transcribing,
+        min(end, ownedStart + chunkMs) - start,
+        end - start,
+      );
+      run._emit(
+        run.current.copyWith(
+          completedAudioMs: min(end, ownedStart + chunkMs) - start,
+        ),
+      );
+    }
+    // Cloud ASR can place the same sentence on opposite sides of a seam
+    // in neighbouring requests. Do not discard both copies by start-time
+    // ownership: collect all candidates and deduplicate actual overlaps.
+    final candidates = [
+      for (final window in windows)
+        for (final segment in window['segments'] as List)
+          Map<String, dynamic>.from(segment as Map),
+    ]..sort((a, b) => (a['start_ms'] as int).compareTo(b['start_ms'] as int));
+    final raw = RawTranscript.fromJson({
+      'language': last!.language,
+      'audio_ms': end - start,
+      'window_ms': end - start,
+      'overlap_ms': 0,
+      'windows': [
+        {'offset_ms': 0, 'duration_ms': end - start, 'segments': candidates},
+      ],
+    });
+    final segments = toMediaTime(mergeWindows(raw), start, rangeEndMs: end);
+    validateSegments(segments, minMs: start, maxMs: end);
+    return Transcript(
+      resourceRef: '${request.resource.instanceId}:${request.resource.id}',
+      audioTrackRef: track.ref,
+      rangeStartMs: start,
+      rangeEndMs: end,
+      wholeMedia: request.wholeMedia,
+      language: last.language,
+      backend: last.backend,
+      modelId: last.modelId,
+      modelRevision: last.modelRevision,
+      engineVersion: last.engineVersion,
+      parameters: {
+        'chunk_ms': chunkMs,
+        'overlap_ms': overlapMs,
+        'fingerprint': info.fingerprint,
+        'audio_preset_revision': MediaPreset.speechWav.revision,
+      },
+      segments: segments,
+    );
   }
 
   /// AI results become unbound artifacts (task → artifact refs); binding to
@@ -1140,6 +1362,16 @@ class SubtitleGenerationService {
             f.path,
           ]).isEmpty) {
         await f.delete();
+      }
+    }
+    final chunks = await _dir('chunks');
+    await for (final file in chunks.list()) {
+      if (file is File &&
+          (file.path.endsWith('.part') ||
+              (await file.lastModified()).isBefore(
+                DateTime.now().subtract(const Duration(days: 30)),
+              ))) {
+        await file.delete();
       }
     }
     for (final row in db.select(

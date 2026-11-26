@@ -25,6 +25,8 @@ extension _PlayerActions on PlayerPageState {
         _closePanel();
       } else if (_locked) {
         _unlock();
+      } else if (_pip.active) {
+        unawaited(_pip.exit());
       } else if (_fullscreen) {
         unawaited(_setFullscreen(false));
       } else {

@@ -74,6 +74,8 @@ abstract final class AppIcons {
   static const screenOrientation = LucideIcons.smartphone;
   static const fullscreen = LucideIcons.maximize;
   static const exitFullscreen = LucideIcons.minimize;
+  static const pictureInPicture = LucideIcons.pictureInPicture2;
+  static const exitPictureInPicture = LucideIcons.maximize2;
   static const clock = LucideIcons.clock;
   static const speed = LucideIcons.gauge;
   static const rewindOsd = LucideIcons.rewind;

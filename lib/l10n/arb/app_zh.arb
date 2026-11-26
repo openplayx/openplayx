@@ -647,7 +647,7 @@
   "asrRemoteJob": "远端任务",
   "asrError": "错误",
   "asrContinue": "继续",
-  "asrWholeTitle": "处理整集？",
+  "asrWholeTitle": "处理整部影片？",
   "asrWholeBody": "时长 {duration}，音频约 {size}。识别可能耗时较长。",
   "asrUploadTitle": "上传音频到识别服务？",
   "asrUploadBody": "将上传 {range} 的音频到 {host}。{insecure}",
@@ -1529,5 +1529,18 @@
   "connectorSourceProtocolChanged": "服务类型已更改，请重新设置连接。",
   "connectorSourceNotReady": "Connector 尚未上报可用线路。",
   "connectorSourceClearLocal": "清除本机配置",
-  "connectorSourceClearLocalHelp": "仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。"
+  "connectorSourceClearLocalHelp": "仅清除此设备的登录和目录配置，Connector 服务仍保留。来源将隐藏，恢复显示后可以重新设置。",
+  "asrPlatform": "Groq（免费，默认）",
+  "asrPlatformHint": "免登录、免配置。所选音频通过 OpenPlayX 上传至 Groq V3，服务受可用性及限流约束。",
+  "asrLocal": "本地下载模型",
+  "asrCustom": "自定义 API",
+  "asrCustomHint": "使用自己的 OpenAI 兼容接口或 OpenPlayX ASR 服务。",
+  "asrProtocol": "API 协议",
+  "asrGenerateWhole": "生成整部字幕",
+  "asrChunkProgress": "已完成 {done} / {total}，重试时复用已完成片段。",
+  "asrBusyRetry": "服务繁忙，请重试，将从已完成片段继续。",
+  "asrPlatformUnavailable": "平台服务达到使用上限，请稍后重试或选择其他服务。",
+  "plPictureInPicture": "画中画",
+  "plExitPictureInPicture": "退出画中画",
+  "plPictureInPictureFailed": "无法进入画中画，请重试。"
 }

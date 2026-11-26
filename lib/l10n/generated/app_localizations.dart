@@ -3216,7 +3216,7 @@ abstract class AppLocalizations {
   /// No description provided for @asrWholeTitle.
   ///
   /// In en, this message translates to:
-  /// **'Process the whole episode?'**
+  /// **'Process the full video?'**
   String get asrWholeTitle;
 
   /// No description provided for @asrWholeBody.
@@ -8300,6 +8300,84 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again.'**
   String get connectorSourceClearLocalHelp;
+
+  /// No description provided for @asrPlatform.
+  ///
+  /// In en, this message translates to:
+  /// **'Groq (free, default)'**
+  String get asrPlatform;
+
+  /// No description provided for @asrPlatformHint.
+  ///
+  /// In en, this message translates to:
+  /// **'No setup or sign-in. Selected audio is uploaded through OpenPlayX to Groq V3. Availability is subject to service limits.'**
+  String get asrPlatformHint;
+
+  /// No description provided for @asrLocal.
+  ///
+  /// In en, this message translates to:
+  /// **'Local model download'**
+  String get asrLocal;
+
+  /// No description provided for @asrCustom.
+  ///
+  /// In en, this message translates to:
+  /// **'Custom API'**
+  String get asrCustom;
+
+  /// No description provided for @asrCustomHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Use your own OpenAI-compatible API or OpenPlayX ASR service.'**
+  String get asrCustomHint;
+
+  /// No description provided for @asrProtocol.
+  ///
+  /// In en, this message translates to:
+  /// **'API protocol'**
+  String get asrProtocol;
+
+  /// No description provided for @asrGenerateWhole.
+  ///
+  /// In en, this message translates to:
+  /// **'Generate full subtitles'**
+  String get asrGenerateWhole;
+
+  /// No description provided for @asrChunkProgress.
+  ///
+  /// In en, this message translates to:
+  /// **'Completed {done} of {total}; completed chunks are reused on retry.'**
+  String asrChunkProgress(String done, String total);
+
+  /// No description provided for @asrBusyRetry.
+  ///
+  /// In en, this message translates to:
+  /// **'Service is busy. Retry to continue from completed chunks.'**
+  String get asrBusyRetry;
+
+  /// No description provided for @asrPlatformUnavailable.
+  ///
+  /// In en, this message translates to:
+  /// **'Platform allowance reached. Retry later or choose another service.'**
+  String get asrPlatformUnavailable;
+
+  /// No description provided for @plPictureInPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Picture in picture'**
+  String get plPictureInPicture;
+
+  /// No description provided for @plExitPictureInPicture.
+  ///
+  /// In en, this message translates to:
+  /// **'Exit picture in picture'**
+  String get plExitPictureInPicture;
+
+  /// No description provided for @plPictureInPictureFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to enter picture in picture. Please try again.'**
+  String get plPictureInPictureFailed;
 }
 
 class _AppLocalizationsDelegate

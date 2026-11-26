@@ -84,6 +84,7 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
   void _select(AsrModelSpec spec) {
     final c = registry.get('embedded')!;
     registry.save(c.copyWith(modelId: spec.id));
+    registry.selectDefault(c.id);
     setState(() {});
   }
 
@@ -103,71 +104,115 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
     final embedded = registry.get('embedded')!;
     final services = registry.list().where((c) => c.kind == 'http').toList();
     final theme = ShadTheme.of(context);
+    final selected = registry.get(registry.defaultBackendId)!;
+    Widget option(
+      String id,
+      String title,
+      String description,
+      VoidCallback choose,
+    ) => SettingsRow(
+      key: ValueKey('asr-mode-$id'),
+      title: title,
+      description: description,
+      control: Icon(
+        selected.kind == id
+            ? Icons.radio_button_checked
+            : Icons.radio_button_unchecked,
+      ),
+      onTap: choose,
+    );
     return Column(
       children: [
         SettingsSection(
-          key: const ValueKey('asr-models'),
-          title: l.asrSettingsTitle,
-          footer: _error ?? l.asrModelFooter,
+          title: l.asrSectionBackend,
           children: [
-            for (final spec in asrModelCatalog)
-              SettingsRow(
-                key: ValueKey('asr-model-${spec.id}'),
-                title: '${spec.label} · ${_mb(spec.bytes)}',
-                description: _progress.containsKey(spec.id)
-                    ? l.asrModelDownloading(
-                        _mb(_progress[spec.id]!),
-                        _mb(spec.bytes),
-                      )
-                    : _installed.contains(spec.id)
-                    ? (embedded.modelId == spec.id
-                          ? l.asrModelInUse
-                          : l.asrModelInstalled)
-                    : l.asrModelNotInstalled,
-                control: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    if (_progress.containsKey(spec.id))
-                      ShadButton.ghost(
-                        size: ShadButtonSize.sm,
-                        onPressed: () =>
-                            models.activeDownload(spec.id)?.cancel(),
-                        child: Text(l.cancel),
-                      )
-                    else if (!_installed.contains(spec.id))
-                      ShadButton.outline(
-                        size: ShadButtonSize.sm,
-                        onPressed: () => _download(spec),
-                        child: Text(l.asrModelDownload),
-                      )
-                    else ...[
-                      if (embedded.modelId != spec.id)
-                        ShadButton.outline(
-                          size: ShadButtonSize.sm,
-                          onPressed: () => _select(spec),
-                          child: Text(l.asrModelUse),
-                        ),
-                      ShadButton.ghost(
-                        size: ShadButtonSize.sm,
-                        foregroundColor: theme.colorScheme.destructive,
-                        onPressed: () => _remove(spec),
-                        child: Text(l.asrModelRemove),
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-            SettingsRow(title: l.asrModelImport, chevron: true, onTap: _import),
+            option('platform', l.asrPlatform, l.asrPlatformHint, () {
+              registry.selectDefault('platform');
+              setState(() {});
+            }),
+            option('embedded', l.asrLocal, l.asrModelFooter, () {
+              registry.selectDefault('embedded');
+              setState(() {});
+            }),
+            option('http', l.asrCustom, l.asrCustomHint, () {
+              if (services.isEmpty) {
+                _editHttp();
+              } else {
+                registry.selectDefault(services.first.id);
+                setState(() {});
+              }
+            }),
           ],
         ),
+        if (selected.kind == 'embedded')
+          SettingsSection(
+            key: const ValueKey('asr-models'),
+            title: l.asrSettingsTitle,
+            footer: _error ?? l.asrModelFooter,
+            children: [
+              for (final spec in asrModelCatalog)
+                SettingsRow(
+                  key: ValueKey('asr-model-${spec.id}'),
+                  title: '${spec.label} · ${_mb(spec.bytes)}',
+                  description: _progress.containsKey(spec.id)
+                      ? l.asrModelDownloading(
+                          _mb(_progress[spec.id]!),
+                          _mb(spec.bytes),
+                        )
+                      : _installed.contains(spec.id)
+                      ? (embedded.modelId == spec.id
+                            ? l.asrModelInUse
+                            : l.asrModelInstalled)
+                      : l.asrModelNotInstalled,
+                  control: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      if (_progress.containsKey(spec.id))
+                        ShadButton.ghost(
+                          size: ShadButtonSize.sm,
+                          onPressed: () =>
+                              models.activeDownload(spec.id)?.cancel(),
+                          child: Text(l.cancel),
+                        )
+                      else if (!_installed.contains(spec.id))
+                        ShadButton.outline(
+                          size: ShadButtonSize.sm,
+                          onPressed: () => _download(spec),
+                          child: Text(l.asrModelDownload),
+                        )
+                      else ...[
+                        if (embedded.modelId != spec.id)
+                          ShadButton.outline(
+                            size: ShadButtonSize.sm,
+                            onPressed: () => _select(spec),
+                            child: Text(l.asrModelUse),
+                          ),
+                        ShadButton.ghost(
+                          size: ShadButtonSize.sm,
+                          foregroundColor: theme.colorScheme.destructive,
+                          onPressed: () => _remove(spec),
+                          child: Text(l.asrModelRemove),
+                        ),
+                      ],
+                    ],
+                  ),
+                ),
+              SettingsRow(
+                title: l.asrModelImport,
+                chevron: true,
+                onTap: _import,
+              ),
+            ],
+          ),
         SettingsSection(
           key: const ValueKey('asr-services'),
-          title: l.asrServicesTitle,
+          title: l.asrCustom,
           children: [
             for (final c in services)
               SettingsRow(
                 title: c.name,
-                description: '${c.host} · ${c.modelId}',
+                description:
+                    '${c.host} · ${c.modelId}${selected.id == c.id ? ' · ${l.asrModelInUse}' : ''}',
                 chevron: true,
                 onTap: () => _editHttp(c),
               ),

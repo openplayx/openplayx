@@ -70,9 +70,9 @@ extension _MobilePlayer on PlayerPageState {
             onScaleEnd: _locked ? null : _onScaleEnd,
             child: _videoLayer(),
           ),
-          ..._statusLayers(),
-          ..._gestureFeedback(),
-          if (!_locked) ...[
+          if (!_pipVideoOnly) ..._statusLayers(),
+          if (!_pipVideoOnly) ..._gestureFeedback(),
+          if (!_locked && !_pipVideoOnly) ...[
             Positioned(
               top: 0,
               left: 0,
@@ -143,8 +143,9 @@ extension _MobilePlayer on PlayerPageState {
                 ),
               ),
           ],
-          if (_panel != PlayerPanel.none) ..._mobileSheet(landscape),
-          if (_locked && _showUnlock)
+          if (_panel != PlayerPanel.none && !_pipVideoOnly)
+            ..._mobileSheet(landscape),
+          if (_locked && _showUnlock && !_pipVideoOnly)
             Positioned(
               left: 0,
               right: 0,
@@ -522,6 +523,7 @@ extension _MobilePlayer on PlayerPageState {
                       ),
                     ),
             ),
+            if (_canPictureInPicture) _pictureInPictureButton(),
             PlayerIconButton(
               tooltip: l.morePlaybackSettings,
               icon: AppIcons.more,

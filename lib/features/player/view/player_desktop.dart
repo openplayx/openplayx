@@ -160,6 +160,28 @@ extension _DesktopPlayer on PlayerPageState {
 
   Widget _desktopTopBar() => Builder(
     builder: (context) {
+      if (_pip.active) {
+        return Padding(
+          padding: const EdgeInsets.fromLTRB(12, 4, 8, 0),
+          child: Row(
+            children: [
+              Expanded(
+                child: Text(
+                  _title,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: const TextStyle(color: PlayerStyle.fg, fontSize: 13),
+                ),
+              ),
+              PlayerIconButton(
+                tooltip: l.close,
+                icon: AppIcons.close,
+                onPressed: _exitPlayback,
+              ),
+            ],
+          ),
+        );
+      }
       // Align with the native traffic lights (centred ~14pt from the top)
       // and start after them (~80pt wide).
       final windowButtons = _reservesWindowButtons(context);
@@ -222,6 +244,7 @@ extension _DesktopPlayer on PlayerPageState {
             const SizedBox(width: 12),
             Wrap(spacing: 8, children: _statusChips()),
             const SizedBox(width: 4),
+            if (_canPictureInPicture) _pictureInPictureButton(),
             PlayerIconButton(
               tooltip: l.morePlaybackSettings,
               icon: AppIcons.more,
@@ -236,6 +259,26 @@ extension _DesktopPlayer on PlayerPageState {
   );
 
   Widget _desktopBottomBar(PlayerSnapshot value) {
+    if (_pip.active) {
+      return Padding(
+        padding: const EdgeInsets.all(8),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            PlayerIconButton(
+              tooltip: value.status == PlaybackStatus.playing
+                  ? l.pause
+                  : l.play,
+              icon: value.status == PlaybackStatus.playing
+                  ? AppIcons.pause
+                  : AppIcons.play,
+              onPressed: _enabled ? _togglePlayback : null,
+            ),
+            _pictureInPictureButton(),
+          ],
+        ),
+      );
+    }
     final position = _shownPosition(value);
     final playing = value.status == PlaybackStatus.playing;
     return Container(

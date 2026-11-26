@@ -18,6 +18,11 @@ struct PlayerWindowBridge {
   WNDPROC original = nullptr;
   bool confirmed = false;
   std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> channel;
+  std::unique_ptr<flutter::MethodChannel<flutter::EncodableValue>> pip_channel;
+  bool pip = false;
+  LONG_PTR saved_style = 0;
+  bool saved_topmost = false;
+  WINDOWPLACEMENT saved_placement = {sizeof(WINDOWPLACEMENT)};
 };
 
 std::map<HWND, std::unique_ptr<PlayerWindowBridge>> g_player_windows;
@@ -30,6 +35,23 @@ LRESULT CALLBACK PlayerWindowProc(HWND hwnd, UINT message, WPARAM wparam,
   }
   PlayerWindowBridge* bridge = found->second.get();
   WNDPROC original = bridge->original;
+  if (bridge->pip && message == WM_GETMINMAXINFO) {
+    auto* limits = reinterpret_cast<MINMAXINFO*>(lparam);
+    limits->ptMinTrackSize = {240, 135};
+    return 0;
+  }
+  if (bridge->pip && message == WM_NCHITTEST) {
+    const LRESULT hit = CallWindowProc(original, hwnd, message, wparam, lparam);
+    POINT point = {static_cast<short>(LOWORD(lparam)),
+                   static_cast<short>(HIWORD(lparam))};
+    ScreenToClient(hwnd, &point);
+    RECT client;
+    GetClientRect(hwnd, &client);
+    if (hit == HTCLIENT && point.y < 24 && point.x < client.right - 60) {
+      return HTCAPTION;
+    }
+    return hit;
+  }
   if (message == WM_CLOSE && !bridge->confirmed) {
     bridge->channel->InvokeMethod("windowClosing", nullptr);
     return 0;
@@ -50,6 +72,57 @@ void ConfigurePlayerWindow(flutter::FlutterViewController* controller) {
           controller->engine()->messenger(), "openplayx/player_window",
           &flutter::StandardMethodCodec::GetInstance());
   PlayerWindowBridge* raw = bridge.get();
+  bridge->pip_channel =
+      std::make_unique<flutter::MethodChannel<flutter::EncodableValue>>(
+          controller->engine()->messenger(), "openplayx/picture_in_picture",
+          &flutter::StandardMethodCodec::GetInstance());
+  bridge->pip_channel->SetMethodCallHandler(
+      [top, raw](const flutter::MethodCall<flutter::EncodableValue>& call,
+                 std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>> result) {
+        if (call.method_name() == "isSupported") {
+          result->Success(flutter::EncodableValue(true));
+        } else if (call.method_name() == "enter") {
+          if (!raw->pip) {
+            GetWindowPlacement(top, &raw->saved_placement);
+            raw->saved_style = GetWindowLongPtr(top, GWL_STYLE);
+            raw->saved_topmost = (GetWindowLongPtr(top, GWL_EXSTYLE) & WS_EX_TOPMOST) != 0;
+            raw->pip = true;
+            ShowWindow(top, SW_RESTORE);
+            SetWindowLongPtr(top, GWL_STYLE,
+                (raw->saved_style & ~(WS_CAPTION | WS_MAXIMIZEBOX | WS_MINIMIZEBOX)) | WS_THICKFRAME);
+            MONITORINFO monitor = {sizeof(MONITORINFO)};
+            GetMonitorInfo(MonitorFromWindow(top, MONITOR_DEFAULTTONEAREST), &monitor);
+            double ratio = 16.0 / 9.0;
+            const auto* args = std::get_if<flutter::EncodableMap>(call.arguments());
+            if (args) {
+              const auto found = args->find(flutter::EncodableValue("aspectRatio"));
+              if (found != args->end()) {
+                if (const auto* value = std::get_if<double>(&found->second)) ratio = *value;
+              }
+            }
+            if (!(ratio >= 1.0 / 2.39 && ratio <= 2.39)) ratio = 16.0 / 9.0;
+            const int width = 420;
+            const int height = static_cast<int>(width / ratio);
+            SetWindowPos(top, HWND_TOPMOST, monitor.rcWork.right - width - 20,
+                         monitor.rcWork.bottom - height - 20, width, height,
+                         SWP_FRAMECHANGED | SWP_SHOWWINDOW);
+            raw->pip_channel->InvokeMethod("changed", std::make_unique<flutter::EncodableValue>(true));
+          }
+          result->Success(flutter::EncodableValue(true));
+        } else if (call.method_name() == "exit") {
+          if (raw->pip) {
+            raw->pip = false;
+            SetWindowLongPtr(top, GWL_STYLE, raw->saved_style);
+            SetWindowPlacement(top, &raw->saved_placement);
+            SetWindowPos(top, raw->saved_topmost ? HWND_TOPMOST : HWND_NOTOPMOST,
+                         0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE | SWP_FRAMECHANGED);
+            raw->pip_channel->InvokeMethod("changed", std::make_unique<flutter::EncodableValue>(false));
+          }
+          result->Success();
+        } else {
+          result->NotImplemented();
+        }
+      });
   bridge->channel->SetMethodCallHandler(
       [top, raw](const flutter::MethodCall<flutter::EncodableValue>& call,
                  std::unique_ptr<flutter::MethodResult<flutter::EncodableValue>>

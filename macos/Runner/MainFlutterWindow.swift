@@ -142,6 +142,7 @@ class MainFlutterWindow: NSWindow {
       RegisterGeneratedPlugins(registry: controller)
       MainFlutterWindow.configurePlayerWindow(controller)
       WindowFullScreenChannel.register(controller)
+      PictureInPictureWindowChannel.register(controller)
     }
     WindowFullScreenChannel.register(flutterViewController)
 
@@ -190,5 +191,126 @@ class MainFlutterWindow: NSWindow {
       }
     }
     super.awakeFromNib()
+  }
+}
+
+/// Reuses the playing window and engine, so tracks, decoder and playback
+/// position survive both transitions without reopening the media.
+final class PictureInPictureWindowChannel: NSObject {
+  static var key: UInt8 = 0
+  private let channel: FlutterMethodChannel
+  private weak var controller: FlutterViewController?
+  private var savedFrame: NSRect?
+  private var savedStyle: NSWindow.StyleMask = []
+  private var savedMin = NSSize.zero
+  private var savedContentMin = NSSize.zero
+  private var savedAspect = NSSize.zero
+  private var savedLevel: NSWindow.Level = .normal
+  private var savedCollection: NSWindow.CollectionBehavior = []
+  private var savedMovable = false
+  private var savedButtonHidden: [NSWindow.ButtonType: Bool] = [:]
+  private var restoreFullscreen = false
+  private var exitObserver: NSObjectProtocol?
+
+  static func register(_ controller: FlutterViewController) {
+    let handler = PictureInPictureWindowChannel(controller)
+    objc_setAssociatedObject(controller, &key, handler, .OBJC_ASSOCIATION_RETAIN)
+  }
+
+  private init(_ controller: FlutterViewController) {
+    self.controller = controller
+    channel = FlutterMethodChannel(name: "openplayx/picture_in_picture",
+                                  binaryMessenger: controller.engine.binaryMessenger)
+    super.init()
+    channel.setMethodCallHandler { [weak self] call, result in
+      guard let self = self, let window = self.controller?.view.window else {
+        result(false); return
+      }
+      switch call.method {
+      case "isSupported": result(true)
+      case "enter":
+        if self.savedFrame != nil { result(true); return }
+        let args = call.arguments as? [String: Any]
+        let raw = args?["aspectRatio"] as? Double ?? 16.0 / 9.0
+        let ratio = raw.isFinite ? min(2.39, max(1.0 / 2.39, raw)) : 16.0 / 9.0
+        if window.styleMask.contains(.fullScreen) {
+          self.restoreFullscreen = true
+          self.exitObserver = NotificationCenter.default.addObserver(
+            forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main
+          ) { [weak self, weak window] _ in
+            guard let self = self, let window = window else { return }
+            if let observer = self.exitObserver { NotificationCenter.default.removeObserver(observer) }
+            self.exitObserver = nil
+            self.enter(window, ratio: ratio)
+            result(true)
+          }
+          window.toggleFullScreen(nil)
+        } else {
+          self.enter(window, ratio: ratio)
+          result(true)
+        }
+      case "exit":
+        self.restore(window)
+        result(nil)
+      default: result(FlutterMethodNotImplemented)
+      }
+    }
+  }
+
+  private func enter(_ window: NSWindow, ratio: Double) {
+    savedFrame = window.frame
+    savedStyle = window.styleMask
+    savedMin = window.minSize
+    savedContentMin = window.contentMinSize
+    savedAspect = window.contentAspectRatio
+    savedLevel = window.level
+    savedCollection = window.collectionBehavior
+    savedMovable = window.isMovableByWindowBackground
+    window.minSize = NSSize(width: 240, height: 135)
+    window.contentMinSize = NSSize(width: 240, height: 135)
+    // A titled window can become key again after another app takes focus.
+    // A borderless NSWindow cannot, which would break keyboard controls.
+    window.styleMask = [.titled, .resizable, .fullSizeContentView]
+    for type in [NSWindow.ButtonType.closeButton, .miniaturizeButton, .zoomButton] {
+      savedButtonHidden[type] = window.standardWindowButton(type)?.isHidden ?? false
+      window.standardWindowButton(type)?.isHidden = true
+    }
+    window.isMovableByWindowBackground = true
+    window.level = .floating
+    window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
+    window.contentAspectRatio = NSSize(width: ratio, height: 1)
+    let screen = window.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
+    let width = min(420.0, min(screen.width * 0.45, (screen.height - 40) * ratio))
+    let height = width / ratio
+    window.setFrame(NSRect(x: screen.maxX - width - 20, y: screen.minY + 20,
+                           width: width, height: height), display: true)
+    channel.invokeMethod("changed", arguments: true)
+  }
+
+  private func restore(_ window: NSWindow) {
+    guard let frame = savedFrame else { return }
+    savedFrame = nil
+    window.contentAspectRatio = savedAspect
+    window.styleMask = savedStyle
+    for (type, hidden) in savedButtonHidden {
+      window.standardWindowButton(type)?.isHidden = hidden
+    }
+    savedButtonHidden.removeAll()
+    window.level = savedLevel
+    window.collectionBehavior = savedCollection
+    window.isMovableByWindowBackground = savedMovable
+    window.minSize = savedMin
+    window.contentMinSize = savedContentMin
+    window.setFrame(frame, display: true)
+    window.makeKeyAndOrderFront(nil)
+    channel.invokeMethod("changed", arguments: false)
+    if restoreFullscreen {
+      restoreFullscreen = false
+      window.toggleFullScreen(nil)
+    }
+  }
+
+  deinit {
+    if let observer = exitObserver { NotificationCenter.default.removeObserver(observer) }
   }
 }

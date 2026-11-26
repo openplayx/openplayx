@@ -8,7 +8,7 @@ PlayableStream 记录 DirectPlay、Remux 或 Transcode。渐进 URL 中的目标
 
 远端鉴权只由 SourceHttp/StreamGateway 持有。返回给播放器的是随机 loopback 地址；服务返回的绝对 URL 必须匹配配置的源和基路径，重定向不携带凭据；api key 从播放地址 query 中移除，使用既有认证请求头。释放流时关闭代理并通知 Sessions/Playing/Stopped；源销毁时回收仍持有的流。
 
-当前回退范围是视频、渐进 HTTP MPEG-TS。未接入 HLS 嵌套清单代理、动态码率或转码流的任意 Seek；服务只提供 HLS 时明确报错，不把顶层清单直接交给不能转发分段鉴权的单文件代理。浏览器路径见 openplayx-test/reports/advanced-playback/web-feasibility.md。
+当前回退范围是视频、渐进 HTTP MPEG-TS。未接入 HLS 嵌套清单代理、动态码率或转码流的任意 Seek；服务只提供 HLS 时明确报错，不把顶层清单直接交给不能转发分段鉴权的单文件代理。浏览器验证见 package-media/tool/web_playback_probe.mjs，运行方式见 package-media 的 README。
 
 ## 验证
 

@@ -75,7 +75,7 @@ class TranscriptResult {
   });
   final RawTranscript raw;
 
-  /// `embedded` or `http`.
+  /// `embedded`, `platform` or `http`.
   final String backend;
   final String modelId;
   final String modelRevision;
@@ -117,7 +117,7 @@ class AsrBackendException implements Exception {
 abstract interface class SpeechRecognitionModelCapability {
   String get instanceId;
 
-  /// `embedded` | `http`.
+  /// `embedded` | `platform` | `http`.
   String get kind;
   Future<AsrBackendStatus> status();
   Future<TranscriptResult> transcribe(

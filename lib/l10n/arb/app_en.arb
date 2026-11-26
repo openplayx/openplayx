@@ -819,7 +819,7 @@
   "asrRemoteJob": "Remote job",
   "asrError": "Error",
   "asrContinue": "Continue",
-  "asrWholeTitle": "Process the whole episode?",
+  "asrWholeTitle": "Process the full video?",
   "asrWholeBody": "Duration {duration}, about {size} of audio. Recognition can take a long time.",
   "@asrWholeBody": {
     "placeholders": {
@@ -2191,5 +2191,28 @@
   "connectorSourceProtocolChanged": "Service type changed. Set up the connection again.",
   "connectorSourceNotReady": "Connector has not reported an available route yet.",
   "connectorSourceClearLocal": "Clear device configuration",
-  "connectorSourceClearLocalHelp": "Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again."
+  "connectorSourceClearLocalHelp": "Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again.",
+  "asrPlatform": "Groq (free, default)",
+  "asrPlatformHint": "No setup or sign-in. Selected audio is uploaded through OpenPlayX to Groq V3. Availability is subject to service limits.",
+  "asrLocal": "Local model download",
+  "asrCustom": "Custom API",
+  "asrCustomHint": "Use your own OpenAI-compatible API or OpenPlayX ASR service.",
+  "asrProtocol": "API protocol",
+  "asrGenerateWhole": "Generate full subtitles",
+  "asrChunkProgress": "Completed {done} of {total}; completed chunks are reused on retry.",
+  "asrBusyRetry": "Service is busy. Retry to continue from completed chunks.",
+  "asrPlatformUnavailable": "Platform allowance reached. Retry later or choose another service.",
+  "@asrChunkProgress": {
+    "placeholders": {
+      "done": {
+        "type": "String"
+      },
+      "total": {
+        "type": "String"
+      }
+    }
+  },
+  "plPictureInPicture": "Picture in picture",
+  "plExitPictureInPicture": "Exit picture in picture",
+  "plPictureInPictureFailed": "Unable to enter picture in picture. Please try again."
 }

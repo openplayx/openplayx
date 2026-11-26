@@ -35,6 +35,18 @@ void main() {
           find.byKey(const ValueKey('settings-speech-recognition')),
         );
         await tester.pumpAndSettle();
+        expect(registry.defaultBackendId, 'platform');
+        for (final mode in ['platform', 'embedded', 'http']) {
+          expect(find.byKey(ValueKey('asr-mode-$mode')), findsOneWidget);
+        }
+        await tester.tap(find.byKey(const ValueKey('asr-mode-embedded')));
+        await tester.pumpAndSettle();
+        expect(registry.defaultBackendId, 'embedded');
+        expect(find.byKey(const ValueKey('asr-models')), findsOneWidget);
+        await tester.tap(find.byKey(const ValueKey('asr-mode-platform')));
+        await tester.pumpAndSettle();
+        expect(registry.defaultBackendId, 'platform');
+        expect(find.byKey(const ValueKey('asr-models')), findsNothing);
         final add = find.byKey(const ValueKey('asr-add-service'));
         await tester.ensureVisible(add);
         await tester.tap(add);
@@ -64,6 +76,11 @@ void main() {
           registry.list().where((c) => c.kind == 'http').single.url,
           'https://asr.example.com',
         );
+        expect(
+          registry.defaultBackendId,
+          registry.list().where((c) => c.kind == 'http').single.id,
+        );
+        expect(registry.get(registry.defaultBackendId)!.protocol, 'openai');
         expect(find.text('asr.example.com'), findsOneWidget);
         expect(tester.takeException(), isNull);
       },

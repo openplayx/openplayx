@@ -1,6 +1,11 @@
 package com.openplayx.openplayx
 
 import android.app.Activity
+import android.app.PictureInPictureParams
+import android.content.pm.PackageManager
+import android.content.res.Configuration
+import android.os.Build
+import android.util.Rational
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.Network
@@ -23,9 +28,56 @@ class MainActivity : FlutterActivity() {
     private var orientationListener: OrientationEventListener? = null
     private var pendingPick: MethodChannel.Result? = null
     private val fileWorker = Executors.newSingleThreadExecutor()
+    private var pipChannel: MethodChannel? = null
+
+    private fun supportsPip(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
+        packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    override fun onPictureInPictureModeChanged(active: Boolean, configuration: Configuration) {
+        super.onPictureInPictureModeChanged(active, configuration)
+        pipChannel?.invokeMethod(if (active) "changed" else "restoring", active)
+    }
+
+    override fun onStop() {
+        super.onStop()
+        // Dismissing PiP must not leave an invisible player producing audio.
+        // Visible PiP is paused but not stopped. onStop is the reliable
+        // dismissal signal, even on devices still reporting PiP mode here.
+        pipChannel?.invokeMethod("closed", false)
+    }
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/picture_in_picture").also { channel ->
+            channel.setMethodCallHandler { call, result ->
+                when (call.method) {
+                    "isSupported" -> result.success(supportsPip())
+                    "enter" -> {
+                        if (!supportsPip()) result.success(false)
+                        else try {
+                            val ratio = (call.argument<Number>("aspectRatio")?.toDouble() ?: (16.0 / 9.0))
+                                .takeIf { it.isFinite() }?.coerceIn(1.0 / 2.39, 2.39) ?: (16.0 / 9.0)
+                            val params = PictureInPictureParams.Builder()
+                                .setAspectRatio(Rational((ratio * 1000).toInt(), 1000)).build()
+                            result.success(enterPictureInPictureMode(params))
+                        } catch (error: Exception) {
+                            result.error("pip_failed", "Unable to enter picture in picture", null)
+                        }
+                    }
+                    "exit" -> {
+                        // Android has no exit-PiP API; bringing the existing activity
+                        // forward expands it without recreating the player.
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O && isInPictureInPictureMode) {
+                            startActivity(Intent(this, MainActivity::class.java).apply {
+                                addFlags(Intent.FLAG_ACTIVITY_REORDER_TO_FRONT)
+                            })
+                        }
+                        result.success(null)
+                    }
+                    else -> result.notImplemented()
+                }
+            }
+        }
         EventChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/device_orientation")
             .setStreamHandler(object : EventChannel.StreamHandler {
                 override fun onListen(arguments: Any?, events: EventChannel.EventSink) {

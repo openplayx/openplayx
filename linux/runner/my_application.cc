@@ -15,12 +15,77 @@ typedef struct {
   GtkWindow* window;
   FlMethodChannel* channel;
   gboolean confirmed;
+  FlMethodChannel* pip_channel;
+  gboolean pip;
+  gint x, y, width, height;
+  gboolean maximized, fullscreen;
+  gboolean decorated, above;
 } PlayerWindowBridge;
 
 static void player_window_bridge_free(gpointer data) {
   PlayerWindowBridge* bridge = static_cast<PlayerWindowBridge*>(data);
   g_clear_object(&bridge->channel);
+  g_clear_object(&bridge->pip_channel);
   g_free(bridge);
+}
+
+static void pip_window_method_cb(FlMethodChannel*, FlMethodCall* call, gpointer data) {
+  auto* bridge = static_cast<PlayerWindowBridge*>(data);
+  const gchar* method = fl_method_call_get_name(call);
+  g_autoptr(FlMethodResponse) response = nullptr;
+  if (g_strcmp0(method, "isSupported") == 0) {
+    // Wayland compositors control stacking and placement; don't advertise a
+    // cross-application always-on-top window when that cannot be guaranteed.
+    gboolean supported = FALSE;
+#ifdef GDK_WINDOWING_X11
+    supported = GDK_IS_X11_DISPLAY(gtk_widget_get_display(GTK_WIDGET(bridge->window)));
+#endif
+    g_autoptr(FlValue) value = fl_value_new_bool(supported);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(value));
+  } else if (g_strcmp0(method, "enter") == 0) {
+    if (!bridge->pip) {
+      gtk_window_get_position(bridge->window, &bridge->x, &bridge->y);
+      gtk_window_get_size(bridge->window, &bridge->width, &bridge->height);
+      GdkWindow* native = gtk_widget_get_window(GTK_WIDGET(bridge->window));
+      GdkWindowState state = gdk_window_get_state(native);
+      bridge->maximized = (state & GDK_WINDOW_STATE_MAXIMIZED) != 0;
+      bridge->fullscreen = (state & GDK_WINDOW_STATE_FULLSCREEN) != 0;
+      bridge->above = (state & GDK_WINDOW_STATE_ABOVE) != 0;
+      bridge->decorated = gtk_window_get_decorated(bridge->window);
+      bridge->pip = TRUE;
+      gtk_window_unfullscreen(bridge->window);
+      gtk_window_unmaximize(bridge->window);
+      // Retain the native title bar for dragging, resizing and close controls.
+      gtk_window_set_keep_above(bridge->window, TRUE);
+      double ratio = 16.0 / 9.0;
+      FlValue* args = fl_method_call_get_args(call);
+      FlValue* value = args && fl_value_get_type(args) == FL_VALUE_TYPE_MAP
+          ? fl_value_lookup_string(args, "aspectRatio") : nullptr;
+      if (value && fl_value_get_type(value) == FL_VALUE_TYPE_FLOAT) ratio = fl_value_get_float(value);
+      if (!(ratio >= 1.0 / 2.39 && ratio <= 2.39)) ratio = 16.0 / 9.0;
+      gtk_window_resize(bridge->window, 420, static_cast<int>(420 / ratio));
+      g_autoptr(FlValue) active = fl_value_new_bool(TRUE);
+      fl_method_channel_invoke_method(bridge->pip_channel, "changed", active, nullptr, nullptr, nullptr);
+    }
+    g_autoptr(FlValue) accepted = fl_value_new_bool(TRUE);
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(accepted));
+  } else if (g_strcmp0(method, "exit") == 0) {
+    if (bridge->pip) {
+      bridge->pip = FALSE;
+      gtk_window_set_keep_above(bridge->window, bridge->above);
+      gtk_window_set_decorated(bridge->window, bridge->decorated);
+      gtk_window_resize(bridge->window, bridge->width, bridge->height);
+      gtk_window_move(bridge->window, bridge->x, bridge->y);
+      if (bridge->maximized) gtk_window_maximize(bridge->window);
+      if (bridge->fullscreen) gtk_window_fullscreen(bridge->window);
+      g_autoptr(FlValue) active = fl_value_new_bool(FALSE);
+      fl_method_channel_invoke_method(bridge->pip_channel, "changed", active, nullptr, nullptr, nullptr);
+    }
+    response = FL_METHOD_RESPONSE(fl_method_success_response_new(nullptr));
+  } else {
+    response = FL_METHOD_RESPONSE(fl_method_not_implemented_response_new());
+  }
+  fl_method_call_respond(call, response, nullptr);
 }
 
 static void player_window_method_cb(FlMethodChannel* channel,
@@ -60,6 +125,10 @@ static void configure_player_window(FlPluginRegistry* registry) {
   bridge->channel = fl_method_channel_new(
       fl_plugin_registrar_get_messenger(registrar), "openplayx/player_window",
       FL_METHOD_CODEC(codec));
+  bridge->pip_channel = fl_method_channel_new(
+      fl_plugin_registrar_get_messenger(registrar), "openplayx/picture_in_picture",
+      FL_METHOD_CODEC(codec));
+  fl_method_channel_set_method_call_handler(bridge->pip_channel, pip_window_method_cb, bridge, nullptr);
   fl_method_channel_set_method_call_handler(
       bridge->channel, player_window_method_cb, bridge, nullptr);
   g_object_set_data_full(G_OBJECT(window), "openplayx-player-window", bridge,

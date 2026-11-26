@@ -1727,7 +1727,7 @@ class AppLocalizationsEn extends AppLocalizations {
   String get asrContinue => 'Continue';
 
   @override
-  String get asrWholeTitle => 'Process the whole episode?';
+  String get asrWholeTitle => 'Process the full video?';
 
   @override
   String asrWholeBody(String duration, String size) {
@@ -4659,4 +4659,50 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get connectorSourceClearLocalHelp =>
       'Only this device’s login and folder configuration is cleared. The Connector service remains published. This source will be hidden; restore it to set it up again.';
+
+  @override
+  String get asrPlatform => 'Groq (free, default)';
+
+  @override
+  String get asrPlatformHint =>
+      'No setup or sign-in. Selected audio is uploaded through OpenPlayX to Groq V3. Availability is subject to service limits.';
+
+  @override
+  String get asrLocal => 'Local model download';
+
+  @override
+  String get asrCustom => 'Custom API';
+
+  @override
+  String get asrCustomHint =>
+      'Use your own OpenAI-compatible API or OpenPlayX ASR service.';
+
+  @override
+  String get asrProtocol => 'API protocol';
+
+  @override
+  String get asrGenerateWhole => 'Generate full subtitles';
+
+  @override
+  String asrChunkProgress(String done, String total) {
+    return 'Completed $done of $total; completed chunks are reused on retry.';
+  }
+
+  @override
+  String get asrBusyRetry =>
+      'Service is busy. Retry to continue from completed chunks.';
+
+  @override
+  String get asrPlatformUnavailable =>
+      'Platform allowance reached. Retry later or choose another service.';
+
+  @override
+  String get plPictureInPicture => 'Picture in picture';
+
+  @override
+  String get plExitPictureInPicture => 'Exit picture in picture';
+
+  @override
+  String get plPictureInPictureFailed =>
+      'Unable to enter picture in picture. Please try again.';
 }
