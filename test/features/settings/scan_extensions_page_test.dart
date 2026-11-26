@@ -61,6 +61,8 @@ void main() {
     await tester.tap(find.byKey(const ValueKey('scan-ext-strm')));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.byKey(const ValueKey('scan-ext-save')));
+    // Let scrolling and layout settle before tapping the save button.
+    await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey('scan-ext-save')));
     await tester.pumpAndSettle();
     expect(manager.scanExtensions, ['mp4', 'flac', 'iso']);

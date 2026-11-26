@@ -60,7 +60,11 @@ void main() {
         'asr-token',
       );
       expect(await asr.credential(asr.get('asr-1')!), 'asr-token');
-      expect([for (final c in asr.list()) c.id], ['embedded', 'asr-1']);
+      expect([for (final c in asr.list()) c.id], [
+        'platform',
+        'embedded',
+        'asr-1',
+      ]);
 
       final external = ExternalServiceRegistry(db: db);
       await external.save(
