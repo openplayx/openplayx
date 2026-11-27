@@ -27,6 +27,7 @@ Future<ServerSocket> fakeFtp({required bool mlsd}) async {
   final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
   final content = List.generate(10, (i) => i);
   server.listen((control) {
+    control.done.catchError((_) {});
     ServerSocket? data;
     var offset = 0;
     var user = '';
@@ -84,8 +85,10 @@ Future<ServerSocket> fakeFtp({required bool mlsd}) async {
               await socket.close();
               control.write('226 done\r\n');
             case 'QUIT':
-              control.write('221 bye\r\n');
-              await control.close();
+              try {
+                control.write('221 bye\r\n');
+                await control.close();
+              } catch (_) {}
             default:
               control.write('502 no\r\n');
           }
