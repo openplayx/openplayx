@@ -1,5 +1,5 @@
 // Live end-to-end check against a real model. Skipped unless ../design/.env has
-// DEEPSEK_API_KEY. Run: flutter test test/ai/live_deepseek_test.dart
+// DEEPSEK_API_KEY. Run: flutter test integration_test/live/live_deepseek_test.dart
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +14,7 @@ import 'package:openplayx/assistant/conversation/conversation_coordinator.dart';
 import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:sqlite3/sqlite3.dart';
 
-import '../support/library_test_helpers.dart';
+import '../../test/support/library_test_helpers.dart';
 
 class NoSources extends SourceManager {
   @override

@@ -14,10 +14,10 @@ PlayableStream 记录 DirectPlay、Remux 或 Transcode。渐进 URL 中的目标
 
 - test/data/sources/jellyfin_playback_test.dart：协商、Range/鉴权、外域拒绝、单次重试、释放幂等和源销毁。
 - test/features/player/player_stream_recovery_test.dart：后端错误自动触发重试，以及取消期间的过期流清理。
-- test/data/sources/jellyfin_live_test.dart：显式指定独立 Jellyfin 会话配置，使用真实服务的 H.264/AAC 和 AV1/Opus 原创样本，将 Direct Play、Remux、Transcode 流交给 package-media 的原生集成测试，并验证释放后 loopback 不再可访问。
+- integration_test/live/jellyfin_live_test.dart：显式指定独立 Jellyfin 会话配置，使用真实服务的 H.264/AAC 和 AV1/Opus 原创样本，将 Direct Play、Remux、Transcode 流交给 package-media 的原生集成测试，并验证释放后 loopback 不再可访问。
 
 ```sh
-flutter test test/data/sources/jellyfin_live_test.dart \
+flutter test integration_test/live/jellyfin_live_test.dart \
   --dart-define=OPX_JELLYFIN_SESSION=/tmp/session.json \
   --dart-define=OPX_JELLYFIN_REPORT=/absolute/path/to/report
 ```

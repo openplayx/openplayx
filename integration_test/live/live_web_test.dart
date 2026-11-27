@@ -1,6 +1,6 @@
 // Live check of page reading and the preset 联网搜索 MCP service against
 // the real internet. Skipped unless WEB_LIVE=1:
-//   WEB_LIVE=1 flutter test test/ai/live_web_test.dart
+//   WEB_LIVE=1 flutter test integration_test/live/live_web_test.dart
 import 'dart:io';
 
 import 'package:flutter_test/flutter_test.dart';

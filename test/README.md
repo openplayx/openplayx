@@ -53,7 +53,7 @@ flutter test test/features/player/player_page_test.dart
 真实 TMDB 联调为显式启用的测试，运行时读取被 Git 忽略的 `../design/.env` 中的 `TMDB_READ_ACCESS_TOKEN`，不通过编译参数携带令牌：
 
 ```sh
-flutter test --no-pub test/metadata/tmdb_live_test.dart \
+flutter test --no-pub integration_test/live/tmdb_live_test.dart \
   --dart-define=OPENPLAYX_TMDB_LIVE_DIR=/tmp/openplayx-tmdb-live
 ```
 
@@ -70,7 +70,7 @@ flutter test --no-pub test/metadata/tmdb_live_test.dart \
 需要真实网页和预置 MCP 搜索服务时，显式运行：
 
 ```sh
-WEB_LIVE=1 flutter test test/ai/live_web_test.dart
+WEB_LIVE=1 flutter test integration_test/live/live_web_test.dart
 ```
 
 这会请求第三方网站和搜索服务，请按当前网络及服务额度选择是否运行。

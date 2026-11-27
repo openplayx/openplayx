@@ -18,8 +18,8 @@ import 'package:openplayx/capabilities/artwork/artwork_service.dart';
 import 'package:openplayx/capabilities/library/library_service.dart';
 import 'package:openplayx/capabilities/metadata/metadata_service.dart';
 
-import 'metadata_page_test.dart' show OfflineSources;
-import '../support/library_test_helpers.dart';
+import '../../test/metadata/metadata_page_test.dart' show OfflineSources;
+import '../../test/support/library_test_helpers.dart';
 
 /// Explicitly opted-in live validation. Secrets are read only at runtime from
 /// ../design/.env, never dart-define, assets, reports, screenshots or source-controlled data.

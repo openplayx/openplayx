@@ -1,5 +1,5 @@
 // Opt-in real server + package-media playback test (ALL-328).
-// flutter test test/data/sources/jellyfin_live_test.dart \
+// flutter test integration_test/live/jellyfin_live_test.dart \
 //   --dart-define=OPX_JELLYFIN_SESSION=/tmp/session.json \
 //   --dart-define=OPX_JELLYFIN_REPORT=/absolute/report
 // Session JSON: address,userId,token. The isolated server needs /test-media/
