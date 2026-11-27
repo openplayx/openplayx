@@ -126,11 +126,13 @@ class LibraryResumeTile extends StatelessWidget {
     required this.artwork,
     required this.row,
     this.onTap,
+    this.autofocus = false,
   });
   final LibraryService service;
   final ArtworkService artwork;
   final dynamic row;
   final VoidCallback? onTap;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) {
@@ -139,6 +141,7 @@ class LibraryResumeTile extends StatelessWidget {
     final position = row['position'] as int;
     final duration = row['duration'] as int;
     return LandscapeTile(
+      autofocus: autofocus,
       title: (fields['title'] ?? row['title']).toString(),
       subtitle: MediaTileInfo.subtitle(context, service, id, fields),
       artwork: MediaTileInfo.artwork(service, artwork, id, landscape: true),

@@ -48,6 +48,14 @@ class MainActivity : FlutterActivity() {
 
     override fun configureFlutterEngine(flutterEngine: FlutterEngine) {
         super.configureFlutterEngine(flutterEngine)
+        MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/device_experience")
+            .setMethodCallHandler { call, result ->
+                if (call.method != "isTelevision") result.notImplemented()
+                else result.success(
+                    (resources.configuration.uiMode and Configuration.UI_MODE_TYPE_MASK) == Configuration.UI_MODE_TYPE_TELEVISION ||
+                        packageManager.hasSystemFeature(PackageManager.FEATURE_LEANBACK)
+                )
+            }
         pipChannel = MethodChannel(flutterEngine.dartExecutor.binaryMessenger, "openplayx/picture_in_picture").also { channel ->
             channel.setMethodCallHandler { call, result ->
                 when (call.method) {

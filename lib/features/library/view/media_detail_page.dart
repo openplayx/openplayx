@@ -24,10 +24,13 @@ import 'metadata_artwork.dart';
 import 'metadata_page.dart';
 import 'title_logo.dart';
 import '../../../core/format/byte_size.dart';
+import '../../../ui/adaptive/app_experience.dart';
+import '../../../ui/tv/tv_action.dart';
 
 part 'media_detail_sections.dart';
 part 'media_detail_widgets.dart';
 part 'media_file_detail.dart';
+part 'media_detail_tv.dart';
 
 /// Plays one resource of a media item; supplied by the library page.
 typedef PlayResource = Future<void> Function(
@@ -129,7 +132,11 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
       showShadDialog<MediaVersion>(
         context: context,
         builder: (c) => ShadDialog(
-          title: Text(l.chooseVersion),
+          title: Text(
+            AppExperience.isTelevision(context)
+                ? l.detailVersions
+                : l.chooseVersion,
+          ),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 480, maxHeight: 360),
             child: ListView(
@@ -264,6 +271,7 @@ class _MediaDetailPageState extends State<MediaDetailPage> {
 
   @override
   Widget build(BuildContext context) {
+    if (AppExperience.isTelevision(context)) return _tvDetail();
     final fields = _fields;
     final title = _c.title;
     final backdrop =

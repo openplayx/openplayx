@@ -8378,6 +8378,390 @@ abstract class AppLocalizations {
   /// In en, this message translates to:
   /// **'Unable to enter picture in picture. Please try again.'**
   String get plPictureInPictureFailed;
+
+  /// No description provided for @alignTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Subtitle alignment'**
+  String get alignTitle;
+
+  /// No description provided for @alignAuto.
+  ///
+  /// In en, this message translates to:
+  /// **'Reference alignment'**
+  String get alignAuto;
+
+  /// No description provided for @alignManual.
+  ///
+  /// In en, this message translates to:
+  /// **'Manual offset'**
+  String get alignManual;
+
+  /// No description provided for @alignHistory.
+  ///
+  /// In en, this message translates to:
+  /// **'Alignment history'**
+  String get alignHistory;
+
+  /// No description provided for @alignIntro.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an SRT reference already synchronized to this video, in the same dialogue language. Processing stays on this device.'**
+  String get alignIntro;
+
+  /// No description provided for @alignSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Current subtitle'**
+  String get alignSource;
+
+  /// No description provided for @alignReference.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose reference SRT'**
+  String get alignReference;
+
+  /// No description provided for @alignStart.
+  ///
+  /// In en, this message translates to:
+  /// **'Start alignment'**
+  String get alignStart;
+
+  /// No description provided for @alignReading.
+  ///
+  /// In en, this message translates to:
+  /// **'Reading subtitle files…'**
+  String get alignReading;
+
+  /// No description provided for @alignMatching.
+  ///
+  /// In en, this message translates to:
+  /// **'Matching dialogue and validating timing…'**
+  String get alignMatching;
+
+  /// No description provided for @alignResult.
+  ///
+  /// In en, this message translates to:
+  /// **'Alignment ready to preview'**
+  String get alignResult;
+
+  /// No description provided for @alignReview.
+  ///
+  /// In en, this message translates to:
+  /// **'More evidence needed'**
+  String get alignReview;
+
+  /// No description provided for @alignReviewHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'This result cannot be applied safely. Check the reference version and language, or adjust the delay manually. No subtitle was changed.'**
+  String get alignReviewHelp;
+
+  /// No description provided for @alignApply.
+  ///
+  /// In en, this message translates to:
+  /// **'Apply aligned copy'**
+  String get alignApply;
+
+  /// No description provided for @alignPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview in player'**
+  String get alignPreview;
+
+  /// No description provided for @alignOriginal.
+  ///
+  /// In en, this message translates to:
+  /// **'Return to original'**
+  String get alignOriginal;
+
+  /// No description provided for @alignApplied.
+  ///
+  /// In en, this message translates to:
+  /// **'Aligned subtitle applied'**
+  String get alignApplied;
+
+  /// No description provided for @alignPreviewing.
+  ///
+  /// In en, this message translates to:
+  /// **'Previewing aligned subtitle'**
+  String get alignPreviewing;
+
+  /// No description provided for @alignRetained.
+  ///
+  /// In en, this message translates to:
+  /// **'The original is retained. You can undo this change.'**
+  String get alignRetained;
+
+  /// No description provided for @alignCoverage.
+  ///
+  /// In en, this message translates to:
+  /// **'Matched dialogue'**
+  String get alignCoverage;
+
+  /// No description provided for @alignError.
+  ///
+  /// In en, this message translates to:
+  /// **'Held-out anchor P95'**
+  String get alignError;
+
+  /// No description provided for @alignScale.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline scale'**
+  String get alignScale;
+
+  /// No description provided for @alignOffset.
+  ///
+  /// In en, this message translates to:
+  /// **'Timeline offset'**
+  String get alignOffset;
+
+  /// No description provided for @alignInvalid.
+  ///
+  /// In en, this message translates to:
+  /// **'Invalid mapped cues'**
+  String get alignInvalid;
+
+  /// No description provided for @alignEvidence.
+  ///
+  /// In en, this message translates to:
+  /// **'Metrics measure agreement with the reference, not a probability of correctness. Only fixed and linear corrections are supported.'**
+  String get alignEvidence;
+
+  /// No description provided for @alignChooseFiles.
+  ///
+  /// In en, this message translates to:
+  /// **'Select a local SRT subtitle and a different reference SRT first.'**
+  String get alignChooseFiles;
+
+  /// No description provided for @alignInsufficient.
+  ///
+  /// In en, this message translates to:
+  /// **'Not enough unique matching dialogue. Choose a reference in the same language and version.'**
+  String get alignInsufficient;
+
+  /// No description provided for @alignReadFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not read or process these subtitles. Use valid UTF-8 SRT files up to 4 MB and 12,000 cues.'**
+  String get alignReadFailed;
+
+  /// No description provided for @alignApplyFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Could not switch subtitles. Check the current track and retry.'**
+  String get alignApplyFailed;
+
+  /// No description provided for @alignSourceChanged.
+  ///
+  /// In en, this message translates to:
+  /// **'The selected subtitle changed. Restore it or run alignment again.'**
+  String get alignSourceChanged;
+
+  /// No description provided for @alignDelayHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Positive values delay subtitles; negative values show them earlier. This changes playback only.'**
+  String get alignDelayHelp;
+
+  /// No description provided for @alignHistoryEmpty.
+  ///
+  /// In en, this message translates to:
+  /// **'No alignment has been applied in this playback session.'**
+  String get alignHistoryEmpty;
+
+  /// No description provided for @alignHistorySession.
+  ///
+  /// In en, this message translates to:
+  /// **'History is for this playback session. Generated copies are retained in application storage.'**
+  String get alignHistorySession;
+
+  /// No description provided for @alignCollapse.
+  ///
+  /// In en, this message translates to:
+  /// **'Collapse and continue watching'**
+  String get alignCollapse;
+
+  /// No description provided for @alignPreviewAnchor.
+  ///
+  /// In en, this message translates to:
+  /// **'Preview validation anchor'**
+  String get alignPreviewAnchor;
+
+  /// No description provided for @alignReset.
+  ///
+  /// In en, this message translates to:
+  /// **'Reset offset'**
+  String get alignReset;
+
+  /// No description provided for @alignReferenceSaved.
+  ///
+  /// In en, this message translates to:
+  /// **'Use saved speech-recognition subtitle'**
+  String get alignReferenceSaved;
+
+  /// No description provided for @alignNoSource.
+  ///
+  /// In en, this message translates to:
+  /// **'Choose an external or saved SRT subtitle to align. Embedded and image subtitles are not supported here.'**
+  String get alignNoSource;
+
+  /// No description provided for @webPlaybackTitle.
+  ///
+  /// In en, this message translates to:
+  /// **'Web playback'**
+  String get webPlaybackTitle;
+
+  /// No description provided for @webPlaybackDescription.
+  ///
+  /// In en, this message translates to:
+  /// **'Watch shared media in a browser on your local network.'**
+  String get webPlaybackDescription;
+
+  /// No description provided for @webPlaybackEnabled.
+  ///
+  /// In en, this message translates to:
+  /// **'Enable Web playback'**
+  String get webPlaybackEnabled;
+
+  /// No description provided for @webPlaybackInterface.
+  ///
+  /// In en, this message translates to:
+  /// **'Network interface'**
+  String get webPlaybackInterface;
+
+  /// No description provided for @webPlaybackNoNetwork.
+  ///
+  /// In en, this message translates to:
+  /// **'No private IPv4 interface found. Connect to a local network and retry.'**
+  String get webPlaybackNoNetwork;
+
+  /// No description provided for @webPlaybackAddress.
+  ///
+  /// In en, this message translates to:
+  /// **'Browser address'**
+  String get webPlaybackAddress;
+
+  /// No description provided for @webPlaybackPreview.
+  ///
+  /// In en, this message translates to:
+  /// **'Open browser'**
+  String get webPlaybackPreview;
+
+  /// No description provided for @webPlaybackPairing.
+  ///
+  /// In en, this message translates to:
+  /// **'Connect a device'**
+  String get webPlaybackPairing;
+
+  /// No description provided for @webPlaybackCode.
+  ///
+  /// In en, this message translates to:
+  /// **'Pairing code'**
+  String get webPlaybackCode;
+
+  /// No description provided for @webPlaybackCodeHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Open the address on another device and enter this code. Valid for 5 minutes.'**
+  String get webPlaybackCodeHelp;
+
+  /// No description provided for @webPlaybackRefreshCode.
+  ///
+  /// In en, this message translates to:
+  /// **'New pairing code'**
+  String get webPlaybackRefreshCode;
+
+  /// No description provided for @webPlaybackExpired.
+  ///
+  /// In en, this message translates to:
+  /// **'Code expired. Generate a new code to pair a device.'**
+  String get webPlaybackExpired;
+
+  /// No description provided for @webPlaybackShare.
+  ///
+  /// In en, this message translates to:
+  /// **'Shared folders'**
+  String get webPlaybackShare;
+
+  /// No description provided for @webPlaybackShareHelp.
+  ///
+  /// In en, this message translates to:
+  /// **'Only selected, enabled library folders are shared. Changing this also ends playback of removed media.'**
+  String get webPlaybackShareHelp;
+
+  /// No description provided for @webPlaybackNoScopes.
+  ///
+  /// In en, this message translates to:
+  /// **'Add a folder to your library and scan it before sharing.'**
+  String get webPlaybackNoScopes;
+
+  /// No description provided for @webPlaybackSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'Now watching'**
+  String get webPlaybackSessions;
+
+  /// No description provided for @webPlaybackNoSessions.
+  ///
+  /// In en, this message translates to:
+  /// **'No devices are currently watching.'**
+  String get webPlaybackNoSessions;
+
+  /// No description provided for @webPlaybackEndSession.
+  ///
+  /// In en, this message translates to:
+  /// **'End session'**
+  String get webPlaybackEndSession;
+
+  /// No description provided for @webPlaybackDirect.
+  ///
+  /// In en, this message translates to:
+  /// **'Direct Play · Original quality'**
+  String get webPlaybackDirect;
+
+  /// No description provided for @webPlaybackKeepOpen.
+  ///
+  /// In en, this message translates to:
+  /// **'Keep OpenPlayX running. This version supports Direct Play only; format compatibility depends on the browser.'**
+  String get webPlaybackKeepOpen;
+
+  /// No description provided for @webPlaybackHttpNotice.
+  ///
+  /// In en, this message translates to:
+  /// **'Use on a trusted local network. HTTP traffic is not encrypted. Stopping the service disconnects all devices.'**
+  String get webPlaybackHttpNotice;
+
+  /// No description provided for @webPlaybackFailed.
+  ///
+  /// In en, this message translates to:
+  /// **'Unable to update the service. Check the network interface and whether port 8090 is available.'**
+  String get webPlaybackFailed;
+
+  /// No description provided for @webPlaybackCopied.
+  ///
+  /// In en, this message translates to:
+  /// **'Address copied'**
+  String get webPlaybackCopied;
+
+  /// No description provided for @webPlaybackStopped.
+  ///
+  /// In en, this message translates to:
+  /// **'Service is off'**
+  String get webPlaybackStopped;
+
+  /// No description provided for @tvViewDetails.
+  ///
+  /// In en, this message translates to:
+  /// **'View details'**
+  String get tvViewDetails;
+
+  /// No description provided for @tvSeekHint.
+  ///
+  /// In en, this message translates to:
+  /// **'Left / right to preview · Confirm to seek · Back to cancel'**
+  String get tvSeekHint;
 }
 
 class _AppLocalizationsDelegate

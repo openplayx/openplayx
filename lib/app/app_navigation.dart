@@ -6,6 +6,57 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import 'app_destination.dart';
 import '../ui/tokens/app_metrics.dart';
 import '../ui/tokens/app_spacing.dart';
+import '../ui/tv/tv_action.dart';
+
+/// TV destinations use labelled, remote-sized targets rather than compact icons.
+class TvSidebar extends StatelessWidget {
+  const TvSidebar({
+    super.key,
+    required this.selected,
+    required this.onSelected,
+  });
+  final int selected;
+  final ValueChanged<int> onSelected;
+
+  @override
+  Widget build(BuildContext context) => SizedBox(
+    width: 168,
+    child: FocusTraversalGroup(
+      child: ListView(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 32),
+        children: [
+          Text(
+            'OpenPlayX',
+            textAlign: TextAlign.center,
+            style: ShadTheme.of(context).textTheme.h4,
+          ),
+          const SizedBox(height: 40),
+          for (final destination in AppDestination.values)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 16),
+              child: TvAction(
+                key: ValueKey('tv-nav-${destination.name}'),
+                selected: selected == destination.index,
+                onPressed: () => onSelected(destination.index),
+                child: Row(
+                  children: [
+                    Icon(destination.icon, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        destination.label(context),
+                        style: const TextStyle(fontSize: 18),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    ),
+  );
+}
 
 class AppSidebar extends StatelessWidget {
   const AppSidebar({

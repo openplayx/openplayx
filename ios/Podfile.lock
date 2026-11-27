@@ -1,31 +1,42 @@
 PODS:
   - Flutter (1.0.0)
-  - MobileVLCKit (3.7.3)
+  - media_kit_libs_ios_video (1.1.4):
+    - Flutter
+  - media_kit_video (0.0.1):
+    - Flutter
   - openplayx_ffmpeg (0.1.0):
     - Flutter
+  - openplayx_playback (0.1.0):
+    - Flutter
+    - openplayx_ffmpeg
   - openplayx_whisper (0.1.0):
     - Flutter
   - OpenPlayXRemote (0.1.0)
   - vlc_player (2.1.2):
     - Flutter
-    - MobileVLCKit (= 3.7.3)
+    - openplayx_playback
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
+  - media_kit_libs_ios_video (from `.symlinks/plugins/media_kit_libs_ios_video/ios`)
+  - media_kit_video (from `.symlinks/plugins/media_kit_video/ios`)
   - openplayx_ffmpeg (from `.symlinks/plugins/openplayx_ffmpeg/ios`)
+  - openplayx_playback (from `.symlinks/plugins/openplayx_playback/ios`)
   - openplayx_whisper (from `.symlinks/plugins/openplayx_whisper/ios`)
   - OpenPlayXRemote (from `../native/remote_access`)
   - vlc_player (from `.symlinks/plugins/vlc_player/ios`)
 
-SPEC REPOS:
-  trunk:
-    - MobileVLCKit
-
 EXTERNAL SOURCES:
   Flutter:
     :path: Flutter
+  media_kit_libs_ios_video:
+    :path: ".symlinks/plugins/media_kit_libs_ios_video/ios"
+  media_kit_video:
+    :path: ".symlinks/plugins/media_kit_video/ios"
   openplayx_ffmpeg:
     :path: ".symlinks/plugins/openplayx_ffmpeg/ios"
+  openplayx_playback:
+    :path: ".symlinks/plugins/openplayx_playback/ios"
   openplayx_whisper:
     :path: ".symlinks/plugins/openplayx_whisper/ios"
   OpenPlayXRemote:
@@ -35,11 +46,13 @@ EXTERNAL SOURCES:
 
 SPEC CHECKSUMS:
   Flutter: 71a624a5bc0c04062bf19101d501e466baf2fb47
-  MobileVLCKit: 73d7ddb52238b6885b70b0f281cae75a0a6e3ac0
+  media_kit_libs_ios_video: b9ffef6b96c496b6ffb9948dde13bfbf67ff5523
+  media_kit_video: 1746e198cb697d1ffb734b1d05ec429d1fcd1474
   openplayx_ffmpeg: 31433f453628f6ca20ea0061f7114dce37ddb922
+  openplayx_playback: 220ae46cfb85151687cbe7bfdc75b344cc584b43
   openplayx_whisper: cbeb9b2bb8e7348e05602f668af60ffb0f00eec0
   OpenPlayXRemote: 0004fd0700af6a6cdce61d86e3b0676f4aaee3f3
-  vlc_player: 54e1b3c297a42efdeaa13e912d2ed27f6a7d4e0f
+  vlc_player: 699dea653e88ef41ce54d59f6da3caa7048ba507
 
 PODFILE CHECKSUM: 060a9c7065194275cef5f8ff0bf6b117e0fb3fcc
 

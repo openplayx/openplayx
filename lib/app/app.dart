@@ -1,5 +1,7 @@
 import 'dart:io' show Platform;
+
 import '../ui/input/remote_select.dart';
+import '../ui/adaptive/app_experience.dart';
 
 import 'package:posthog_flutter/posthog_flutter.dart';
 
@@ -46,7 +48,9 @@ class _OpenPlayXAppState extends State<OpenPlayXApp> {
       builder: (context, _) => ShadApp.custom(
         theme: AppTheme.light,
         darkTheme: AppTheme.dark,
-        themeMode: _appearance.mode,
+        themeMode: AppExperience.isTelevision(context)
+            ? ThemeMode.dark
+            : _appearance.mode,
         appBuilder: (context) => MaterialApp(
           title: 'OpenPlayX',
           navigatorObservers: [_analyticsObserver],

@@ -1,10 +1,12 @@
 import 'dart:async';
+import 'dart:io';
 
 import '../data/analytics/analytics_service.dart';
 import '../data/analytics/analytics_navigation_observer.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/services.dart';
 
 import '../l10n/generated/app_localizations.dart';
 
@@ -12,6 +14,7 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../ui/components/states/content_state.dart';
 import '../ui/adaptive/app_page.dart';
+import '../ui/adaptive/app_experience.dart';
 
 import 'package:openplayx_playback/playback.dart';
 
@@ -31,6 +34,8 @@ import '../capabilities/library/library_service.dart';
 import '../capabilities/metadata/metadata_runtime.dart';
 import 'app_navigation.dart';
 import '../features/settings/settings_page.dart';
+import '../capabilities/web_playback/web_playback_service.dart';
+import '../capabilities/web_playback/web_playback_catalog.dart';
 import '../features/assistant/view/plugins/plugin_management_page.dart';
 import 'player_window.dart';
 import '../ui/tokens/app_motion.dart';
@@ -108,18 +113,24 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   AiChatController? _chat;
   MediaTools? get _mediaTools => _assistantModule?.mediaTools;
   MediaProcessingService? _mediaProcessing;
+  WebPlaybackService? _webPlayback;
   SubtitleGenerationService? _subtitles;
   PluginManager? _plugins;
   PlayerBackend? _backend;
   // Desktop playback opens in its own window; tests inject a backend and keep
   // the embedded player.
   late final PlayerWindows? _playerWindows =
-      widget.backend == null && supportsPlayerWindow ? PlayerWindows() : null;
+      widget.backend == null &&
+          supportsPlayerWindow &&
+          !AppExperience.isTelevision(context)
+      ? PlayerWindows()
+      : null;
   int _destination = 0;
   int _homeRevealRevision = 0;
   // Build chat on first visit and retain its state when switching tabs.
   bool _chatVisited = false;
   bool _showPlayer = false;
+  FocusNode? _playbackReturnFocus;
   bool _opening = false;
   bool _exitingPlayer = false;
   String? _error;
@@ -148,6 +159,11 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       unawaited(library.recoverScans(_sources).catchError((Object _) {}));
       setState(() {
         _library = library;
+        if (Platform.isMacOS || Platform.isWindows || Platform.isLinux) {
+          _webPlayback = WebPlaybackService(
+            LibraryWebPlaybackCatalog(library, _sources),
+          );
+        }
         final media = _mediaProcessing = MediaProcessingService(
           db: library.db,
           sources: _sources,
@@ -259,8 +275,15 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     }
     _mediaProcessing?.dispose();
     _revision.dispose();
-    if (widget.library == null) _library?.close();
-    if (widget.sources == null) unawaited(_sources.dispose());
+    // Stop incoming requests and drain pending source resolves before closing
+    // the library / source manager that the playback service uses.
+    final web = _webPlayback;
+    unawaited(() async {
+      await web?.shutdown();
+      web?.dispose();
+      if (widget.library == null) _library?.close();
+      if (widget.sources == null) await _sources.dispose();
+    }());
     super.dispose();
   }
 
@@ -476,6 +499,14 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     try {
       if (await _player.currentState!.stopPlayback() && mounted) {
         setState(() => _showPlayer = false);
+        if (AppExperience.isTelevision(context)) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            final target = _playbackReturnFocus;
+            if (mounted && target?.context != null && target!.canRequestFocus) {
+              target.requestFocus();
+            }
+          });
+        }
         AnalyticsService.instance.tabScreen =
             _analyticsObservers[_destination].current;
         unawaited(
@@ -506,6 +537,9 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     // On mobile the player lives below the assistant's full-page route.
     // Reveal it for tool opens as well as media-card taps, without stopping
     // the app-owned coordinator that may still need to select subtitles.
+    if (AppExperience.isTelevision(context)) {
+      _playbackReturnFocus = FocusManager.instance.primaryFocus;
+    }
     FocusManager.instance.primaryFocus?.unfocus();
     _closeAssistant();
     setState(() {
@@ -611,6 +645,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     library: _library,
     sources: _sources,
     plugins: _plugins,
+    webPlayback: _webPlayback,
     aiGroupBuilder: _pluginGroupPage,
   );
 
@@ -652,8 +687,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   });
 
   // Hidden tabs keep their state but stop animating.
-  Widget _branch(int index) =>
-      TickerMode(enabled: index == _destination, child: _navigator(index));
+  Widget _branch(int index) => ExcludeFocus(
+    excluding: _showPlayer || index != _destination,
+    child: TickerMode(enabled: index == _destination, child: _navigator(index)),
+  );
 
   Widget _navigator(int index) => Navigator(
     key: _branches[index],
@@ -707,105 +744,148 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
       );
     }
     return PopScope(
-      canPop: !_showPlayer && _destination == 0,
+      canPop:
+          !_showPlayer && _destination == 0 && _depths[_destination].depth <= 1,
       onPopInvokedWithResult: (didPop, _) async {
         if (didPop) return;
         if (_showPlayer) {
-          await _exitPlayer();
+          if (AppExperience.isTelevision(context)) {
+            _player.currentState?.handleTelevisionBack();
+          } else {
+            await _exitPlayer();
+          }
         } else if (!await _branches[_destination].currentState!.maybePop()) {
           if (mounted) _select(0);
         }
       },
-      child: LayoutBuilder(
-        builder: (context, constraints) {
-          final effectiveWidth =
-              constraints.maxWidth /
-              (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1, 2);
-          final wide = effectiveWidth >= 840;
-          final sidebar = effectiveWidth >= 600;
-          final mobilePlayer =
-              !kIsWeb &&
-              (defaultTargetPlatform == TargetPlatform.android ||
-                  defaultTargetPlatform == TargetPlatform.iOS);
-          return Scaffold(
-            // The home shelves paint underneath the frosted capsule. Other
-            // tabs retain their reserved space for forms and the chat composer.
-            extendBody:
-                !sidebar &&
-                !_showPlayer &&
-                _destination == 0 &&
-                _depths[_destination].depth == 1,
-            body: Stack(
-              children: [
-                Offstage(
-                  offstage: _showPlayer,
-                  // Pauses animations and deferred page refreshes under the player.
-                  child: TickerMode(
-                    enabled: !_showPlayer,
-                    child: Row(
-                      children: [
-                        if (sidebar)
-                          AppSidebar(
-                            selected: _destination,
-                            onSelected: _select,
-                            compact: !wide,
-                          ),
-                        Expanded(
-                          child: Column(
-                            children: [
-                              Expanded(
-                                child: _withAssistant(
-                                  IndexedStack(
-                                    index: _destination,
-                                    children: [
-                                      for (final d in AppDestination.values)
-                                        d == AppDestination.plugins &&
-                                                !_chatVisited
-                                            ? const SizedBox.shrink()
-                                            : _branch(d.index),
-                                    ],
+      child: Focus(
+        canRequestFocus: false,
+        skipTraversal: true,
+        onKeyEvent: (_, event) {
+          if (!AppExperience.isTelevision(context) ||
+              _showPlayer ||
+              ModalRoute.of(context)?.isCurrent != true ||
+              (event.logicalKey != LogicalKeyboardKey.escape &&
+                  event.logicalKey != LogicalKeyboardKey.goBack)) {
+            return KeyEventResult.ignored;
+          }
+          if (_depths[_destination].depth <= 1 && _destination == 0) {
+            return KeyEventResult.ignored;
+          }
+          if (event is KeyDownEvent) {
+            unawaited(() async {
+              if (!await _branches[_destination].currentState!.maybePop() &&
+                  mounted) {
+                _select(0);
+              }
+            }());
+          }
+          return KeyEventResult.handled;
+        },
+        child: LayoutBuilder(
+          builder: (context, constraints) {
+            final effectiveWidth =
+                constraints.maxWidth /
+                (MediaQuery.textScalerOf(context).scale(16) / 16).clamp(1, 2);
+            final wide = effectiveWidth >= 840;
+            final television = AppExperience.isTelevision(context);
+            final sidebar = television || effectiveWidth >= 600;
+            final mobilePlayer =
+                !television &&
+                !kIsWeb &&
+                (defaultTargetPlatform == TargetPlatform.android ||
+                    defaultTargetPlatform == TargetPlatform.iOS);
+            return Scaffold(
+              // The home shelves paint underneath the frosted capsule. Other
+              // tabs retain their reserved space for forms and the chat composer.
+              extendBody:
+                  !sidebar &&
+                  !_showPlayer &&
+                  _destination == 0 &&
+                  _depths[_destination].depth == 1,
+              body: Stack(
+                children: [
+                  Offstage(
+                    offstage: _showPlayer,
+                    // Pauses animations and deferred page refreshes under the player.
+                    child: TickerMode(
+                      enabled: !_showPlayer,
+                      child: Row(
+                        children: [
+                          if (television && _depths[_destination].depth <= 1)
+                            ExcludeFocus(
+                              excluding: _showPlayer,
+                              child: TvSidebar(
+                                selected: _destination,
+                                onSelected: _select,
+                              ),
+                            )
+                          else if (sidebar && !television)
+                            AppSidebar(
+                              selected: _destination,
+                              onSelected: _select,
+                              compact: !wide,
+                            ),
+                          Expanded(
+                            child: Column(
+                              children: [
+                                Expanded(
+                                  child: _withAssistant(
+                                    IndexedStack(
+                                      index: _destination,
+                                      children: [
+                                        for (final d in AppDestination.values)
+                                          d == AppDestination.plugins &&
+                                                  !_chatVisited
+                                              ? const SizedBox.shrink()
+                                              : _branch(d.index),
+                                      ],
+                                    ),
                                   ),
                                 ),
-                              ),
-                            ],
+                              ],
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-                if (_backend != null)
-                  Offstage(
-                    offstage: !_showPlayer,
-                    child: ExcludeFocus(
-                      excluding: !_showPlayer,
-                      child: PlayerPage(
-                        key: _player,
-                        backend: _backend,
-                        controlsVisibility: _playerControlsVisibility,
-                        onAssistantPressed: _assistant == null
-                            ? null
-                            : _openPlayerAssistant,
-                        sourceManager: _sources,
-                        libraryService: _library,
-                        active: _showPlayer,
-                        onExit: _exitPlayer,
-                        pickMedia: widget.pickMedia,
-                        onFileSelected: () =>
-                            setState(() => _showPlayer = true),
+                        ],
                       ),
                     ),
                   ),
-                if (_assistant != null && _showPlayer && !mobilePlayer)
-                  _playerAssistantButton(context),
-              ],
-            ),
-            bottomNavigationBar:
-                sidebar || _showPlayer || _depths[_destination].depth > 1
-                ? null
-                : AppBottomBar(selected: _destination, onSelected: _select),
-          );
-        },
+                  if (_backend != null)
+                    Offstage(
+                      offstage: !_showPlayer,
+                      child: ExcludeFocus(
+                        excluding: !_showPlayer,
+                        child: PlayerPage(
+                          key: _player,
+                          backend: _backend,
+                          controlsVisibility: _playerControlsVisibility,
+                          onAssistantPressed: _assistant == null
+                              ? null
+                              : _openPlayerAssistant,
+                          sourceManager: _sources,
+                          libraryService: _library,
+                          active: _showPlayer,
+                          onExit: _exitPlayer,
+                          pickMedia: widget.pickMedia,
+                          onFileSelected: () =>
+                              setState(() => _showPlayer = true),
+                        ),
+                      ),
+                    ),
+                  if (_assistant != null &&
+                      _showPlayer &&
+                      !mobilePlayer &&
+                      !television)
+                    _playerAssistantButton(context),
+                ],
+              ),
+              bottomNavigationBar:
+                  sidebar || _showPlayer || _depths[_destination].depth > 1
+                  ? null
+                  : AppBottomBar(selected: _destination, onSelected: _select),
+            );
+          },
+        ),
       ),
     );
   }

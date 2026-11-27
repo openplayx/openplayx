@@ -174,6 +174,14 @@ extension _PlayerPanels on PlayerPageState {
             : null,
       ),
       _trackList(audio: false),
+      if (_backend.supportsExternalSubtitles)
+        PlayerMenuRow(
+          key: const Key('open-subtitle-alignment'),
+          icon: AppIcons.assistant,
+          label: l.alignTitle,
+          height: 48,
+          onTap: () => _openPanel(PlayerPanel.alignment),
+        ),
     ],
   );
 

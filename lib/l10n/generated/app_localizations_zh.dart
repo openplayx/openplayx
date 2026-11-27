@@ -4388,6 +4388,199 @@ class AppLocalizationsZh extends AppLocalizations {
 
   @override
   String get plPictureInPictureFailed => '无法进入画中画，请重试。';
+
+  @override
+  String get alignTitle => '字幕智能对齐';
+
+  @override
+  String get alignAuto => '参考字幕对齐';
+
+  @override
+  String get alignManual => '手动偏移';
+
+  @override
+  String get alignHistory => '对齐记录';
+
+  @override
+  String get alignIntro => '选择已与影片同步、对白语言相同的 SRT 参考字幕。所有处理均在设备上完成。';
+
+  @override
+  String get alignSource => '当前字幕';
+
+  @override
+  String get alignReference => '选择参考 SRT';
+
+  @override
+  String get alignStart => '开始对齐';
+
+  @override
+  String get alignReading => '正在读取字幕文件…';
+
+  @override
+  String get alignMatching => '正在匹配对白并独立检查时间轴…';
+
+  @override
+  String get alignResult => '对齐完成，可以预览';
+
+  @override
+  String get alignReview => '需要更多证据';
+
+  @override
+  String get alignReviewHelp => '当前结果未通过安全检查。请核对参考字幕的版本和语言，或手动调整。字幕未被更改。';
+
+  @override
+  String get alignApply => '应用对齐副本';
+
+  @override
+  String get alignPreview => '在播放器中预览';
+
+  @override
+  String get alignOriginal => '恢复原始字幕';
+
+  @override
+  String get alignApplied => '已应用对齐字幕';
+
+  @override
+  String get alignPreviewing => '正在预览对齐字幕';
+
+  @override
+  String get alignRetained => '原始字幕保留，可随时撤销。';
+
+  @override
+  String get alignCoverage => '匹配对白覆盖率';
+
+  @override
+  String get alignError => '独立锚点误差 P95';
+
+  @override
+  String get alignScale => '时间轴缩放';
+
+  @override
+  String get alignOffset => '时间轴偏移';
+
+  @override
+  String get alignInvalid => '映射后异常条目';
+
+  @override
+  String get alignEvidence => '指标表示与参考字幕的一致程度，不是正确概率。当前支持固定偏移和线性校正。';
+
+  @override
+  String get alignChooseFiles => '请先选择本地 SRT 字幕和另一份参考 SRT。';
+
+  @override
+  String get alignInsufficient => '唯一匹配对白不足，请选择同语言、同版本的参考字幕。';
+
+  @override
+  String get alignReadFailed =>
+      '无法读取或处理字幕。请使用有效的 UTF-8 SRT，每个文件最多 4 MB、12,000 条。';
+
+  @override
+  String get alignApplyFailed => '切换字幕失败，请检查当前轨道后重试。';
+
+  @override
+  String get alignSourceChanged => '当前字幕已切换，请恢复原字幕或重新对齐。';
+
+  @override
+  String get alignDelayHelp => '正值延后字幕，负值提前字幕。仅调整播放，不修改文件。';
+
+  @override
+  String get alignHistoryEmpty => '本次播放尚未应用对齐结果。';
+
+  @override
+  String get alignHistorySession => '记录仅限本次播放。生成的字幕副本保留在应用存储中。';
+
+  @override
+  String get alignCollapse => '收起并继续观看';
+
+  @override
+  String get alignPreviewAnchor => '预览检查锚点';
+
+  @override
+  String get alignReset => '重置偏移';
+
+  @override
+  String get alignReferenceSaved => '使用已保存的语音识别字幕';
+
+  @override
+  String get alignNoSource => '请选择外挂或已保存的 SRT 字幕。此处暂不支持内嵌和图片字幕。';
+
+  @override
+  String get webPlaybackTitle => 'Web 播放服务';
+
+  @override
+  String get webPlaybackDescription => '在同一局域网的浏览器中观看分享的媒体。';
+
+  @override
+  String get webPlaybackEnabled => '启用 Web 播放服务';
+
+  @override
+  String get webPlaybackInterface => '局域网接口';
+
+  @override
+  String get webPlaybackNoNetwork => '未找到局域网 IPv4 接口，请连接局域网后重试。';
+
+  @override
+  String get webPlaybackAddress => '浏览器访问地址';
+
+  @override
+  String get webPlaybackPreview => '打开浏览器';
+
+  @override
+  String get webPlaybackPairing => '连接新设备';
+
+  @override
+  String get webPlaybackCode => '配对码';
+
+  @override
+  String get webPlaybackCodeHelp => '在另一台设备打开上方地址并输入配对码，有效期 5 分钟。';
+
+  @override
+  String get webPlaybackRefreshCode => '换一个配对码';
+
+  @override
+  String get webPlaybackExpired => '配对码已过期，请生成新配对码。';
+
+  @override
+  String get webPlaybackShare => '分享范围';
+
+  @override
+  String get webPlaybackShareHelp => '只有勾选且启用的媒体库目录会被分享，取消分享会结束对应播放。';
+
+  @override
+  String get webPlaybackNoScopes => '请先将目录加入媒体库并完成扫描。';
+
+  @override
+  String get webPlaybackSessions => '正在观看';
+
+  @override
+  String get webPlaybackNoSessions => '还没有设备在观看。';
+
+  @override
+  String get webPlaybackEndSession => '结束会话';
+
+  @override
+  String get webPlaybackDirect => '原画直出';
+
+  @override
+  String get webPlaybackKeepOpen => '保持 OpenPlayX 运行。当前版本支持原画直出，格式兼容性取决于浏览器。';
+
+  @override
+  String get webPlaybackHttpNotice => '请在可信局域网使用，HTTP 传输未加密。关闭服务会断开所有设备。';
+
+  @override
+  String get webPlaybackFailed => '操作失败，请检查局域网接口及 8090 端口是否可用。';
+
+  @override
+  String get webPlaybackCopied => '地址已复制';
+
+  @override
+  String get webPlaybackStopped => '服务已关闭';
+
+  @override
+  String get tvViewDetails => '影片详情';
+
+  @override
+  String get tvSeekHint => '左右预览 · 确认定位 · 返回取消';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hans`).
@@ -8773,6 +8966,199 @@ class AppLocalizationsZhHans extends AppLocalizationsZh {
 
   @override
   String get plPictureInPictureFailed => '无法进入画中画，请重试。';
+
+  @override
+  String get alignTitle => '字幕智能对齐';
+
+  @override
+  String get alignAuto => '参考字幕对齐';
+
+  @override
+  String get alignManual => '手动偏移';
+
+  @override
+  String get alignHistory => '对齐记录';
+
+  @override
+  String get alignIntro => '选择已与影片同步、对白语言相同的 SRT 参考字幕。所有处理均在设备上完成。';
+
+  @override
+  String get alignSource => '当前字幕';
+
+  @override
+  String get alignReference => '选择参考 SRT';
+
+  @override
+  String get alignStart => '开始对齐';
+
+  @override
+  String get alignReading => '正在读取字幕文件…';
+
+  @override
+  String get alignMatching => '正在匹配对白并独立检查时间轴…';
+
+  @override
+  String get alignResult => '对齐完成，可以预览';
+
+  @override
+  String get alignReview => '需要更多证据';
+
+  @override
+  String get alignReviewHelp => '当前结果未通过安全检查。请核对参考字幕的版本和语言，或手动调整。字幕未被更改。';
+
+  @override
+  String get alignApply => '应用对齐副本';
+
+  @override
+  String get alignPreview => '在播放器中预览';
+
+  @override
+  String get alignOriginal => '恢复原始字幕';
+
+  @override
+  String get alignApplied => '已应用对齐字幕';
+
+  @override
+  String get alignPreviewing => '正在预览对齐字幕';
+
+  @override
+  String get alignRetained => '原始字幕保留，可随时撤销。';
+
+  @override
+  String get alignCoverage => '匹配对白覆盖率';
+
+  @override
+  String get alignError => '独立锚点误差 P95';
+
+  @override
+  String get alignScale => '时间轴缩放';
+
+  @override
+  String get alignOffset => '时间轴偏移';
+
+  @override
+  String get alignInvalid => '映射后异常条目';
+
+  @override
+  String get alignEvidence => '指标表示与参考字幕的一致程度，不是正确概率。当前支持固定偏移和线性校正。';
+
+  @override
+  String get alignChooseFiles => '请先选择本地 SRT 字幕和另一份参考 SRT。';
+
+  @override
+  String get alignInsufficient => '唯一匹配对白不足，请选择同语言、同版本的参考字幕。';
+
+  @override
+  String get alignReadFailed =>
+      '无法读取或处理字幕。请使用有效的 UTF-8 SRT，每个文件最多 4 MB、12,000 条。';
+
+  @override
+  String get alignApplyFailed => '切换字幕失败，请检查当前轨道后重试。';
+
+  @override
+  String get alignSourceChanged => '当前字幕已切换，请恢复原字幕或重新对齐。';
+
+  @override
+  String get alignDelayHelp => '正值延后字幕，负值提前字幕。仅调整播放，不修改文件。';
+
+  @override
+  String get alignHistoryEmpty => '本次播放尚未应用对齐结果。';
+
+  @override
+  String get alignHistorySession => '记录仅限本次播放。生成的字幕副本保留在应用存储中。';
+
+  @override
+  String get alignCollapse => '收起并继续观看';
+
+  @override
+  String get alignPreviewAnchor => '预览检查锚点';
+
+  @override
+  String get alignReset => '重置偏移';
+
+  @override
+  String get alignReferenceSaved => '使用已保存的语音识别字幕';
+
+  @override
+  String get alignNoSource => '请选择外挂或已保存的 SRT 字幕。此处暂不支持内嵌和图片字幕。';
+
+  @override
+  String get webPlaybackTitle => 'Web 播放服务';
+
+  @override
+  String get webPlaybackDescription => '在同一局域网的浏览器中观看分享的媒体。';
+
+  @override
+  String get webPlaybackEnabled => '启用 Web 播放服务';
+
+  @override
+  String get webPlaybackInterface => '局域网接口';
+
+  @override
+  String get webPlaybackNoNetwork => '未找到局域网 IPv4 接口，请连接局域网后重试。';
+
+  @override
+  String get webPlaybackAddress => '浏览器访问地址';
+
+  @override
+  String get webPlaybackPreview => '打开浏览器';
+
+  @override
+  String get webPlaybackPairing => '连接新设备';
+
+  @override
+  String get webPlaybackCode => '配对码';
+
+  @override
+  String get webPlaybackCodeHelp => '在另一台设备打开上方地址并输入配对码，有效期 5 分钟。';
+
+  @override
+  String get webPlaybackRefreshCode => '换一个配对码';
+
+  @override
+  String get webPlaybackExpired => '配对码已过期，请生成新配对码。';
+
+  @override
+  String get webPlaybackShare => '分享范围';
+
+  @override
+  String get webPlaybackShareHelp => '只有勾选且启用的媒体库目录会被分享，取消分享会结束对应播放。';
+
+  @override
+  String get webPlaybackNoScopes => '请先将目录加入媒体库并完成扫描。';
+
+  @override
+  String get webPlaybackSessions => '正在观看';
+
+  @override
+  String get webPlaybackNoSessions => '还没有设备在观看。';
+
+  @override
+  String get webPlaybackEndSession => '结束会话';
+
+  @override
+  String get webPlaybackDirect => '原画直出';
+
+  @override
+  String get webPlaybackKeepOpen => '保持 OpenPlayX 运行。当前版本支持原画直出，格式兼容性取决于浏览器。';
+
+  @override
+  String get webPlaybackHttpNotice => '请在可信局域网使用，HTTP 传输未加密。关闭服务会断开所有设备。';
+
+  @override
+  String get webPlaybackFailed => '操作失败，请检查局域网接口及 8090 端口是否可用。';
+
+  @override
+  String get webPlaybackCopied => '地址已复制';
+
+  @override
+  String get webPlaybackStopped => '服务已关闭';
+
+  @override
+  String get tvViewDetails => '影片详情';
+
+  @override
+  String get tvSeekHint => '左右预览 · 确认定位 · 返回取消';
 }
 
 /// The translations for Chinese, using the Han script (`zh_Hant`).
@@ -13158,4 +13544,197 @@ class AppLocalizationsZhHant extends AppLocalizationsZh {
 
   @override
   String get plPictureInPictureFailed => '無法進入子母畫面，請重試。';
+
+  @override
+  String get alignTitle => '字幕智慧對齊';
+
+  @override
+  String get alignAuto => '參考字幕對齊';
+
+  @override
+  String get alignManual => '手動偏移';
+
+  @override
+  String get alignHistory => '對齊紀錄';
+
+  @override
+  String get alignIntro => '選擇已與影片同步、對白語言相同的 SRT 參考字幕。所有處理均在裝置上完成。';
+
+  @override
+  String get alignSource => '目前字幕';
+
+  @override
+  String get alignReference => '選擇參考 SRT';
+
+  @override
+  String get alignStart => '開始對齊';
+
+  @override
+  String get alignReading => '正在讀取字幕檔案…';
+
+  @override
+  String get alignMatching => '正在比對對白並獨立檢查時間軸…';
+
+  @override
+  String get alignResult => '對齊完成，可以預覽';
+
+  @override
+  String get alignReview => '需要更多證據';
+
+  @override
+  String get alignReviewHelp => '目前結果未通過安全檢查。請核對參考字幕的版本和語言，或手動調整。字幕未被變更。';
+
+  @override
+  String get alignApply => '套用對齊副本';
+
+  @override
+  String get alignPreview => '在播放器中預覽';
+
+  @override
+  String get alignOriginal => '還原原始字幕';
+
+  @override
+  String get alignApplied => '已套用對齊字幕';
+
+  @override
+  String get alignPreviewing => '正在預覽對齊字幕';
+
+  @override
+  String get alignRetained => '原始字幕保留，可隨時復原。';
+
+  @override
+  String get alignCoverage => '匹配對白覆蓋率';
+
+  @override
+  String get alignError => '獨立錨點誤差 P95';
+
+  @override
+  String get alignScale => '時間軸縮放';
+
+  @override
+  String get alignOffset => '時間軸偏移';
+
+  @override
+  String get alignInvalid => '映射後異常條目';
+
+  @override
+  String get alignEvidence => '指標表示與參考字幕的一致程度，不是正確機率。目前支援固定偏移和線性校正。';
+
+  @override
+  String get alignChooseFiles => '請先選擇本機 SRT 字幕和另一份參考 SRT。';
+
+  @override
+  String get alignInsufficient => '唯一匹配對白不足，請選擇同語言、同版本的參考字幕。';
+
+  @override
+  String get alignReadFailed =>
+      '無法讀取或處理字幕。請使用有效的 UTF-8 SRT，每個檔案最多 4 MB、12,000 條。';
+
+  @override
+  String get alignApplyFailed => '切換字幕失敗，請檢查目前軌道後重試。';
+
+  @override
+  String get alignSourceChanged => '目前字幕已切換，請還原原始字幕或重新對齊。';
+
+  @override
+  String get alignDelayHelp => '正值延後字幕，負值提前字幕。僅調整播放，不修改檔案。';
+
+  @override
+  String get alignHistoryEmpty => '本次播放尚未套用對齊結果。';
+
+  @override
+  String get alignHistorySession => '紀錄僅限本次播放。產生的字幕副本保留在應用程式儲存空間中。';
+
+  @override
+  String get alignCollapse => '收起並繼續觀看';
+
+  @override
+  String get alignPreviewAnchor => '預覽檢查錨點';
+
+  @override
+  String get alignReset => '重設偏移';
+
+  @override
+  String get alignReferenceSaved => '使用已儲存的語音辨識字幕';
+
+  @override
+  String get alignNoSource => '請選擇外掛或已儲存的 SRT 字幕。此處暫不支援內嵌和圖片字幕。';
+
+  @override
+  String get webPlaybackTitle => 'Web 播放服務';
+
+  @override
+  String get webPlaybackDescription => '在同一區域網路的瀏覽器中觀看分享的媒體。';
+
+  @override
+  String get webPlaybackEnabled => '啟用 Web 播放服務';
+
+  @override
+  String get webPlaybackInterface => '區域網路介面';
+
+  @override
+  String get webPlaybackNoNetwork => '未找到區域網路 IPv4 介面，請連線區域網路後重試。';
+
+  @override
+  String get webPlaybackAddress => '瀏覽器存取位址';
+
+  @override
+  String get webPlaybackPreview => '開啟瀏覽器';
+
+  @override
+  String get webPlaybackPairing => '連接新裝置';
+
+  @override
+  String get webPlaybackCode => '配對碼';
+
+  @override
+  String get webPlaybackCodeHelp => '在另一台裝置開啟上方位址並輸入配對碼，有效期限 5 分鐘。';
+
+  @override
+  String get webPlaybackRefreshCode => '換一個配對碼';
+
+  @override
+  String get webPlaybackExpired => '配對碼已過期，請產生新配對碼。';
+
+  @override
+  String get webPlaybackShare => '分享範圍';
+
+  @override
+  String get webPlaybackShareHelp => '只有勾選且啟用的媒體庫目錄會被分享，取消分享會結束對應播放。';
+
+  @override
+  String get webPlaybackNoScopes => '請先將目錄加入媒體庫並完成掃描。';
+
+  @override
+  String get webPlaybackSessions => '正在觀看';
+
+  @override
+  String get webPlaybackNoSessions => '還沒有裝置在觀看。';
+
+  @override
+  String get webPlaybackEndSession => '結束工作階段';
+
+  @override
+  String get webPlaybackDirect => '原畫直出';
+
+  @override
+  String get webPlaybackKeepOpen => '保持 OpenPlayX 執行。目前版本支援原畫直出，格式相容性取決於瀏覽器。';
+
+  @override
+  String get webPlaybackHttpNotice => '請在可信區域網路使用，HTTP 傳輸未加密。關閉服務會中斷所有裝置。';
+
+  @override
+  String get webPlaybackFailed => '操作失敗，請檢查區域網路介面及 8090 連接埠是否可用。';
+
+  @override
+  String get webPlaybackCopied => '位址已複製';
+
+  @override
+  String get webPlaybackStopped => '服務已關閉';
+
+  @override
+  String get tvViewDetails => '影片詳情';
+
+  @override
+  String get tvSeekHint => '左右預覽 · 確認定位 · 返回取消';
 }

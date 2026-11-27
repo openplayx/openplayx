@@ -28,6 +28,7 @@ import '../model/player_ui_state.dart';
 import '../model/video_frame.dart';
 import 'player_keymap.dart';
 import 'widgets/player_widgets.dart';
+import 'widgets/subtitle_alignment_panel.dart';
 import 'window_fullscreen.dart';
 import '../../../l10n/generated/app_localizations.dart';
 
@@ -35,6 +36,8 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../../ui/theme/app_theme.dart';
 import '../../../ui/theme/system_ui.dart';
+import '../../../ui/adaptive/app_experience.dart';
+import '../../../ui/tv/tv_action.dart';
 import '../../../ui/tokens/app_semantic_colors.dart';
 import '../../../ui/tokens/app_motion.dart';
 import '../../../ui/icons/app_icons.dart';
@@ -52,6 +55,8 @@ part 'player_actions.dart';
 part 'player_desktop.dart';
 part 'player_mobile.dart';
 part 'player_panels.dart';
+part 'player_alignment.dart';
+part 'player_tv.dart';
 
 /// Transient gesture feedback on mobile (design §4.3).
 enum _Feedback { none, seek, volume, brightness }
@@ -222,6 +227,25 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   SubtitleState get _subtitleState => _subtitles.state;
 
   final _playerFocus = FocusNode(debugLabel: 'player-keyboard');
+  final _tvFocus = <String, FocusNode>{
+    for (final key in [
+      'back',
+      'seek',
+      'play',
+      'rewind',
+      'forward',
+      'audio',
+      'subtitles',
+      'speed',
+    ])
+      key: FocusNode(debugLabel: 'tv-player-$key'),
+  };
+  final _tvPanelScope = FocusScopeNode(
+    debugLabel: 'tv-player-panel',
+    traversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+    directionalTraversalEdgeBehavior: TraversalEdgeBehavior.closedLoop,
+  );
+  FocusNode? _tvPanelReturn;
 
   // ---- Design v0.2 state -------------------------------------------------
   PlayerPanel _panel = PlayerPanel.none;
@@ -242,7 +266,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   Timer? _unlockTimer;
   bool _showUnlock = false;
 
+  late final bool _television = AppExperience.isTelevision(context);
+
   bool get _mobileDisplay =>
+      !_television &&
       !kIsWeb &&
       (defaultTargetPlatform == TargetPlatform.android ||
           defaultTargetPlatform == TargetPlatform.iOS);
@@ -714,6 +741,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
       _tools,
       _audio,
       _subtitles,
+      _player.alignment,
       _info,
     ])..addListener(_rebuild);
     _pip.addListener(_pipChanged);
@@ -875,6 +903,9 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     Map<String, dynamic> args,
   ) => _assistant.control(command, args);
 
+  /// Route system Back through the TV overlay/seek state before leaving.
+  void handleTelevisionBack() => _tvBack();
+
   Future<bool> stopPlayback() async {
     if (_closing) return false;
     _player.setClosing(true);
@@ -969,6 +1000,10 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     );
     if (!_mobileDisplay) _window.stopListening();
     _playerFocus.dispose();
+    _tvPanelScope.dispose();
+    for (final node in _tvFocus.values) {
+      node.dispose();
+    }
     if (widget.controlsVisibility == null) controlsVisibility.dispose();
     _playerListeners.removeListener(_rebuild);
     _player.dispose();
@@ -992,8 +1027,27 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   /// setState for the layout extensions in the part files.
   void _update(VoidCallback fn) => setState(fn);
 
+  bool _alignmentWasRunning = false;
+
   /// Rebuilds after a controller changed its state.
   void _rebuild() {
+    final alignment = _player.alignment;
+    if (_alignmentWasRunning &&
+        !alignment.running &&
+        alignment.result != null) {
+      final generation = alignment.generation;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted &&
+            generation == alignment.generation &&
+            alignment.result != null) {
+          showAppToast(
+            context,
+            alignment.result!.safe ? l.alignResult : l.alignReview,
+          );
+        }
+      });
+    }
+    _alignmentWasRunning = alignment.running;
     if (mounted) setState(() {});
   }
 
@@ -1076,7 +1130,15 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
     setState(() => _panel = PlayerPanel.none);
     _updateStatsPolling();
     _scheduleHide();
-    _playerFocus.requestFocus();
+    if (_television) {
+      final target = _tvPanelReturn ?? _tvFocus['play']!;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted && widget.active && target.context != null)
+          target.requestFocus();
+      });
+    } else {
+      _playerFocus.requestFocus();
+    }
   }
 
   void _lock() {
@@ -1278,6 +1340,23 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   /// Status pills for settings away from their defaults (design L3).
   List<Widget> _statusChips() {
     final chips = <Widget>[];
+    final alignment = _player.alignment;
+    if (alignment.running || alignment.result != null || alignment.applied) {
+      chips.add(
+        PlayerChip(
+          icon: AppIcons.assistant,
+          label: alignment.running
+              ? l.alignMatching
+              : alignment.applied
+              ? l.alignApplied
+              : alignment.result!.safe
+              ? l.alignResult
+              : l.alignReview,
+          tooltip: l.alignTitle,
+          onTap: () => _openPanel(PlayerPanel.alignment),
+        ),
+      );
+    }
     if (_speed != 1) {
       chips.add(
         PlayerChip(
@@ -1653,7 +1732,11 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             removeBottom: true,
             removeLeft: true,
             removeRight: true,
-            child: _mobileDisplay ? _mobileBody() : _desktopBody(),
+            child: _television
+                ? _tvBody()
+                : _mobileDisplay
+                ? _mobileBody()
+                : _desktopBody(),
           ),
         ),
       ),

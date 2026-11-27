@@ -866,6 +866,8 @@ extension _MobilePlayer on PlayerPageState {
   // ---- Sheets ------------------------------------------------------------
 
   List<Widget> _mobileSheet(bool landscape) {
+    if (_panel == PlayerPanel.alignment)
+      return _mobileAlignmentSheet(landscape);
     Widget content() => switch (_panel) {
       PlayerPanel.more => _moreContent(),
       PlayerPanel.tracks => _tracksContent(),

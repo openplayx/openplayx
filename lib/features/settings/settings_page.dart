@@ -15,6 +15,8 @@ import 'scrape_management_section.dart';
 import 'tmdb_settings_section.dart';
 import 'remote_access_settings_page.dart';
 import 'asr_settings_section.dart';
+import 'web_playback_settings_page.dart';
+import '../../capabilities/web_playback/web_playback_service.dart';
 import '../assistant/view/plugins/plugin_management_page.dart';
 import '../../assistant/plugins/plugin_manager.dart';
 import '../../capabilities/speech/asr_backend_config.dart';
@@ -50,6 +52,7 @@ class SettingsPage extends StatelessWidget {
     this.sources,
     this.plugins,
     this.aiGroupBuilder,
+    this.webPlayback,
   });
 
   /// Builds one AI settings page (LLM / Whisper / external / built-in); null hides AI.
@@ -57,6 +60,7 @@ class SettingsPage extends StatelessWidget {
   final LibraryService? library;
   final PluginManager? plugins;
   final SourceManager? sources;
+  final WebPlaybackService? webPlayback;
 
   List<_SettingsGroup> _groups(BuildContext context) {
     final l = AppLocalizations.of(context);
@@ -155,6 +159,18 @@ class SettingsPage extends StatelessWidget {
           ),
       ]),
       _SettingsGroup(l.settingsMediaLibrary, [
+        if (webPlayback != null)
+          _Category(
+            rowKey: const ValueKey('settings-web-playback'),
+            icon: AppIcons.server,
+            title: l.webPlaybackTitle,
+            onOpen: () => Navigator.of(context).push(
+              MaterialPageRoute<void>(
+                settings: const RouteSettings(name: 'WebPlaybackSettingsPage'),
+                builder: (_) => WebPlaybackSettingsPage(service: webPlayback!),
+              ),
+            ),
+          ),
         if (sources != null)
           _Category(
             icon: AppIcons.folder,

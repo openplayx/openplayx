@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
 import '../../tokens/app_spacing.dart';
+import '../../adaptive/app_experience.dart';
+import '../../tv/tv_action.dart';
 
 /// A readable media/source row with a full keyboard-accessible action target.
 class ContentRow extends StatelessWidget {
@@ -57,38 +59,51 @@ class ContentRow extends StatelessWidget {
           ),
       child: LayoutBuilder(
         builder: (context, box) {
-          final primary = Semantics(
-            button: onTap != null || onLongPress != null,
-            child: Material(
-              color: theme.colorScheme.card,
-              borderRadius: theme.radius,
-              child: InkWell(
-                onTap: onTap,
-                onLongPress: onLongPress,
-                borderRadius: theme.radius,
-                hoverColor: theme.colorScheme.accent,
-                focusColor: theme.colorScheme.accent,
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(minHeight: 48),
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(
-                      vertical: AppSpacing.md,
-                      horizontal: AppSpacing.xs,
-                    ),
-                    child: Row(
-                      children: [
-                        if (leading != null) ...[
-                          leading!,
-                          const SizedBox(width: AppSpacing.md),
-                        ],
-                        Expanded(child: text),
+          final primary = AppExperience.isTelevision(context) && onTap != null
+              ? TvAction(
+                  onPressed: onTap,
+                  child: Row(
+                    children: [
+                      if (leading != null) ...[
+                        leading!,
+                        const SizedBox(width: 16),
                       ],
+                      Expanded(child: text),
+                    ],
+                  ),
+                )
+              : Semantics(
+                  button: onTap != null || onLongPress != null,
+                  child: Material(
+                    color: theme.colorScheme.card,
+                    borderRadius: theme.radius,
+                    child: InkWell(
+                      onTap: onTap,
+                      onLongPress: onLongPress,
+                      borderRadius: theme.radius,
+                      hoverColor: theme.colorScheme.accent,
+                      focusColor: theme.colorScheme.accent,
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(minHeight: 48),
+                        child: Padding(
+                          padding: const EdgeInsets.symmetric(
+                            vertical: AppSpacing.md,
+                            horizontal: AppSpacing.xs,
+                          ),
+                          child: Row(
+                            children: [
+                              if (leading != null) ...[
+                                leading!,
+                                const SizedBox(width: AppSpacing.md),
+                              ],
+                              Expanded(child: text),
+                            ],
+                          ),
+                        ),
+                      ),
                     ),
                   ),
-                ),
-              ),
-            ),
-          );
+                );
           if (trailing == null) return primary;
           if (box.maxWidth < 360 ||
               MediaQuery.textScalerOf(context).scale(16) > 24) {

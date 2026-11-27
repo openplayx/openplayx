@@ -7,6 +7,7 @@ extension _PlayerActions on PlayerPageState {
   // ---- Keyboard (design §6) ---------------------------------------------
 
   KeyEventResult _handlePlayerKey(FocusNode node, KeyEvent event) {
+    if (_television) return _handleTvKey(event);
     if (event is KeyUpEvent ||
         ModalRoute.of(context)?.isCurrent != true ||
         _busy ||

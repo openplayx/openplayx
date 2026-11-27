@@ -22,6 +22,7 @@ import 'playback_history.dart';
 import 'playback_tools_controller.dart';
 import 'player_attempt.dart';
 import 'subtitle_controller.dart';
+import 'subtitle_alignment_controller.dart';
 
 /// Entry point of the player logic: holds the backend and the media being
 /// played, opens and stops media, and owns the feature controllers, which
@@ -76,6 +77,10 @@ class PlayerController extends ChangeNotifier {
             changes: () => SubtitleGenerationService.current?.changes,
           ),
     );
+    alignment = SubtitleAlignmentController(
+      subtitles: subtitles,
+      duration: () => backend.value.duration,
+    );
     info = MediaInfoController(backend: backend);
     backend.addListener(onPlayback);
   }
@@ -96,6 +101,7 @@ class PlayerController extends ChangeNotifier {
   late final PlaybackToolsController tools;
   late final AudioTrackController audio;
   late final SubtitleController subtitles;
+  late final SubtitleAlignmentController alignment;
   late final MediaInfoController info;
 
   PlayerState _state = const PlayerState();
@@ -192,6 +198,7 @@ class PlayerController extends ChangeNotifier {
   void _resetFeatures() {
     tools.reset();
     audio.reset();
+    alignment.reset();
     subtitles.reset();
     info.reset();
   }
@@ -371,6 +378,7 @@ class PlayerController extends ChangeNotifier {
     backend.removeListener(onPlayback);
     tools.dispose();
     audio.dispose();
+    alignment.dispose();
     subtitles.dispose();
     info.dispose();
     super.dispose();

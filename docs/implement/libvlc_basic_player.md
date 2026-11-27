@@ -36,11 +36,12 @@ await controller.setMedia(
 
 | 平台 | 底层依赖 / 配置 | 验证边界 |
 | --- | --- | --- |
-| macOS | CocoaPods 集成 VLCKit 3.7.3；Debug/Profile 和 Release 启用用户所选文件只读权限 | 本机验证，详见下方测试结果 |
-| iOS | CocoaPods 集成 MobileVLCKit 3.7.3；插件要求 iOS 13+，项目现有部署版本满足要求 | 未实机验证，需配置签名及设备/模拟器 |
-| Android | 插件集成 libVLC；应用 `minSdk` 设为 29 | 未构建验证，本机 Android 工具链仍需完善 |
-| Windows | 插件在构建时下载并打包 VLC 运行库 | 未构建验证，需 Windows 构建环境和网络 |
-| Linux | 系统安装 `libvlc-dev`、`vlc`，插件通过 pkg-config 链接 | 未构建验证，需 Linux 构建环境 |
+| macOS | CocoaPods 集成 package-libvlc 从固定源码构建的 VLCKit，共享 package-ffmpeg；Debug/Profile 和 Release 启用用户所选文件只读权限 | 本机验证，详见下方测试结果 |
+| iOS | CocoaPods 集成自建 MobileVLCKit，共享 package-ffmpeg；插件要求 iOS 15+ | 真机 / 模拟器框架通过检查；iOS 模拟器 7 个格式回归通过 |
+| Android | 固定源码构建 Java/JNI 与 libVLC，共享 package-ffmpeg；`minSdk` 为 29 | 3 个 ABI 原生检查通过；arm64 模拟器 7 个格式回归通过 |
+| tvOS | 自建 TVVLCKit，共享 package-ffmpeg；使用现有 tvOS 通道适配插件 | arm64 真机 / 模拟器框架通过检查；模拟器完成软件解码及同进程 FFmpeg 探测、截图 |
+| Windows | MSYS2 / MinGW-w64 自建 libVLC 和插件，共享 package-ffmpeg DLL | 未构建验证，需 Windows 构建环境和网络 |
+| Linux | CMake 自建固定版本 libVLC 与插件，共享 package-ffmpeg；AppImage 不再复制系统 VLC 插件 | arm64 在无系统 libVLC 的容器通过构建及 7 个格式回归；x86_64 待验证 |
 | Web | 明确标记为暂不支持；应用入口显示专用提示，播放包拒绝创建 Web 播放器 | 不提供 Web 播放功能 |
 
 `file_selector` 的 Android 实现会读取所选文件数据并复制到缓存，本体验尚未优化大文件选择和缓存清理。Android 大视频接入前需替换为流式文件访问或内容 URI 授权桥接。桌面端直接使用系统选择器返回的本地文件引用。
@@ -73,7 +74,7 @@ flutter build macos --debug
 flutter run -d macos
 ```
 
-首次 macOS 构建会执行 `pod install` 并下载 VLCKit；不需要另装 VLC 桌面应用。当前插件使用 CocoaPods，不支持 Swift Package Manager，Flutter 会提示并回退至 CocoaPods。
+首次 macOS 构建会执行 `pod install`，由 package-libvlc 下载固定的 VLC / VLCKit 源码并构建，链接 package-ffmpeg 的 FFmpeg 共享库；日志位于 `package-libvlc/build/vlckit-macos.log`，不需要另装 VLC 桌面应用。当前插件使用 CocoaPods，不支持 Swift Package Manager，Flutter 会提示并回退至 CocoaPods。
 
 ## 验证
 

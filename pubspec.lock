@@ -1520,10 +1520,9 @@ packages:
   vlc_player:
     dependency: transitive
     description:
-      name: vlc_player
-      sha256: "364bd860ae67577f69b70def62c8f51a06ca87f246d524fc2dc4ba195c02bf57"
-      url: "https://pub.dev"
-    source: hosted
+      path: "../package-libvlc/forks/vlc_player"
+      relative: true
+    source: path
     version: "2.1.2"
   vlc_player_tvos:
     dependency: "direct main"

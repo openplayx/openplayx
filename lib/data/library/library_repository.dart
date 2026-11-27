@@ -185,6 +185,44 @@ class LibraryRepository {
   int get dataVersion =>
       db.select('PRAGMA data_version').single.values.single as int;
 
+  /// Only files observed in explicitly shared, currently enabled scopes.
+  /// Re-evaluated on every Web request, including existing playback sessions.
+  /// The locator must belong to the observing scope's connection, so an
+  /// alternative locator cannot bypass account or source visibility.
+  List<Row> webResources(
+    Set<String> shared, {
+    String? resource,
+    String search = '',
+    int offset = 0,
+    int limit = 48,
+  }) {
+    final enabled = enabledFileSourceIds().toSet();
+    final scopes = [
+      for (final f in fileSources())
+        if (shared.contains(f['id']) && enabled.contains(f['id']))
+          {'id': f['id'], 'source': f['source']},
+    ];
+    return db.select(
+      '''WITH shared AS (
+        SELECT json_extract(value,'\$.id') AS id,
+          json_extract(value,'\$.source') AS source FROM json_each(?)
+      ), files AS (
+        SELECT r.id,r.media_id,r.name,r.size,l.source,l.item,m.title,
+          ROW_NUMBER() OVER(PARTITION BY r.id ORDER BY l.source,l.item) AS rank
+        FROM resources r JOIN media m ON m.id=r.media_id
+        JOIN memberships ms ON ms.media_id=m.id
+        JOIN resource_locators l ON l.resource_id=r.id
+        WHERE substr(r.name,1,1)<>'.'
+          AND EXISTS (SELECT 1 FROM evidence e JOIN shared s
+            ON s.id=e.file_source_id AND s.source=l.source
+            WHERE e.resource_id=r.id AND e.available=1)
+          AND (? IS NULL OR r.id=?)
+          AND (instr(lower(m.title),lower(?))>0 OR instr(lower(r.name),lower(?))>0)
+      ) SELECT * FROM files WHERE rank=1 ORDER BY title,id LIMIT ? OFFSET ?''',
+      [jsonEncode(scopes), resource, resource, search, search, limit, offset],
+    );
+  }
+
   void close() {
     db.close();
     configuration.close();

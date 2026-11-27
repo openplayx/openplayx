@@ -4,7 +4,8 @@ part of 'player_page.dart';
 extension _DesktopPlayer on PlayerPageState {
   Widget _desktopBody() => LayoutBuilder(
     builder: (context, box) {
-      final settingsOpen = _panel == PlayerPanel.settings;
+      final settingsOpen =
+          _panel == PlayerPanel.settings || _panel == PlayerPanel.alignment;
       // Wide windows dock the panel beside the video (it keeps showing the
       // whole picture); narrow ones float it over the video.
       final docked = box.maxWidth >= 900;
@@ -74,7 +75,9 @@ extension _DesktopPlayer on PlayerPageState {
                         bottom: 0,
                         right: 0,
                         width: panelWidth,
-                        child: _settingsSidePanel(panelWidth),
+                        child: _panel == PlayerPanel.alignment
+                            ? _alignmentSurface()
+                            : _settingsSidePanel(panelWidth),
                       )
                     else if (_panel != PlayerPanel.none && !settingsOpen)
                       _desktopPopover(),
@@ -93,7 +96,9 @@ extension _DesktopPlayer on PlayerPageState {
                 minWidth: 360,
                 maxWidth: 360,
                 child: settingsOpen && docked
-                    ? _settingsSidePanel(360)
+                    ? (_panel == PlayerPanel.alignment
+                          ? _alignmentSurface()
+                          : _settingsSidePanel(360))
                     : const SizedBox.shrink(),
               ),
             ),

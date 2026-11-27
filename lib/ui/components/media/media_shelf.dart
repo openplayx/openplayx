@@ -4,6 +4,8 @@ import 'package:shadcn_ui/shadcn_ui.dart';
 import '../../../l10n/generated/app_localizations.dart';
 import '../../icons/app_icons.dart';
 import '../../tokens/app_motion.dart';
+import '../../adaptive/app_experience.dart';
+import '../../tv/tv_action.dart';
 
 /// Visual metrics shared by the home shelves and the library poster wall.
 abstract final class ShelfMetrics {
@@ -20,6 +22,9 @@ abstract final class ShelfMetrics {
   /// Height of the title + subtitle block under a tile, scaled with text.
   static double captionHeight(BuildContext context) {
     final scaler = MediaQuery.textScalerOf(context);
+    if (AppExperience.isTelevision(context)) {
+      return captionGap + scaler.scale(20) * 1.35 + 2 + scaler.scale(17) * 1.35;
+    }
     return captionGap + scaler.scale(15) * 1.35 + 2 + scaler.scale(12.5) * 1.35;
   }
 }
@@ -48,7 +53,7 @@ class ShelfHeader extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 19,
+              fontSize: AppExperience.isTelevision(context) ? 24 : 19,
               fontWeight: FontWeight.w700,
               color: theme.colorScheme.foreground,
             ),
@@ -174,9 +179,15 @@ class _MediaShelfState extends State<MediaShelf> {
     }
   }
 
+  Widget _tvTile(BuildContext context, int index) {
+    final tile = widget.itemBuilder(context, index);
+    return SizedBox(key: tile.key, width: widget.tileWidth, child: tile);
+  }
+
   @override
   Widget build(BuildContext context) {
     final padding = widget.padding;
+    final television = AppExperience.isTelevision(context);
     // Recompute edges after layout (item count or window width changes).
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) _updateEdges();
@@ -197,54 +208,75 @@ class _MediaShelfState extends State<MediaShelf> {
           onEnter: (_) => setState(() => _hover = true),
           onExit: (_) => setState(() => _hover = false),
           child: SizedBox(
-            height: widget.tileHeight + ShelfMetrics.captionHeight(context) + 4,
+            height:
+                widget.tileHeight +
+                ShelfMetrics.captionHeight(context) +
+                (television ? 12 : 4),
             child: Stack(
               clipBehavior: Clip.none,
               children: [
                 Positioned.fill(
-                  child: ListView.separated(
-                    controller: _controller,
-                    scrollDirection: Axis.horizontal,
-                    padding: EdgeInsets.only(
-                      left: padding.left,
-                      right: padding.right,
+                  child: television
+                      ? SingleChildScrollView(
+                          controller: _controller,
+                          scrollDirection: Axis.horizontal,
+                          padding: padding,
+                          child: Row(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              for (var i = 0; i < widget.itemCount; i++) ...[
+                                if (i > 0)
+                                  const SizedBox(width: ShelfMetrics.gap),
+                                _tvTile(context, i),
+                              ],
+                            ],
+                          ),
+                        )
+                      : ListView.separated(
+                          controller: _controller,
+                          scrollDirection: Axis.horizontal,
+                          padding: EdgeInsets.only(
+                            left: padding.left,
+                            right: padding.right,
+                          ),
+                          clipBehavior: Clip.none,
+                          itemCount: widget.itemCount,
+                          separatorBuilder: (_, _) =>
+                              const SizedBox(width: ShelfMetrics.gap),
+                          itemBuilder: (context, index) => SizedBox(
+                            width: widget.tileWidth,
+                            child: widget.itemBuilder(context, index),
+                          ),
+                        ),
+                ),
+                if (!television)
+                  Positioned(
+                    left: (padding.left - _ShelfArrow.size / 2).clamp(
+                      4.0,
+                      double.infinity,
                     ),
-                    clipBehavior: Clip.none,
-                    itemCount: widget.itemCount,
-                    separatorBuilder: (_, _) =>
-                        const SizedBox(width: ShelfMetrics.gap),
-                    itemBuilder: (context, index) => SizedBox(
-                      width: widget.tileWidth,
-                      child: widget.itemBuilder(context, index),
+                    top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
+                    child: _ShelfArrow(
+                      icon: AppIcons.previous,
+                      label: AppLocalizations.of(context).previousPage,
+                      visible: _hover && _canBack,
+                      onTap: () => _page(-1),
                     ),
                   ),
-                ),
-                Positioned(
-                  left: (padding.left - _ShelfArrow.size / 2).clamp(
-                    4.0,
-                    double.infinity,
+                if (!television)
+                  Positioned(
+                    right: (padding.right - _ShelfArrow.size / 2).clamp(
+                      4.0,
+                      double.infinity,
+                    ),
+                    top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
+                    child: _ShelfArrow(
+                      icon: AppIcons.next,
+                      label: AppLocalizations.of(context).nextPage,
+                      visible: _hover && _canForward,
+                      onTap: () => _page(1),
+                    ),
                   ),
-                  top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
-                  child: _ShelfArrow(
-                    icon: AppIcons.previous,
-                    label: AppLocalizations.of(context).previousPage,
-                    visible: _hover && _canBack,
-                    onTap: () => _page(-1),
-                  ),
-                ),
-                Positioned(
-                  right: (padding.right - _ShelfArrow.size / 2).clamp(
-                    4.0,
-                    double.infinity,
-                  ),
-                  top: widget.tileHeight / 2 - _ShelfArrow.size / 2,
-                  child: _ShelfArrow(
-                    icon: AppIcons.next,
-                    label: AppLocalizations.of(context).nextPage,
-                    visible: _hover && _canForward,
-                    onTap: () => _page(1),
-                  ),
-                ),
               ],
             ),
           ),
@@ -349,6 +381,7 @@ class LandscapeTile extends StatelessWidget {
     this.timeLabel,
     this.progress,
     this.onTap,
+    this.autofocus = false,
   });
   final String title;
   final String? subtitle;
@@ -356,9 +389,11 @@ class LandscapeTile extends StatelessWidget {
   final String? timeLabel;
   final double? progress;
   final VoidCallback? onTap;
+  final bool autofocus;
 
   @override
   Widget build(BuildContext context) => _Hoverable(
+    autofocus: autofocus,
     onTap: onTap,
     semanticLabel: title,
     builder: (hover) => Column(
@@ -528,7 +563,7 @@ class _Caption extends StatelessWidget {
             maxLines: 1,
             overflow: TextOverflow.ellipsis,
             style: TextStyle(
-              fontSize: 15,
+              fontSize: AppExperience.isTelevision(context) ? 20 : 15,
               height: 1.35,
               fontWeight: FontWeight.w600,
               color: theme.colorScheme.foreground,
@@ -541,7 +576,7 @@ class _Caption extends StatelessWidget {
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
               style: TextStyle(
-                fontSize: 12.5,
+                fontSize: AppExperience.isTelevision(context) ? 17 : 12.5,
                 height: 1.35,
                 color: theme.colorScheme.mutedForeground,
                 fontFeatures: const [FontFeature.tabularFigures()],
@@ -556,10 +591,16 @@ class _Caption extends StatelessWidget {
 
 /// Hover + press feedback with a pointer cursor; no ink splash.
 class _Hoverable extends StatefulWidget {
-  const _Hoverable({required this.builder, this.onTap, this.semanticLabel});
+  const _Hoverable({
+    required this.builder,
+    this.onTap,
+    this.semanticLabel,
+    this.autofocus = false,
+  });
   final Widget Function(bool hover) builder;
   final VoidCallback? onTap;
   final String? semanticLabel;
+  final bool autofocus;
 
   @override
   State<_Hoverable> createState() => _HoverableState();
@@ -569,29 +610,37 @@ class _HoverableState extends State<_Hoverable> {
   bool _hover = false;
 
   @override
-  Widget build(BuildContext context) => Semantics(
-    button: widget.onTap != null,
-    label: widget.semanticLabel,
-    child: FocusableActionDetector(
-      enabled: widget.onTap != null,
-      mouseCursor: widget.onTap == null
-          ? MouseCursor.defer
-          : SystemMouseCursors.click,
-      onShowHoverHighlight: (v) => setState(() => _hover = v),
-      onShowFocusHighlight: (v) => setState(() => _hover = v),
-      actions: {
-        ActivateIntent: CallbackAction<ActivateIntent>(
-          onInvoke: (_) {
-            widget.onTap?.call();
-            return null;
-          },
-        ),
-      },
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: widget.onTap,
-        child: widget.builder(_hover && widget.onTap != null),
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => AppExperience.isTelevision(context)
+      ? TvAction(
+          autofocus: widget.autofocus,
+          onPressed: widget.onTap,
+          label: widget.semanticLabel,
+          padding: EdgeInsets.zero,
+          child: widget.builder(false),
+        )
+      : Semantics(
+          button: widget.onTap != null,
+          label: widget.semanticLabel,
+          child: FocusableActionDetector(
+            enabled: widget.onTap != null,
+            mouseCursor: widget.onTap == null
+                ? MouseCursor.defer
+                : SystemMouseCursors.click,
+            onShowHoverHighlight: (v) => setState(() => _hover = v),
+            onShowFocusHighlight: (v) => setState(() => _hover = v),
+            actions: {
+              ActivateIntent: CallbackAction<ActivateIntent>(
+                onInvoke: (_) {
+                  widget.onTap?.call();
+                  return null;
+                },
+              ),
+            },
+            child: GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: widget.onTap,
+              child: widget.builder(_hover && widget.onTap != null),
+            ),
+          ),
+        );
 }

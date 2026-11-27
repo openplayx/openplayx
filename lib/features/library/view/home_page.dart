@@ -15,6 +15,11 @@ import '../controller/home_controller.dart';
 import 'media_opener.dart';
 import '../model/home_shelves.dart';
 import 'media_tiles.dart';
+import 'metadata_artwork.dart';
+import '../../../ui/adaptive/app_experience.dart';
+import '../../../ui/tv/tv_action.dart';
+
+part 'home_tv.dart';
 
 /// Home: VidHub-style shelves — continue watching, recently added, movies
 /// and TV shows — each with an "All · N" entry into a full poster wall.
@@ -147,10 +152,11 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
           ),
         ),
         padding: _padding,
-        tileWidth: ShelfMetrics.posterWidth,
-        tileHeight: ShelfMetrics.posterWidth * 1.5,
+        tileWidth: _television ? 164 : ShelfMetrics.posterWidth,
+        tileHeight: (_television ? 164 : ShelfMetrics.posterWidth) * 1.5,
         itemCount: rows.length,
         itemBuilder: (_, i) => LibraryPosterTile(
+          key: ValueKey(rows[i]['id']),
           service: service,
           artwork: _artwork,
           media: rows[i],
@@ -177,10 +183,12 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
           landscape: true,
         ),
         padding: _padding,
-        tileWidth: ShelfMetrics.landscapeWidth,
-        tileHeight: ShelfMetrics.landscapeWidth * 9 / 16,
+        tileWidth: _television ? 280 : ShelfMetrics.landscapeWidth,
+        tileHeight: (_television ? 280 : ShelfMetrics.landscapeWidth) * 9 / 16,
         itemCount: shown.length,
         itemBuilder: (_, i) => LibraryResumeTile(
+          key: ValueKey(shown[i]['resource_id'] ?? shown[i]['id']),
+          autofocus: _television && i == 0,
           service: widget.service,
           artwork: _artwork,
           row: shown[i],
@@ -193,6 +201,8 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
   EdgeInsets get _padding => EdgeInsets.symmetric(
     horizontal: MediaQuery.sizeOf(context).width < 600 ? 16 : 30,
   );
+
+  bool get _television => AppExperience.isTelevision(context);
 
   Widget _section(Widget child) =>
       Padding(padding: const EdgeInsets.only(bottom: 28), child: child);
@@ -271,11 +281,22 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
               ),
               if (widget.onAddVideo != null) ...[
                 const SizedBox(height: 16),
-                ShadButton(
-                  key: const ValueKey('home-add-video-empty'),
-                  onPressed: widget.onAddVideo,
-                  child: Text(l.addVideo),
-                ),
+                if (_television)
+                  TvAction(
+                    key: const ValueKey('tv-home-add-video'),
+                    autofocus: true,
+                    onPressed: widget.onAddVideo,
+                    child: Text(
+                      l.addVideo,
+                      style: const TextStyle(fontSize: 22),
+                    ),
+                  )
+                else
+                  ShadButton(
+                    key: const ValueKey('home-add-video-empty'),
+                    onPressed: widget.onAddVideo,
+                    child: Text(l.addVideo),
+                  ),
               ],
             ],
           ),
@@ -291,7 +312,12 @@ class _HomePageState extends State<HomePage> with MediaOpener<HomePage> {
         top: 20,
         bottom: 12 + MediaQuery.paddingOf(context).bottom,
       ),
-      children: [...statuses, ...shelves],
+      children: [
+        if (_television && _shelves.recentlyAdded.isNotEmpty)
+          _tvHero(_shelves.recentlyAdded.first),
+        ...statuses,
+        ...shelves,
+      ],
     );
   }
 

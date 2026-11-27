@@ -1,5 +1,9 @@
 # Apple TV (tvOS) — v0.0.5
 
+TV-specific Flutter presentation and remote navigation are documented in
+[Television presentation](implement/tv_experience.md), including desktop preview
+and the boundary between widget coverage and physical-device acceptance.
+
 The dedicated tvOS runner reuses the OpenPlayX Dart app. Minimum OS: **tvOS 17**,
 ARM64. Flutter upstream does not support tvOS; this target uses FlutterTV CLI
 1.12.2, commit `1540a52432331d9bf998a51f34eb2d006ef362f6`, Flutter 3.50.1,

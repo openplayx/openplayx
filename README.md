@@ -37,11 +37,21 @@ projects and shared Dart code do not imply full device coverage.
 
 The app runs locally without an OpenPlayX server. Models, online metadata,
 web search and remote services are optional network capabilities. Complete
-cross-device sync, live TV/IPTV/EPG and TV remote interfaces are not provided.
+cross-device sync and live TV/IPTV/EPG are not provided. An initial
+[TV remote interface](docs/implement/tv_experience.md) covers library browsing,
+details and playback; physical-device acceptance is pending.
 The Flutter Web player is not supported; [openplayx.com](https://openplayx.com)
 is the separate project website.
 
 Cloud sources include Jianguoyun/123 WebDAV presets and read-only OneDrive/Dropbox/Baidu Netdisk adapters. OAuth requires publisher app registration; real-account acceptance is pending. See [setup and validation](docs/cloud_drive_sources.md).
+
+## Subtitle alignment
+
+Open **Audio & subtitles → Subtitle alignment** on desktop, or **Subtitles → Subtitle alignment** on mobile. Desktop uses a docked side panel; mobile uses a bottom sheet in portrait and a side sheet in landscape. Manual delay supports 0.25-second steps, reset and session undo.
+
+Reference alignment compares a selected local UTF-8 SRT with an already synchronized SRT in the same dialogue language. You can select a saved, complete ASR subtitle as the reference. Fixed offsets and linear timing drift are fitted on unique normalized dialogue matches, with held-out anchors, coverage and timestamp boundary checks. This is a conservative baseline; its thresholds are provisional, not calibrated correctness probabilities. Results require explicit preview/application. Generated copies are stored in application support, the original remains untouched, and undo restores the original selection and delay. Analysis can continue with the panel closed, is cancellable, and is invalidated when the media changes. History is limited to the playback session.
+
+Each input is limited to 4 MB and 12,000 cues. Embedded/image subtitles, cross-language or fuzzy matching, VAD/FFT, segmented edits and LLM orchestration are not implemented by this baseline. It never uploads media. Mobile and desktop layout tests use fake playback; native VLC and device acceptance remain necessary.
 
 ## Download
 

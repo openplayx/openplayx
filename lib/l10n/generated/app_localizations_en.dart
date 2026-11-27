@@ -4705,4 +4705,219 @@ class AppLocalizationsEn extends AppLocalizations {
   @override
   String get plPictureInPictureFailed =>
       'Unable to enter picture in picture. Please try again.';
+
+  @override
+  String get alignTitle => 'Subtitle alignment';
+
+  @override
+  String get alignAuto => 'Reference alignment';
+
+  @override
+  String get alignManual => 'Manual offset';
+
+  @override
+  String get alignHistory => 'Alignment history';
+
+  @override
+  String get alignIntro =>
+      'Choose an SRT reference already synchronized to this video, in the same dialogue language. Processing stays on this device.';
+
+  @override
+  String get alignSource => 'Current subtitle';
+
+  @override
+  String get alignReference => 'Choose reference SRT';
+
+  @override
+  String get alignStart => 'Start alignment';
+
+  @override
+  String get alignReading => 'Reading subtitle files…';
+
+  @override
+  String get alignMatching => 'Matching dialogue and validating timing…';
+
+  @override
+  String get alignResult => 'Alignment ready to preview';
+
+  @override
+  String get alignReview => 'More evidence needed';
+
+  @override
+  String get alignReviewHelp =>
+      'This result cannot be applied safely. Check the reference version and language, or adjust the delay manually. No subtitle was changed.';
+
+  @override
+  String get alignApply => 'Apply aligned copy';
+
+  @override
+  String get alignPreview => 'Preview in player';
+
+  @override
+  String get alignOriginal => 'Return to original';
+
+  @override
+  String get alignApplied => 'Aligned subtitle applied';
+
+  @override
+  String get alignPreviewing => 'Previewing aligned subtitle';
+
+  @override
+  String get alignRetained =>
+      'The original is retained. You can undo this change.';
+
+  @override
+  String get alignCoverage => 'Matched dialogue';
+
+  @override
+  String get alignError => 'Held-out anchor P95';
+
+  @override
+  String get alignScale => 'Timeline scale';
+
+  @override
+  String get alignOffset => 'Timeline offset';
+
+  @override
+  String get alignInvalid => 'Invalid mapped cues';
+
+  @override
+  String get alignEvidence =>
+      'Metrics measure agreement with the reference, not a probability of correctness. Only fixed and linear corrections are supported.';
+
+  @override
+  String get alignChooseFiles =>
+      'Select a local SRT subtitle and a different reference SRT first.';
+
+  @override
+  String get alignInsufficient =>
+      'Not enough unique matching dialogue. Choose a reference in the same language and version.';
+
+  @override
+  String get alignReadFailed =>
+      'Could not read or process these subtitles. Use valid UTF-8 SRT files up to 4 MB and 12,000 cues.';
+
+  @override
+  String get alignApplyFailed =>
+      'Could not switch subtitles. Check the current track and retry.';
+
+  @override
+  String get alignSourceChanged =>
+      'The selected subtitle changed. Restore it or run alignment again.';
+
+  @override
+  String get alignDelayHelp =>
+      'Positive values delay subtitles; negative values show them earlier. This changes playback only.';
+
+  @override
+  String get alignHistoryEmpty =>
+      'No alignment has been applied in this playback session.';
+
+  @override
+  String get alignHistorySession =>
+      'History is for this playback session. Generated copies are retained in application storage.';
+
+  @override
+  String get alignCollapse => 'Collapse and continue watching';
+
+  @override
+  String get alignPreviewAnchor => 'Preview validation anchor';
+
+  @override
+  String get alignReset => 'Reset offset';
+
+  @override
+  String get alignReferenceSaved => 'Use saved speech-recognition subtitle';
+
+  @override
+  String get alignNoSource =>
+      'Choose an external or saved SRT subtitle to align. Embedded and image subtitles are not supported here.';
+
+  @override
+  String get webPlaybackTitle => 'Web playback';
+
+  @override
+  String get webPlaybackDescription =>
+      'Watch shared media in a browser on your local network.';
+
+  @override
+  String get webPlaybackEnabled => 'Enable Web playback';
+
+  @override
+  String get webPlaybackInterface => 'Network interface';
+
+  @override
+  String get webPlaybackNoNetwork =>
+      'No private IPv4 interface found. Connect to a local network and retry.';
+
+  @override
+  String get webPlaybackAddress => 'Browser address';
+
+  @override
+  String get webPlaybackPreview => 'Open browser';
+
+  @override
+  String get webPlaybackPairing => 'Connect a device';
+
+  @override
+  String get webPlaybackCode => 'Pairing code';
+
+  @override
+  String get webPlaybackCodeHelp =>
+      'Open the address on another device and enter this code. Valid for 5 minutes.';
+
+  @override
+  String get webPlaybackRefreshCode => 'New pairing code';
+
+  @override
+  String get webPlaybackExpired =>
+      'Code expired. Generate a new code to pair a device.';
+
+  @override
+  String get webPlaybackShare => 'Shared folders';
+
+  @override
+  String get webPlaybackShareHelp =>
+      'Only selected, enabled library folders are shared. Changing this also ends playback of removed media.';
+
+  @override
+  String get webPlaybackNoScopes =>
+      'Add a folder to your library and scan it before sharing.';
+
+  @override
+  String get webPlaybackSessions => 'Now watching';
+
+  @override
+  String get webPlaybackNoSessions => 'No devices are currently watching.';
+
+  @override
+  String get webPlaybackEndSession => 'End session';
+
+  @override
+  String get webPlaybackDirect => 'Direct Play · Original quality';
+
+  @override
+  String get webPlaybackKeepOpen =>
+      'Keep OpenPlayX running. This version supports Direct Play only; format compatibility depends on the browser.';
+
+  @override
+  String get webPlaybackHttpNotice =>
+      'Use on a trusted local network. HTTP traffic is not encrypted. Stopping the service disconnects all devices.';
+
+  @override
+  String get webPlaybackFailed =>
+      'Unable to update the service. Check the network interface and whether port 8090 is available.';
+
+  @override
+  String get webPlaybackCopied => 'Address copied';
+
+  @override
+  String get webPlaybackStopped => 'Service is off';
+
+  @override
+  String get tvViewDetails => 'View details';
+
+  @override
+  String get tvSeekHint =>
+      'Left / right to preview · Confirm to seek · Back to cancel';
 }

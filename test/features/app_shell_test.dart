@@ -274,7 +274,10 @@ void main() {
       for (final group in ['model', 'external', 'builtIn']) {
         expect(find.byKey(ValueKey('plugin-group-$group')), findsOneWidget);
       }
-      await tester.tap(find.byKey(const ValueKey('plugin-group-model')));
+      final modelSettings = find.byKey(const ValueKey('plugin-group-model'));
+      await tester.ensureVisible(modelSettings);
+      await tester.pumpAndSettle();
+      await tester.tap(modelSettings);
       await tester.pumpAndSettle();
       expect(
         find.byKey(const ValueKey('plugin-group-page-model')),

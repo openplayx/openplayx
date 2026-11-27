@@ -8,8 +8,8 @@ Pod::Spec.new do |s|
   s.source = { :path => '.' }
   s.source_files = 'Classes/**/*.swift'
   s.resource_bundles = {'vlc_player_tvos_privacy' => ['Classes/PrivacyInfo.xcprivacy']}
-  s.dependency 'TVVLCKit', '3.7.3'
-  s.platform = :tvos, '13.0'
+  s.dependency 'openplayx_playback'
+  s.platform = :tvos, '15.0'
   s.swift_version = '5.0'
   s.pod_target_xcconfig = {
     'DEFINES_MODULE' => 'YES',

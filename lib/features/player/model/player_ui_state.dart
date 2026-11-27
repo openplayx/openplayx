@@ -6,6 +6,7 @@ enum PlayerPanel {
   /// Phones: audio tracks and subtitles open separately.
   audio,
   subtitles,
+  alignment,
   speed,
   settings,
   more,

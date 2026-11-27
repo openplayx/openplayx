@@ -8,6 +8,7 @@ import 'app/debug_seed/debug_seed.dart';
 import 'app/player_window.dart';
 import 'features/settings/app_theme_controller.dart';
 import 'ui/theme/system_ui.dart';
+import 'ui/adaptive/app_experience.dart';
 export 'app/app.dart' show OpenPlayXApp;
 
 Future<void> main(List<String> args) async {
@@ -17,6 +18,7 @@ Future<void> main(List<String> args) async {
   await runWithDiagnostics(role, () async {
     if (await runPlayerWindowIfRequested(args)) return;
     WidgetsFlutterBinding.ensureInitialized();
+    await AppExperience.initialize();
     await enableEdgeToEdge();
     // Debug/profile builds only: preloads test configuration, if given, before
     // anything reads configuration.sqlite3.
