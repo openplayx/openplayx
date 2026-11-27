@@ -5,7 +5,7 @@
 [![CI](https://github.com/openplayx/openplayx/actions/workflows/ci.yml/badge.svg)](https://github.com/openplayx/openplayx/actions/workflows/ci.yml)
 [![CodeFactor](https://www.codefactor.io/repository/github/openplayx/openplayx/badge)](https://www.codefactor.io/repository/github/openplayx/openplayx)
 [![Quality Gate Status](https://sonarcloud.io/api/project_badges/measure?project=openplayx_openplayx&metric=alert_status)](https://sonarcloud.io/summary/new_code?id=openplayx_openplayx)
-[![Coverage](https://sonarcloud.io/api/project_badges/measure?project=openplayx_openplayx&metric=coverage)](https://sonarcloud.io/summary/new_code?id=openplayx_openplayx)
+[![Coverage](https://img.shields.io/sonar/coverage/openplayx_openplayx?server=https%3A%2F%2Fsonarcloud.io)](https://sonarcloud.io/summary/new_code?id=openplayx_openplayx)
 [![Release](https://badgen.net/github/release/openplayx/openplayx/stable)](https://github.com/openplayx/openplayx/releases)
 [![Dart SDK](https://badgen.net/badge/Dart/%5E3.13.7/0175C2)](pubspec.yaml)
 [![License](https://badgen.net/badge/license/MIT/green)](LICENSE)
