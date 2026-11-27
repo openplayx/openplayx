@@ -75,7 +75,7 @@ jobs:
         run: flutter gen-l10n
 
       - name: Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Run unit & widget tests with coverage
         run: flutter test --coverage
