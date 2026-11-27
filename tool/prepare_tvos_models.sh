@@ -7,7 +7,7 @@ mkdir -p "$(dirname "$model")"
 if [ ! -f "$model" ]; then
   cached="$HOME/.cache/openplayx-asr-models/ggml-tiny.bin"
   if [ -f "$cached" ]; then cp "$cached" "$model"; else
-    curl -fL --retry 3 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin' -o "$model.part"
+    curl --proto '=https' --tlsv1.2 -fL --retry 3 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny.bin' -o "$model.part"
     mv "$model.part" "$model"
   fi
 fi
@@ -18,7 +18,7 @@ coreml=packages/tvos_services/tvos/Resources/ggml-tiny-encoder.mlmodelc
 archive=build/tvos-model-cache/tiny-coreml.zip
 if [ ! -d "$coreml" ]; then
   mkdir -p "$(dirname "$archive")"
-  if [ ! -f "$archive" ]; then curl -fL --retry 3 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-encoder.mlmodelc.zip' -o "$archive"; fi
+  if [ ! -f "$archive" ]; then curl --proto '=https' --tlsv1.2 -fL --retry 3 'https://huggingface.co/ggerganov/whisper.cpp/resolve/main/ggml-tiny-encoder.mlmodelc.zip' -o "$archive"; fi
   actual="$(shasum -a 256 "$archive")"
   [ "${actual%% *}" = c88cbd2648e1f5415092bcf5256add463a0f19943e6938f46e8d4ffdebd47739 ] || { echo 'Core ML model checksum mismatch' >&2; exit 1; }
   unzip -q "$archive" -d packages/tvos_services/tvos/Resources/

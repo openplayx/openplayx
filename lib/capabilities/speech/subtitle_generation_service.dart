@@ -315,7 +315,7 @@ class SubtitleGenerationService {
   // ------------------------------------------------------------- inspect
 
   static String _trackRef(MediaStreamInfo s) {
-    final h = sha1
+    final h = sha256
         .convert(
           utf8.encode('${s.codec}|${s.language}|${s.channels}|${s.sampleRate}'),
         )
@@ -324,7 +324,7 @@ class SubtitleGenerationService {
     return 'track:${s.index}:$h';
   }
 
-  static String _fingerprint(MediaProbe p) => sha1
+  static String _fingerprint(MediaProbe p) => sha256
       .convert(
         utf8.encode(
           [
