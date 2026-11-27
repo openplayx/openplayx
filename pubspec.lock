@@ -1272,9 +1272,11 @@ packages:
   smb_connect:
     dependency: "direct main"
     description:
-      path: "../smb_connect"
-      relative: true
-    source: path
+      path: "."
+      ref: "9f894cc65d5d391a7a295893703153d6f170041c"
+      resolved-ref: "9f894cc65d5d391a7a295893703153d6f170041c"
+      url: "https://github.com/openplayx/package-smb.git"
+    source: git
     version: "0.0.9"
   source_span:
     dependency: transitive

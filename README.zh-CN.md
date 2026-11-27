@@ -43,21 +43,21 @@
 
 依赖：Dart 满足 `^3.13.7` 的 Flutter、平台开发工具（macOS/iOS 需要 Xcode、CocoaPods），以及原生组件所需的 Go/C 工具链。另见 [播放原生依赖](docs/implement/libvlc_basic_player.md) 和 [远程访问实现](docs/implement/remote_access_singbox_frp.md)。
 
-当前需要同级目录中的 `ffmpeg-package`、`package-libvlc`、`package-whisper` 和 `smb_connect`。FFmpeg 仓库已公开为 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg)，本地目录仍保留 `ffmpeg-package`，以兼容 pubspec path 和 CI checkout name。SMB 分支仍为私有依赖，仅克隆公开主仓无法复现当前构建。已有 SMB 访问权限的贡献者可准备：
+当前需要同级目录中的 `ffmpeg-package`、`package-libvlc`、`package-media` 和 `package-whisper`。FFmpeg 仓库已公开为 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg)，本地目录仍保留 `ffmpeg-package`，以兼容 pubspec path 和 CI checkout name。SMB 依赖通过 HTTPS 从公开仓库 [openplayx/package-smb](https://github.com/openplayx/package-smb) 自动获取，并固定到不可变的提交，无需单独克隆。准备源码：
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
 git clone https://github.com/openplayx/package-libvlc.git
+git clone https://github.com/openplayx/package-media.git
 git clone https://github.com/openplayx/package-whisper.git
 git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
-git clone git@github.com:openplayx/smb_connect.git
 cd openplayx
 flutter doctor
 flutter pub get
 flutter run -d macos
 ```
 
-依赖以 `pubspec.yaml` 为准，其中包含本地 SMB override。还需准备原生库和各平台工具链；不必安装 VLC 桌面应用。源码构建权限与安装包是否可下载是两回事。
+依赖来源和版本以 `pubspec.yaml` 与 `pubspec.lock` 为准。还需准备原生库和各平台工具链；不必安装 VLC 桌面应用。源码构建权限与安装包是否可下载是两回事。
 
 ## 初次使用
 

@@ -57,28 +57,27 @@ tools (Xcode and CocoaPods for macOS/iOS), and Go/C toolchains for native
 components. See [native playback notes](docs/implement/libvlc_basic_player.md)
 and [remote access notes](docs/implement/remote_access_singbox_frp.md).
 
-The app currently needs sibling checkouts named `ffmpeg-package`,
-`package-libvlc`, `package-whisper` and `smb_connect`. The FFmpeg repository is public at
+The app needs sibling checkouts named `ffmpeg-package`, `package-libvlc`,
+`package-media` and `package-whisper`. The FFmpeg repository is public at
 [openplayx/package-ffmpeg](https://github.com/openplayx/package-ffmpeg); keep its
 local directory named `ffmpeg-package` for the pubspec path and CI checkout name.
-The SMB fork remains a private dependency, so cloning this public repository
-alone is insufficient to reproduce the current build. Contributors with SMB
-access can prepare them:
+SMB support is fetched automatically over HTTPS from the public
+[openplayx/package-smb](https://github.com/openplayx/package-smb) repository,
+pinned to an immutable commit. Prepare the source checkouts:
 
 ```sh
 git clone https://github.com/openplayx/openplayx.git
 git clone https://github.com/openplayx/package-libvlc.git
+git clone https://github.com/openplayx/package-media.git
 git clone https://github.com/openplayx/package-whisper.git
 git clone https://github.com/openplayx/package-ffmpeg.git ffmpeg-package
-git clone git@github.com:openplayx/smb_connect.git
 cd openplayx
 flutter doctor
 flutter pub get
 flutter run -d macos
 ```
 
-`pubspec.yaml` is the dependency source of truth, including the local SMB
-override. Native libraries and platform toolchains must also be available;
+`pubspec.yaml` and `pubspec.lock` record the dependency sources and versions. Native libraries and platform toolchains must also be available;
 VLC desktop installation is not required. Source access and build access
 are separate from installer availability.
 

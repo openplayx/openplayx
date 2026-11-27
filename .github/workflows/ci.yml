@@ -56,13 +56,6 @@ jobs:
           path: package-whisper
           token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
 
-      - name: Checkout smb_connect
-        uses: actions/checkout@v4
-        with:
-          repository: openplayx/smb_connect
-          path: smb_connect
-          token: ${{ secrets.OPENPLAYX_DEPS_TOKEN || github.token }}
-
       - name: Install Linux test dependencies
         run: |
           sudo apt-get update
