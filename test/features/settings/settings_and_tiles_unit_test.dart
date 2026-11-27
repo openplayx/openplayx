@@ -15,6 +15,8 @@ import 'package:openplayx/features/assistant/view/plugins/external_service_confi
 import 'package:openplayx/features/library/view/media_tiles.dart';
 import 'package:openplayx/features/library/view/metadata_page.dart';
 import 'package:openplayx/features/settings/settings_page.dart';
+import 'package:openplayx/features/sources/view/hidden_connector_sources.dart';
+import 'package:openplayx/ui/components/states/content_state.dart';
 import 'package:sqlite3/sqlite3.dart' hide Row;
 
 import '../../app_test_host.dart';
@@ -245,23 +247,72 @@ void main() {
     await tester.pumpAndSettle();
 
     setup.probeError = const ExternalServiceException('unreachable');
-    final connectBtn = find.byKey(const ValueKey('ext-connect'));
-    if (connectBtn.evaluate().isNotEmpty) {
-      await tester.tap(connectBtn);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('unreachable'), findsWidgets);
+    final connectBtn = find.byKey(const ValueKey('external-connect'));
+    await tester.tap(connectBtn);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('unreachable'), findsWidgets);
 
-      setup.probeError = null;
-      await tester.tap(connectBtn);
-      await tester.pumpAndSettle();
-      expect(find.textContaining('Demo MCP'), findsWidgets);
+    setup.probeError = const FormatException('bad url');
+    await tester.tap(connectBtn);
+    await tester.pumpAndSettle();
+    expect(find.textContaining('bad url'), findsWidgets);
 
-      final saveBtn = find.byKey(const ValueKey('ext-save'));
-      if (saveBtn.evaluate().isNotEmpty) {
-        await tester.tap(saveBtn);
-        await tester.pumpAndSettle();
-      }
-    }
+    setup.probeError = null;
+    await tester.tap(connectBtn);
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('external-detected')), findsOneWidget);
+    expect(find.textContaining('Demo MCP'), findsWidgets);
+
+    await tester.tap(find.byKey(const ValueKey('external-save')));
+    await tester.pumpAndSettle();
+  });
+
+  testWidgets('ContentState and showHiddenConnectorSources render all states', (
+    tester,
+  ) async {
+    var retried = 0;
+    await tester.pumpWidget(
+      TestApp(
+        home: Scaffold(
+          body: Column(
+            children: [
+              Expanded(
+                child: ContentState(
+                  message: 'Empty',
+                  onRetry: () => retried++,
+                  retryLabel: 'Retry',
+                ),
+              ),
+              const Expanded(
+                child: ContentState(message: 'Loading', loading: true),
+              ),
+              const Expanded(
+                child: ContentState(message: 'Failed', error: true),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 50));
+    await tester.tap(find.text('Retry'));
+    expect(retried, 1);
+
+    final manager = SourceManager();
+    await tester.pumpWidget(
+      TestApp(
+        home: Builder(
+          builder: (c) => ElevatedButton(
+            onPressed: () => showHiddenConnectorSources(c, manager),
+            child: const Text('Hidden'),
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Hidden'));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('MetadataPage renders matched record, artwork and locks', (

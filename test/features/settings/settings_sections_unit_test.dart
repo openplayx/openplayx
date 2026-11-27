@@ -54,7 +54,7 @@ void main() {
   testWidgets('TmdbSettingsSection switches mode and configures token', (
     tester,
   ) async {
-    tester.view.physicalSize = const Size(1200, 900);
+    tester.view.physicalSize = const Size(560, 900);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.reset);
 
@@ -64,30 +64,37 @@ void main() {
     await tester.pumpWidget(_host(TmdbSettingsSection(library: library)));
     await tester.pumpAndSettle();
 
-    // Switch to custom TMDB tab if visible and open configure dialog.
-    final customTab = find.text('Custom');
-    if (customTab.evaluate().isNotEmpty) {
-      await tester.tap(customTab.first);
+    // Switch to local TMDB tab, configure token, enable local mode, forget token, switch back to cloud.
+    await tester.tap(find.byKey(const ValueKey('tmdb-tab-local')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tmdb-configure')));
+    await tester.pumpAndSettle();
+    final input = find.byKey(const ValueKey('tmdb-token'));
+    await tester.enterText(
+      find.descendant(of: input, matching: find.byType(EditableText)),
+      'test-tmdb-token',
+    );
+    await tester.pump();
+    final save = find.text('Save');
+    await tester.tap(save.last);
+    await tester.pumpAndSettle();
+
+    await tester.tap(find.byKey(const ValueKey('tmdb-enable-mode')));
+    await tester.pumpAndSettle();
+
+    // Re-open configure and forget token
+    await tester.tap(find.byKey(const ValueKey('tmdb-configure')));
+    await tester.pumpAndSettle();
+    final forget = find.byKey(const ValueKey('tmdb-forget'));
+    if (forget.evaluate().isNotEmpty) {
+      await tester.tap(forget);
       await tester.pumpAndSettle();
     }
-    final configure = find.text('Configure');
-    if (configure.evaluate().isNotEmpty) {
-      await tester.tap(configure.first);
-      await tester.pumpAndSettle();
-      final input = find.byKey(const ValueKey('tmdb-token'));
-      if (input.evaluate().isNotEmpty) {
-        await tester.enterText(
-          find.descendant(of: input, matching: find.byType(EditableText)),
-          'test-tmdb-token',
-        );
-        await tester.pump();
-      }
-      final save = find.text('Save');
-      if (save.evaluate().isNotEmpty) {
-        await tester.tap(save.last);
-        await tester.pumpAndSettle();
-      }
-    }
+
+    await tester.tap(find.byKey(const ValueKey('tmdb-tab-cloud')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byKey(const ValueKey('tmdb-enable-mode')));
+    await tester.pumpAndSettle();
   });
 
   testWidgets('AsrSettingsSection renders models, selection and removal', (
