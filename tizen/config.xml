@@ -1,0 +1,16 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<widget xmlns="http://www.w3.org/ns/widgets" xmlns:tizen="http://tizen.org/ns/widgets" id="https://openplayx.com/tv" version="0.0.1" viewmodes="maximized" width="1920" height="1080">
+  <name>OpenPlayX</name>
+  <description>Play your OpenPlayX library on Samsung TV over your local network.</description>
+  <author href="https://openplayx.com">OpenPlayX</author>
+  <content src="index.html"/>
+  <icon src="icon.png"/>
+  <tizen:application id="OpenPlayX1.OpenPlayX" package="OpenPlayX1" required_version="6.5"/>
+  <tizen:profile name="tv-samsung"/>
+  <feature name="http://tizen.org/feature/screen.size.normal.1080.1920"/>
+  <tizen:privilege name="http://tizen.org/privilege/internet"/>
+  <tizen:privilege name="http://tizen.org/privilege/tv.inputdevice"/>
+  <access origin="*" subdomains="true"/>
+  <tizen:setting screen-orientation="landscape" context-menu="disable" background-support="disable" encryption="disable" install-location="auto" hwkey-event="enable"/>
+  <tizen:metadata key="http://samsung.com/tv/metadata/prelaunch.support" value="false"/>
+</widget>

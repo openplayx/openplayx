@@ -40,7 +40,14 @@ web search and remote services are optional network capabilities. Complete
 cross-device sync and live TV/IPTV/EPG are not provided. An initial
 [TV remote interface](docs/implement/tv_experience.md) covers library browsing,
 details and playback; physical-device acceptance is pending.
-The Flutter Web player is not supported; [openplayx.com](https://openplayx.com)
+An experimental [LG webOS TV client](docs/webos.md) can be packaged for
+developer-mode sideloading (target: webOS 6.x+). It uses the desktop LAN Web
+playback service and requires the desktop app to remain running; LG device
+acceptance is pending.
+An experimental [Samsung Tizen TV client](docs/tizen.md) targets Tizen 6.5+
+and uses the same desktop LAN library. Unsigned widget sources and a signing
+script are provided; a Samsung certificate and device acceptance are required.
+The full Flutter Web app is not supported; [openplayx.com](https://openplayx.com)
 is the separate project website.
 
 Cloud sources include Jianguoyun/123 WebDAV presets and read-only OneDrive/Dropbox/Baidu Netdisk adapters. OAuth requires publisher app registration; real-account acceptance is pending. See [setup and validation](docs/cloud_drive_sources.md).

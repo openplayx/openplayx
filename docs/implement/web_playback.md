@@ -31,7 +31,8 @@ Keep the App running and use a trusted LAN: the transport is HTTP.
 ## Boundaries
 
 The listener binds one selected private interface, not `0.0.0.0`. Only loopback or
-private IPv4 peers and the exact listener Host are accepted. Origins must match.
+private IPv4 peers and the exact listener Host are accepted. Browser `/api/` origins must match. The packaged Tizen client has a separate
+opaque-origin `/tv-api/` Bearer boundary described below.
 Mutations require JSON plus a custom request header. Cookies are HttpOnly,
 SameSite=Strict and expire after twelve hours. Pair attempts are rate limited;
 request body sizes, concurrent requests and device counts are bounded. Static assets
@@ -46,7 +47,7 @@ library change stream. Media errors are short codes, not upstream exception text
 ## Current limits
 
 This is the Direct Play release. It does not implement HLS, Remux, audio/video
-transcoding, subtitle conversion, HDR mapping, TV-specific capability profiles,
+transcoding, subtitle conversion, HDR mapping, TV-specific codec capability profiles,
 mobile hosting, HTTPS, Relay access or automatic port mapping. Existing FFmpeg file
 jobs are not used for streaming. Browser incompatibility is shown explicitly.
 The App must remain awake/running. Source performance and random access still depend
@@ -71,3 +72,21 @@ The browser test starts the real Dart service with a fixture catalog. It pairs,
 plays the fixture MP4, seeks, verifies progress/resume, checks the 390px layout,
 and logs out. Desktop/mobile screenshots are generated under `build/web-playback/`.
 The optional browser test is skipped unless its module path is provided.
+
+## LG webOS TV
+
+The service also hosts a TV presentation (`/?tv=1`, or detected webOS user agent)
+with D-pad navigation and explicit player controls. See [webOS packaging, setup
+and hardware acceptance limits](../webos.md). This uses the same pairing, catalog,
+stream and progress endpoints; it does not enable transcoding or relax origins.
+
+## Samsung Tizen TV
+
+The packaged [Tizen client](../tizen.md) uses the same catalog and player assets
+locally, preserving access to native Tizen remote/exit APIs. `/tv-api/` accepts
+opaque-origin requests only after separate code pairing and authenticates with
+short-lived Bearer tokens, never browser cookies. It does not expose credentials
+through CORS. `/tv-media/` uses separate per-session media capabilities because
+video elements cannot set Authorization headers. Browser cookies and packaged
+TV tokens cannot authenticate each other; the existing `/api/` origin policy
+remains in force. The service must still be explicitly enabled on a private NIC.

@@ -31,7 +31,7 @@
 | 远程访问 | 内嵌 sing-box，可配合 [Home](https://github.com/openplayx/openplayx-home) 与 [Relay](https://github.com/openplayx/openplayx-relay) |
 | 界面 | 首页/媒体库、来源、AI、设置；自适应导航、shadcn_ui、Lucide 和多语言文案 |
 
-应用在本机运行，无需部署 OpenPlayX 服务端。模型、在线元数据、联网搜索及远程服务按需连接。完整跨设备同步和直播/IPTV/EPG 尚未提供。[电视遥控器界面初版](docs/implement/tv_experience.md) 已覆盖媒体库、详情和播放，仍待真机验收。不支持 Flutter Web 播放；[openplayx.com](https://openplayx.com) 是独立的项目官网。
+应用在本机运行，无需部署 OpenPlayX 服务端。模型、在线元数据、联网搜索及远程服务按需连接。完整跨设备同步和直播/IPTV/EPG 尚未提供。[电视遥控器界面初版](docs/implement/tv_experience.md) 已覆盖媒体库、详情和播放，仍待真机验收。完整 Flutter Web 应用尚不支持；[openplayx.com](https://openplayx.com) 是独立的项目官网。
 
 云盘新增坚果云/123 WebDAV 预设及 OneDrive/Dropbox 只读适配；OAuth 需发布者配置应用，真实账号验收待完成。详见[配置与验收记录](docs/cloud_drive_sources.md)。
 
@@ -137,3 +137,7 @@ WebDAV 目标连接断开时须重新上传，通用 WebDAV PUT 没有追加写�
 新安装默认使用平台 Relay 配置：在“设置 → 远程访问”登录账号后订阅就绪节点与设备已授权服务。用户仍可导入自建配置，导入后优先使用自建配置，点击“恢复平台默认”即可切回；已有配置保留。订阅每分钟刷新，刷新时间戳过期后继续使用上次配置；首次推荐节点选定后保持固定，用户根据 TCP/TLS 测试结果手动调整，后台刷新不自动切换。空节点池显示不可用。
 
 Apple TV：提供实验版 tvOS 0.0.4 IPA，需重新签名后侧载。安装、构建方式与功能限制见 [tvOS 说明](docs/tvos.md)。
+
+LG 电视：新增实验性 [webOS 客户端](docs/webos.md)，目标 webOS 6.x 及以上，可打包为开发者模式侧载的 `.ipk`。当前通过同一局域网中的电脑端共享媒体库播放，需要电脑端保持运行；LG 真机验收尚待完成。
+
+三星电视：新增实验性 [Tizen 客户端](docs/tizen.md)，目标 Tizen 6.5 及以上，复用电脑端局域网媒体库。提供未签名资源包和 `.wgt` 签名脚本；需 Samsung 开发者证书，尚待真机验收。

@@ -85,3 +85,47 @@ jobs:
         uses: SonarSource/sonarqube-scan-action@2f77a1ec69fb1d595b06f35ab27e97605bdef703 # v5
         with:
           projectBaseDir: openplayx
+
+  webos:
+    name: Package experimental webOS TV client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install webOS CLI
+        run: |
+          npm install --prefix "$RUNNER_TEMP/webos-tools" @webos-tools/cli@3.2.6 --no-audit --no-fund
+          echo "$RUNNER_TEMP/webos-tools/node_modules/.bin" >> "$GITHUB_PATH"
+      - name: Check launcher and package
+        run: |
+          node --check webos/launcher.js
+          bash -n tool/build_webos.sh
+          ./tool/build_webos.sh
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openplayx-webos-experimental
+          path: build/webos/*.ipk
+          if-no-files-found: error
+
+  tizen:
+    name: Prepare experimental Samsung Tizen client
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Prepare widget sources (sign locally with a Samsung profile)
+        run: |
+          python3 tool/build_tizen.py --prepare-only
+          node --check build/tizen/widget/launcher.js
+          node --check build/tizen/widget/client-config.js
+          node --check build/tizen/widget/app.js
+          node --check build/tizen/widget/tv.js
+      - uses: actions/upload-artifact@v4
+        with:
+          name: openplayx-tizen-unsigned-sources
+          path: build/tizen/OpenPlayX-tizen-unsigned.zip
+          if-no-files-found: error

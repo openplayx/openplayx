@@ -1,0 +1,16 @@
+{
+  "id": "com.openplayx.app",
+  "version": "0.0.1",
+  "vendor": "OpenPlayX",
+  "type": "web",
+  "main": "index.html",
+  "title": "OpenPlayX",
+  "appDescription": "Play your OpenPlayX library on LG TV over your local network.",
+  "icon": "icon.png",
+  "largeIcon": "largeIcon.png",
+  "resolution": "1920x1080",
+  "iconColor": "#101014",
+  "splashColor": "#101014",
+  "requiredACG": [],
+  "disableBackHistoryAPI": true
+}

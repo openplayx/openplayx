@@ -30,6 +30,8 @@ cover installation, build dependencies, current limits and privacy.
 
 | Topic | Documents |
 |---|---|
+| Samsung Tizen TV | [实验性 LAN 客户端、签名与安装](tizen.md) |
+| LG webOS TV | [实验性 LAN 客户端、打包与安装](webos.md) |
 | Playback | [Native setup](implement/libvlc_basic_player.md), [controls](implement/basic_player_controls.md) |
 | Library and metadata | [Library](implement/media_library.md), [storage layers](implement/library_storage_layers.md), [metadata](implement/media_metadata_scraping.md) |
 | Sources | [Configuration](implement/source_instance_configuration.md), [SMB tuning](implement/smb_read_tuning.md), [progressive reads](implement/smb_progressive_reads.md) |

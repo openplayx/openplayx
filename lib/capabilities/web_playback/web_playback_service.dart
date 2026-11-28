@@ -8,6 +8,7 @@ import 'package:flutter/foundation.dart';
 import '../../core/capabilities/source_capability.dart';
 import 'web_playback_catalog.dart';
 import 'web_playback_assets.dart';
+import 'web_playback_tv_assets.dart';
 
 class WebPlaybackSession {
   WebPlaybackSession({
@@ -17,10 +18,12 @@ class WebPlaybackSession {
     required this.device,
     required this.progressSession,
     required this.stream,
+    this.mediaToken,
   });
   final String id, owner, device, progressSession;
   final WebMedia media;
   final PlayableStream stream;
+  final String? mediaToken;
   final HttpClient client = HttpClient()
     ..connectionTimeout = const Duration(seconds: 15);
   DateTime lastSeen = DateTime.now();
@@ -36,8 +39,9 @@ class WebPlaybackSession {
 }
 
 class _Device {
-  _Device(this.name, this.expires);
+  _Device(this.name, this.expires, {this.packaged = false});
   final String name;
+  final bool packaged;
   final DateTime expires;
   int revision = 0;
 }
@@ -48,7 +52,8 @@ class _Attempts {
 }
 
 /// Opt-in, single-interface LAN service. Authentication is a short-lived,
-/// HttpOnly same-site cookie; no source paths/URLs or tokens enter the UI.
+/// HttpOnly same-site cookie for browsers; separately paired packaged clients
+/// use Bearer tokens. No source paths/URLs or source credentials enter the UI.
 /// Direct Play only: file jobs must not be mistaken for streaming transcodes.
 class WebPlaybackService extends ChangeNotifier {
   WebPlaybackService(this.catalog) : _sharedScopes = catalog.loadSharedScopes();
@@ -223,6 +228,16 @@ class WebPlaybackService extends ChangeNotifier {
     final expected = '${server.address.address}:${server.port}';
     if (request.headers.value(HttpHeaders.hostHeader) != expected) return false;
     final origin = request.headers.value('origin');
+    final packagedApi = request.uri.path.startsWith('/tv-api/');
+    final packagedMedia = request.uri.path.startsWith('/tv-media/');
+    if (packagedApi || packagedMedia) {
+      // A file-scheme packaged widget has an opaque origin. This is not an
+      // identity: the pairing secret and bearer/media tokens authenticate it.
+      if (origin != null && origin != 'null') return false;
+      if (packagedMedia) return ['GET', 'HEAD'].contains(request.method);
+      return request.method == 'OPTIONS' ||
+          request.headers.value('x-openplayx-tv') == '1';
+    }
     if (origin != null && origin != 'http://$expected') return false;
     if (!['GET', 'HEAD'].contains(request.method) &&
         request.headers.value('x-openplayx') != '1') {
@@ -255,13 +270,19 @@ class WebPlaybackService extends ChangeNotifier {
     return value;
   }
 
-  String? _authenticated(HttpRequest request) {
-    final token = request.cookies
-        .where((c) => c.name == 'opx_web')
-        .firstOrNull
-        ?.value;
+  String? _authenticated(HttpRequest request, {bool packaged = false}) {
+    final authorization = request.headers.value('authorization');
+    final token = packaged
+        ? (authorization != null && authorization.startsWith('Bearer ')
+              ? authorization.substring(7)
+              : null)
+        : request.cookies.where((c) => c.name == 'opx_web').firstOrNull?.value;
     final device = _devices[token];
-    if (device == null || DateTime.now().isAfter(device.expires)) return null;
+    if (device == null ||
+        device.packaged != packaged ||
+        DateTime.now().isAfter(device.expires)) {
+      return null;
+    }
     return token;
   }
 
@@ -284,13 +305,57 @@ class WebPlaybackService extends ChangeNotifier {
         _json(r, 429, {'error': 'busy'});
         return;
       }
-      final path = r.uri.path;
+      final packaged = r.uri.path.startsWith('/tv-api/');
+      if (packaged) {
+        r.response.headers
+          ..set('Access-Control-Allow-Origin', 'null')
+          ..set('Vary', 'Origin')
+          ..set('Access-Control-Allow-Methods', 'GET, POST, DELETE, OPTIONS')
+          ..set(
+            'Access-Control-Allow-Headers',
+            'Authorization, Content-Type, X-OpenPlayX, X-OpenPlayX-TV',
+          );
+        if (r.method == 'OPTIONS') {
+          r.response.statusCode = 204;
+          return;
+        }
+      }
+      if (r.uri.path.startsWith('/tv-media/')) {
+        final parts = r.uri.pathSegments;
+        final session = parts.length == 3 ? _sessions[parts[1]] : null;
+        final device = session == null ? null : _devices[session.owner];
+        if (session == null ||
+            session.mediaToken == null ||
+            session.mediaToken != parts[2] ||
+            !session.active ||
+            device == null ||
+            !device.packaged ||
+            DateTime.now().isAfter(device.expires) ||
+            catalog.find(_sharedScopes, session.media.id) == null) {
+          _json(r, 404, {'error': 'session_ended'});
+          return;
+        }
+        await _media(r, session);
+        return;
+      }
+      final path = packaged
+          ? r.uri.path.replaceFirst('/tv-api/', '/api/')
+          : r.uri.path;
+      final segments = Uri.parse(path).pathSegments;
       if (r.method == 'GET' || r.method == 'HEAD') {
         final asset = switch (path) {
           '/' => (ContentType.html, webPlaybackHtml),
           '/app.css' => (
             ContentType('text', 'css', charset: 'utf-8'),
             webPlaybackCss,
+          ),
+          '/tv.css' => (
+            ContentType('text', 'css', charset: 'utf-8'),
+            webPlaybackTvCss,
+          ),
+          '/tv.js' => (
+            ContentType('application', 'javascript', charset: 'utf-8'),
+            webPlaybackTvJs,
           ),
           '/app.js' => (
             ContentType('application', 'javascript', charset: 'utf-8'),
@@ -305,10 +370,10 @@ class WebPlaybackService extends ChangeNotifier {
         }
       }
       if (path == '/api/pair' && r.method == 'POST') {
-        await _pair(r);
+        await _pair(r, packaged: packaged);
         return;
       }
-      final owner = _authenticated(r);
+      final owner = _authenticated(r, packaged: packaged);
       if (owner == null) {
         _json(r, 401, {'error': 'pairing_required'});
         return;
@@ -348,10 +413,10 @@ class WebPlaybackService extends ChangeNotifier {
           'nextOffset': items.length == 48 ? offset + 48 : null,
         });
       } else if (path == '/api/playback' && r.method == 'POST') {
-        await _startPlayback(r, owner);
-      } else if (r.uri.pathSegments.length >= 3 &&
-          r.uri.pathSegments.take(2).join('/') == 'api/playback') {
-        final parts = r.uri.pathSegments;
+        await _startPlayback(r, owner, packaged: packaged);
+      } else if (segments.length >= 3 &&
+          segments.take(2).join('/') == 'api/playback') {
+        final parts = segments;
         final s = _sessions[parts[2]];
         if (s == null ||
             s.owner != owner ||
@@ -410,7 +475,7 @@ class WebPlaybackService extends ChangeNotifier {
     return a.count > (key == '*' ? 30 : 5);
   }
 
-  Future<void> _pair(HttpRequest r) async {
+  Future<void> _pair(HttpRequest r, {bool packaged = false}) async {
     if (_rateLimited('*') ||
         _rateLimited(r.connectionInfo!.remoteAddress.address)) {
       _json(r, 429, {'error': 'pairing_rate_limited'});
@@ -437,7 +502,12 @@ class WebPlaybackService extends ChangeNotifier {
     _devices[token] = _Device(
       name.trim(),
       DateTime.now().add(const Duration(hours: 12)),
+      packaged: packaged,
     );
+    if (packaged) {
+      _json(r, 200, {'ok': true, 'token': token});
+      return;
+    }
     r.response.cookies.add(
       Cookie('opx_web', token)
         ..path = '/'
@@ -448,7 +518,11 @@ class WebPlaybackService extends ChangeNotifier {
     _json(r, 200, {'ok': true});
   }
 
-  Future<void> _startPlayback(HttpRequest r, String owner) async {
+  Future<void> _startPlayback(
+    HttpRequest r,
+    String owner, {
+    bool packaged = false,
+  }) async {
     final body = await _body(r);
     final id = body['id'];
     if (id is! String || id.length > 200) {
@@ -521,12 +595,15 @@ class WebPlaybackService extends ChangeNotifier {
       device: device.name,
       progressSession: catalog.beginProgress(media),
       stream: stream,
+      mediaToken: packaged ? _token() : null,
     );
     _sessions[sid] = s;
     _json(r, 200, {
       'id': sid,
       'title': media.title,
-      'url': '/api/playback/$sid/media',
+      'url': packaged
+          ? '/tv-media/$sid/${s.mediaToken}'
+          : '/api/playback/$sid/media',
       'positionMs': media.positionMs,
       'mode': 'direct',
     });

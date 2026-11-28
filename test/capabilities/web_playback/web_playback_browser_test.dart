@@ -15,11 +15,24 @@ void main() {
       );
       final service = WebPlaybackService(catalog);
       await service.setSharedScopes({'movies'});
-      await service.start(InternetAddress.loopbackIPv4, port: 0);
+      final interfaces = await WebPlaybackService.interfaces();
+      await service.start(
+        interfaces.firstOrNull ?? InternetAddress.loopbackIPv4,
+        port: 0,
+      );
       addTearDown(() async {
         await service.shutdown();
         service.dispose();
       });
+      final prepare = await Process.run('python3', [
+        'tool/build_tizen.py',
+        '--prepare-only',
+      ]);
+      expect(
+        prepare.exitCode,
+        0,
+        reason: '${prepare.stdout}\n${prepare.stderr}',
+      );
       final child = await Process.start('node', [
         'tool/web_playback_smoke.mjs',
       ]);

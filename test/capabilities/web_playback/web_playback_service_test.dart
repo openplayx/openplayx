@@ -152,6 +152,161 @@ void main() {
     await temp.delete(recursive: true);
   });
 
+  const tvHeaders = {'Origin': 'null', 'X-OpenPlayX-TV': '1'};
+  Future<String> pairTv() async {
+    final r = await request(
+      '/tv-api/pair',
+      method: 'POST',
+      body: {'code': service.pairingCode, 'device': 'Samsung TV'},
+      headers: tvHeaders,
+    );
+    expect(r.status, 200);
+    expect(r.cookies, isEmpty);
+    return r.json['token'] as String;
+  }
+
+  test(
+    'packaged TV preflight requires local host and blocks HTTP origins',
+    () async {
+      final preflight = await request(
+        '/tv-api/pair',
+        method: 'OPTIONS',
+        headers: {'Origin': 'null'},
+      );
+      expect(preflight.status, 204);
+      expect(preflight.headers.value('access-control-allow-origin'), 'null');
+      expect(
+        preflight.headers.value('access-control-allow-credentials'),
+        isNull,
+      );
+      expect(
+        (await request('/tv-api/library', headers: {'Origin': 'null'})).status,
+        403,
+      );
+      expect(
+        (await request(
+          '/tv-api/library',
+          headers: {...tvHeaders, 'Origin': 'http://evil.example'},
+        )).status,
+        403,
+      );
+      expect(
+        (await request(
+          '/tv-api/library',
+          headers: {...tvHeaders, 'Host': 'evil.example'},
+        )).status,
+        403,
+      );
+      expect(
+        (await request('/api/library', headers: {'Origin': 'null'})).status,
+        403,
+      );
+      expect(
+        (await request(
+          '/tv-api/pair',
+          method: 'POST',
+          headers: tvHeaders,
+          body: {'code': '000000', 'device': 'TV'},
+        )).status,
+        403,
+      );
+    },
+  );
+
+  test(
+    'packaged bearer tokens and browser cookies cannot authenticate each other',
+    () async {
+      final token = await pairTv();
+      expect(
+        (await request('/tv-api/library', headers: tvHeaders)).status,
+        401,
+      );
+      final headers = {...tvHeaders, 'Authorization': 'Bearer $token'};
+      expect((await request('/tv-api/library', headers: headers)).status, 200);
+      expect(
+        (await request(
+          '/api/library',
+          authenticated: false,
+          headers: {'Cookie': 'opx_web=$token'},
+        )).status,
+        401,
+      );
+      await pair();
+      final browserToken = cookie!.substring('opx_web='.length);
+      expect(
+        (await request(
+          '/tv-api/library',
+          headers: {...tvHeaders, 'Authorization': 'Bearer $browserToken'},
+        )).status,
+        401,
+      );
+      expect(
+        (await request('/tv-api/library', headers: tvHeaders)).status,
+        401,
+      );
+    },
+  );
+
+  test(
+    'TV media capability is session-scoped and revoked by sharing and logout',
+    () async {
+      await service.setSharedScopes({'movies'});
+      final token = await pairTv();
+      final headers = {...tvHeaders, 'Authorization': 'Bearer $token'};
+      final started = await request(
+        '/tv-api/playback',
+        method: 'POST',
+        body: {'id': 'resource-1'},
+        headers: headers,
+      );
+      expect(started.status, 200);
+      final url = started.json['url'] as String;
+      expect(url, startsWith('/tv-media/'));
+      expect(url, isNot(contains(token)));
+      expect(
+        (await request(
+          url,
+          authenticated: false,
+          headers: {'Range': 'bytes=10-19'},
+        )).body,
+        List.generate(10, (i) => 10 + i),
+      );
+      expect((await request('$url-invalid', authenticated: false)).status, 404);
+      final mediaToken = url.split('/').last;
+      expect(
+        (await request(
+          '/tv-api/library',
+          headers: {...tvHeaders, 'Authorization': 'Bearer $mediaToken'},
+        )).status,
+        401,
+      );
+      final sid = started.json['id'];
+      expect(
+        (await request(
+          '/tv-api/playback/$sid/progress',
+          method: 'POST',
+          headers: headers,
+          body: {'positionMs': 1000, 'durationMs': 12000},
+        )).status,
+        200,
+      );
+      expect(catalog.savedPosition, 1000);
+      await service.setSharedScopes({});
+      expect((await request(url, authenticated: false)).status, 404);
+      expect(
+        (await request(
+          '/tv-api/logout',
+          method: 'POST',
+          headers: headers,
+          body: {},
+        )).status,
+        200,
+      );
+      expect((await request('/tv-api/library', headers: headers)).status, 401);
+      expect(service.sessions, isEmpty);
+    },
+  );
+
   test('public UI is local, credentials are required, no folders shared by default', () async {
     final page = await request('/');
     expect(page.status, 200);
