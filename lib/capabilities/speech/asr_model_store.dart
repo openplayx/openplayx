@@ -87,6 +87,7 @@ AsrModelSpec? asrModelSpec(String id) =>
 class AsrModelDownload {
   AsrModelDownload._(this.spec);
   final AsrModelSpec spec;
+  // ignore: close_sinks — closed by AsrModelStore.download's finally block.
   final _progress = StreamController<int>.broadcast();
   final _done = Completer<void>();
   bool _cancelled = false;

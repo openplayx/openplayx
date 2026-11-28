@@ -1,9 +1,18 @@
 import Cocoa
-import FlutterMacOS
+// FlutterMethodNotImplemented is a constant sentinel that C exports as a
+// mutable global; @preconcurrency keeps references to it from being flagged.
+@preconcurrency import FlutterMacOS
 import desktop_multi_window
 
+// Everything in this file runs on the main thread: Flutter invokes method
+// channel handlers there, AppKit posts the window notifications there (block
+// observers also name the main queue), and the NSWindow APIs are main-actor
+// isolated. The types say so with @MainActor.
+
+@MainActor
 final class PlayerWindowCloser: NSObject, NSWindowDelegate {
-  static var key: UInt8 = 0
+  /// Association key; only its address is used.
+  nonisolated(unsafe) static var key: UInt8 = 0
   private let channel: FlutterMethodChannel
   init(channel: FlutterMethodChannel) { self.channel = channel }
   func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -12,14 +21,93 @@ final class PlayerWindowCloser: NSObject, NSWindowDelegate {
   }
 }
 
+/// The only place that calls `toggleFullScreen`. AppKit throws from
+/// -[NSWindow _reallySetFrame:] when a full-screen toggle lands while a
+/// transition of the same window is still running (a second double-click or
+/// Esc during the enter animation, picture in picture leaving full screen),
+/// so requests made then are deferred until the transition finishes.
+/// Enforced by the `toggle-fullscreen-unguarded` CI rule.
+@MainActor
+final class FullScreenGuard {
+  static let shared = FullScreenGuard()
+  /// Windows between will{Enter,Exit}FullScreen and did{Enter,Exit}FullScreen,
+  /// mapped to a generation that expires a stuck flag.
+  private var transitioning: [ObjectIdentifier: Int] = [:]
+  private var pending: [ObjectIdentifier: Bool] = [:]
+  private var generation = 0
+  private var observers: [NSObjectProtocol] = []
+
+  private init() {
+    let starts = [NSWindow.willEnterFullScreenNotification, NSWindow.willExitFullScreenNotification]
+    let ends = [NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification]
+    for name in starts + ends {
+      let isStart = starts.contains(name)
+      observers.append(
+        NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
+          [weak self] note in
+          let window = note.object as? NSWindow
+          MainActor.assumeIsolated {
+            guard let self = self, let window = window else { return }
+            isStart ? self.began(window) : self.ended(window)
+          }
+        })
+    }
+  }
+
+  func isTransitioning(_ window: NSWindow) -> Bool {
+    transitioning[ObjectIdentifier(window)] != nil
+  }
+
+  /// Applies the full-screen state now, or once the running transition has
+  /// finished. Returns false when the request was deferred.
+  @discardableResult
+  func request(_ window: NSWindow, fullScreen wanted: Bool) -> Bool {
+    let id = ObjectIdentifier(window)
+    if transitioning[id] != nil {
+      pending[id] = wanted
+      return false
+    }
+    pending[id] = nil
+    if wanted != window.styleMask.contains(.fullScreen) { window.toggleFullScreen(nil) }
+    return true
+  }
+
+  private func began(_ window: NSWindow) {
+    let id = ObjectIdentifier(window)
+    generation &+= 1
+    let mine = generation
+    transitioning[id] = mine
+    // A failed transition only reaches the window delegate, not a
+    // notification; never leave requests blocked for good.
+    DispatchQueue.main.asyncAfter(deadline: .now() + 3) { [weak self] in
+      MainActor.assumeIsolated {
+        guard let self = self, self.transitioning[id] == mine else { return }
+        self.transitioning[id] = nil
+      }
+    }
+  }
+
+  private func ended(_ window: NSWindow) {
+    let id = ObjectIdentifier(window)
+    transitioning[id] = nil
+    guard let wanted = pending.removeValue(forKey: id) else { return }
+    // Next run-loop turn: AppKit is still unwinding the transition.
+    Task { @MainActor [weak self, weak window] in
+      guard let self = self, let window = window else { return }
+      self.request(window, fullScreen: wanted)
+    }
+  }
+}
+
 /// Native full screen for the Flutter player (`openplayx/window`). Each
 /// Flutter view controller (main window and player windows) gets its own
 /// channel; Dart is told when the user changes full screen natively.
+@MainActor
 final class WindowFullScreenChannel: NSObject {
-  static var key: UInt8 = 0
+  /// Association key; only its address is used.
+  nonisolated(unsafe) static var key: UInt8 = 0
   private let channel: FlutterMethodChannel
   private weak var controller: FlutterViewController?
-  private var observers: [NSObjectProtocol] = []
 
   static func register(_ controller: FlutterViewController) {
     let handler = WindowFullScreenChannel(controller)
@@ -42,30 +130,28 @@ final class WindowFullScreenChannel: NSObject {
         result(isFull)
       case "setFullScreen":
         let wanted = call.arguments as? Bool ?? !isFull
-        if wanted != isFull { window.toggleFullScreen(nil) }
-        result(wanted)
+        // A deferred request reports the current state; Dart learns the
+        // final one from `fullScreenChanged`.
+        result(FullScreenGuard.shared.request(window, fullScreen: wanted) ? wanted : isFull)
       default:
         result(FlutterMethodNotImplemented)
       }
     }
+    // Selector observers are removed when this object is deallocated, so no
+    // deinit has to reach main-actor state. AppKit posts these on the main thread.
     for name in [NSWindow.didEnterFullScreenNotification, NSWindow.didExitFullScreenNotification] {
-      observers.append(
-        NotificationCenter.default.addObserver(forName: name, object: nil, queue: .main) {
-          [weak self] note in
-          guard let self = self, let window = note.object as? NSWindow,
-            window === self.controller?.view.window
-          else { return }
-          self.channel.invokeMethod(
-            "fullScreenChanged", arguments: window.styleMask.contains(.fullScreen))
-        })
+      NotificationCenter.default.addObserver(
+        self, selector: #selector(fullScreenChanged(_:)), name: name, object: nil)
     }
   }
 
-  deinit {
-    observers.forEach(NotificationCenter.default.removeObserver)
+  @objc private func fullScreenChanged(_ note: Notification) {
+    guard let window = note.object as? NSWindow, window === controller?.view.window else { return }
+    channel.invokeMethod("fullScreenChanged", arguments: window.styleMask.contains(.fullScreen))
   }
 }
 
+@MainActor
 class MainFlutterWindow: NSWindow {
   private var sourceAccess: FlutterMethodChannel?
   private var accessedURLs: [URL] = []
@@ -97,7 +183,14 @@ class MainFlutterWindow: NSWindow {
     objc_setAssociatedObject(window, &PlayerWindowCloser.key, closer, .OBJC_ASSOCIATION_RETAIN)
   }
 
-  override func awakeFromNib() {
+  // NSObject declares awakeFromNib nonisolated; AppKit calls it on the main
+  // thread while loading MainMenu.xib.
+  nonisolated override func awakeFromNib() {
+    MainActor.assumeIsolated { setUp() }
+    super.awakeFromNib()
+  }
+
+  private func setUp() {
     let flutterViewController = FlutterViewController()
     FlutterMethodChannel(name: "openplayx/transfer_storage", binaryMessenger: flutterViewController.engine.binaryMessenger)
       .setMethodCallHandler { call, result in
@@ -160,25 +253,16 @@ class MainFlutterWindow: NSWindow {
           guard let raw = call.arguments as? String, let data = Data(base64Encoded: raw) else { result(nil); return }
           // Resolving a bookmark can block on an unavailable volume. Never
           // wait for mounts or system authorization UI on Flutter's main thread.
-          self.sourceAccessQueue.async {
-            do {
-              var stale = false
-              let url = try URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI, .withoutMounting], relativeTo: nil, bookmarkDataIsStale: &stale)
-              let accessed = url.startAccessingSecurityScopedResource()
-              let readable = accessed || FileManager.default.isReadableFile(atPath: url.path)
-              DispatchQueue.main.async {
-                if accessed { self.accessedURLs.append(url) }
-                if readable {
-                  result(url.path)
-                } else {
-                  result(FlutterError(code: "permissionDenied", message: "请重新选择文件夹以恢复授权。", details: nil))
-                }
-              }
-            } catch {
-              DispatchQueue.main.async {
-                result(FlutterError(code: "permissionDenied", message: "请重新选择文件夹以恢复授权。", details: nil))
+          let queue = self.sourceAccessQueue
+          Task { @MainActor in
+            if case let (url, accessed, readable)? = await Self.resolveBookmark(data, on: queue) {
+              if accessed { self.accessedURLs.append(url) }
+              if readable {
+                result(url.path)
+                return
               }
             }
+            result(FlutterError(code: "permissionDenied", message: "请重新选择文件夹以恢复授权。", details: nil))
           }
         case "releaseAll":
           for url in self.accessedURLs { url.stopAccessingSecurityScopedResource() }
@@ -190,14 +274,35 @@ class MainFlutterWindow: NSWindow {
         result(FlutterError(code: "permissionDenied", message: "请重新选择文件夹以恢复授权。", details: nil))
       }
     }
-    super.awakeFromNib()
+  }
+
+  /// Resolves a bookmark on `queue` and starts its security scope there.
+  /// Returns the URL, whether its access was started, and whether it is
+  /// readable; nil when the bookmark cannot be resolved.
+  private nonisolated static func resolveBookmark(
+    _ data: Data, on queue: DispatchQueue
+  ) async -> (URL, Bool, Bool)? {
+    await withCheckedContinuation { continuation in
+      queue.async {
+        var stale = false
+        guard let url = try? URL(resolvingBookmarkData: data, options: [.withSecurityScope, .withoutUI, .withoutMounting], relativeTo: nil, bookmarkDataIsStale: &stale) else {
+          continuation.resume(returning: nil)
+          return
+        }
+        let accessed = url.startAccessingSecurityScopedResource()
+        let readable = accessed || FileManager.default.isReadableFile(atPath: url.path)
+        continuation.resume(returning: (url, accessed, readable))
+      }
+    }
   }
 }
 
 /// Reuses the playing window and engine, so tracks, decoder and playback
 /// position survive both transitions without reopening the media.
+@MainActor
 final class PictureInPictureWindowChannel: NSObject {
-  static var key: UInt8 = 0
+  /// Association key; only its address is used.
+  nonisolated(unsafe) static var key: UInt8 = 0
   private let channel: FlutterMethodChannel
   private weak var controller: FlutterViewController?
   private var savedFrame: NSRect?
@@ -210,7 +315,8 @@ final class PictureInPictureWindowChannel: NSObject {
   private var savedMovable = false
   private var savedButtonHidden: [NSWindow.ButtonType: Bool] = [:]
   private var restoreFullscreen = false
-  private var exitObserver: NSObjectProtocol?
+  /// An `enter` waiting for full screen to finish exiting.
+  private var pendingEnter: (ratio: Double, result: FlutterResult)?
 
   static func register(_ controller: FlutterViewController) {
     let handler = PictureInPictureWindowChannel(controller)
@@ -229,22 +335,19 @@ final class PictureInPictureWindowChannel: NSObject {
       switch call.method {
       case "isSupported": result(true)
       case "enter":
-        if self.savedFrame != nil { result(true); return }
+        // Already in picture in picture, or waiting for full screen to exit.
+        if self.savedFrame != nil || self.pendingEnter != nil { result(true); return }
         let args = call.arguments as? [String: Any]
         let raw = args?["aspectRatio"] as? Double ?? 16.0 / 9.0
         let ratio = raw.isFinite ? min(2.39, max(1.0 / 2.39, raw)) : 16.0 / 9.0
         if window.styleMask.contains(.fullScreen) {
           self.restoreFullscreen = true
-          self.exitObserver = NotificationCenter.default.addObserver(
-            forName: NSWindow.didExitFullScreenNotification, object: window, queue: .main
-          ) { [weak self, weak window] _ in
-            guard let self = self, let window = window else { return }
-            if let observer = self.exitObserver { NotificationCenter.default.removeObserver(observer) }
-            self.exitObserver = nil
-            self.enter(window, ratio: ratio)
-            result(true)
-          }
-          window.toggleFullScreen(nil)
+          self.pendingEnter = (ratio, result)
+          // A selector observer is removed when this object is deallocated.
+          NotificationCenter.default.addObserver(
+            self, selector: #selector(self.didExitFullScreen(_:)),
+            name: NSWindow.didExitFullScreenNotification, object: window)
+          FullScreenGuard.shared.request(window, fullScreen: false)
         } else {
           self.enter(window, ratio: ratio)
           result(true)
@@ -255,6 +358,16 @@ final class PictureInPictureWindowChannel: NSObject {
       default: result(FlutterMethodNotImplemented)
       }
     }
+  }
+
+  /// Finishes an `enter` that waited for full screen to exit.
+  @objc private func didExitFullScreen(_ note: Notification) {
+    NotificationCenter.default.removeObserver(
+      self, name: NSWindow.didExitFullScreenNotification, object: note.object)
+    guard let window = note.object as? NSWindow, let pending = pendingEnter else { return }
+    pendingEnter = nil
+    enter(window, ratio: pending.ratio)
+    pending.result(true)
   }
 
   private func enter(_ window: NSWindow, ratio: Double) {
@@ -279,7 +392,7 @@ final class PictureInPictureWindowChannel: NSObject {
     window.level = .floating
     window.collectionBehavior = [.canJoinAllSpaces, .fullScreenAuxiliary]
     window.contentAspectRatio = NSSize(width: ratio, height: 1)
-    let screen = window.screen?.visibleFrame ?? NSScreen.main!.visibleFrame
+    let screen = window.screen?.visibleFrame ?? NSScreen.main?.visibleFrame ?? window.frame
     let width = min(420.0, min(screen.width * 0.45, (screen.height - 40) * ratio))
     let height = width / ratio
     window.setFrame(NSRect(x: screen.maxX - width - 20, y: screen.minY + 20,
@@ -306,11 +419,7 @@ final class PictureInPictureWindowChannel: NSObject {
     channel.invokeMethod("changed", arguments: false)
     if restoreFullscreen {
       restoreFullscreen = false
-      window.toggleFullScreen(nil)
+      FullScreenGuard.shared.request(window, fullScreen: true)
     }
-  }
-
-  deinit {
-    if let observer = exitObserver { NotificationCenter.default.removeObserver(observer) }
   }
 }

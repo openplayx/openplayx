@@ -83,7 +83,7 @@ class _SourceInstanceFormState extends State<SourceInstanceForm> {
     _c.addListener(_changed);
     if (widget.onAddToHome != null && widget.initialKind == SourceKind.local) {
       WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted) _c.pickDirectory();
+        if (mounted) unawaited(_c.pickDirectory());
       });
     }
     _addressFocus.addListener(() {

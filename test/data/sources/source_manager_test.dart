@@ -242,7 +242,7 @@ void main() {
         request.response.headers.contentType = ContentType.json;
         request.response.write(
           jsonEncode({
-            'MediaContainer': {'Directory': [], 'size': 0},
+            'MediaContainer': {'Directory': <Object?>[], 'size': 0},
           }),
         );
         await request.response.close();

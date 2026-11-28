@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 
@@ -75,11 +77,46 @@ class PictureInPictureController extends ChangeNotifier {
     await _channel.invokeMethod<void>('exit');
   }
 
+  bool? _autoEnter;
+  double? _autoEnterRatio;
+
+  /// Android: lets Home / recents enter PiP on its own while [enabled]
+  /// (`setAutoEnterEnabled` on 12+, `onUserLeaveHint` before). Repeated
+  /// identical calls are dropped.
+  Future<void> setAutoEnter({
+    required bool enabled,
+    double aspectRatio = 16 / 9,
+  }) async {
+    if (_disposed || !supported) return;
+    if (_autoEnter == enabled && (!enabled || _autoEnterRatio == aspectRatio)) {
+      return;
+    }
+    _autoEnter = enabled;
+    _autoEnterRatio = aspectRatio;
+    try {
+      await _channel.invokeMethod<bool>('setAutoEnter', {
+        'enabled': enabled,
+        'aspectRatio': aspectRatio,
+      });
+    } on MissingPluginException {
+      // Platforms without auto-enter.
+    } on PlatformException {
+      // Best effort: the manual button still works.
+    }
+  }
+
   @override
   void dispose() {
+    if (_autoEnter == true) {
+      unawaited(
+        _channel
+            .invokeMethod<bool>('setAutoEnter', {'enabled': false})
+            .catchError((Object _) => null),
+      );
+    }
     _disposed = true;
     if (keepsPlaying) {
-      _channel.invokeMethod<void>('exit').catchError((Object _) {});
+      unawaited(_channel.invokeMethod<void>('exit').catchError((Object _) {}));
     }
     _channel.setMethodCallHandler(null);
     super.dispose();

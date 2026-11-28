@@ -14,6 +14,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:openplayx/app/app.dart';
 import 'package:openplayx/app/debug_seed/debug_seed.dart';
 import 'package:openplayx/app/player_window.dart';
+import 'package:openplayx/assistant/conversation/conversation_coordinator.dart';
 import 'package:openplayx/capabilities/speech/asr_model_store.dart';
 import 'package:openplayx/core/models/text_model.dart';
 import 'package:openplayx/data/configuration/configuration_database.dart';
@@ -125,7 +126,7 @@ Future<void> _prepareAppData() async {
 }
 
 /// `{folder, name}` of every clip [turns] saved with media_save_to_source.
-List<Map<String, dynamic>> _savedClips(Iterable<dynamic> turns) {
+List<Map<String, dynamic>> _savedClips(Iterable<ConversationTurn> turns) {
   final saves = <String?>{};
   final clips = <Map<String, dynamic>>[];
   for (final turn in turns) {

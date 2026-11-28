@@ -1,4 +1,6 @@
-import Flutter
+// FlutterMethodNotImplemented is a constant sentinel that C exports as a
+// mutable global; @preconcurrency keeps references to it from being flagged.
+@preconcurrency import Flutter
 import UIKit
 import UniformTypeIdentifiers
 
@@ -14,6 +16,10 @@ import UniformTypeIdentifiers
 /// - `create`: bookmark (base64) for a path picked in this session.
 /// - `restore`: path of a bookmark, with its access started.
 /// - `releaseAll`: stops every access started here.
+///
+/// Main actor: Flutter invokes the handler on the main thread, and the
+/// document picker delegate is main-actor isolated.
+@MainActor
 final class SourceAccess: NSObject, UIDocumentPickerDelegate {
   private let channel: FlutterMethodChannel
   private var accessed: [URL] = []
@@ -55,22 +61,14 @@ final class SourceAccess: NSObject, UIDocumentPickerDelegate {
         return
       }
       // Resolving can block on a file provider; keep it off the main thread.
-      queue.async {
-        var stale = false
-        guard
-          let url = try? URL(
-            resolvingBookmarkData: data, options: [], relativeTo: nil,
-            bookmarkDataIsStale: &stale)
-        else {
-          DispatchQueue.main.async { result(Self.denied()) }
+      let queue = self.queue
+      Task { @MainActor in
+        guard case let (url, started, readable)? = await Self.resolveBookmark(data, on: queue) else {
+          result(Self.denied())
           return
         }
-        let started = url.startAccessingSecurityScopedResource()
-        let readable = started || FileManager.default.isReadableFile(atPath: url.path)
-        DispatchQueue.main.async {
-          if started { self.accessed.append(url) }
-          result(readable ? url.path : Self.denied())
-        }
+        if started { self.accessed.append(url) }
+        result(readable ? url.path : Self.denied())
       }
     case "releaseAll":
       for url in accessed { url.stopAccessingSecurityScopedResource() }
@@ -79,6 +77,30 @@ final class SourceAccess: NSObject, UIDocumentPickerDelegate {
       result(nil)
     default:
       result(FlutterMethodNotImplemented)
+    }
+  }
+
+  /// Resolves a bookmark on `queue` and starts its security scope there.
+  /// Returns the URL, whether its access was started, and whether it is
+  /// readable; nil when the bookmark cannot be resolved.
+  private nonisolated static func resolveBookmark(
+    _ data: Data, on queue: DispatchQueue
+  ) async -> (URL, Bool, Bool)? {
+    await withCheckedContinuation { continuation in
+      queue.async {
+        var stale = false
+        guard
+          let url = try? URL(
+            resolvingBookmarkData: data, options: [], relativeTo: nil,
+            bookmarkDataIsStale: &stale)
+        else {
+          continuation.resume(returning: nil)
+          return
+        }
+        let started = url.startAccessingSecurityScopedResource()
+        let readable = started || FileManager.default.isReadableFile(atPath: url.path)
+        continuation.resume(returning: (url, started, readable))
+      }
     }
   }
 

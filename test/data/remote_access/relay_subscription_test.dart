@@ -28,7 +28,7 @@ Map<String, dynamic> profile({
     'uuid': '11111111-1111-4111-8111-111111111111',
   },
   'nodes': empty
-      ? []
+      ? <Map<String, Object?>>[]
       : [
           {
             'nodeId': 'node_b',

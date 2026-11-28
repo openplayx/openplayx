@@ -48,7 +48,7 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
   @override
   void initState() {
     super.initState();
-    _refresh();
+    unawaited(_refresh());
     // Background scraping keeps adding items; refresh the numbers calmly.
     _changes = widget.library.changes.listen((_) {
       _debounce?.cancel();
@@ -59,7 +59,7 @@ class _ScrapeManagementSectionState extends State<ScrapeManagementSection> {
   @override
   void dispose() {
     _debounce?.cancel();
-    _changes?.cancel();
+    unawaited(_changes?.cancel());
     if (widget.artwork == null) _artwork.dispose();
     super.dispose();
   }

@@ -74,9 +74,13 @@ class _SourcePageState extends State<SourcePage> {
         ..addListener(_refresh);
     }
     // Opening the page picks up connector changes without a manual refresh.
-    _load().then((_) {
-      if (mounted && widget.manager.syncsDiscoveredSources) _syncDirectory();
-    });
+    unawaited(
+      _load().then((_) {
+        if (mounted && widget.manager.syncsDiscoveredSources) {
+          unawaited(_syncDirectory());
+        }
+      }),
+    );
   }
 
   @override

@@ -4,6 +4,7 @@ import android.app.Activity
 import android.app.PictureInPictureParams
 import android.content.pm.PackageManager
 import android.content.res.Configuration
+import android.graphics.Rect
 import android.os.Build
 import android.util.Rational
 import android.content.Intent
@@ -32,6 +33,54 @@ class MainActivity : FlutterActivity() {
 
     private fun supportsPip(): Boolean = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O &&
         packageManager.hasSystemFeature(PackageManager.FEATURE_PICTURE_IN_PICTURE)
+
+    // Armed by the player only while a video is playing, so Home/recents on
+    // any other screen never shrinks the app into PiP.
+    private var pipAutoEnter = false
+    private var pipRatio = 16.0 / 9.0
+
+    private fun pipRatioFrom(value: Number?): Double =
+        (value?.toDouble() ?: (16.0 / 9.0)).takeIf { it.isFinite() }?.coerceIn(1.0 / 2.39, 2.39) ?: (16.0 / 9.0)
+
+    // The player letterboxes the video in the full activity: the hint is that
+    // centred rect, so the system animates from the picture, not the window.
+    private fun pipSourceRect(ratio: Double): Rect? {
+        val view = window?.decorView ?: return null
+        val w = view.width
+        val h = view.height
+        if (w <= 0 || h <= 0) return null
+        return if (w.toDouble() / h > ratio) {
+            val vw = (h * ratio).toInt()
+            Rect((w - vw) / 2, 0, (w + vw) / 2, h)
+        } else {
+            val vh = (w / ratio).toInt()
+            Rect(0, (h - vh) / 2, w, (h + vh) / 2)
+        }
+    }
+
+    private fun pipParams(ratio: Double): PictureInPictureParams {
+        val builder = PictureInPictureParams.Builder()
+            .setAspectRatio(Rational((ratio * 1000).toInt(), 1000))
+        pipSourceRect(ratio)?.let { builder.setSourceRectHint(it) }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            builder.setAutoEnterEnabled(pipAutoEnter)
+            builder.setSeamlessResizeEnabled(true)
+        }
+        return builder.build()
+    }
+
+    override fun onUserLeaveHint() {
+        super.onUserLeaveHint()
+        // Android 12+ auto-enters from the params; older versions need this.
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S && pipAutoEnter && supportsPip() &&
+            !isInPictureInPictureMode
+        ) {
+            try {
+                enterPictureInPictureMode(pipParams(pipRatio))
+            } catch (_: Exception) {
+            }
+        }
+    }
 
     override fun onPictureInPictureModeChanged(active: Boolean, configuration: Configuration) {
         super.onPictureInPictureModeChanged(active, configuration)
@@ -63,14 +112,22 @@ class MainActivity : FlutterActivity() {
                     "enter" -> {
                         if (!supportsPip()) result.success(false)
                         else try {
-                            val ratio = (call.argument<Number>("aspectRatio")?.toDouble() ?: (16.0 / 9.0))
-                                .takeIf { it.isFinite() }?.coerceIn(1.0 / 2.39, 2.39) ?: (16.0 / 9.0)
-                            val params = PictureInPictureParams.Builder()
-                                .setAspectRatio(Rational((ratio * 1000).toInt(), 1000)).build()
-                            result.success(enterPictureInPictureMode(params))
+                            pipRatio = pipRatioFrom(call.argument<Number>("aspectRatio"))
+                            result.success(enterPictureInPictureMode(pipParams(pipRatio)))
                         } catch (error: Exception) {
                             result.error("pip_failed", "Unable to enter picture in picture", null)
                         }
+                    }
+                    "setAutoEnter" -> {
+                        pipAutoEnter = call.argument<Boolean>("enabled") == true && supportsPip()
+                        pipRatio = pipRatioFrom(call.argument<Number>("aspectRatio"))
+                        if (supportsPip()) {
+                            try {
+                                setPictureInPictureParams(pipParams(pipRatio))
+                            } catch (_: Exception) {
+                            }
+                        }
+                        result.success(pipAutoEnter)
                     }
                     "exit" -> {
                         // Android has no exit-PiP API; bringing the existing activity

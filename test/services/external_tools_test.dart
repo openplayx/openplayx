@@ -62,7 +62,7 @@ class FakeServer {
         res.headers.set('Mcp-Session-Id', 's$sessions');
         result = {
           'protocolVersion': '2025-11-25',
-          'capabilities': {'tools': {}},
+          'capabilities': {'tools': <String, Object?>{}},
           'serverInfo': {
             'name': 'fake',
             'title': 'Fake Search',
@@ -187,7 +187,7 @@ void main() {
       expect(
         JsonSchemaLite.unsupported({
           'type': 'object',
-          'anyOf': [{}],
+          'anyOf': [<String, Object?>{}],
         }),
         'unsupported keyword: anyOf',
       );
@@ -317,7 +317,7 @@ void main() {
           );
           expect(result.status, 'success');
           expect(call.name, alias);
-          expect(fake.calls.last, {'name': name, 'arguments': {}});
+          expect(fake.calls.last, {'name': name, 'arguments': <String, Object?>{}});
         }
       },
     );

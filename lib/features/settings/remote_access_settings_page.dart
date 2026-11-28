@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 
 import 'platform_login_page.dart';
@@ -50,12 +52,14 @@ class _RemoteAccessSettingsPageState extends State<RemoteAccessSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _run(appStrings.loading, () async {
-      await widget.sources.load();
-      _service = await widget.sources.remoteSettings;
-      _tab = _activeMode;
-      _loaded = true;
-    });
+    unawaited(
+      _run(appStrings.loading, () async {
+        await widget.sources.load();
+        _service = await widget.sources.remoteSettings;
+        _tab = _activeMode;
+        _loaded = true;
+      }),
+    );
   }
 
   @override

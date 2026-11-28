@@ -53,7 +53,7 @@ class McpClient {
       () async {
         final result = await _send('initialize', {
           'protocolVersion': protocolVersion,
-          'capabilities': {},
+          'capabilities': <String, Object?>{},
           'clientInfo': {'name': 'openplayx', 'version': '1'},
         }, initializing: true);
         _negotiated = result['protocolVersion'] as String? ?? protocolVersion;

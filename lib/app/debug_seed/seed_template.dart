@@ -52,8 +52,8 @@ Object? resolveSeed(Object? template, Map<String, String> env) {
       if (value == null) missing.add(m[1]!);
       return value ?? '';
     }),
-    List l => [for (final item in l) walk(item)],
-    Map m => {for (final e in m.entries) e.key: walk(e.value)},
+    List<Object?> l => [for (final item in l) walk(item)],
+    Map<Object?, Object?> m => {for (final e in m.entries) e.key: walk(e.value)},
     _ => node,
   };
   final resolved = walk(template);

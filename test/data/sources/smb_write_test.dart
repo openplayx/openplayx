@@ -26,7 +26,7 @@ class _Sink implements StreamConsumer<List<int>> {
   final _MemorySmb fs;
   final String path;
   @override
-  Future addStream(Stream<List<int>> stream) async {
+  Future<void> addStream(Stream<List<int>> stream) async {
     await for (final chunk in stream) {
       if (fs.failWrites) throw StateError('NT_STATUS_ACCESS_DENIED');
       if (fs.failOnceNetwork) {
@@ -39,7 +39,7 @@ class _Sink implements StreamConsumer<List<int>> {
   }
 
   @override
-  Future close() async {}
+  Future<void> close() async {}
 }
 
 /// In-memory share: paths → bytes, plus a set of folders.

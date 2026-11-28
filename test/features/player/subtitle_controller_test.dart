@@ -41,6 +41,7 @@ class _Backend extends FakeBackend {
 class _Repository implements RecognizedSubtitleRepository {
   _Repository(this.saved);
   List<RecognizedSubtitle> saved;
+  // ignore: close_sinks — closed in main()'s tearDown.
   final controller = StreamController<void>.broadcast();
   @override
   Future<List<RecognizedSubtitle>> list(ResourceRef ref) async => saved;
@@ -94,7 +95,10 @@ void main() {
       choices: choices,
     );
   });
-  tearDown(() => subtitles.dispose());
+  tearDown(() async {
+    subtitles.dispose();
+    await repository.controller.close();
+  });
 
   SubtitleState state() => subtitles.state;
   String recognized(String id) => SubtitleOption.recognizedKey(id);

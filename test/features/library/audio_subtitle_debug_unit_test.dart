@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 import 'dart:typed_data';
 
@@ -54,11 +56,13 @@ class _PngMediaProcessor extends FakeMediaProcessor {
     required String output,
   }) {
     final job = super.submit(plan, input: input, output: output);
-    job.done.then((r) {
-      if (r.succeeded && r.outputPath != null && plan.extension != 'wav') {
-        File(r.outputPath!).writeAsBytesSync(_tinyPng);
-      }
-    });
+    unawaited(
+      job.done.then((r) {
+        if (r.succeeded && r.outputPath != null && plan.extension != 'wav') {
+          File(r.outputPath!).writeAsBytesSync(_tinyPng);
+        }
+      }),
+    );
     return job;
   }
 }

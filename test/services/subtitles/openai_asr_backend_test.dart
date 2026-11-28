@@ -95,7 +95,7 @@ void main() {
       expect(r.uri.path, '/v1/audio/transcriptions');
       expect(r.headers.value('Authorization'), 'Bearer own-key');
       await r.drain<void>();
-      r.response.write(jsonEncode({'text': '', 'segments': []}));
+      r.response.write(jsonEncode({'text': '', 'segments': <Object?>[]}));
       await r.response.close();
     });
     expect(

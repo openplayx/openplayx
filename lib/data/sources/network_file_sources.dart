@@ -505,6 +505,7 @@ class FtpConnection {
   ) async {
     final uri = Uri.parse(config.address);
     final timeout = Duration(seconds: config.requestTimeoutSeconds);
+    // ignore: close_sinks — owned by FtpConnection; close() destroys it, also on failure.
     final socket = await Socket.connect(
       uri.host,
       uri.hasPort ? uri.port : 21,

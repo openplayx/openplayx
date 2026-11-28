@@ -132,8 +132,8 @@ class LibraryService {
     _databaseClosed = true;
     _externalWatch?.cancel();
     _notifyTimer?.cancel();
-    _priorityRequests.close();
-    _changes.close();
+    unawaited(_priorityRequests.close());
+    unawaited(_changes.close());
     repository.close();
   }
 

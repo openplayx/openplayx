@@ -374,9 +374,11 @@ class RemoteTransport {
     void release() {
       if (--entry.users == 0) {
         _cores.remove(key);
-        entry.ready.then(
-          (value) => value.$1.stop(value.$2),
-          onError: (Object _) {},
+        unawaited(
+          entry.ready.then(
+            (value) => value.$1.stop(value.$2),
+            onError: (Object _) {},
+          ),
         );
       }
     }

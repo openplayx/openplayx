@@ -166,7 +166,7 @@ class MetadataRepository {
               media,
             ]).single['association']
             as String?;
-    return raw == null ? null : MetadataRef.fromJson(jsonDecode(raw));
+    return raw == null ? null : MetadataRef.fromJson(jsonDecode(raw) as Map<String, dynamic>);
   }
 
   bool confirmed(String media) {
@@ -190,7 +190,7 @@ class MetadataRepository {
                 ]).firstOrNull?['title'] ??
                 '',
           }
-        : jsonDecode(r['fields'] as String);
+        : jsonDecode(r['fields'] as String) as Map<String, dynamic>;
   }
 
   Map<String, dynamic> provenance(String media) {
@@ -198,7 +198,9 @@ class MetadataRepository {
       'SELECT provenance FROM metadata_projection WHERE media_id=?',
       [media],
     ).firstOrNull;
-    return r == null ? {} : jsonDecode(r['provenance'] as String);
+    return r == null
+        ? {}
+        : jsonDecode(r['provenance'] as String) as Map<String, dynamic>;
   }
 
   Set<String> lockedFields(String media) => db
@@ -210,7 +212,9 @@ class MetadataRepository {
         'SELECT record FROM metadata_observations WHERE media_id=? ORDER BY authority DESC,fetched_at DESC',
         [media],
       )
-      .map((r) => MetadataRecord.fromJson(jsonDecode(r['record'] as String)))
+      .map((r) => MetadataRecord.fromJson(
+            jsonDecode(r['record'] as String) as Map<String, dynamic>,
+          ))
       .toList();
   bool compatible(MetadataRecord record, MetadataRef selected) =>
       record.ref.key == selected.key ||
@@ -255,7 +259,7 @@ class MetadataRepository {
     ).firstOrNull;
     if (prior != null) {
       final previous = MetadataRecord.fromJson(
-        jsonDecode(prior['record'] as String),
+        jsonDecode(prior['record'] as String) as Map<String, dynamic>,
       );
       if (previous.ref.key == record.ref.key ||
           (selected != null && compatible(previous, selected))) {
@@ -317,7 +321,7 @@ class MetadataRepository {
       [media],
     )) {
       final record = MetadataRecord.fromJson(
-        jsonDecode(row['record'] as String),
+        jsonDecode(row['record'] as String) as Map<String, dynamic>,
       );
       if (selected != null && !compatible(record, selected)) continue;
       for (final entry in record.fields.entries) {
@@ -445,7 +449,9 @@ class MetadataRepository {
       .select('SELECT descriptor FROM artwork_selections WHERE locked=1')
       .map(
         (r) =>
-            ArtworkDescriptor.fromJson(jsonDecode(r['descriptor'] as String)),
+            ArtworkDescriptor.fromJson(
+              jsonDecode(r['descriptor'] as String) as Map<String, dynamic>,
+            ),
       )
       .toList();
 
@@ -456,7 +462,9 @@ class MetadataRepository {
     ).firstOrNull;
     return row == null
         ? null
-        : ArtworkDescriptor.fromJson(jsonDecode(row['descriptor'] as String));
+        : ArtworkDescriptor.fromJson(
+            jsonDecode(row['descriptor'] as String) as Map<String, dynamic>,
+          );
   }
 
   ArtworkDescriptor? displayArtwork(String media) =>

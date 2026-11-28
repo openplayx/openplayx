@@ -637,7 +637,7 @@ class _AudioSubtitleDebugPageState extends State<AudioSubtitleDebugPage> {
                   ready && !_busy && backendReady && _info?.durationMs != null,
               onPressed: () {
                 setState(() => _whole = true);
-                _go(transcribe: true);
+                unawaited(_go(transcribe: true));
               },
               child: Text(l.asrGenerateWhole),
             ),

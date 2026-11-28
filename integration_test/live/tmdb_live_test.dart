@@ -118,7 +118,7 @@ void main() {
               );
               final candidates = (jsonDecode(
                 service.repository.job(job)['candidates'] as String,
-              ) as List).map((e) => MetadataRecord.fromJson(e));
+              ) as List).map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>));
               final match = candidates.firstWhere((c) => c.ref.id == spec.id);
               await service.confirm(job, match.ref);
               final fields = service.repository.fields(media);
@@ -162,7 +162,7 @@ void main() {
             MetadataRecord choose(bool Function(MetadataRecord) test) =>
                 (jsonDecode(service.repository.job(job)['candidates'] as String)
                         as List)
-                    .map((e) => MetadataRecord.fromJson(e))
+                    .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
                     .firstWhere(test);
             await service.children(job, choose((r) => r.ref.id == '1396').ref);
             await service.children(job, choose((r) => r.ref.season == 1).ref);

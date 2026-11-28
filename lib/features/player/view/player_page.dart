@@ -125,8 +125,27 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
           defaultTargetPlatform != TargetPlatform.iOS ||
           _backend.supportsPictureInPictureOutput);
 
+  /// Android: Home / recents while a video plays enters PiP on its own.
+  void _syncAutoEnter() {
+    if (!mounted || defaultTargetPlatform != TargetPlatform.android) return;
+    final size = _backend.value.videoSize;
+    unawaited(
+      _pip.setAutoEnter(
+        enabled:
+            _mobileDisplay &&
+            _canPictureInPicture &&
+            widget.active &&
+            _backend.value.status == PlaybackStatus.playing,
+        aspectRatio: size != null && size.height > 0
+            ? size.width / size.height
+            : 16 / 9,
+      ),
+    );
+  }
+
   void _pipChanged() {
     if (!mounted) return;
+    _syncAutoEnter();
     if (!_appAway && _pip.restoring) {
       _pip.completeRestore();
       return;
@@ -349,14 +368,14 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void _startBoost() {
     if (!_tools.startBoost()) return;
     _hideTimer?.cancel();
-    HapticFeedback.selectionClick();
+    unawaited(HapticFeedback.selectionClick());
   }
 
   /// Swipe up during a long press keeps the boost speed (design MG10).
   void _lockBoost() {
     final speed = _tools.lockBoost();
     if (speed == null) return;
-    HapticFeedback.mediumImpact();
+    unawaited(HapticFeedback.mediumImpact());
     _flash(AppIcons.speed, l.plSpeedLocked(formatSpeed(speed)));
     _scheduleHide();
   }
@@ -504,7 +523,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
         mobile: _mobileDisplay,
       );
       if (mounted) {
-        HapticFeedback.mediumImpact();
+        unawaited(HapticFeedback.mediumImpact());
         showAppToast(context, l.plSnapshotSaved(file.path));
       }
     } catch (error, stack) {
@@ -730,6 +749,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
             );
           }
         }
+        _syncAutoEnter();
         if (mounted) setState(() => _controlsVisible = true);
         _scheduleHide();
       },
@@ -793,6 +813,7 @@ class PlayerPageState extends State<PlayerPage> with WidgetsBindingObserver {
   void didUpdateWidget(PlayerPage oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (widget.active == oldWidget.active) return;
+    _syncAutoEnter();
     widget.active ? _enterImmersive() : _exitImmersive();
   }
 

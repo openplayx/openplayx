@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -40,7 +42,7 @@ class _VoiceSettingsSectionState extends State<VoiceSettingsSection> {
     _cloudTab = _activeCloud = config.usePlatform;
     _endpoint.text = config.endpoint;
     _model.text = config.model;
-    _key.loadStored(widget.settings.key);
+    unawaited(_key.loadStored(widget.settings.key));
     for (final field in [_endpoint, _model, _key]) {
       field.addListener(_edited);
     }

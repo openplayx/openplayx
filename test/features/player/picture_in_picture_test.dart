@@ -253,4 +253,38 @@ void main() {
       expect(backend.opened, hasLength(1));
     },
   );
+
+  testWidgets(
+    'Android arms PiP auto-enter only while a video is playing',
+    (tester) async {
+      final autoEnter = <bool>[];
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'isSupported') return true;
+        if (call.method == 'setAutoEnter') {
+          autoEnter.add((call.arguments as Map)['enabled'] == true);
+          return true;
+        }
+        return null;
+      });
+      final backend = await open(tester);
+      expect(autoEnter, isNotEmpty);
+      expect(autoEnter.last, isTrue);
+      await backend.pause();
+      await tester.pumpAndSettle();
+      expect(autoEnter.last, isFalse);
+      await tester.pumpWidget(const SizedBox());
+      await tester.pumpAndSettle();
+      expect(autoEnter.last, isFalse);
+    },
+  );
+
+  testWidgets('iOS never arms PiP auto-enter', (tester) async {
+    final methods = <String>[];
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      methods.add(call.method);
+      return call.method == 'isSupported';
+    });
+    await open(tester, platform: TargetPlatform.iOS);
+    expect(methods, isNot(contains('setAutoEnter')));
+  });
 }

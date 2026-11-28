@@ -37,7 +37,7 @@ void main() {
             'Name': 'Film',
             'Type': 'Movie',
             'MediaType': 'Video',
-            'MediaSources': [{}, {}],
+            'MediaSources': [<String, Object?>{}, <String, Object?>{}],
           },
         ],
         'TotalRecordCount': 100,

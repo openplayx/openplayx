@@ -73,7 +73,7 @@ void main() {
             });
           case ('GET', '/v1/transcription-jobs'):
             return json(200, {
-              'jobs': created ? [job] : [],
+              'jobs': created ? [job] : <Object?>[],
             });
           case ('POST', '/v1/transcription-jobs'):
             expect(r.headers.value('x-content-sha256'), sha);

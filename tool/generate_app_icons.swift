@@ -2,18 +2,25 @@
 // Native resource generation only; no Flutter runtime dependencies.
 import AppKit
 
+/// Stops the generator with a message when a required resource is missing.
+func need<T>(_ value: T?, _ what: String) -> T {
+    guard let value else { fatalError("generate_app_icons: \(what)") }
+    return value
+}
+
 let root = URL(fileURLWithPath: FileManager.default.currentDirectoryPath)
 func image(_ path: String) -> CGImage {
-    let src = CGImageSourceCreateWithURL(root.appendingPathComponent(path) as CFURL, nil)!
-    return CGImageSourceCreateImageAtIndex(src, 0, nil)!
+    let src = need(CGImageSourceCreateWithURL(root.appendingPathComponent(path) as CFURL, nil), "cannot open \(path)")
+    return need(CGImageSourceCreateImageAtIndex(src, 0, nil), "cannot decode \(path)")
 }
 let master = image("assets/branding/app_icon.png")
 let foreground = image("assets/branding/app_icon_foreground.png")
-func export(_ path: String, size: Int, adaptive: Bool = false, desktop: Bool = false, maskable: Bool = false) {
-    let cs = CGColorSpace(name: CGColorSpace.sRGB)!
-    let ctx = CGContext(data: nil, width: size, height: size, bitsPerComponent: 8,
+func export(_ path: String, size: Int, adaptive: Bool = false, desktop: Bool = false, maskable: Bool = false) throws {
+    let cs = need(CGColorSpace(name: CGColorSpace.sRGB), "sRGB color space")
+    let ctx = need(CGContext(data: nil, width: size, height: size, bitsPerComponent: 8,
         bytesPerRow: size*4, space: cs,
-        bitmapInfo: (adaptive || desktop) ? CGImageAlphaInfo.premultipliedLast.rawValue : CGImageAlphaInfo.noneSkipLast.rawValue)!
+        bitmapInfo: (adaptive || desktop) ? CGImageAlphaInfo.premultipliedLast.rawValue : CGImageAlphaInfo.noneSkipLast.rawValue),
+        "bitmap context \(size)x\(size)")
     ctx.interpolationQuality = .high
     let edge = CGFloat(size)
     if desktop {
@@ -27,45 +34,45 @@ func export(_ path: String, size: Int, adaptive: Bool = false, desktop: Bool = f
         // (circular masks on Pixel clip anything beyond it).
         ctx.draw(foreground,in: CGRect(x: edge*0.19,y: edge*0.19,width: edge*0.62,height: edge*0.62))
     } else if maskable {
-        ctx.setFillColor(CGColor(colorSpace: cs,components: [16.0/255,17.0/255,22.0/255,1])!)
+        ctx.setFillColor(need(CGColor(colorSpace: cs,components: [16.0/255,17.0/255,22.0/255,1]), "background color"))
         ctx.fill(CGRect(x: 0,y: 0,width: edge,height: edge))
         ctx.draw(master,in: CGRect(x: edge*0.1,y: edge*0.1,width: edge*0.8,height: edge*0.8))
     } else {
         ctx.draw(master,in: CGRect(x: 0,y: 0,width: edge,height: edge))
     }
     let dest = root.appendingPathComponent(path)
-    try! FileManager.default.createDirectory(at: dest.deletingLastPathComponent(),withIntermediateDirectories: true)
-    let output = CGImageDestinationCreateWithURL(dest as CFURL,"public.png" as CFString,1,nil)!
-    CGImageDestinationAddImage(output,ctx.makeImage()!,nil)
+    try FileManager.default.createDirectory(at: dest.deletingLastPathComponent(),withIntermediateDirectories: true)
+    let output = need(CGImageDestinationCreateWithURL(dest as CFURL,"public.png" as CFString,1,nil), "cannot write \(path)")
+    CGImageDestinationAddImage(output,need(ctx.makeImage(), "render \(path)"),nil)
     precondition(CGImageDestinationFinalize(output))
 }
 for platform in ["ios","macos"] {
     let base = "\(platform)/Runner/Assets.xcassets/AppIcon.appiconset/"
-    let contents = try! Data(contentsOf: root.appendingPathComponent(base+"Contents.json"))
-    let json = try! JSONSerialization.jsonObject(with: contents) as! [String: Any]
-    for entry in json["images"] as! [[String: Any]] {
+    let contents = try Data(contentsOf: root.appendingPathComponent(base+"Contents.json"))
+    let json = need(try JSONSerialization.jsonObject(with: contents) as? [String: Any], "\(base)Contents.json is not an object")
+    for entry in need(json["images"] as? [[String: Any]], "\(base)Contents.json has no images") {
         guard let name = entry["filename"] as? String else { continue }
-        let point = Double((entry["size"] as! String).split(separator: "x")[0])!
-        let scale = Double((entry["scale"] as! String).dropLast())!
-        export(base+name,size: Int((point*scale).rounded()),desktop: platform == "macos")
+        let point = need((entry["size"] as? String)?.split(separator: "x").first.flatMap { Double($0) }, "bad size for \(name)")
+        let scale = need((entry["scale"] as? String).flatMap { Double($0.dropLast()) }, "bad scale for \(name)")
+        try export(base+name,size: Int((point*scale).rounded()),desktop: platform == "macos")
     }
 }
 for (density,legacy,adaptive) in [("mdpi",48,108),("hdpi",72,162),("xhdpi",96,216),("xxhdpi",144,324),("xxxhdpi",192,432)] {
     let base = "android/app/src/main/res/mipmap-\(density)/"
-    export(base+"ic_launcher.png",size: legacy)
-    export(base+"ic_launcher_foreground.png",size: adaptive,adaptive: true)
+    try export(base+"ic_launcher.png",size: legacy)
+    try export(base+"ic_launcher_foreground.png",size: adaptive,adaptive: true)
 }
 for size in [192,512] {
-    export("web/icons/Icon-\(size).png",size: size)
-    export("web/icons/Icon-maskable-\(size).png",size: size,maskable: true)
+    try export("web/icons/Icon-\(size).png",size: size)
+    try export("web/icons/Icon-maskable-\(size).png",size: size,maskable: true)
 }
-export("web/favicon.png",size: 32)
-export("linux/runner/resources/app_icon.png",size: 256,desktop: true)
+try export("web/favicon.png",size: 32)
+try export("linux/runner/resources/app_icon.png",size: 256,desktop: true)
 for size in [16,24,32,48,64,128,256] {
-    export("windows/runner/resources/icon_frames/icon-\(size).png",size: size,desktop: true)
+    try export("windows/runner/resources/icon_frames/icon-\(size).png",size: size,desktop: true)
 }
 let sizes = [16,24,32,48,64,128,256]
-let frames = sizes.map { try! Data(contentsOf: root.appendingPathComponent("windows/runner/resources/icon_frames/icon-\($0).png")) }
+let frames = try sizes.map { try Data(contentsOf: root.appendingPathComponent("windows/runner/resources/icon_frames/icon-\($0).png")) }
 func le(_ value: Int, _ count: Int) -> [UInt8] {
     (0..<count).map { UInt8((value >> ($0*8)) & 255) }
 }
@@ -77,14 +84,14 @@ for (size,data) in zip(sizes,frames) {
     offset += data.count
 }
 for frame in frames { ico.append(frame) }
-try! ico.write(to: root.appendingPathComponent("windows/runner/resources/app_icon.ico"))
-try! FileManager.default.removeItem(at: root.appendingPathComponent("windows/runner/resources/icon_frames"))
-let linux = try! Data(contentsOf: root.appendingPathComponent("linux/runner/resources/app_icon.png"))
+try ico.write(to: root.appendingPathComponent("windows/runner/resources/app_icon.ico"))
+try FileManager.default.removeItem(at: root.appendingPathComponent("windows/runner/resources/icon_frames"))
+let linux = try Data(contentsOf: root.appendingPathComponent("linux/runner/resources/app_icon.png"))
 let bytes = linux.map { String(format: "0x%02x", $0) }
 var header = "// Generated by tool/generate_app_icons.swift.\n#pragma once\nstatic const unsigned char kOpenPlayXAppIcon[] = {\n"
 for start in stride(from: 0,to: bytes.count,by: 16) {
     header += "  "+bytes[start..<min(start+16,bytes.count)].joined(separator: ", ")+",\n"
 }
 header += "};\n"
-try! header.write(to: root.appendingPathComponent("linux/runner/resources/app_icon.h"),atomically: true,encoding: .utf8)
+try header.write(to: root.appendingPathComponent("linux/runner/resources/app_icon.h"),atomically: true,encoding: .utf8)
 print("Generated iOS, macOS, Android, Web, Linux and Windows icon frames.")

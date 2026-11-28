@@ -342,7 +342,7 @@ class _AiChatViewState extends State<AiChatView> {
                       onTap: () {
                         _controller.suggest(prompt);
                         if (ready && !widget.coordinator.busy) {
-                          _controller.send(toolsEnabled: widget.toolsEnabled());
+                          unawaited(_controller.send(toolsEnabled: widget.toolsEnabled()));
                         }
                       },
                       child: Ink(

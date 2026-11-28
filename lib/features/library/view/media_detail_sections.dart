@@ -41,7 +41,7 @@ extension _DetailSections on _MediaDetailPageState {
               ? null
               : () {
                   final target = _series ? _c.nextEpisode() : _id;
-                  if (target != null) _playMedia(target);
+                  if (target != null) unawaited(_playMedia(target));
                 },
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
@@ -720,7 +720,7 @@ extension _DetailSections on _MediaDetailPageState {
   List<Widget> _castSection(Map<String, dynamic> fields) {
     final directorProfiles = fields['directorProfiles'] is Map
         ? fields['directorProfiles'] as Map
-        : const {};
+        : const <Object?, Object?>{};
     final people = <({String name, String? role, String? photo})>[
       for (final d in (fields['directors'] as List? ?? []).take(2))
         if (d is String)

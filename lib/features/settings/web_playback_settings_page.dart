@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -29,7 +31,7 @@ class _WebPlaybackSettingsPageState extends State<WebPlaybackSettingsPage> {
   @override
   void initState() {
     super.initState();
-    _loadInterfaces();
+    unawaited(_loadInterfaces());
   }
 
   Future<void> _loadInterfaces() async {

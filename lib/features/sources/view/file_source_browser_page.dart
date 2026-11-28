@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -42,7 +44,7 @@ class _FileSourceBrowserPageState extends State<FileSourceBrowserPage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   ResourceRef? get _node => _folders.isEmpty ? widget.root : _folders.last.ref;
@@ -115,7 +117,7 @@ class _FileSourceBrowserPageState extends State<FileSourceBrowserPage> {
     _folders.removeLast();
     _entries.clear();
     _next = null;
-    _load();
+    unawaited(_load());
   }
 
   @override

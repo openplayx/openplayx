@@ -139,7 +139,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
-    _load();
+    unawaited(_load());
   }
 
   @override
@@ -490,7 +490,7 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
 
   void _openPlayerAssistant() {
     _originPage = PageContextSource(const PageContextData(pageType: 'player'));
-    _openAssistant();
+    unawaited(_openAssistant());
   }
 
   Future<void> _exitPlayer() async {
@@ -531,6 +531,10 @@ class _AppShellState extends State<AppShell> with WidgetsBindingObserver {
     if (_opening || _exitingPlayer || _backend == null) {
       await selection.stream.release();
       if (mounted && _backend == null) _message(l.platformUnsupported);
+      return;
+    }
+    if (!mounted) {
+      await selection.stream.release();
       return;
     }
     _opening = true;

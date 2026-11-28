@@ -35,9 +35,12 @@ void main() {
     expect(report.failed, isEmpty, reason: 'import: $report');
   });
 
-  final seed = text == null ? const {} : jsonDecode(text) as Map;
-  List<Map> list(String key) => [
-    for (final e in seed[key] as List? ?? const []) e as Map,
+  final seed = text == null
+      ? const <String, dynamic>{}
+      : jsonDecode(text) as Map<String, dynamic>;
+  List<Map<String, dynamic>> list(String key) => [
+    for (final e in seed[key] as List? ?? const <dynamic>[])
+      e as Map<String, dynamic>,
   ];
 
   group('media sources', () {
@@ -100,7 +103,7 @@ void main() {
     }
   });
 
-  if (seed['metadata'] case final Map _) {
+  if (seed['metadata'] case final Map<String, dynamic> _) {
     test('TMDB configuration', () async {
       final settings = TmdbConfig.fromSettings(
         (key) =>
@@ -121,7 +124,7 @@ void main() {
     });
   }
 
-  if (seed['assistant'] case final Map _) {
+  if (seed['assistant'] case final Map<String, dynamic> _) {
     test('assistant model configuration', () async {
       final store = AssistantStore(sqlite3.openInMemory(), configuration: db);
       final config = store.loadConfig();

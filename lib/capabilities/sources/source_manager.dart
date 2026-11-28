@@ -668,7 +668,7 @@ class SourceManager {
           _cloudSessions[config.id] = (config.revision, session);
           return session;
         })().whenComplete(() {
-          _openingCloudSessions.remove(key);
+          unawaited(_openingCloudSessions.remove(key));
         });
   }
 
@@ -697,7 +697,7 @@ class SourceManager {
     final existing = _runtimes[id];
     if (existing != null) return existing;
     return _creating[id] ??= _create(config).whenComplete(() {
-      _creating.remove(id);
+      unawaited(_creating.remove(id));
     });
   }
 

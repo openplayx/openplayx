@@ -77,7 +77,7 @@ class _MetadataPageState extends State<MetadataPage> {
       }
     });
     if (widget.service == null) {
-      _initialize();
+      unawaited(_initialize());
     } else {
       _configured = true;
     }
@@ -104,9 +104,9 @@ class _MetadataPageState extends State<MetadataPage> {
 
   @override
   void dispose() {
-    _libraryChanges?.cancel();
+    unawaited(_libraryChanges?.cancel());
     _service.cancelActive();
-    if (widget.service == null) _service.dispose();
+    if (widget.service == null) unawaited(_service.dispose());
     _artwork.dispose();
     _query.dispose();
     _year.dispose();
@@ -262,7 +262,7 @@ class _MetadataPageState extends State<MetadataPage> {
     final job = _job == null ? null : repo.job(_job!);
     final candidates = job?['stage'] == 'awaitingSelection'
         ? (jsonDecode(job!['candidates'] as String) as List)
-              .map((e) => MetadataRecord.fromJson(e))
+              .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
               .toList()
         : <MetadataRecord>[];
     final selected = repo.association(widget.media);

@@ -26,10 +26,10 @@ Future<void> main(List<String> args) async {
   ) as Map<String, dynamic>;
   final connection = await IOOverrides.runZoned(
     () => SmbConnect.connectAuth(
-      host: c['host'],
-      username: c['username'],
-      password: c['password'],
-      domain: c['domain'] ?? '',
+      host: c['host'] as String,
+      username: c['username'] as String,
+      password: c['password'] as String,
+      domain: c['domain'] as String? ?? '',
     ),
     socketConnect:
         (
@@ -44,12 +44,12 @@ Future<void> main(List<String> args) async {
           }
           return (await Socket.startConnect(
             '127.0.0.1',
-            c['proxyPort'] ?? 19445,
+            c['proxyPort'] as int? ?? 19445,
           )).socket;
         },
   );
   try {
-    final file = await connection.file(c['file']);
+    final file = await connection.file(c['file'] as String);
     Future<Map<String, dynamic>> fetch(Uri uri, int start, int count) async {
       final client = HttpClient();
       final watch = Stopwatch()..start();

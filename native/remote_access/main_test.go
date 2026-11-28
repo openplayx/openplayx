@@ -6,6 +6,7 @@ import (
 	"io"
 	"net"
 	"net/netip"
+	"sync"
 	"testing"
 	"time"
 
@@ -71,9 +72,13 @@ func TestRelayHostUsesSystemResolver(t *testing.T) {
 	previous, previousLookup := useSystemResolver, lookupNetIP
 	defer func() { useSystemResolver, lookupNetIP = previous, previousLookup }()
 	useSystemResolver = true
+	// sing-box resolves A and AAAA concurrently: guard the recorded lookups.
+	var askedMu sync.Mutex
 	var asked []string
 	lookupNetIP = func(_ context.Context, network, host string) ([]netip.Addr, error) {
+		askedMu.Lock()
 		asked = append(asked, network+" "+host)
+		askedMu.Unlock()
 		if host != "relay.example.test" {
 			return nil, &net.DNSError{Name: host, IsNotFound: true}
 		}
@@ -92,6 +97,8 @@ func TestRelayHostUsesSystemResolver(t *testing.T) {
 	defer cancel()
 	c, err := core.Outbound().Default().DialContext(ctx, "tcp", M.ParseSocksaddrHostPort("relay.example.test", uint16(target.Addr().(*net.TCPAddr).Port)))
 	if err != nil {
+		askedMu.Lock()
+		defer askedMu.Unlock()
 		t.Fatalf("dial via system resolver failed: %v (lookups %v)", err, asked)
 	}
 	c.Close()
@@ -100,7 +107,10 @@ func TestRelayHostUsesSystemResolver(t *testing.T) {
 	case <-time.After(5 * time.Second):
 		t.Fatal("target never accepted")
 	}
-	if len(asked) == 0 {
+	askedMu.Lock()
+	n := len(asked)
+	askedMu.Unlock()
+	if n == 0 {
 		t.Fatal("system resolver was not used")
 	}
 }

@@ -94,7 +94,7 @@ class PlayerWindows {
     for (var i = 0; i < (waitForSession ? 100 : 1); i++) {
       try {
         final raw = await window
-            .invokeMethod<Map>('assistant_snapshot')
+            .invokeMethod<Map<Object?, Object?>>('assistant_snapshot')
             .timeout(const Duration(seconds: 2));
         if (_active != window) throw StateError('staleSession');
         if (raw != null) {
@@ -133,7 +133,7 @@ class PlayerWindows {
     final window = _active;
     if (window == null) throw StateError('staleSession');
     try {
-      final raw = await window.invokeMethod<Map>('assistant_control', {
+      final raw = await window.invokeMethod<Map<Object?, Object?>>('assistant_control', {
         'command': command,
         'arguments': args,
       });

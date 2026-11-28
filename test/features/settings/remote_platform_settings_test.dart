@@ -128,7 +128,7 @@ void main() {
     );
     int javaHash(String s) =>
         s.codeUnits.fold(0, (h, c) => (h * 31 + c).toSigned(32));
-    final hashes = [for (final f in fields) javaHash(f['uniqueIdentifier'])];
+    final hashes = [for (final f in fields) javaHash(f['uniqueIdentifier'] as String)];
     expect(hashes, [...hashes]..sort());
     expect(
       (client['autofill'] as Map)['uniqueIdentifier'],

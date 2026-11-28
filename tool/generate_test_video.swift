@@ -43,21 +43,25 @@ func silence(start: Int, count: Int) -> CMSampleBuffer {
     CMBlockBufferCreateWithMemoryBlock(allocator: nil, memoryBlock: nil, blockLength: bytes,
         blockAllocator: nil, customBlockSource: nil, offsetToData: 0, dataLength: bytes,
         flags: 0, blockBufferOut: &block)
-    CMBlockBufferFillDataBytes(with: 0, blockBuffer: block!, offsetIntoDestination: 0, dataLength: bytes)
+    guard let block, let audioFormat else { fatalError("Could not allocate silent audio") }
+    CMBlockBufferFillDataBytes(with: 0, blockBuffer: block, offsetIntoDestination: 0, dataLength: bytes)
     var sample: CMSampleBuffer?
-    CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: nil, dataBuffer: block!,
-        formatDescription: audioFormat!, sampleCount: count,
+    CMAudioSampleBufferCreateReadyWithPacketDescriptions(allocator: nil, dataBuffer: block,
+        formatDescription: audioFormat, sampleCount: count,
         presentationTimeStamp: CMTime(value: Int64(start), timescale: Int32(sampleRate)),
         packetDescriptions: nil, sampleBufferOut: &sample)
-    return sample!
+    guard let sample else { fatalError("Could not create audio sample at \(start)") }
+    return sample
 }
 
 func videoFrame(_ frame: Int) -> CVPixelBuffer {
+    guard let pool = adapter.pixelBufferPool else { fatalError("Writer has no pixel buffer pool") }
     var buffer: CVPixelBuffer?
-    CVPixelBufferPoolCreatePixelBuffer(nil, adapter.pixelBufferPool!, &buffer)
-    let pixelBuffer = buffer!
+    CVPixelBufferPoolCreatePixelBuffer(nil, pool, &buffer)
+    guard let pixelBuffer = buffer else { fatalError("Could not allocate frame \(frame)") }
     CVPixelBufferLockBaseAddress(pixelBuffer, [])
-    let data = CVPixelBufferGetBaseAddress(pixelBuffer)!.assumingMemoryBound(to: UInt8.self)
+    guard let base = CVPixelBufferGetBaseAddress(pixelBuffer) else { fatalError("Frame \(frame) has no pixels") }
+    let data = base.assumingMemoryBound(to: UInt8.self)
     let stride = CVPixelBufferGetBytesPerRow(pixelBuffer)
     for y in 0..<height {
         for x in 0..<width {

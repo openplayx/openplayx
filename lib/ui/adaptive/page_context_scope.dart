@@ -23,7 +23,7 @@ class PageContextSource {
     Map<String, dynamic> map => map.map(
       (key, value) => MapEntry(key, _copy(value)),
     ),
-    List list => list.map(_copy).toList(),
+    List<dynamic> list => list.map(_copy).toList(),
     _ => value,
   };
 }

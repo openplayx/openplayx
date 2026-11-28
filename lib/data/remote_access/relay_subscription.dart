@@ -265,7 +265,7 @@ class RelaySubscription {
         '${cursor == null ? '' : '&cursor=${Uri.encodeQueryComponent(cursor)}'}',
       );
       revision = data['revision'] as String;
-      for (final item in (data['items'] as List).whereType<Map>()) {
+      for (final item in (data['items'] as List).whereType<Map<Object?, Object?>>()) {
         if (item['status'] == 'enabled') devices.add(RelayDevice.parse(item));
       }
       cursor = data['nextCursor'] as String?;
@@ -298,7 +298,7 @@ class RelaySubscription {
 
 class RelayDevice {
   const RelayDevice(this.id, this.name, this.platform, this.createdAt);
-  factory RelayDevice.parse(Map item) => RelayDevice(
+  factory RelayDevice.parse(Map<Object?, Object?> item) => RelayDevice(
     item['deviceId'] as String,
     item['name'] as String,
     item['platform'] as String? ?? 'other',

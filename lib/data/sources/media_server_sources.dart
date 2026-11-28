@@ -793,7 +793,7 @@ class PlexPlugin
       'library/metadata/${Uri.encodeComponent(request.ref!.id)}',
     );
     final items = result['MediaContainer']?['Metadata'] as List? ?? [];
-    final info = items.length == 1 ? _plexInfo(items.single) : null;
+    final info = items.length == 1 ? _plexInfo(items.single as Map<String, dynamic>) : null;
     if (info == null ||
         info.id != request.ref!.id ||
         info.kind != request.kind.name) {

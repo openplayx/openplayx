@@ -353,7 +353,7 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
             as String?;
     final fields = <String, dynamic>{'kind': kind.name};
     void set(String k, dynamic v) {
-      if (v != null && v != '' && v != const []) fields[k] = v;
+      if (v != null && v != '' && v != const <dynamic>[]) fields[k] = v;
     }
 
     set('title', j['title'] ?? j['name']);
@@ -469,7 +469,8 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
     }
     final children = <MetadataRecord>[];
     if (details && kind == MediaKind.series) {
-      for (final s in j['seasons'] as List? ?? []) {
+      for (final s in (j['seasons'] as List? ?? const <dynamic>[])
+          .cast<Map<String, dynamic>>()) {
         children.add(
           _record(
             s,
@@ -486,7 +487,8 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
         );
       }
     } else if (details && kind == MediaKind.season) {
-      for (final e in j['episodes'] as List? ?? []) {
+      for (final e in (j['episodes'] as List? ?? const <dynamic>[])
+          .cast<Map<String, dynamic>>()) {
         children.add(
           _record(
             e,

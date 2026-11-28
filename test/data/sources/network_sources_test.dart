@@ -27,7 +27,7 @@ Future<ServerSocket> fakeFtp({required bool mlsd}) async {
   final server = await ServerSocket.bind(InternetAddress.loopbackIPv4, 0);
   final content = List.generate(10, (i) => i);
   server.listen((control) {
-    control.done.catchError((_) {});
+    unawaited(control.done.catchError((_) {}));
     ServerSocket? data;
     var offset = 0;
     var user = '';

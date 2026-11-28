@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -37,7 +39,7 @@ class _ScanScopePageState extends State<ScanScopePage> {
   @override
   void initState() {
     super.initState();
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load({bool more = false}) async {
@@ -114,7 +116,7 @@ class _ScanScopePageState extends State<ScanScopePage> {
                 ? null
                 : () {
                     _path.removeLast();
-                    _load();
+                    unawaited(_load());
                   },
           ),
         Expanded(
@@ -128,7 +130,7 @@ class _ScanScopePageState extends State<ScanScopePage> {
                       ? null
                       : () {
                           _path.add(folder);
-                          _load();
+                          unawaited(_load());
                         },
                 ),
               for (final file in _files)

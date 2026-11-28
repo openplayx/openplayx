@@ -69,7 +69,7 @@ class DiscoveredSource {
   static List<DiscoveredSource> parseCatalog(Map<String, dynamic> profile) {
     final user = profile['userId'] as String;
     final catalog = profile['sourceCatalog'];
-    final List raw;
+    final List<Object?> raw;
     if (catalog == null) {
       raw = profile['services'] as List;
     } else {
@@ -105,7 +105,7 @@ class DiscoveredSource {
       if (!{'enabled', 'disabled', 'removed'}.contains(state)) {
         throw const FormatException('Invalid source lifecycle');
       }
-      final descriptor = item['sourceDescriptor'];
+      final Object? descriptor = item['sourceDescriptor'];
       if (descriptor != null) {
         _validateDescriptor(descriptor, item['type'] as String);
       }

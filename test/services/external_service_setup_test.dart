@@ -28,7 +28,7 @@ Future<HttpServer> fakeMcp(String path, String name) async {
     final result = switch (msg['method']) {
       'initialize' => {
         'protocolVersion': '2025-11-25',
-        'capabilities': {'tools': {}},
+        'capabilities': {'tools': <String, Object?>{}},
         'serverInfo': {'name': name, 'title': 'Fake $name', 'version': '9'},
       },
       'tools/list' => {
@@ -37,7 +37,7 @@ Future<HttpServer> fakeMcp(String path, String name) async {
           {'name': 'get_details'},
         ],
       },
-      _ => {},
+      _ => <String, Object?>{},
     };
     res.headers.contentType = ContentType.json;
     res.write(

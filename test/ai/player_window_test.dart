@@ -12,16 +12,16 @@ void main() {
   test('desktop AI waits for the child session, routes subtitle commands, and releases on close', () async {
     var released = false;
     var snapshots = 0;
-    Map? command;
+    Map<Object?, Object?>? command;
     binding.defaultBinaryMessenger.setMockMethodCallHandler(native, (
       call,
     ) async {
       if (call.method == 'createWindow') return 'child';
-      if (call.method == 'getAllWindows') return <Map>[];
+      if (call.method == 'getAllWindows') return <Map<Object?, Object?>>[];
       throw MissingPluginException();
     });
     binding.defaultBinaryMessenger.setMockMethodCallHandler(ipc, (call) async {
-      final payload = call.arguments as Map;
+      final payload = call.arguments as Map<Object?, Object?>;
       expect(payload['channel'], 'mixin.one/window_controller/child');
       if (payload['method'] == 'assistant_snapshot') {
         if (snapshots++ == 0) {

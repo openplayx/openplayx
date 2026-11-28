@@ -266,7 +266,7 @@ void main() {
 
     test('a seed without version 1 is rejected', () async {
       await expectLater(
-        DebugSeed.apply(db, jsonEncode({'sources': []})),
+        DebugSeed.apply(db, jsonEncode({'sources': <Object?>[]})),
         throwsFormatException,
       );
     });

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'dart:typed_data';
 
 import 'package:flutter/material.dart';
@@ -39,13 +41,13 @@ class _FfmpegSnapshotDebugPageState extends State<FfmpegSnapshotDebugPage> {
   @override
   void initState() {
     super.initState();
-    _take();
+    unawaited(_take());
   }
 
   @override
   void dispose() {
     // Leaving cancels unfinished work and deletes the temporary image.
-    _snapshot?.dispose();
+    unawaited(_snapshot?.dispose());
     super.dispose();
   }
 

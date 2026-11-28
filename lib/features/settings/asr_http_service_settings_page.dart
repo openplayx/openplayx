@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -46,7 +48,7 @@ class _AsrHttpServiceSettingsPageState
     super.initState();
     final existing = widget.existing;
     if (existing != null) {
-      _token.loadStored(() => widget.registry.credential(existing));
+      unawaited(_token.loadStored(() => widget.registry.credential(existing)));
     }
   }
 

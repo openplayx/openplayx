@@ -296,7 +296,7 @@ class RemoteAccessService {
     Map<String, dynamic>? node;
     if (observations is List) {
       final status = observations
-          .whereType<Map>()
+          .whereType<Map<Object?, Object?>>()
           .where((s) => s['serviceId'] == source.proxy)
           .firstOrNull;
       final ids = status?['readyNodeIds'];

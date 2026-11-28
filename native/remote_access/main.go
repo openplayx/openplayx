@@ -16,6 +16,7 @@ import (
 	"unsafe"
 
 	box "github.com/sagernet/sing-box"
+	"github.com/sagernet/sing-box/adapter/certificate"
 	"github.com/sagernet/sing-box/adapter/endpoint"
 	"github.com/sagernet/sing-box/adapter/inbound"
 	"github.com/sagernet/sing-box/adapter/outbound"
@@ -52,7 +53,7 @@ func transportContext() context.Context {
 	vless.RegisterOutbound(out)
 	dnsRegistry := dns.NewTransportRegistry()
 	registerLocalDNS(dnsRegistry)
-	return box.Context(context.Background(), inbound.NewRegistry(), out, endpoint.NewRegistry(), dnsRegistry, S.NewRegistry())
+	return box.Context(context.Background(), inbound.NewRegistry(), out, endpoint.NewRegistry(), dnsRegistry, S.NewRegistry(), certificate.NewRegistry())
 }
 func startSession(input string) (int, error) {
 	var req request
@@ -73,13 +74,13 @@ func startSession(input string) (int, error) {
 		return 0, err
 	}
 	if err = core.Start(); err != nil {
-		core.Close()
+		_ = core.Close() // the start error is the one worth returning
 		cancel()
 		return 0, err
 	}
 	listener, err := net.Listen("tcp4", "127.0.0.1:0")
 	if err != nil {
-		core.Close()
+		_ = core.Close() // the listen error is the one worth returning
 		cancel()
 		return 0, err
 	}
@@ -115,7 +116,7 @@ func startSession(input string) (int, error) {
 				go func() {
 					io.Copy(upstream, client)
 					if tcp, ok := upstream.(interface{ CloseWrite() error }); ok {
-						tcp.CloseWrite()
+						_ = tcp.CloseWrite() // the peer may already be gone
 					}
 					close(done)
 				}()
@@ -154,7 +155,7 @@ func stopSession(port int) {
 		c.Close()
 	}
 	s.mu.Unlock()
-	s.box.Close()
+	_ = s.box.Close() // shutdown has no caller to report to
 }
 
 //export opx_remote_start

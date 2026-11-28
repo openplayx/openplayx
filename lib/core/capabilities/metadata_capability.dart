@@ -125,13 +125,13 @@ class MetadataRecord {
     fields: j['fields'] as Map<String, dynamic>,
     language: j['language'] as String,
     externalIds: (j['externalIds'] as List)
-        .map((e) => MetadataRef.fromJson(e))
+        .map((e) => MetadataRef.fromJson(e as Map<String, dynamic>))
         .toList(),
     artwork: (j['artwork'] as List)
-        .map((e) => ArtworkDescriptor.fromJson(e))
+        .map((e) => ArtworkDescriptor.fromJson(e as Map<String, dynamic>))
         .toList(),
     children: (j['children'] as List)
-        .map((e) => MetadataRecord.fromJson(e))
+        .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
         .toList(),
     warnings: (j['warnings'] as List).cast<String>(),
   );

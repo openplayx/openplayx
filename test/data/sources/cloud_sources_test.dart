@@ -510,7 +510,7 @@ void main() {
               {
                 'id': 'file!1',
                 'name': '电影.mp4',
-                'file': {},
+                'file': <String, Object?>{},
                 'size': 5,
                 'parentReference': {'driveId': 'drive!1', 'id': 'root!1'},
               },
@@ -518,7 +518,7 @@ void main() {
             '@odata.nextLink': 'https://attacker.invalid/stolen',
           });
         }
-        return Response(200, {'id': 'root!1', 'name': 'root', 'folder': {}});
+        return Response(200, {'id': 'root!1', 'name': 'root', 'folder': <String, Object?>{}});
       });
       final source = OneDriveSource(
         config(SourceKind.onedrive),

@@ -308,7 +308,7 @@ void main() {
   test('reused model call IDs keep distinct host cards and confirmation identities', () async {
     var round = 0;
     registry.register(
-      RegisteredTool('lookup', 'Find', {}, (_) async => {'media': []}),
+      RegisteredTool('lookup', 'Find', {}, (_) async => {'media': <Object?>[]}),
     );
     final model = FakeModel((_) async* {
       if (round++ < 2) {

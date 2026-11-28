@@ -233,7 +233,7 @@ class _LibraryGridPageState extends State<LibraryGridPage> {
 
   @override
   void dispose() {
-    _changes?.cancel();
+    unawaited(_changes?.cancel());
     super.dispose();
   }
 

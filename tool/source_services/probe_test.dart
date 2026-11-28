@@ -29,7 +29,7 @@ Future<void> _probe() async {
   final args = only.isEmpty ? const <String>[] : only.split(',');
   final defines = jsonDecode(
     await File('tool/source_services/defines.local.json').readAsString(),
-  );
+  ) as Map<String, dynamic>;
   final host = defines['SOURCE_HOST'] as String? ?? '127.0.0.1';
   final original = await File('test/fixtures/test_video.mp4').readAsBytes();
   final kinds = SourceKind.values

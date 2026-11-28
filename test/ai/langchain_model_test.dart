@@ -94,7 +94,7 @@ void main() {
         .toList();
     expect(calls.map((c) => c.id), ['first', 'second']);
     expect(jsonDecode(calls.first.arguments), {'query': 'movie'});
-    expect(jsonDecode(calls.last.arguments), {});
+    expect(jsonDecode(calls.last.arguments), <String, Object?>{});
     expect(events.last, isA<ModelCompleted>());
     final messages = payload!['messages'] as List;
     expect(messages.last['tool_call_id'], 'previous');

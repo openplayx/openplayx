@@ -8,13 +8,17 @@ let asset = AVURLAsset(url: root.appendingPathComponent("test/fixtures/test_vide
 for (name, seconds, audio) in [("test_video_short.mp4", 5, true), ("test_video_no_audio.mp4", 12, false)] {
     let composition = AVMutableComposition()
     for type in audio ? [AVMediaType.video, .audio] : [.video] {
-        let source = asset.tracks(withMediaType: type).first!
-        let target = composition.addMutableTrack(withMediaType: type, preferredTrackID: kCMPersistentTrackID_Invalid)!
+        guard let source = asset.tracks(withMediaType: type).first else { fatalError("Source has no \(type.rawValue) track") }
+        guard let target = composition.addMutableTrack(withMediaType: type, preferredTrackID: kCMPersistentTrackID_Invalid) else {
+            fatalError("Cannot add \(type.rawValue) track")
+        }
         try target.insertTimeRange(CMTimeRange(start: .zero, duration: CMTime(seconds: Double(seconds), preferredTimescale: 600)), of: source, at: .zero)
     }
     let output = root.appendingPathComponent("test/fixtures/\(name)")
     try? FileManager.default.removeItem(at: output)
-    let exporter = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetPassthrough)!
+    guard let exporter = AVAssetExportSession(asset: composition, presetName: AVAssetExportPresetPassthrough) else {
+        fatalError("Cannot create export session for \(name)")
+    }
     exporter.outputURL = output
     exporter.outputFileType = .mp4
     exporter.shouldOptimizeForNetworkUse = true

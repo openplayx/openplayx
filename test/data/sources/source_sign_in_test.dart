@@ -131,7 +131,7 @@ void main() {
               {
                 'provides': 'player',
                 'accessToken': 'ignore',
-                'connections': [],
+                'connections': <Object?>[],
               },
             ]),
           );

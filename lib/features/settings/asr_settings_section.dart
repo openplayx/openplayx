@@ -136,7 +136,7 @@ class _AsrSettingsSectionState extends State<AsrSettingsSection> {
             }),
             option('http', l.asrCustom, l.asrCustomHint, () {
               if (services.isEmpty) {
-                _editHttp();
+                unawaited(_editHttp());
               } else {
                 registry.selectDefault(services.first.id);
                 setState(() {});

@@ -108,15 +108,15 @@ class _PluginGroupPageState extends State<PluginGroupPage> {
   void initState() {
     super.initState();
     manager.addListener(_changed);
-    manager.refresh();
+    unawaited(manager.refresh());
     _externalChanges = _setup.registry.changes.stream.listen((_) => _changed());
-    if (!_setup.registry.loaded) _setup.registry.load().then((_) => _changed());
+    if (!_setup.registry.loaded) unawaited(_setup.registry.load().then((_) => _changed()));
   }
 
   @override
   void dispose() {
     manager.removeListener(_changed);
-    _externalChanges?.cancel();
+    unawaited(_externalChanges?.cancel());
     super.dispose();
   }
 

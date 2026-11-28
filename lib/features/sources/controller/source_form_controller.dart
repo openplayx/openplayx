@@ -56,7 +56,7 @@ class SourceFormController extends ChangeNotifier {
         SourceKind.plex => manualToken,
         _ => null,
       };
-      field?.loadStored(() => manager.storedSecret(initial.id));
+      unawaited(field?.loadStored(() => manager.storedSecret(initial.id)));
     }
     // DLNA validates the address live; the name hint follows the address.
     address.addListener(_notify);

@@ -6,7 +6,7 @@ import 'package:openplayx/capabilities/metadata/providers/tmdb_metadata_plugin.d
 import '../data/sources/cloud_sources_test.dart' show Client, Response;
 
 class _Client extends Client {
-  _Client() : super((_) => Response(200, {'results': []}));
+  _Client() : super((_) => Response(200, {'results': <Object?>[]}));
   @override
   Future<HttpClientRequest> getUrl(Uri url) => openUrl('GET', url);
 }
@@ -18,8 +18,9 @@ void main() {
       final cloudClient = _Client();
       final cloud = TmdbTransport.platform(client: cloudClient);
       expect(await cloud.get('/search/movie', {'query': 'Arrival'}), {
-        'results': [],
+        'results': <Object?>[],
       });
+      // ignore: close_sinks — recorded request, already closed by TmdbTransport.get.
       final cloudRequest = cloudClient.requests.single;
       expect(
         cloudRequest.uri.toString(),
@@ -33,6 +34,7 @@ void main() {
       final localClient = _Client();
       final local = TmdbTransport('own-token', client: localClient);
       await local.get('/movie/1', {'language': 'zh-CN'});
+      // ignore: close_sinks — recorded request, already closed by TmdbTransport.get.
       final localRequest = localClient.requests.single;
       expect(
         localRequest.uri.toString(),

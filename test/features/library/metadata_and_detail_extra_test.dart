@@ -102,7 +102,7 @@ Future<Map<String, dynamic>> _stubTmdb(
       },
     };
   }
-  return {'results': []};
+  return {'results': <Object?>[]};
 }
 
 void main() {

@@ -60,6 +60,7 @@ class FakeVoiceRecorder implements VoiceRecorder {
   @override
   Future<void> dispose() async {
     disposed = true;
+    await levelController.close();
   }
 }
 

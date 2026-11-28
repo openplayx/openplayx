@@ -125,6 +125,7 @@ class StreamGateway {
     var released = false;
     final stream = await serve((request) async {
       if (released) return;
+      // ignore: close_sinks — serve() closes request.response after the handler.
       final response = request.response;
       response.headers.set('Accept-Ranges', 'bytes');
       response.headers.contentType =

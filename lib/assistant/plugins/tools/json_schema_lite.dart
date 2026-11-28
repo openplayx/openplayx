@@ -110,7 +110,7 @@ abstract final class JsonSchemaLite {
   };
 
   /// Validates [value] against a schema accepted by [unsupported].
-  static bool valid(Map schema, Object? value) {
+  static bool valid(Map<Object?, Object?> schema, Object? value) {
     final type = schema['type'];
     if (type != null) {
       final types = type is List ? type : [type];
@@ -145,10 +145,10 @@ abstract final class JsonSchemaLite {
     if (value is Map) {
       final props = schema['properties'] is Map
           ? schema['properties'] as Map
-          : const {};
+          : const <Object?, Object?>{};
       final required = schema['required'] is List
           ? schema['required'] as List
-          : const [];
+          : const <Object?>[];
       if (required.any((k) => !value.containsKey(k))) return false;
       final additional = schema['additionalProperties'];
       for (final entry in value.entries) {

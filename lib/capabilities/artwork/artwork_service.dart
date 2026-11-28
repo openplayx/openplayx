@@ -76,7 +76,7 @@ class ArtworkService {
   Future<File> load(ArtworkDescriptor artwork) {
     final key = cacheKey(artwork);
     return _pending[key] ??= _load(key, artwork).whenComplete(() {
-      _pending.remove(key);
+      unawaited(_pending.remove(key));
     });
   }
 
@@ -103,7 +103,7 @@ class ArtworkService {
         // A block body: `=> remove(key)` would return this very future and
         // make whenComplete wait on itself forever.
         .whenComplete(() {
-          _opaquePending.remove(key);
+          unawaited(_opaquePending.remove(key));
         });
   }
 

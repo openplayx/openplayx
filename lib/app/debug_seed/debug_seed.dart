@@ -148,7 +148,7 @@ abstract final class DebugSeed {
       for (final f in list('fileSources')) {
         await item('fileSources/${f['id']}', () async => _fileSource(db, f));
       }
-      if (seed['scanExtensions'] case final List extensions) {
+      if (seed['scanExtensions'] case final List<Object?> extensions) {
         await item(
           'scanExtensions',
           () => sources.setScanExtensions([
@@ -171,7 +171,7 @@ abstract final class DebugSeed {
     for (final a in list('asr')) {
       await item('asr/${a['id']}', () async => _asr(asr, a));
     }
-    if (seed['assistant'] case final Map a) {
+    if (seed['assistant'] case final Map<Object?, Object?> a) {
       await item('assistant', () async {
         AssistantStore.writeConfig(
           db,
@@ -188,7 +188,7 @@ abstract final class DebugSeed {
         );
       });
     }
-    if (seed['metadata'] case final Map m) {
+    if (seed['metadata'] case final Map<Object?, Object?> m) {
       await item('metadata', () async {
         void set(String key, Object? value) =>
             ConfigurationDatabase.writeSetting(
@@ -213,14 +213,14 @@ abstract final class DebugSeed {
         }
       });
     }
-    if (seed['remoteAccess'] case final Map r) {
+    if (seed['remoteAccess'] case final Map<Object?, Object?> r) {
       await item('remoteAccess', () async {
         final pairing = r['pairing'];
         await RemoteAccessService(db)
             .importPairing(pairing is String ? pairing : jsonEncode(pairing));
       });
     }
-    if (seed['appearance'] case final Map a) {
+    if (seed['appearance'] case final Map<Object?, Object?> a) {
       await item('appearance', () async {
         for (final key in ['themeMode', 'language', 'developerMode']) {
           if (a[key] != null) configuration.saveAppearance(key, '${a[key]}');

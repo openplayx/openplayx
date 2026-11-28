@@ -43,7 +43,7 @@ class ModelConfigController extends ChangeNotifier {
     endpoint.text = _saved.hasKey ? _saved.endpoint : '';
     model.text = _saved.hasKey ? _saved.model : '';
     _tools = _saved.toolsSupported;
-    if (_saved.hasKey) key.loadStored(() => store.key(_saved));
+    if (_saved.hasKey) unawaited(key.loadStored(() => store.key(_saved)));
   }
 
   final AssistantStore store;

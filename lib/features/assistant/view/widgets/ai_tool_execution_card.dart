@@ -51,15 +51,15 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
       final list = data[key];
       if (list is List) {
         result.addAll(
-          list.whereType<Map>().map((r) => Map<String, dynamic>.from(r)),
+          list.whereType<Map<Object?, Object?>>().map((r) => Map<String, dynamic>.from(r)),
         );
       }
     }
-    if (data['sources'] case final List sources) {
-      for (final source in sources.whereType<Map>()) {
-        if (source['entries'] case final List entries) {
+    if (data['sources'] case final List<Object?> sources) {
+      for (final source in sources.whereType<Map<Object?, Object?>>()) {
+        if (source['entries'] case final List<Object?> entries) {
           result.addAll(
-            entries.whereType<Map>().map(
+            entries.whereType<Map<Object?, Object?>>().map(
               (e) => {
                 ...Map<String, dynamic>.from(e),
                 'source_id': source['source_id'],
@@ -218,7 +218,7 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
     );
 
     final input = <Widget>[
-      if (args case final Map map)
+      if (args case final Map<Object?, Object?> map)
         for (final e in map.entries)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 2),
@@ -316,7 +316,7 @@ class _AiToolExecutionCardState extends State<AiToolExecutionCard> {
     final description =
         widget.coordinator.gateway.registry[p.tool ?? '']?.description;
     final failures = (p.data['sources'] as List? ?? [])
-        .whereType<Map>()
+        .whereType<Map<Object?, Object?>>()
         .where((s) => s['error_code'] != null)
         .toList();
     final muted = theme.textTheme.muted;

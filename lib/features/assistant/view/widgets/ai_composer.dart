@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -145,7 +147,7 @@ class AiComposer extends StatelessWidget {
                       if (composing.isValid && !composing.isCollapsed) {
                         return KeyEventResult.ignored;
                       }
-                      if (!c.busy) _send();
+                      if (!c.busy) unawaited(_send());
                       return KeyEventResult.handled;
                     },
                     // Mobile keyboards have no dismiss key, so a tap anywhere

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:shadcn_ui/shadcn_ui.dart';
 
@@ -34,7 +36,7 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
   void initState() {
     super.initState();
     _cloudTab = _config.usePlatform;
-    _load();
+    unawaited(_load());
   }
 
   Future<void> _load() async {
@@ -54,8 +56,8 @@ class _TmdbSettingsSectionState extends State<TmdbSettingsSection> {
 
   Future<void> _configure() async {
     final l = AppLocalizations.of(context);
-    final token = SecretController()
-      ..loadStored(() async => _token.isEmpty ? null : _token);
+    final token = SecretController();
+    unawaited(token.loadStored(() async => _token.isEmpty ? null : _token));
     final configured = _configured == true;
     final tokenInput = SecretInput(
       key: const ValueKey('tmdb-token'),

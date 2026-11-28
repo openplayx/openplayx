@@ -38,7 +38,7 @@ class _AddVideoPageState extends State<AddVideoPage> {
     _sourceChanges = widget.sources.changes.listen((_) {
       if (mounted) setState(() {});
     });
-    _load();
+    unawaited(_load());
   }
 
   @override

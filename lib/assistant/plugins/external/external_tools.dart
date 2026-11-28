@@ -57,7 +57,7 @@ class ExternalTools {
   }
 
   void dispose() {
-    _changes?.cancel();
+    unawaited(_changes?.cancel());
     for (final (_, c) in _clients.values) {
       c.close();
     }
@@ -121,7 +121,7 @@ class ExternalTools {
     }
     final annotations = def['annotations'] is Map
         ? def['annotations'] as Map
-        : const {};
+        : const <Object?, Object?>{};
     final readOnly = annotations['readOnlyHint'] == true;
     final text = def['description'] is String
         ? def['description'] as String

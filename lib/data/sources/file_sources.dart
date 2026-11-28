@@ -590,13 +590,15 @@ class SmbAccess {
     if (pending != null) return pending;
     final opening = _open();
     _connection = opening;
-    opening.then(
-      (connection) {
-        if (identical(_connection, opening)) _live = connection;
-      },
-      onError: (Object _) {
-        if (identical(_connection, opening)) _connection = null;
-      },
+    unawaited(
+      opening.then(
+        (connection) {
+          if (identical(_connection, opening)) _live = connection;
+        },
+        onError: (Object _) {
+          if (identical(_connection, opening)) _connection = null;
+        },
+      ),
     );
     return opening;
   }
@@ -648,9 +650,11 @@ class SmbAccess {
     final path = _path;
     _path = null;
     // Playback streams opened on it fail and are reopened by the player.
-    connection.close().catchError((Object _) {}).whenComplete(() {
-      path?.close();
-    });
+    unawaited(
+      connection.close().catchError((Object _) {}).whenComplete(() {
+        path?.close();
+      }),
+    );
   }
 
   Future<SmbConnect> _open() async {

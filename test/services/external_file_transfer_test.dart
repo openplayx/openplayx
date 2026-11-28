@@ -423,7 +423,7 @@ void main() {
           availableBytes: () async => 2 * 1024 * 1024 * 1024,
         );
         expect(jobs.task(id)!['status'], 'interrupted');
-        jobs.retry(id);
+        await jobs.retry(id);
         expect((await finish(id))['status'], 'succeeded');
         expect(ranges, ['bytes=5-']);
         expect(sources.bytes, body);
