@@ -52,6 +52,23 @@ class FixtureSources extends SourceManager {
 
 void main() {
   const parser = MediaNameParser();
+  test('season-pack folders name the series without their season marker', () {
+    for (final (folder, title) in [
+      (
+        'Game.of.Thrones.S02.1080p.10bit.BluRay.6CH.x265.HEVC-PSA',
+        'Game of Thrones',
+      ),
+      (
+        'Mindhunter.S02.COMPLETE.1080p.NF.WEB-DL.DDP5.1.x264-MZABI[TGx]',
+        'Mindhunter',
+      ),
+      ('Solo Leveling - S01 - 2160p HDR Ai Upscale 5.1+2.0', 'Solo Leveling'),
+      ('The Offer S01 1080p BluRay x265', 'The Offer'),
+    ]) {
+      final e = parser.parse('S01E01.mkv', path: '/tv/$folder/S01E01.mkv');
+      expect((e.title, e.kind), (title, MediaKind.episode), reason: folder);
+    }
+  });
   test('collection names: index before the year, owner before the title', () {
     final indexed = parser.parse(
       '01.1981.Taps.1920x1040.BDRip.x264.DTS-HD.MA.mkv',

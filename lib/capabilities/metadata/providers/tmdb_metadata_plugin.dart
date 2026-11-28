@@ -384,6 +384,9 @@ class TmdbMetadataPlugin implements Plugin, MetadataCapability {
           if (c is String) c,
     ]);
     set('certification', _certification(j));
+    // TMDB's daily popularity: lets automatic matching pick a dominant title
+    // among same-name, same-year candidates.
+    set('popularity', (j['popularity'] as num?)?.toDouble());
     final collection = j['belongs_to_collection'];
     if (collection is Map && collection['id'] != null) {
       fields['collection'] = {

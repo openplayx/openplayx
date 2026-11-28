@@ -194,7 +194,9 @@ class MediaNameParser {
           // "Show - Complete Season 1,2,3 + Extras", "Show Season 1-11 S01-S11"
           .replaceFirst(
             RegExp(
-              r'(?:^|[\s\-])(?:the\s+)?(?:complete\s+)?(?:seasons?|series)\b.*$|\bS\d{1,2}\s*-\s*S?\d{1,2}\b.*$|\+.*$',
+              r'(?:^|[\s\-])(?:the\s+)?(?:complete\s+)?(?:seasons?|series)\b.*$|\bS\d{1,2}\s*-\s*S?\d{1,2}\b.*$|\+.*$'
+              // Season packs: "Show.S02.1080p", "Show S01 COMPLETE", "Show - S01 - 2160p".
+              r'|\bS\d{1,2}(?:\s*E\d{1,3})*\b.*$|\bcomplete\b.*$',
               caseSensitive: false,
             ),
             '',

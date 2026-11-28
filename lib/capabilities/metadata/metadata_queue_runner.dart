@@ -358,7 +358,7 @@ class MetadataQueueRunner {
         )
         .toList();
     if (originals.isNotEmpty) {
-      return originals.length == 1 ? originals.single : null;
+      return originals.length == 1 ? originals.single : dominant(originals);
     }
     final matches = candidates
         .where(
@@ -370,7 +370,35 @@ class MetadataQueueRunner {
               _sameYear(evidence, c),
         )
         .toList();
-    return matches.length == 1 ? matches.single : null;
+    return matches.length == 1 ? matches.single : dominant(matches);
+  }
+
+  /// How far the most popular of several equally matching candidates must
+  /// lead the next one before it is taken automatically.
+  static double popularityLead = 10;
+
+  static double _popularity(MetadataRecord c) =>
+      (c.fields['popularity'] as num?)?.toDouble() ?? 0;
+  static int _votes(MetadataRecord c) =>
+      (((c.fields['ratings'] as Map?)?['tmdb'] as Map?)?['votes'] as num?)
+          ?.toInt() ??
+      0;
+
+  /// Same title and year, several catalog entries: TMDB often lists obscure
+  /// same-name titles beside a well-known one ("The Odyssey" 2026). Take the
+  /// one whose popularity leads every other by [popularityLead] times and
+  /// whose vote count no other candidate exceeds; otherwise ask the user.
+  static MetadataRecord? dominant(List<MetadataRecord> tied) {
+    if (tied.length < 2) return tied.singleOrNull;
+    final ranked = [...tied]
+      ..sort((a, b) => _popularity(b).compareTo(_popularity(a)));
+    final top = ranked.first;
+    final lead = _popularity(top);
+    if (lead < 1 || lead < popularityLead * _popularity(ranked[1])) return null;
+    if (tied.any((c) => !identical(c, top) && _votes(c) > _votes(top))) {
+      return null;
+    }
+    return top;
   }
 
   static String _episodeName(String title) => _name(
@@ -439,6 +467,33 @@ class MetadataQueueRunner {
     return better.length == 1 ? better.single : null;
   }
 
+  static MediaNameEvidence _withoutYear(MediaNameEvidence e) =>
+      MediaNameEvidence(
+        original: e.original,
+        title: e.title,
+        kind: e.kind,
+        season: e.season,
+        episodes: e.episodes,
+        tags: e.tags,
+        evidence: e.evidence,
+        extra: e.extra,
+        episodeTitle: e.episodeTitle,
+      );
+
+  /// Whether any candidate carries the file's title, whatever its year.
+  static bool hasTitleMatch(
+    MediaNameEvidence evidence,
+    List<MetadataRecord> candidates,
+  ) {
+    final names = _wanted(evidence);
+    return candidates.any(
+      (c) => [
+        _name(c.title),
+        _name(c.fields['originalTitle'] as String? ?? ''),
+      ].any(names.contains),
+    );
+  }
+
   /// At most this many same-year candidates have their alternative titles
   /// fetched; with more, uniqueness could not be shown and nothing is fetched.
   static const aliasCandidates = 3;
@@ -468,11 +523,22 @@ class MetadataQueueRunner {
   Future<MetadataRecord?> _match(
     String job,
     MediaNameEvidence evidence,
-    MetadataService service,
-  ) async {
+    MetadataService service, {
+    int? nearYear,
+  }) async {
     final input = jsonDecode(library.metadata.job(job)['input'] as String);
     final complete = input['nextPage'] == null;
-    final candidates = _candidates(job);
+    var candidates = _candidates(job);
+    if (nearYear != null) {
+      // Year-less retry: only titles released within a year of the file's.
+      candidates = [
+        for (final c in candidates)
+          if (c.fields['year'] is int &&
+              ((c.fields['year'] as int) - nearYear).abs() <= 1)
+            c,
+      ];
+      evidence = _withoutYear(evidence);
+    }
     final match =
         uniqueMatch(evidence, candidates, completePage: complete) ??
         await aliasMatch(
@@ -652,21 +718,55 @@ class MetadataQueueRunner {
         [MediaKind.episode, MediaKind.season].contains(evidence.kind)
         ? MediaKind.series
         : evidence.kind;
-    final job = await service.search(
+    var job = await service.search(
       media,
       query: evidence.title,
       year: evidence.year,
       kind: queryKind,
     );
     if (!_valid(media, owner)) return;
-    final jobInput = jsonDecode(library.metadata.job(job)['input'] as String)
-        as Map<String, dynamic>;
+    final jobInput = jsonDecode(
+      library.metadata.job(job)['input'] as String,
+    ) as Map<String, dynamic>;
     library.db.execute('UPDATE metadata_jobs SET input=? WHERE id=?', [
       jsonEncode({...jobInput, 'automaticMatchRule': matchRule}),
       job,
     ]);
     var match = await _match(job, evidence, service);
     if (!_valid(media, owner)) return;
+    // Release names can carry a year the catalog does not (festival vs.
+    // release year, "God of Gamblers II 1991" for TMDB's 1990). When no
+    // candidate of that year even has the title, search again without the
+    // year and accept a unique title within one year of the file's.
+    if (match == null &&
+        evidence.year != null &&
+        !hasTitleMatch(evidence, _candidates(job))) {
+      final retry = await service.search(
+        media,
+        query: evidence.title,
+        kind: queryKind,
+      );
+      if (!_valid(media, owner)) return;
+      final retryInput = jsonDecode(
+        library.metadata.job(retry)['input'] as String,
+      ) as Map<String, dynamic>;
+      library.db.execute('UPDATE metadata_jobs SET input=? WHERE id=?', [
+        jsonEncode({
+          ...retryInput,
+          'automaticMatchRule': matchRule,
+          'yearRetry': evidence.year,
+        }),
+        retry,
+      ]);
+      match = await _match(retry, evidence, service, nearYear: evidence.year);
+      if (!_valid(media, owner)) return;
+      if (match != null || _candidates(retry).isNotEmpty) {
+        job = retry;
+        jobInput
+          ..clear()
+          ..addAll(retryInput);
+      }
+    }
     if (match == null) {
       final noResults =
           _candidates(job).isEmpty && jobInput['nextPage'] == null;

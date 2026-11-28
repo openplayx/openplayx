@@ -815,6 +815,92 @@ void main() {
       await worker.dispose();
     }
   });
+  test('a release year one off the catalog still matches through a year-less search', () async {
+    Future<(String?, MetadataQueueRunner, _YearProvider)> run(
+      String name,
+    ) async {
+      final provider = _YearProvider();
+      final file = library.register(
+        SourceEntry(ResourceRef('@local', '/$name'), name, isFolder: false),
+      );
+      addToLibrary(library, file);
+      final worker = MetadataQueueRunner(
+        library,
+        sources,
+        registry: MetadataRegistry()..register('tmdb', provider),
+        artwork: artwork,
+      );
+      await worker.reconcile();
+      await worker.runBatch(maxItems: 100);
+      final id = library.metadata.association(file)?.id;
+      return (id, worker, provider);
+    }
+
+    // TMDB lists God of Gamblers II as 1990; the release says 1991.
+    final (near, w1, p1) = await run('God.of.Gamblers.II.1991.720p.mkv');
+    await w1.dispose();
+    expect(near, '57663');
+    expect(p1.searchYears, [1991, null]);
+    // Two years off is not accepted.
+    final (far, w2, _) = await run('God.of.Gamblers.II.1992.720p.mkv');
+    await w2.dispose();
+    expect(far, isNull);
+  });
+  test('a far more popular same-name, same-year title is taken; close ones are not', () {
+    MetadataRecord c(String id, double popularity, int votes) => MetadataRecord(
+      ref: MetadataRef('tmdb', MediaKind.movie, id),
+      fields: {
+        'title': 'The Odyssey',
+        'year': 2026,
+        'popularity': popularity,
+        'ratings': {
+          'tmdb': {'value': 7.0, 'max': 10, 'votes': votes},
+        },
+      },
+    );
+    const evidence = MediaNameEvidence(
+      original: 'The.Odyssey.2026.mkv',
+      title: 'The Odyssey',
+      kind: MediaKind.movie,
+      year: 2026,
+    );
+    // 316 vs 12: leads by more than 10x and has the most votes.
+    expect(
+      MetadataQueueRunner.uniqueMatch(evidence, [
+        c('1368337', 316, 900),
+        c('1756234', 12, 3),
+        c('1698863', 7, 0),
+      ])!.ref.id,
+      '1368337',
+    );
+    // 50 vs 12: not a clear lead.
+    expect(
+      MetadataQueueRunner.uniqueMatch(evidence, [c('a', 50, 9), c('b', 12, 3)]),
+      isNull,
+    );
+    // Popular now but another entry has more votes: ask the user.
+    expect(
+      MetadataQueueRunner.uniqueMatch(evidence, [
+        c('a', 300, 5),
+        c('b', 3, 800),
+      ]),
+      isNull,
+    );
+  });
+  test('a year-filtered search that already has the title is not retried', () {
+    const evidence = MediaNameEvidence(
+      original: 'Film.2014.mkv',
+      title: 'Film',
+      kind: MediaKind.movie,
+      year: 2014,
+    );
+    final candidate = MetadataRecord(
+      ref: const MetadataRef('tmdb', MediaKind.movie, '1'),
+      fields: const {'title': 'Film', 'year': 2014},
+    );
+    expect(MetadataQueueRunner.hasTitleMatch(evidence, [candidate]), isTrue);
+    expect(MetadataQueueRunner.hasTitleMatch(evidence, const []), isFalse);
+  });
   test(
     'episode titles correct release numbers that differ from the catalog',
     () {
@@ -948,10 +1034,54 @@ class _TranslatedProvider implements Plugin, MetadataCapability {
     }
     if (request.action == MetadataAction.alternativeTitles) {
       return MetadataResult([
-        MetadataRecord(ref: request.ref!, fields: {'alternativeTitles': <String>[]}),
+        MetadataRecord(
+          ref: request.ref!,
+          fields: {'alternativeTitles': <String>[]},
+        ),
       ]);
     }
     return MetadataResult([_movie(request.ref!.id, '天空之城', '天空の城ラピュタ')]);
+  }
+
+  @override
+  Future<void> dispose() async {}
+}
+
+/// TMDB stand-in whose search honours the year filter like TMDB does.
+class _YearProvider implements Plugin, MetadataCapability {
+  final searchYears = <int?>[];
+  @override
+  PluginManifest get manifest =>
+      const PluginManifest('metadata.test', 'Test', browseExperience: 'none');
+  @override
+  Set<MetadataAction> get actions => MetadataAction.values.toSet();
+  static MetadataRecord _movie(String id, int year) => MetadataRecord(
+    ref: MetadataRef('tmdb', MediaKind.movie, id),
+    fields: {
+      'title': 'God of Gamblers II',
+      'originalTitle': 'God of Gamblers II',
+      'year': year,
+    },
+  );
+  @override
+  Future<MetadataResult> lookup(
+    MetadataRequest request,
+    CallContext context,
+  ) async {
+    if (request.action == MetadataAction.search) {
+      searchYears.add(request.year);
+      final all = [_movie('57663', 1990), _movie('99', 1995)];
+      return MetadataResult([
+        for (final m in all)
+          if (request.year == null || m.fields['year'] == request.year) m,
+      ]);
+    }
+    if (request.action == MetadataAction.alternativeTitles) {
+      return MetadataResult([
+        MetadataRecord(ref: request.ref!, fields: {'alternativeTitles': []}),
+      ]);
+    }
+    return MetadataResult([_movie(request.ref!.id, 1990)]);
   }
 
   @override
