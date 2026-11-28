@@ -315,7 +315,7 @@ class MetadataQueueRunner {
 
   List<MetadataRecord> _candidates(String job) =>
       (jsonDecode(library.metadata.job(job)['candidates'] as String) as List)
-          .map((e) => MetadataRecord.fromJson(e))
+          .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
           .toList();
   static String _name(String title) => title.toLowerCase().replaceAll(
     RegExp(r'[\s._\-\[\](){}:：·,!！?？、，。]'),
@@ -567,7 +567,8 @@ class MetadataQueueRunner {
       kind: queryKind,
     );
     if (!_valid(media, owner)) return;
-    final jobInput = jsonDecode(library.metadata.job(job)['input'] as String);
+    final jobInput = jsonDecode(library.metadata.job(job)['input'] as String)
+        as Map<String, dynamic>;
     library.db.execute('UPDATE metadata_jobs SET input=? WHERE id=?', [
       jsonEncode({...jobInput, 'automaticMatchRule': matchRule}),
       job,

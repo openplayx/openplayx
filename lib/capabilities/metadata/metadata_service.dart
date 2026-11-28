@@ -332,7 +332,7 @@ class MetadataService {
       throw PluginException('invalidInput', appStrings.errChooseEpisodeFirst);
     }
     final candidates = (jsonDecode(job['candidates'] as String) as List)
-        .map((e) => MetadataRecord.fromJson(e))
+        .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
         .toList();
     if (!candidates.any((c) => c.ref.key == selected.key)) {
       throw PluginException(
@@ -390,7 +390,7 @@ class MetadataService {
       throw PluginException('conflict', appStrings.errReloadCandidates);
     }
     final records = (jsonDecode(job['candidates'] as String) as List)
-        .map((e) => MetadataRecord.fromJson(e))
+        .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
         .toList();
     if (index < 0 ||
         index >= records.length ||
@@ -424,7 +424,7 @@ class MetadataService {
   Future<void> children(String id, MetadataRef selected) async {
     final job = repository.job(id);
     final candidates = (jsonDecode(job['candidates'] as String) as List).map(
-      (e) => MetadataRecord.fromJson(e),
+      (e) => MetadataRecord.fromJson(e as Map<String, dynamic>),
     );
     if (job['stage'] != 'awaitingSelection' ||
         !candidates.any((c) => c.ref.key == selected.key)) {

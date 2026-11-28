@@ -640,7 +640,7 @@ void main() {
         await service.importSidecars(media);
         service.registry.register(
           'tmdb',
-          TmdbMetadataPlugin((path, query) async => {'results': []}),
+          TmdbMetadataPlugin((path, query) async => {'results': <Object?>[]}),
         );
         final id = await service.search(media, query: 'Nothing');
         expect(library.metadata.job(id)['stage'], 'unmatched');
