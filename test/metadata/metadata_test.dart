@@ -52,6 +52,34 @@ class FixtureSources extends SourceManager {
 
 void main() {
   const parser = MediaNameParser();
+  test('collection names: index before the year, owner before the title', () {
+    final indexed = parser.parse(
+      '01.1981.Taps.1920x1040.BDRip.x264.DTS-HD.MA.mkv',
+    );
+    expect((indexed.title, indexed.year), ('Taps', 1981));
+    // A numeric title with nothing after the year stays the title.
+    expect(parser.parse('300.2006.1080p.BluRay.mkv').title, '300');
+    expect(parser.parse('1917.2019.1080p.BluRay.mkv').title, '1917');
+    const owner = 'Jet Li [1992] - Swordsman II.avi';
+    final collected = parser.parse(
+      owner,
+      path: '/m/Jet Li Movie Collection 1982-2008/$owner',
+    );
+    expect((collected.title, collected.year), ('Swordsman II', 1992));
+    // Outside an owner's collection, "Title [Year] - Group" keeps the title.
+    const release = 'Inception [2010] - YTS.mkv';
+    expect(
+      parser.parse(release, path: '/m/Inception [2010] - YTS/$release').title,
+      'Inception',
+    );
+    expect(parser.parse('Sex.is.Zero.CD1.avi').title, 'Sex is Zero');
+    expect(
+      parser
+          .parse('Harry.Potter.and.the.Deathly.Hallows.Part.2.2011.mkv')
+          .title,
+      'Harry Potter and the Deathly Hallows Part 2',
+    );
+  });
   test('filename parsing preserves explicit episode and resource evidence', () {
     final movie = parser.parse('Interstellar.2014.2160p.BluRay.mkv');
     expect(movie.title, 'Interstellar');

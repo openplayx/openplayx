@@ -11,6 +11,7 @@ class MediaNameEvidence {
     this.tags = const [],
     this.evidence = const [],
     this.extra = false,
+    this.episodeTitle,
   });
   final String original;
   final String title;
@@ -24,6 +25,11 @@ class MediaNameEvidence {
   /// Bonus material of a series (featurettes, deleted scenes, "S01 Extra"
   /// files): [title] and [year] identify the series, not the clip itself.
   final bool extra;
+
+  /// The episode's own title written after the episode marker
+  /// ("Show - S04E24 - The One With Ross's Wedding (2) (1080p)"), when any.
+  /// Release numbering can differ from the catalog's; the title can tell.
+  final String? episodeTitle;
   static const ruleVersion = '3';
 }
 
@@ -62,7 +68,24 @@ class MediaNameParser {
     final folders = [...?path?.split('/').where((s) => s.isNotEmpty)];
     if (folders.isNotEmpty && folders.last == name) folders.removeLast();
     parent ??= folders.lastOrNull;
-    final base = _parse(name, parent: parent, kind: kind);
+    var base = _parse(name, parent: parent, kind: kind);
+    final collection = _collectionItem(name, folders);
+    if (collection != null) {
+      final item = _parse(collection.title, parent: parent, kind: kind);
+      if (!item.untitled && item.marker == _Marker.none) {
+        base = _Parsed(
+          title: item.title,
+          untitled: false,
+          kind: item.kind,
+          year: collection.year,
+          season: item.season,
+          episodes: item.episodes,
+          tags: base.tags,
+          evidence: [...base.evidence, 'collection:${collection.owner}'],
+          marker: item.marker,
+        );
+      }
+    }
     final extraFolder = folders.any((f) => _extraFolder.hasMatch(f.trim()));
     final extra =
         base.marker == _Marker.extra ||
@@ -110,7 +133,37 @@ class MediaNameParser {
       tags: base.tags,
       evidence: evidence,
       extra: extra,
+      episodeTitle: extra ? null : base.episodeTitle,
     );
+  }
+
+  /// "Owner [Year] - Title" inside a folder that collects the owner's films
+  /// ("Jet Li Movie Collection 1982-2008"): the part after the dash is the
+  /// title. Without such a folder the name is left alone, since
+  /// "Title [Year] - Group" is a common release pattern too.
+  static ({String owner, int year, String title})? _collectionItem(
+    String name,
+    List<String> folders,
+  ) {
+    final stem = name.replaceFirst(
+      RegExp(r'\.[a-z0-9]{2,5}$', caseSensitive: false),
+      '',
+    );
+    final m = RegExp(r'^(.+?)\s*\[((?:19|20)\d{2})\]\s*-\s*(.+)$')
+        .firstMatch(stem.replaceAll('_', ' '));
+    if (m == null) return null;
+    final owner = m[1]!.trim();
+    if (owner.length < 3) return null;
+    final key = owner.toLowerCase();
+    final collects = folders.any((f) {
+      final folder = f.toLowerCase();
+      return folder.contains(key) &&
+          RegExp(
+            r'collection|filmography|anthology|合集|全集|\b(?:19|20)\d{2}\s*-\s*(?:19|20)\d{2}\b',
+          ).hasMatch(folder);
+    });
+    if (!collects) return null;
+    return (owner: owner, year: int.parse(m[2]!), title: m[3]!.trim());
   }
 
   /// The folder that owns a bonus clip at [path]: the nearest one above it
@@ -191,7 +244,9 @@ class MediaNameParser {
       caseSensitive: false,
     ).firstMatch(spaced);
     var cut = text.length;
+    int? markerEnd;
     if (episode != null) {
+      markerEnd = episode.end;
       season = int.parse(episode[1]!);
       episodes.addAll(
         RegExp(
@@ -204,6 +259,7 @@ class MediaNameParser {
       kind = MediaKind.episode;
       marker = _Marker.episode;
     } else if (spelled != null) {
+      markerEnd = spelled.end;
       season = int.parse(spelled[1]!);
       episodes.add(int.parse(spelled[2]!));
       cut = spelled.start;
@@ -253,8 +309,15 @@ class MediaNameParser {
     ).allMatches(normalized);
     final maxYear = DateTime.now().year + 1;
     // A numeric title such as 1917 is not itself evidence of a release year.
+    // "01.1981.Taps.1920x1040": a short number before the year is a
+    // collection index when title words follow the year.
+    final indexed = RegExp(
+      r'\d{1,3}\s+(?=(?:19|20)\d{2}\s+[^\W\d_]{2})',
+      unicode: true,
+    ).matchAsPrefix(normalized, start);
     for (final match in years) {
       if (markerAt != null && match.start >= markerAt) break;
+      if (indexed != null && match.start == indexed.end) break;
       if (match.start > start &&
           normalized.substring(start, match.start).trim().isNotEmpty &&
           int.parse(match[0]!) <= maxYear) {
@@ -265,20 +328,41 @@ class MediaNameParser {
       }
     }
     final technical = RegExp(
-      r'\b(?:2160p|1080p|720p|480p|4K|BluRay|BDRip|WEB[ ._-]?DL|WEBRip|HDR10\+?|HDR|DV|x26[45]|H[ .]?26[45]|HEVC|AV1|REMUX|AAC|DTS|\d{3,4}x\d{3,4})\b',
+      r'\b(?:2160p|1080p|720p|480p|4K|BluRay|BDRip|WEB[ ._-]?DL|WEBRip|HDR10\+?|HDR|DV|x26[45]|H[ .]?26[45]|HEVC|AV1|REMUX|AAC|DTS|\d{3,4}x\d{3,4}|CD\s?\d{1,2}|DIS[CK]\s?\d{1,2})\b',
       caseSensitive: false,
     );
+    var episodeEnd = normalized.length;
     for (final match in technical.allMatches(normalized)) {
       if (match.start < start) continue;
       tags.add(match[0]!);
       cut = cut < match.start ? cut : match.start;
+      if (markerEnd != null && match.start >= markerEnd) {
+        episodeEnd = episodeEnd < match.start ? episodeEnd : match.start;
+      }
+    }
+    String? episodeTitle;
+    if (markerEnd != null && markerEnd < episodeEnd) {
+      final t = normalized
+          .substring(markerEnd, episodeEnd)
+          .replaceFirst(
+            RegExp(
+              r'^[\s\-:]*(?:(?:INTERNAL|PROPER|REPACK|REAL|READNFO)\b[\s\-]*)*',
+              caseSensitive: false,
+            ),
+            '',
+          )
+          .replaceAll(RegExp(r'^[\s\-:]+|[\s\-:(\[]+$'), '')
+          .trim();
+      if (RegExp(r'[^\W\d_]{2}', unicode: true).hasMatch(t)) episodeTitle = t;
     }
     // "1997.Tomorrow.Never.Dies.1920x820": a leading year is the release year
     // only when no other year exists and title words follow before the tags.
     var titleStart = start;
     if (year == null) {
+      final from = indexed?.end ?? start;
+      if (indexed != null) evidence.add('index:${indexed[0]!.trim()}');
       final leading = RegExp(r'(?:19|20)\d{2}\s+')
-          .matchAsPrefix(normalized, start);
+          .matchAsPrefix(normalized, from);
       if (leading != null &&
           leading.end < cut &&
           normalized.substring(leading.end, cut).trim().isNotEmpty &&
@@ -302,6 +386,7 @@ class MediaNameParser {
       tags: tags,
       evidence: evidence,
       marker: marker,
+      episodeTitle: episodeTitle,
     );
   }
 }
@@ -319,6 +404,7 @@ class _Parsed {
     required this.tags,
     required this.evidence,
     required this.marker,
+    this.episodeTitle,
   });
   final String title;
   final bool untitled;
@@ -329,4 +415,5 @@ class _Parsed {
   final List<String> tags;
   final List<String> evidence;
   final _Marker marker;
+  final String? episodeTitle;
 }

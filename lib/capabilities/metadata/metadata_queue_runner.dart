@@ -318,7 +318,7 @@ class MetadataQueueRunner {
           .map((e) => MetadataRecord.fromJson(e as Map<String, dynamic>))
           .toList();
   static String _name(String title) => title.toLowerCase().replaceAll(
-    RegExp(r'[\s._\-\[\](){}:：·,!！?？、，。]'),
+    RegExp(r"[\s._\-\[\](){}:：·,!！?？、，。'’‘]"),
     '',
   );
 
@@ -373,6 +373,72 @@ class MetadataQueueRunner {
     return matches.length == 1 ? matches.single : null;
   }
 
+  static String _episodeName(String title) => _name(
+    title.replaceAll(
+      RegExp(
+        r'\((?:\d|part\s*\d)\)|\b(?:part|pt)\.?\s*\d\b',
+        caseSensitive: false,
+      ),
+      '',
+    ),
+  ).replaceAll('&', 'and');
+
+  static double _similarity(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0;
+    if (a == b) return 1;
+    final shorter = a.length < b.length ? a : b;
+    if (shorter.length >= 8 && (a.contains(b) || b.contains(a))) return 0.9;
+    var previous = List<int>.generate(b.length + 1, (i) => i);
+    for (var i = 1; i <= a.length; i++) {
+      final current = [i, ...List.filled(b.length, 0)];
+      for (var j = 1; j <= b.length; j++) {
+        final cost = a.codeUnitAt(i - 1) == b.codeUnitAt(j - 1) ? 0 : 1;
+        current[j] = min(
+          min(current[j - 1] + 1, previous[j] + 1),
+          previous[j - 1] + cost,
+        );
+      }
+      previous = current;
+    }
+    return 1 - previous[b.length] / max(a.length, b.length);
+  }
+
+  /// The catalog episode a file titled [title] is, when its release number
+  /// [number] points at an episode with a clearly different title and exactly
+  /// one other episode of the season clearly carries that title (two-parters merged
+  /// in the catalog shift later numbers). Null keeps the number. [names] are
+  /// each episode's titles (display language, plus English); a merged
+  /// two-parter's "Part A; Part B" title matches either part.
+  static int? episodeByTitle(
+    String title,
+    int number,
+    Map<int, List<String>> names,
+  ) {
+    final wanted = _episodeName(title);
+    if (wanted.length < 3) return null;
+    double score(int episode) {
+      var best = 0.0;
+      for (final name in names[episode] ?? const <String>[]) {
+        for (final part in [name, ...name.split(';')]) {
+          best = max(best, _similarity(wanted, _episodeName(part)));
+        }
+      }
+      return best;
+    }
+
+    // Titles of one show share openings ("The One With", "And the"), so a
+    // number is only overruled by an episode that matches clearly (>= 0.8),
+    // clearly better than the numbered one (+0.15), and alone at the top.
+    final here = names.containsKey(number) ? score(number) : 0.0;
+    final scores = {for (final e in names.keys) e: score(e)};
+    final top = scores.values.fold(0.0, max);
+    final better = [
+      for (final MapEntry(key: e, value: v) in scores.entries)
+        if (e != number && v >= 0.8 && v >= here + 0.15 && v >= top - 0.05) e,
+    ];
+    return better.length == 1 ? better.single : null;
+  }
+
   /// At most this many same-year candidates have their alternative titles
   /// fetched; with more, uniqueness could not be shown and nothing is fetched.
   static const aliasCandidates = 3;
@@ -407,13 +473,39 @@ class MetadataQueueRunner {
     final input = jsonDecode(library.metadata.job(job)['input'] as String);
     final complete = input['nextPage'] == null;
     final candidates = _candidates(job);
-    return uniqueMatch(evidence, candidates, completePage: complete) ??
+    final match =
+        uniqueMatch(evidence, candidates, completePage: complete) ??
         await aliasMatch(
           evidence,
           candidates,
           service.alternativeTitles,
           completePage: complete,
         );
+    if (match != null || !complete || candidates.isEmpty) return match;
+    // Release names carry English titles; in another UI language the
+    // candidates show translated titles and an original in the source
+    // language ("Castle in the Sky" vs 天空之城 / 天空の城ラピュタ). Compare
+    // with the same search's English titles before giving up.
+    if (service.language.startsWith('en') ||
+        !RegExp(r'[A-Za-z]{2}').hasMatch(evidence.title)) {
+      return null;
+    }
+    final english = await service.searchTitles(
+      input['query'] as String,
+      kind: MediaKind.values.byName(input['kind'] as String),
+      year: input['year'] as int?,
+    );
+    final byKey = {for (final c in candidates) c.ref.key: c};
+    final translated = [
+      for (final r in english.records)
+        if (byKey.containsKey(r.ref.key)) r,
+    ];
+    final found = uniqueMatch(
+      evidence,
+      translated,
+      completePage: english.nextPage == null,
+    );
+    return found == null ? null : byKey[found.ref.key];
   }
 
   Future<void> _process(
@@ -451,7 +543,7 @@ class MetadataQueueRunner {
         queue.finish(media, owner, 'queued', phase: 2);
         return;
       }
-      await service.importSidecars(media);
+      await service.importSidecars(media, skipUnreadable: true);
       if (!_valid(media, owner)) return;
       final local = library.metadata.latestJob(media);
       if (local?['stage'] == 'awaitingSelection' &&
@@ -624,9 +716,22 @@ class MetadataQueueRunner {
           );
           return;
         }
-        match = _candidates(job)
-            .where((c) => c.ref.episode == evidence.episodes.single)
-            .firstOrNull;
+        final episodes = _candidates(job);
+        var number = evidence.episodes.single;
+        final title = evidence.episodeTitle;
+        if (title != null && episodes.isNotEmpty) {
+          final names = <int, List<String>>{
+            for (final c in episodes)
+              if (c.ref.episode != null) c.ref.episode!: [c.title],
+          };
+          if (!service.language.startsWith('en')) {
+            final english = await service.episodeTitles(season.ref);
+            if (!_valid(media, owner)) return;
+            english.forEach((e, t) => (names[e] ??= []).add(t));
+          }
+          number = episodeByTitle(title, number, names) ?? number;
+        }
+        match = episodes.where((c) => c.ref.episode == number).firstOrNull;
         if (match == null) {
           await _fallbackCover(media, owner);
           if (!_valid(media, owner)) return;

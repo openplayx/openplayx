@@ -298,6 +298,58 @@ class MetadataService {
   }
 
   /// Other names TMDB knows [ref] by; empty when it has none on record.
+  /// Search results for [query] in [language] (page 1), without creating a
+  /// job: lets automatic matching compare an English file title with the
+  /// English catalog titles when the UI language is another one.
+  Future<MetadataResult> searchTitles(
+    String query, {
+    required MediaKind kind,
+    int? year,
+    String language = 'en-US',
+  }) => registry.lookup(
+    'tmdb',
+    MetadataRequest(
+      action: MetadataAction.search,
+      kind: kind,
+      query: query,
+      year: year,
+      language: language,
+    ),
+  );
+
+  final _episodeTitles = <String, Map<int, String>>{};
+
+  /// Episode titles of [season] in [language], by episode number. Release
+  /// names carry English episode titles whatever the UI language, so
+  /// automatic matching compares against these. Cached per season.
+  Future<Map<int, String>> episodeTitles(
+    MetadataRef season, {
+    String language = 'en-US',
+  }) async {
+    final key = '${season.key}|$language';
+    final cached = _episodeTitles[key];
+    if (cached != null) return cached;
+    try {
+      final result = await registry.lookup(
+        'tmdb',
+        MetadataRequest(
+          action: MetadataAction.children,
+          kind: season.kind,
+          ref: season,
+          language: language,
+        ),
+      );
+      if (_episodeTitles.length >= 64) _episodeTitles.clear();
+      return _episodeTitles[key] = {
+        for (final r in result.records)
+          if (r.ref.episode != null) r.ref.episode!: r.title,
+      };
+    } on PluginException catch (e) {
+      if (e.code == 'notFound' || e.code == 'unsupported') return const {};
+      rethrow;
+    }
+  }
+
   Future<List<String>> alternativeTitles(MetadataRef ref) async {
     try {
       final result = await registry.lookup(
@@ -741,7 +793,14 @@ class MetadataService {
     return ancestors;
   }
 
-  Future<void> importSidecars(String media) async {
+  /// Imports the NFO beside each file of [media]. With [skipUnreadable] an
+  /// NFO that cannot be parsed (release-group ASCII art named like the video,
+  /// oversized files) counts as absent instead of failing the import, so
+  /// background matching can still search the catalog.
+  Future<void> importSidecars(
+    String media, {
+    bool skipUnreadable = false,
+  }) async {
     for (final resource in library.resources(media)) {
       final source = resource['source'] as String;
       final config = sources.configs.where((c) => c.id == source).firstOrNull;
@@ -814,7 +873,15 @@ class MetadataService {
             parseFailure = error;
           }
         }
-        if (records.isEmpty && parseFailure != null) throw parseFailure;
+        if (records.isEmpty &&
+            parseFailure != null &&
+            !(skipUnreadable &&
+                const {
+                  'invalidMetadata',
+                  'quotaExceeded',
+                }.contains(parseFailure.code))) {
+          throw parseFailure;
+        }
         _check(id);
         await sources.reload();
         if (!sources.configs.any(

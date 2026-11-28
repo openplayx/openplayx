@@ -736,6 +736,153 @@ void main() {
       }
     },
   );
+  test(
+    'an unreadable NFO named like the video does not stop the catalog search',
+    () async {
+      final root = await Directory.systemTemp.createTemp(
+        'openplayx-background-nfo-',
+      );
+      try {
+        final file = await File('${root.path}/Film.2014.mkv')
+            .writeAsString('fixture');
+        // Release-group NFO: ASCII art, not Kodi XML.
+        await File(
+          '${root.path}/Film.2014.nfo',
+        ).writeAsString("[font=Courier New]\n| '||''''|  release notes  |\n");
+        final local = FixtureSources(root);
+        final item = library.register(
+          SourceEntry(
+            ResourceRef('files', file.path),
+            'Film.2014.mkv',
+            isFolder: false,
+          ),
+        );
+        addToLibrary(library, item);
+        // An explicit import still reports the broken file.
+        await expectLater(
+          MetadataService(library, local).importSidecars(item),
+          throwsA(
+            isA<PluginException>().having(
+              (e) => e.code,
+              'code',
+              'invalidMetadata',
+            ),
+          ),
+        );
+        final worker = MetadataQueueRunner(
+          library,
+          local,
+          registry: MetadataRegistry()..register('tmdb', provider),
+          artwork: TestArtwork(local),
+        );
+        try {
+          await worker.reconcile();
+          await worker.runBatch();
+          expect(worker.queue.item(item)!['state'], 'completed');
+          expect(library.metadata.association(item)!.id, '1');
+        } finally {
+          await worker.dispose();
+        }
+      } finally {
+        await root.delete(recursive: true);
+      }
+    },
+  );
+  test('an English file title matches the English catalog title in another UI language', () async {
+    final translated = _TranslatedProvider();
+    final file = library.register(
+      const SourceEntry(
+        ResourceRef('@local', '/Castle.in.the.Sky.1986.mkv'),
+        'Castle.in.the.Sky.1986.mkv',
+        isFolder: false,
+      ),
+    );
+    addToLibrary(library, file);
+    library.metadata.setSetting(MetadataRepository.uiLanguageKey, 'zh-CN');
+    final worker = MetadataQueueRunner(
+      library,
+      sources,
+      registry: MetadataRegistry()..register('tmdb', translated),
+      artwork: artwork,
+    );
+    try {
+      await worker.reconcile();
+      await worker.runBatch();
+      expect(worker.queue.item(file)!['state'], 'completed');
+      expect(library.metadata.association(file)!.id, '10515');
+      expect(translated.searchLanguages, ['zh-CN', 'en-US']);
+    } finally {
+      await worker.dispose();
+    }
+  });
+  test(
+    'episode titles correct release numbers that differ from the catalog',
+    () {
+      const parser = MediaNameParser();
+      expect(
+        parser
+            .parse(
+              'Friends (1994) - S06E17 - The One With Unagi (1080p BluRay x265).mkv',
+            )
+            .episodeTitle,
+        'The One With Unagi',
+      );
+      expect(
+        parser.parse('Chernobyl.S01E01.INTERNAL.1080p.BluRay.mkv').episodeTitle,
+        isNull,
+      );
+      expect(parser.parse('Show.S01E02.720p.mkv').episodeTitle, isNull);
+      final names = {
+        15: ['The One That Could Have Been'],
+        16: ['The One with Unagi'],
+        17: ['The One Where Ross Dates a Student'],
+      };
+      // The catalog merged a two-parter, so release S06E17 is its E16.
+      expect(
+        MetadataQueueRunner.episodeByTitle('The One With Unagi', 17, names),
+        16,
+      );
+      expect(
+        MetadataQueueRunner.episodeByTitle(
+          'The One That Could Have Been (2)',
+          16,
+          names,
+        ),
+        15,
+      );
+      // A shared opening ("The One with the ...") is not a match.
+      expect(
+        MetadataQueueRunner.episodeByTitle('The One With The Ring', 23, {
+          22: ['The One with the Ring'],
+          23: ['The One with the Proposal'],
+        }),
+        22,
+      );
+      // A matching title, or one matching nothing, keeps the number.
+      expect(
+        MetadataQueueRunner.episodeByTitle('The One with Unagi', 16, names),
+        isNull,
+      );
+      expect(MetadataQueueRunner.episodeByTitle('Pilot', 16, names), isNull);
+      // A merged finale "Part A; Part B" matches either part.
+      expect(
+        MetadataQueueRunner.episodeByTitle('Come on Over for Dinner', 23, {
+          21: ['Then I Really Got Scared'],
+          22: ['And Lots of Security...; Come on Over for Dinner'],
+        }),
+        22,
+      );
+      // Two catalog episodes with that title: ambiguous, keep the number.
+      expect(
+        MetadataQueueRunner.episodeByTitle('Reunion', 3, {
+          1: ['Reunion'],
+          2: ['Reunion'],
+          3: ['Something Else'],
+        }),
+        isNull,
+      );
+    },
+  );
   test('native runtime schedules persistent workers without depending on a library page', () async {
     addToLibrary(library, media);
     final scheduler = TestScheduler(true);
@@ -771,4 +918,42 @@ void main() {
       await runtime.dispose();
     }
   });
+}
+
+/// TMDB stand-in whose search titles follow the request language.
+class _TranslatedProvider implements Plugin, MetadataCapability {
+  final searchLanguages = <String>[];
+  @override
+  PluginManifest get manifest =>
+      const PluginManifest('metadata.test', 'Test', browseExperience: 'none');
+  @override
+  Set<MetadataAction> get actions => MetadataAction.values.toSet();
+  MetadataRecord _movie(String id, String title, String original) =>
+      MetadataRecord(
+        ref: MetadataRef('tmdb', MediaKind.movie, id),
+        fields: {'title': title, 'originalTitle': original, 'year': 1986},
+      );
+  @override
+  Future<MetadataResult> lookup(
+    MetadataRequest request,
+    CallContext context,
+  ) async {
+    if (request.action == MetadataAction.search) {
+      searchLanguages.add(request.language);
+      final english = request.language.startsWith('en');
+      return MetadataResult([
+        _movie('10515', english ? 'Castle in the Sky' : '天空之城', '天空の城ラピュタ'),
+        _movie('99', english ? 'Castle Keep' : '城堡', 'Castle Keep'),
+      ]);
+    }
+    if (request.action == MetadataAction.alternativeTitles) {
+      return MetadataResult([
+        MetadataRecord(ref: request.ref!, fields: {'alternativeTitles': <String>[]}),
+      ]);
+    }
+    return MetadataResult([_movie(request.ref!.id, '天空之城', '天空の城ラピュタ')]);
+  }
+
+  @override
+  Future<void> dispose() async {}
 }
