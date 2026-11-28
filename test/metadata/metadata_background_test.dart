@@ -1078,7 +1078,10 @@ class _YearProvider implements Plugin, MetadataCapability {
     }
     if (request.action == MetadataAction.alternativeTitles) {
       return MetadataResult([
-        MetadataRecord(ref: request.ref!, fields: {'alternativeTitles': []}),
+        MetadataRecord(
+          ref: request.ref!,
+          fields: {'alternativeTitles': <String>[]},
+        ),
       ]);
     }
     return MetadataResult([_movie(request.ref!.id, 1990)]);
