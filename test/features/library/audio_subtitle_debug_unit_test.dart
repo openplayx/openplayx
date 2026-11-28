@@ -75,7 +75,10 @@ Future<void> _settleIo(WidgetTester tester) async {
 }
 
 Future<void> _until(WidgetTester tester, Finder f) async {
-  for (var i = 0; i < 80; i++) {
+  // Real file I/O competes with native builds on CI; keep pumping the fake
+  // clock until the condition holds, with a bounded real-time deadline.
+  final elapsed = Stopwatch()..start();
+  while (elapsed.elapsed < const Duration(seconds: 15)) {
     await tester.runAsync(() => Future<void>.delayed(const Duration(milliseconds: 20)));
     await tester.pump(const Duration(milliseconds: 50));
     if (f.evaluate().isNotEmpty) return;
